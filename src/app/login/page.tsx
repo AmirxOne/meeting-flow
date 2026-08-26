@@ -33,15 +33,15 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
           <Image
-            src="/logo-black@4x.png"
-            alt="مرسا"
-            width={48}
-            height={48}
-            className="h-12 w-12 object-contain"
+            src="/logo-black@8x.png"
+            alt="مهرسا"
+            width={64}
+            height={64}
+            className="h-16 w-16 object-contain"
             priority
           />
           <div className="text-center">
-            <h1 className="text-lg font-bold">مرسا</h1>
+            <h1 className="text-lg font-bold">مهرسا</h1>
             <p className="mt-1 text-[12px] text-ink-soft">سیستم مدیریت جلسات سازمانی</p>
           </div>
         </div>

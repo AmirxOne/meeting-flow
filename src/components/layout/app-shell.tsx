@@ -78,15 +78,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-l border-line bg-white lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-line px-5">
           <Image
-            src="/logo-black@4x.png"
-            alt="مرسا"
-            width={32}
-            height={32}
-            className="h-8 w-8 object-contain"
+            src="/logo-black@8x.png"
+            alt="مهرسا"
+            width={40}
+            height={40}
+            className="h-10 w-10 object-contain"
             priority
           />
           <div>
-            <p className="text-[14px] font-bold leading-4">مرسا</p>
+            <p className="text-[14px] font-bold leading-4">مهرسا</p>
             <p className="text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
           </div>
         </div>
@@ -181,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="absolute inset-0 bg-black/30" onClick={() => setDrawerOpen(false)} />
           <div className="absolute right-0 top-0 h-full w-72 bg-white p-4 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-[14px] font-bold">مرسا</p>
+              <p className="text-[14px] font-bold">مهرسا</p>
               <button onClick={() => setDrawerOpen(false)} aria-label="بستن">
                 <X className="h-5 w-5" />
               </button>
