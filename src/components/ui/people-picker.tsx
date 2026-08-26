@@ -1,16 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, X, Building2, Briefcase } from "lucide-react";
+import { X, Building2, Briefcase, Search, ChevronDown } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
-import { cn, faStr } from "@/lib";
+import { cn, faNum, faStr } from "@/lib";
 import { useToast } from "@/components/ui/toast";
 
 export interface PickedPerson {
-  /** "user:<id>" for company members (resolvable to MeetingParticipant),
-   *  "dir:<id>" for known external contacts,
-   *  "new:<name>" for ad-hoc typed people */
+  /** "dir:<id>" for directory entries, "new:<name>" for ad-hoc typed people */
   ref: string;
   name: string;
   company?: string;
@@ -30,43 +28,55 @@ interface DirectoryPerson {
   jobTitle: string | null;
 }
 
-function refOf(p: DirectoryPerson): string {
-  return `dir:${p.id}`;
-}
+const PAGE = 20;
 
 /**
- * Universal people picker: search the company directory (internal members +
- * known external contacts), or type a brand-new name for one-off guests.
- * Persian, RTL, custom (no native controls).
+ * Multi-select searchable people picker — scales to 1000+ people.
+ * Server-side search (debounced), keyboard nav, chips inside the box,
+ * manual entry fallback for people not in the directory.
  */
 export function PeoplePicker({
   value,
   onChange,
   allowManual = true,
-  placeholder = "افزودن فرد — بنویسید یا جستجو کنید…",
+  placeholder = "جستجو و انتخاب افراد…",
   max,
+  disabled,
 }: {
   value: PickedPerson[];
   onChange: (people: PickedPerson[]) => void;
   allowManual?: boolean;
   placeholder?: string;
   max?: number;
+  disabled?: boolean;
 }) {
   const { push } = useToast();
   const qc = useQueryClient();
   const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [showMore, setShowMore] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [manual, setManual] = useState({ name: "", company: "", jobTitle: "", phone: "", email: "" });
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
-  const { data } = useQuery({
-    queryKey: ["people", query],
+  // debounce search (300ms) — server-side query for scale
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const { data, isFetching } = useQuery({
+    queryKey: ["people", debounced],
     queryFn: () =>
-      api<{ people: DirectoryPerson[] }>(
-        `/api/people?q=${encodeURIComponent(query)}`,
+      api<{ people: DirectoryPerson[]; total: number }>(
+        `/api/people?q=${encodeURIComponent(debounced)}&take=200`,
       ),
     enabled: open,
+    staleTime: 15_000,
   });
 
   useEffect(() => {
@@ -75,30 +85,53 @@ export function PeoplePicker({
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setOpen(false);
         setManualMode(false);
+        setShowMore(false);
       }
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open]);
 
-  const pickedRefs = new Set(value.map((v) => v.ref));
+  // reset highlight when results change
+  useEffect(() => {
+    setActive(0);
+    setShowMore(false);
+  }, [debounced]);
 
-  const results = (data?.people ?? []).filter((p) => {
-    if (pickedRefs.has(refOf(p))) return false;
-    if (pickedRefs.has(`new:${p.name}`)) return false;
-    return true;
-  });
+  useEffect(() => {
+    if (!open || !listRef.current) return;
+    const el = listRef.current.querySelectorAll("[data-idx]")[active] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [active, open]);
+
+  const pickedRefs = useMemo(() => new Set(value.map((v) => v.ref)), [value]);
+
+  const results = useMemo(
+    () =>
+      (data?.people ?? []).filter((p) => {
+        if (pickedRefs.has(`dir:${p.id}`)) return false;
+        if (pickedRefs.has(`new:${p.name}`)) return false;
+        return true;
+      }),
+    [data, pickedRefs],
+  );
+
+  const visible = showMore ? results : results.slice(0, PAGE);
+  const totalPeople = data?.total ?? 0;
 
   const exactExists =
     results.some((r) => r.name === query.trim()) ||
     value.some((v) => v.name === query.trim());
 
   function pick(p: DirectoryPerson) {
-    if (max && value.length >= max) return;
+    if (max && value.length >= max) {
+      push(`حداکثر ${faNum(max)} نفر`, "error");
+      return;
+    }
     onChange([
       ...value,
       {
-        ref: refOf(p),
+        ref: `dir:${p.id}`,
         name: p.name,
         company: p.company ?? undefined,
         jobTitle: p.jobTitle ?? undefined,
@@ -108,6 +141,17 @@ export function PeoplePicker({
       },
     ]);
     setQuery("");
+    inputRef.current?.focus();
+  }
+
+  function quickAddTyped() {
+    const name = query.trim();
+    if (name.length < 2) return;
+    if (max && value.length >= max) return;
+    if (exactExists) return;
+    onChange([...value, { ref: `new:${name}`, name, kind: "EXTERNAL" }]);
+    setQuery("");
+    inputRef.current?.focus();
   }
 
   async function saveManualToDirectory() {
@@ -137,83 +181,96 @@ export function PeoplePicker({
     }
   }
 
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (manualMode) return;
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        if (!open) { setOpen(true); break; }
+        setActive((a) => Math.min(visible.length - 1, a + 1));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        if (open) setActive((a) => Math.max(0, a - 1));
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (open && visible[active]) pick(visible[active]);
+        else if (open && allowManual && query.trim().length >= 2 && !exactExists) quickAddTyped();
+        break;
+      case "Backspace":
+        if (query === "" && value.length > 0) {
+          e.preventDefault();
+          onChange(value.slice(0, -1));
+        }
+        break;
+      case "Escape":
+        setOpen(false);
+        break;
+    }
+  }
+
+  const atMax = max !== undefined && value.length >= max;
+
   return (
     <div ref={rootRef} className="relative">
-      {/* selected chips */}
-      {value.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-1.5">
-          {value.map((p) => (
-            <span
-              key={p.ref}
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px]",
-                p.kind === "INTERNAL"
-                  ? "border-ink bg-ink text-white"
-                  : "border-line bg-paper-soft text-ink",
-              )}
-            >
-              {p.kind === "EXTERNAL" && "خارجی · "}
-              {p.name}
-              {p.company ? ` (${p.company})` : ""}
-              <button
-                type="button"
-                onClick={() => onChange(value.filter((x) => x.ref !== p.ref))}
-                className="opacity-70 hover:opacity-100"
-                aria-label={`حذف ${p.name}`}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* search trigger */}
-      <div className="flex h-11 items-center gap-2 rounded-lg border border-[#d9d9e0] bg-white px-3.5 focus-within:border-ink focus-within:shadow-[0_0_0_3px_rgba(13,13,13,0.08)]">
-        <UserPlus className="h-4 w-4 shrink-0 text-ink-faint" />
-        <input
-          value={query}
-          onFocus={() => setOpen(true)}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
-            setManualMode(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && allowManual && query.trim().length >= 2 && !exactExists) {
-              e.preventDefault();
-              // quick add without company info
-              if (!(max && value.length >= (max ?? 99))) {
-                onChange([
-                  ...value,
-                  { ref: `new:${query.trim()}`, name: query.trim(), kind: "EXTERNAL" },
-                ]);
-                setQuery("");
-              }
-            }
-          }}
-          placeholder={placeholder}
-          className="w-full bg-transparent text-[13px] outline-none placeholder:text-ink-faint"
-        />
-        {query.trim().length >= 2 && allowManual && !exactExists && (
-          <button
-            type="button"
-            onClick={() => setManualMode(true)}
-            className="shrink-0 rounded-md bg-paper-soft px-2 py-1 text-[11px] text-ink-soft hover:bg-paper-deep"
-          >
-            + ثبت «{query.trim()}»
-          </button>
+      {/* combobox with chips inside */}
+      <div
+        onClick={() => !disabled && (inputRef.current?.focus(), setOpen(true))}
+        className={cn(
+          "flex min-h-11 cursor-text flex-wrap items-center gap-1.5 rounded-lg border bg-white px-3 py-2 transition-colors",
+          disabled && "cursor-not-allowed bg-paper-soft",
+          open && !disabled
+            ? "border-ink shadow-[0_0_0_3px_rgba(13,13,13,0.08)]"
+            : "border-[#d9d9e0] hover:border-ink/50",
         )}
+      >
+        {value.map((p) => (
+          <span
+            key={p.ref}
+            className={cn(
+              "inline-flex max-w-56 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
+              p.kind === "INTERNAL" ? "bg-ink text-white" : "bg-paper-deep text-ink",
+            )}
+          >
+            {p.kind === "EXTERNAL" && "خارجی · "}
+            <span className="truncate">{p.name}</span>
+            {p.company && <span className="opacity-70">({p.company})</span>}
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(value.filter((x) => x.ref !== p.ref));
+              }}
+              className="opacity-70 hover:opacity-100"
+              aria-label={`حذف ${p.name}`}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          ref={inputRef}
+          value={query}
+          disabled={disabled || atMax}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); setManualMode(false); }}
+          onKeyDown={onKeyDown}
+          placeholder={value.length === 0 ? placeholder : atMax ? `حداکثر ${faNum(max)} نفر` : "افراد بیشتر…"}
+          className="h-6 min-w-24 flex-1 bg-transparent text-[13px] outline-none placeholder:text-ink-faint"
+        />
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-ink-faint transition-transform", open && "rotate-180")} />
       </div>
 
       {/* dropdown */}
-      {open && (
-        <div className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 max-h-80 overflow-y-auto rounded-lg border border-line bg-white p-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
+      {open && !disabled && (
+        <div className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border border-line bg-white shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
           {/* manual form */}
           {manualMode ? (
-            <div className="space-y-2 p-2">
+            <div className="space-y-2 p-3">
               <p className="text-[12px] font-bold">افزودن فرد جدید به دایرکتوری</p>
-              <input value={manual.name} onChange={(e) => setManual({ ...manual, name: e.target.value })} placeholder="نام و نام خانوادگی *" className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+              <input autoFocus value={manual.name} onChange={(e) => setManual({ ...manual, name: e.target.value })} placeholder="نام و نام خانوادگی *" className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
               <div className="grid grid-cols-2 gap-2">
                 <input value={manual.company} onChange={(e) => setManual({ ...manual, company: e.target.value })} placeholder="شرکت / سازمان" className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
                 <input value={manual.jobTitle} onChange={(e) => setManual({ ...manual, jobTitle: e.target.value })} placeholder="عنوان شغلی" className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
@@ -221,28 +278,46 @@ export function PeoplePicker({
                 <input dir="ltr" value={manual.email} onChange={(e) => setManual({ ...manual, email: e.target.value })} placeholder="ایمیل" className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={saveManualToDirectory} className="h-9 flex-1 rounded-md bg-ink text-[12px] font-medium text-white hover:bg-[#2a2a2e]">
-                  ذخیره و افزودن
-                </button>
-                <button type="button" onClick={() => setManualMode(false)} className="h-9 rounded-md border border-line px-3 text-[12px] text-ink-soft">
-                  انصراف
-                </button>
+                <button type="button" onClick={saveManualToDirectory} className="h-9 flex-1 rounded-md bg-ink text-[12px] font-medium text-white hover:bg-[#2a2a2e]">ذخیره و افزودن</button>
+                <button type="button" onClick={() => setManualMode(false)} className="h-9 rounded-md border border-line px-3 text-[12px] text-ink-soft">انصراف</button>
               </div>
             </div>
           ) : (
-            <>
-              {!data && <p className="p-3 text-center text-[12px] text-ink-faint">در حال جستجو…</p>}
-              {data && results.length === 0 && (
-                <p className="p-3 text-center text-[12px] text-ink-faint">
-                  {query ? "کسی با این مشخصات یافت نشد — خودتان ثبت کنید" : "دایرکتوری خالی است"}
-                </p>
+            <div ref={listRef} className="max-h-72 overflow-y-auto">
+              {/* search meta */}
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-white px-3 py-2 text-[10px] text-ink-faint">
+                <span className="flex items-center gap-1">
+                  <Search className="h-3 w-3" />
+                  {debounced ? `نتایج «${debounced}»` : "همه"}
+                  {isFetching && " · در حال جستجو…"}
+                </span>
+                <span>{faNum(totalPeople)} نفر در دایرکتوری</span>
+              </div>
+
+              {results.length === 0 && (
+                <div className="p-4 text-center">
+                  <p className="text-[12px] text-ink-faint">
+                    {debounced ? "کسی با این مشخصات یافت نشد" : "دایرکتوری خالی است"}
+                  </p>
+                  {allowManual && debounced.length >= 2 && (
+                    <button type="button" onClick={() => setManualMode(true)} className="mt-2 rounded-md bg-paper-soft px-3 py-1.5 text-[11px] hover:bg-paper-deep">
+                      + ثبت «{debounced}» در دایرکتوری
+                    </button>
+                  )}
+                </div>
               )}
-              {results.map((p) => (
+
+              {visible.map((p, i) => (
                 <button
                   key={p.id}
                   type="button"
+                  data-idx={i}
+                  onMouseEnter={() => setActive(i)}
                   onClick={() => pick(p)}
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-right transition-colors hover:bg-paper-soft"
+                  className={cn(
+                    "flex w-full items-center gap-3 px-3 py-2.5 text-right transition-colors",
+                    active === i ? "bg-paper-soft" : "bg-transparent",
+                  )}
                 >
                   <span
                     className={cn(
@@ -261,23 +336,28 @@ export function PeoplePicker({
                     </span>
                     <span className="mt-0.5 flex items-center gap-2 text-[10px] text-ink-faint">
                       {p.jobTitle && (
-                        <span className="flex items-center gap-0.5">
-                          <Briefcase className="h-3 w-3" />
-                          {p.jobTitle}
-                        </span>
+                        <span className="flex items-center gap-0.5"><Briefcase className="h-3 w-3" />{p.jobTitle}</span>
                       )}
                       {p.company && (
-                        <span className="flex items-center gap-0.5">
-                          <Building2 className="h-3 w-3" />
-                          {p.company}
-                        </span>
+                        <span className="flex items-center gap-0.5"><Building2 className="h-3 w-3" />{p.company}</span>
                       )}
                       {p.phone && <span dir="ltr">{faStr(p.phone)}</span>}
                     </span>
                   </span>
                 </button>
               ))}
-            </>
+
+              {/* show more — only first PAGE by default for 1000+ scale */}
+              {results.length > PAGE && !showMore && (
+                <button
+                  type="button"
+                  onClick={() => setShowMore(true)}
+                  className="w-full border-t border-line py-2.5 text-center text-[11px] text-ink-soft hover:bg-paper-soft"
+                >
+                  نمایش {faNum(results.length - PAGE)} نفر دیگر…
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
