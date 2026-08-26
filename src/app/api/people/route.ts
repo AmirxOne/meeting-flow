@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     const q = sp.get("q")?.trim() ?? "";
     const kind = sp.get("kind"); // INTERNAL | EXTERNAL | undefined (all)
     const take = Math.min(Number(sp.get("take") ?? 50), 200);
+    const skip = Math.max(0, Number(sp.get("skip") ?? 0));
 
     const where = {
       ...(kind ? { kind } : {}),
@@ -34,8 +35,9 @@ export async function GET(req: NextRequest) {
         where,
         orderBy: [{ kind: "asc" }, { name: "asc" }],
         take,
+        skip,
       }),
-      prisma.personDirectory.count({ where: { ...(kind ? { kind } : {}) } }),
+      prisma.personDirectory.count({ where }),
     ]);
     return ok({ people, total });
   } catch (e) {
