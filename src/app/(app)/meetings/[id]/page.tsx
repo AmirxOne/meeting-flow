@@ -16,6 +16,8 @@ import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum, faStr, formatJalali, CANCEL_REASON_FA, RESPONSE_FA } from "@/lib";
 import { Select } from "@/components/ui/select";
+import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
+import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { CANCEL_REASONS } from "@/lib";
 
 interface MeetingDetail {
@@ -89,17 +91,13 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
   const [showReschedule, setShowReschedule] = useState(false);
   const [rsDate, setRsDate] = useState("");
   const [rsTime, setRsTime] = useState("");
+  // defaults fill on first data load (only once)
+  const defaultsFilled = useState(false);
   const [rsRoomId, setRsRoomId] = useState("");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", id],
     queryFn: () => api<{ meeting: MeetingDetail }>(`/api/meetings/${id}`),
-  });
-
-  const { data: usersData } = useQuery({
-    queryKey: ["users-lite"],
-    queryFn: () => api<{ users: { id: string; fullName: string; jobTitle: string | null }[] }>("/api/users"),
-    enabled: showAddUser && can("user:update"),
   });
 
   const { data: roomsData } = useQuery({
@@ -151,6 +149,12 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const m = data.meeting;
+  if (!defaultsFilled[0] && m) {
+    defaultsFilled[1](true);
+    const ltStart = new Date(new Date(m.startAt).getTime() + 210 * 60000);
+    setRsDate(ltStart.toISOString().slice(0, 10));
+    setRsTime(ltStart.toISOString().slice(11, 16));
+  }
   const isOrganizer = me?.id === m.organizer.id;
   const now = new Date();
   const isLive = m.status === "IN_PROGRESS";
@@ -284,24 +288,12 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
           <p className="mb-3 text-[13px] font-bold">زمان‌بندی مجدد</p>
           <div className="grid gap-3 sm:grid-cols-4">
             <div>
-              <label className="mb-1 block text-[11px] text-ink-soft">تاریخ (YYYY-MM-DD)</label>
-              <input
-                dir="ltr"
-                value={rsDate}
-                onChange={(e) => setRsDate(e.target.value)}
-                placeholder={new Date(m.startAt).toISOString().slice(0, 10)}
-                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-              />
+              <label className="mb-1 block text-[11px] text-ink-soft">تاریخ (شمسی)</label>
+              <JalaliDatePicker value={rsDate} onChange={setRsDate} />
             </div>
             <div>
-              <label className="mb-1 block text-[11px] text-ink-soft">ساعت شروع (HH:MM)</label>
-              <input
-                dir="ltr"
-                value={rsTime}
-                onChange={(e) => setRsTime(e.target.value)}
-                placeholder="10:00"
-                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-              />
+              <label className="mb-1 block text-[11px] text-ink-soft">ساعت شروع</label>
+              <TimePicker value={rsTime} onChange={setRsTime} />
             </div>
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">اتاق</label>
@@ -324,7 +316,6 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
                 onClick={() => {
                   const base = rsDate || new Date(m.startAt).toISOString().slice(0, 10);
                   const time = rsTime || new Date(m.startAt).toISOString().slice(11, 16);
-                  // interpret as Tehran wall-clock → UTC
                   const [y, mo, d] = base.split("-").map(Number);
                   const [h, mi] = time.split(":").map(Number);
                   const utc = new Date(Date.UTC(y, mo - 1, d, h, mi) - 210 * 60000);
@@ -393,32 +384,12 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
       {showAddUser && (
         <Card className="p-4">
           <p className="mb-3 text-[13px] font-bold">افزودن مشارکت‌کننده</p>
-          {usersData ? (
-            <div className="flex flex-wrap gap-2">
-              <Select
-                value={addUserId}
-                onChange={setAddUserId}
-                placeholder="انتخاب کاربر…"
-                className="min-w-56 flex-1"
-                options={usersData.users
-                  .filter((u) => !m.participants.some((p) => p.userId === u.id))
-                  .map((u) => ({
-                    value: u.id,
-                    label: u.fullName,
-                    hint: u.jobTitle ?? undefined,
-                  }))}
-              />
-              <Button
-                disabled={!addUserId}
-                loading={busy === "adduser"}
-                onClick={() => act("adduser", `/api/meetings/${id}/participants`, { userId: addUserId }, "فرد اضافه شد")}
-              >
-                افزودن
-              </Button>
-            </div>
-          ) : (
-            <p className="text-[12px] text-ink-faint">در حال بارگذاری کاربران… (نیاز به دسترسی مدیریت کاربران)</p>
-          )}
+          <AddParticipantBlock
+            meetingId={id}
+            existingUserIds={m.participants.map((p) => p.userId)}
+            existingGuestNames={m.guests.map((g) => g.name)}
+            onDone={() => qc.invalidateQueries({ queryKey: ["meeting", id] })}
+          />
         </Card>
       )}
 
@@ -663,6 +634,80 @@ function RejectButton({ meetingId, onDone }: { meetingId: string; onDone: () => 
         }}
       >
         ثبت رد
+      </Button>
+    </div>
+  );
+}
+
+
+function AddParticipantBlock({
+  meetingId,
+  existingUserIds,
+  existingGuestNames,
+  onDone,
+}: {
+  meetingId: string;
+  existingUserIds: string[];
+  existingGuestNames: string[];
+  onDone: () => void;
+}) {
+  const { push } = useToast();
+  const [picked, setPicked] = useState<PickedPerson[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  async function add() {
+    if (picked.length === 0) return;
+    setBusy(true);
+    let okCount = 0;
+    for (const person of picked) {
+      try {
+        const dir = await api<{ people: { id: string; userId: string | null }[] }>("/api/people");
+        const userIdByDir = new Map(dir.people.map((d) => [d.id, d.userId]));
+        if (person.ref.startsWith("dir:")) {
+          const uid = userIdByDir.get(person.ref.slice(4));
+          if (uid) {
+            await api(`/api/meetings/${meetingId}/participants`, {
+              method: "POST",
+              json: { userId: uid },
+            });
+            okCount++;
+            continue;
+          }
+        }
+        // external / new person → register as guest via guests API
+        await api(`/api/meetings/${meetingId}/guests`, {
+          method: "POST",
+          json: {
+            name: person.name,
+            company: person.company,
+            phone: person.phone,
+            email: person.email,
+          },
+        });
+        okCount++;
+      } catch (e) {
+        push(`خطا در افزودن ${person.name}: ${(e as ApiError).message}`, "error");
+      }
+    }
+    setBusy(false);
+    if (okCount > 0) {
+      push(`${okCount} نفر اضافه شد`, "success");
+      setPicked([]);
+      onDone();
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-start gap-2">
+      <div className="min-w-56 flex-1">
+        <PeoplePicker
+          value={picked}
+          onChange={setPicked}
+          placeholder="انتخاب از افراد شرکت یا ثبت فرد جدید…"
+        />
+      </div>
+      <Button disabled={picked.length === 0} loading={busy} onClick={add}>
+        افزودن
       </Button>
     </div>
   );

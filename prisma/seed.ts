@@ -158,6 +158,31 @@ async function main() {
     });
   }
 
+  // people directory — internal members mirrored from users + known externals
+  await prisma.personDirectory.deleteMany({});
+  const allUsers = await prisma.user.findMany({ select: { id: true, fullName: true, email: true, phone: true, jobTitle: true } });
+  for (const u of allUsers) {
+    await prisma.personDirectory.create({
+      data: {
+        name: u.fullName,
+        kind: "INTERNAL",
+        email: u.email,
+        phone: u.phone,
+        jobTitle: u.jobTitle,
+        userId: u.id,
+      },
+    }).catch(() => {});
+  }
+  const externals = [
+    { name: "مهندس تهرانی", company: "صنایع نمونه", phone: "09131234567", email: "tehrani@sanaye-nemooneh.ir", jobTitle: "مدیر پروژه" },
+    { name: "مهدی کاظمی", company: "شرکت دیگر", phone: "09121234567", jobTitle: "کاندیدای استخدام" },
+    { name: "خانم رضوانی", company: "گروه بازرگانی آرمان", phone: "09191234567", email: "rezvani@arman-co.ir", jobTitle: "مدیر بازرگانی" },
+    { name: "آقای شریفی", company: "مشاوران مالی سپهر", phone: "09351234567", jobTitle: "مشاور مالی" },
+  ];
+  for (const ext of externals) {
+    await prisma.personDirectory.create({ data: { ...ext, kind: "EXTERNAL" } }).catch(() => {});
+  }
+
   // branch managers
   await prisma.branch.update({
     where: { id: branch2.id },

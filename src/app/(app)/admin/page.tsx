@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, Settings, DoorOpen, ScrollText } from "lucide-react";
+import { Users, Settings, DoorOpen, ScrollText, Contact } from "lucide-react";
 import { getSessionUser, can } from "@/server/auth/session";
 import { redirect } from "next/navigation";
 
@@ -18,6 +18,7 @@ export default async function AdminPage() {
 
   const items = [
     { href: "/admin/users", label: "کاربران", desc: "مدیریت کاربران و نقش‌ها", icon: Users, perm: "user:update" },
+  { href: "/admin/people", label: "افراد", desc: "دایرکتوری اعضا و ارتباطات خارجی", icon: Contact, perm: null },
     { href: "/admin/rooms", label: "اتاق‌ها", desc: "مدیریت اتاق‌های جلسه", icon: DoorOpen, perm: "room:update" },
     { href: "/admin/policies", label: "سیاست‌ها", desc: "قواعد تأیید و محدودیت‌ها", icon: Settings, perm: "policy:manage" },
     { href: "/admin/audit-logs", label: "لاگ ممیزی", desc: "تاریخچه تمام عملیات", icon: ScrollText, perm: "audit:view" },

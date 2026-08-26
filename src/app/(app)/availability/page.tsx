@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, faStr, toJalali } from "@/lib";
 import { Select } from "@/components/ui/select";
+import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 
 interface Slot {
   start: string;
@@ -23,20 +24,13 @@ export default function AvailabilityPage() {
     queryKey: ["branches"],
     queryFn: () => api<{ branches: { id: string; name: string }[] }>("/api/branches"),
   });
-  const { data: usersData } = useQuery({
-    queryKey: ["users-lite"],
-    queryFn: () => api<{ users: { id: string; fullName: string }[] }>("/api/users"),
-  });
-
   const today = toJalali(new Date());
   const [branchId, setBranchId] = useState("");
-  const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [people, setPeople] = useState<PickedPerson[]>([]);
   const [durationMin, setDurationMin] = useState(30);
   const [days, setDays] = useState(3);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const users = usersData?.users ?? [];
 
   async function search() {
     if (!branchId) {
@@ -46,6 +40,12 @@ export default function AvailabilityPage() {
     setLoading(true);
     setSlots(null);
     try {
+      const dir = await api<{ people: { id: string; userId: string | null }[] }>("/api/people");
+      const userIdByDir = new Map(dir.people.map((d) => [d.id, d.userId]));
+      const participantIds = people
+        .filter((p) => p.ref.startsWith("dir:"))
+        .map((p) => userIdByDir.get(p.ref.slice(4)))
+        .filter((x): x is string => !!x);
       const data = await api<{ slots: Slot[] }>("/api/availability", {
         method: "POST",
         json: {
@@ -114,30 +114,9 @@ export default function AvailabilityPage() {
 
           <div>
             <label className="mb-1.5 block text-[12px] font-medium">
-              افراد ({faNum(participantIds.length)} نفر)
+              افراد ({faNum(people.length)} نفر — عضو شرکت یا فرد خارجی)
             </label>
-            <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto rounded-md border border-line p-2.5">
-              {users.map((u) => {
-                const selected = participantIds.includes(u.id);
-                return (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() =>
-                      setParticipantIds((prev) =>
-                        selected ? prev.filter((x) => x !== u.id) : [...prev, u.id],
-                      )
-                    }
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-[12px]",
-                      selected ? "border-ink bg-ink text-white" : "border-line text-ink-soft",
-                    )}
-                  >
-                    {u.fullName}
-                  </button>
-                );
-              })}
-            </div>
+            <PeoplePicker value={people} onChange={setPeople} />
           </div>
 
           <Button onClick={search} loading={loading} className="w-full sm:w-auto">
