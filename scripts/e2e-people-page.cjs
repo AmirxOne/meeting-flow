@@ -7,6 +7,7 @@ const { chromium } = require("playwright");
     headless: true,
   });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const UNIQ = Date.now() % 100000;
   const results = [];
   const check = (n, c) => results.push([n, !!c]);
 
@@ -25,54 +26,56 @@ const { chromium } = require("playwright");
   const cards = await page.locator("text=عضو شرکت").count();
   check(`directory cards render (${cards} internal badges)`, cards >= 5);
 
-  // 2. filter chips work
-  await page.locator('button:has-text("افراد خارجی")').first().click();
+  // 2. filter dropdown works (open نوع → افراد خارجی)
+  await page.locator('button[aria-haspopup="listbox"]', { hasText: 'نوع' }).first().click();
+  await page.waitForTimeout(500);
+  await page.locator('ul[role="listbox"] li', { hasText: 'افراد خارجی' }).first().click();
   await page.waitForTimeout(1200);
   const externalBadges = await page.locator('span:has-text("خارجی")').count();
   const internalLeft = await page.locator('button:has-text("عضو شرکت") >> nth=-1').count();
   check(`kind filter applied (external visible: ${externalBadges})`, externalBadges >= 2);
 
   // back to all
-  await page.locator('button:has-text("همه")').first().click();
+  await page.locator('button[aria-haspopup="listbox"]', { hasText: 'نوع' }).first().click();
+  await page.waitForTimeout(500);
+  await page.locator('ul[role="listbox"] li', { hasText: 'همه' }).first().click();
   await page.waitForTimeout(1000);
 
   // 3. add a new external person (employee CAN add — shared directory)
   await page.locator('button:has-text("فرد جدید")').click();
-  await page.fill('input[placeholder*="نام و نام خانوادگی"]', "زائر تستی صفحه افراد");
-  await page.fill('input[placeholder*="شرکت"]', "شرکت تست الف");
-  await page.locator('button:has-text("افزودن")').last().click();
+  const dlg = page.locator('[role="dialog"]');
+  await dlg.waitFor({ timeout: 15000 });
+  await dlg.locator('input[placeholder*="نام و نام خانوادگی"]').fill(`${UNIQ} زائر تستی`);
+  await dlg.locator('input[placeholder*="شرکت"]').fill("شرکت تست الف");
+  await dlg.locator('button:has-text("افزودن")').last().click();
   await page.waitForTimeout(1500);
-  const added = await page.locator('text=زائر تستی صفحه افراد').count();
+  const added = await page.locator('tbody tr', { hasText: `${UNIQ} زائر تستی` }).count();
   check("new person added by employee", added >= 1);
 
   // 4. edit that person
-  for (const d of await page.locator("div.rounded-md.border").all()) {
-    const t = await d.textContent().catch(() => "");
-    if (t.includes("زائر تستی صفحه افراد")) {
-      await d.locator('button[title="ویرایش"]').click();
-      break;
-    }
+  {
+    const row = page.locator('tbody tr', { hasText: `${UNIQ} زائر تستی` }).first();
+    await row.waitFor({ timeout: 15000 });
+    await row.locator('button[title="ویرایش"]').click();
   }
-  await page.waitForTimeout(600);
-  const editInput = page.locator('input[placeholder*="نام و نام خانوادگی"]');
-  await editInput.fill("زائر تستی ویرایش‌شده");
-  await page.locator('button:has-text("ذخیره تغییرات")').last().click();
-  await page.waitForTimeout(1500);
-  const edited = await page.locator('text=زائر تستی ویرایش‌شده').count();
-  check("person edited", edited >= 1);
+  const editDlg = page.locator('[role="dialog"]');
+  await editDlg.waitFor({ timeout: 15000 });
+  await editDlg.locator('input[placeholder*="نام و نام خانوادگی"]').fill(`${UNIQ} renamed`);
+  await editDlg.locator('button:has-text("ذخیره تغییرات")').last().click();
+  await page.waitForTimeout(2000);
+  const edited = await page.locator('tbody tr', { hasText: `${UNIQ} renamed` }).count();
+  check('person edited (renamed)', edited >= 1);
 
   // 5. delete it
-  page.once("dialog", (d) => d.accept());
-  for (const d of await page.locator("div.rounded-md.border").all()) {
-    const t = await d.textContent().catch(() => "");
-    if (t.includes("زائر تستی ویرایش‌شده")) {
-      await d.locator('button[title="حذف"]').click();
-      break;
-    }
+  page.once('dialog', (d) => d.accept());
+  {
+    const row = page.locator('tbody tr', { hasText: `${UNIQ} renamed` }).first();
+    await row.waitFor({ timeout: 15000 });
+    await row.locator('button[title="حذف"]').click();
   }
-  await page.waitForTimeout(1500);
-  const gone = await page.locator('text=زائر تستی ویرایش‌شده').count();
-  check("person deleted", gone === 0);
+  await page.waitForTimeout(2000);
+  const gone = await page.locator('tbody tr', { hasText: `${UNIQ} renamed` }).count();
+  check('person deleted', gone === 0);
 
   // 6. sidebar link visible for employee
   await page.goto("http://localhost:3100/dashboard", { waitUntil: "domcontentloaded" });
