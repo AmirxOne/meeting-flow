@@ -44,9 +44,25 @@ export default function AdminPoliciesPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-3 p-4 lg:p-6">
-        <SkeletonBlock className="h-8 w-48" />
-        <SkeletonBlock className="h-96" />
+      <div className="mx-auto max-w-3xl space-y-4 p-4 lg:p-6">
+        <div className="skeleton h-7 w-40" />
+        <Card>
+          <div className="border-b border-line px-5 py-4">
+            <SkeletonBlock className="h-4 w-40" />
+            <SkeletonBlock className="mt-1 h-3 w-48" />
+          </div>
+          <div className="space-y-4 p-5">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between border-b border-line pb-4 last:border-0 last:pb-0">
+                <div className="space-y-1.5">
+                  <SkeletonBlock className="h-4 w-52" />
+                  <SkeletonBlock className="h-3 w-64" />
+                </div>
+                <SkeletonBlock className="h-6 w-11 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
     );
   }

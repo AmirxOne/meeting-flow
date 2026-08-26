@@ -56,9 +56,52 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
 
   if (isLoading || !data) {
     return (
-      <div className="space-y-4 p-4 lg:p-6">
-        <SkeletonBlock className="h-8 w-56" />
-        <SkeletonBlock className="h-72" />
+      <div className="mx-auto max-w-5xl space-y-4 p-4 lg:p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1.5">
+            <SkeletonBlock className="h-6 w-40" />
+            <SkeletonBlock className="h-3.5 w-56" />
+          </div>
+          <SkeletonBlock className="h-5 w-16 rounded-full" />
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <div className="border-b border-line px-5 py-4">
+              <SkeletonBlock className="h-4 w-20" />
+              <SkeletonBlock className="mt-1 h-3 w-32" />
+            </div>
+            <div className="p-5">
+              <SkeletonBlock className="mb-4 h-10 rounded-md" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between border-b border-line py-3 last:border-0">
+                  <div className="space-y-1.5">
+                    <SkeletonBlock className="h-4 w-44" />
+                    <SkeletonBlock className="h-3 w-56" />
+                  </div>
+                  <SkeletonBlock className="h-5 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card>
+            <div className="border-b border-line px-5 py-4">
+              <SkeletonBlock className="h-4 w-24" />
+            </div>
+            <div className="space-y-3 p-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <SkeletonBlock className="h-3 w-20" />
+                  <SkeletonBlock className="h-3.5 w-16" />
+                </div>
+              ))}
+              <div className="flex flex-wrap gap-1.5 pt-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <SkeletonBlock key={i} className="h-5 w-16 rounded-full" />
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }

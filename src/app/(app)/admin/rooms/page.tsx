@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Power } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, SkeletonBlock } from "@/components/ui/card";
+import { Card, CardHeader, SkeletonBlock, SkeletonTable } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
@@ -227,7 +227,12 @@ export default function AdminRoomsPage() {
       )}
 
       {isLoading ? (
-        <SkeletonBlock className="h-72" />
+        <Card className="overflow-hidden">
+          <div className="border-b border-line px-5 py-4">
+            <SkeletonBlock className="h-4 w-32" />
+          </div>
+          <SkeletonTable rows={5} cols={7} />
+        </Card>
       ) : (
         <Card className="overflow-hidden">
           <CardHeader title={`اتاق‌ها (${faNum(data?.rooms.length ?? 0)})`} />

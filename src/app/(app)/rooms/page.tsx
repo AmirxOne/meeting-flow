@@ -61,10 +61,31 @@ export default function RoomsPage() {
   if (isLoading) {
     return (
       <div className="space-y-4 p-4 lg:p-6">
-        <SkeletonBlock className="h-8 w-40" />
+        <div className="flex items-center justify-between">
+          <div className="skeleton h-7 w-32" />
+          <div className="flex gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="skeleton h-3.5 w-12" />
+            ))}
+          </div>
+        </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-44" />
+            <Card key={i} className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="space-y-1.5">
+                  <div className="skeleton h-4.5 w-32" />
+                  <div className="skeleton h-3 w-24" />
+                </div>
+                <div className="skeleton h-5 w-14 rounded-full" />
+              </div>
+              <div className="mt-3 flex gap-1.5">
+                <div className="skeleton h-5 w-20 rounded-full" />
+                <div className="skeleton h-5 w-12 rounded-full" />
+                <div className="skeleton h-5 w-16 rounded-full" />
+              </div>
+              <div className="skeleton mt-3 h-9 rounded-md" />
+            </Card>
           ))}
         </div>
       </div>

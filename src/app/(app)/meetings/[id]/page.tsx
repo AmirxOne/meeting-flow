@@ -9,7 +9,7 @@ import {
   CalendarClock, ExternalLink, Users, UserCheck,
 } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
+import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock, SkeletonRow } from "@/components/ui/card";
 import { StatusBadge, TypeBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -130,10 +130,65 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
 
   if (isLoading) {
     return (
-      <div className="space-y-4 p-4 lg:p-6">
-        <SkeletonBlock className="h-10 w-64" />
-        <SkeletonBlock className="h-40" />
-        <SkeletonBlock className="h-64" />
+      <div className="mx-auto max-w-6xl space-y-4 p-4 lg:p-6">
+        {/* header — title + badges + back button */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <SkeletonBlock className="h-7 w-56" />
+            <SkeletonBlock className="h-5 w-20 rounded-full" />
+            <SkeletonBlock className="h-5 w-14 rounded-full" />
+          </div>
+          <SkeletonBlock className="h-8 w-28 rounded-md" />
+        </div>
+        {/* action buttons row */}
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonBlock key={i} className="h-8 w-24 rounded-md" />
+          ))}
+        </div>
+        {/* main grid 2:1 */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="space-y-4 lg:col-span-2">
+            <Card>
+              <div className="border-b border-line px-5 py-4">
+                <SkeletonBlock className="h-4 w-24" />
+              </div>
+              <div className="grid gap-3 p-5 sm:grid-cols-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <SkeletonBlock className="h-3 w-14" />
+                    <SkeletonBlock className="h-4 w-36" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+            <Card>
+              <div className="border-b border-line px-5 py-4">
+                <SkeletonBlock className="h-4 w-32" />
+                <SkeletonBlock className="mt-1 h-3 w-40" />
+              </div>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <SkeletonRow key={i} />
+              ))}
+            </Card>
+          </div>
+          <Card>
+            <div className="border-b border-line px-5 py-4">
+              <SkeletonBlock className="h-4 w-20" />
+            </div>
+            <div className="space-y-3 p-5">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="rounded-md border border-line p-3">
+                  <div className="flex items-center justify-between">
+                    <SkeletonBlock className="h-3.5 w-20" />
+                    <SkeletonBlock className="h-5 w-16 rounded-full" />
+                  </div>
+                  <SkeletonBlock className="mt-2 h-3 w-32" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }

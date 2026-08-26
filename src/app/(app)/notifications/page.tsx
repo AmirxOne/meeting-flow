@@ -44,11 +44,28 @@ export default function NotificationsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-3 p-4 lg:p-6">
-        <SkeletonBlock className="h-8 w-32" />
-        {Array.from({ length: 5 }).map((_, i) => (
-          <SkeletonBlock key={i} className="h-16" />
-        ))}
+      <div className="mx-auto max-w-3xl space-y-4 p-4 lg:p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="skeleton h-7 w-20" />
+            <div className="skeleton h-5 w-8 rounded-full" />
+          </div>
+          <div className="skeleton h-8 w-28 rounded-md" />
+        </div>
+        <Card>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className={i > 0 ? "border-t border-line" : ""}>
+              <div className="flex gap-3 px-5 py-4">
+                <div className="skeleton mt-0.5 h-5 w-5 shrink-0 rounded-md" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="skeleton h-4 w-2/3" />
+                  <div className="skeleton h-3 w-1/2" />
+                  <div className="skeleton h-2.5 w-32" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </Card>
       </div>
     );
   }
