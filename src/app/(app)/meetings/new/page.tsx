@@ -9,6 +9,7 @@ import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, faStr, formatJalali, toJalali, EQUIPMENT_FA, TYPE_FA } from "@/lib";
+import { Select } from "@/components/ui/select";
 
 interface Slot {
   start: string;
@@ -155,28 +156,20 @@ export default function NewMeetingPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">نوع جلسه</label>
-              <select
+              <Select
                 value={meetingType}
-                onChange={(e) => setMeetingType(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px] outline-none focus:border-ink"
-              >
-                {Object.entries(TYPE_FA).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
+                onChange={setMeetingType}
+                options={Object.entries(TYPE_FA).map(([value, label]) => ({ value, label }))}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">شعبه</label>
-              <select
+              <Select
                 value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px] outline-none focus:border-ink"
-              >
-                <option value="">انتخاب شعبه…</option>
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
+                onChange={setBranchId}
+                placeholder="انتخاب شعبه…"
+                options={branches.map((b) => ({ value: b.id, label: b.name }))}
+              />
             </div>
           </div>
           <div>
@@ -223,35 +216,35 @@ export default function NewMeetingPage() {
           <div className="grid gap-4 sm:grid-cols-4">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">سال</label>
-              <select value={jy} onChange={(e) => setJy(Number(e.target.value))} className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px]">
-                {[0, 1].map((d) => (
-                  <option key={d} value={today.jy + d}>{faNum(today.jy + d)}</option>
-                ))}
-              </select>
+              <Select
+                value={String(jy)}
+                onChange={(v) => setJy(Number(v))}
+                options={[0, 1].map((d) => ({ value: String(today.jy + d), label: faNum(today.jy + d) }))}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">ماه</label>
-              <select value={jm} onChange={(e) => setJm(Number(e.target.value))} className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px]">
-                {monthNames.map((name, i) => (
-                  <option key={i} value={i + 1}>{name}</option>
-                ))}
-              </select>
+              <Select
+                value={String(jm)}
+                onChange={(v) => setJm(Number(v))}
+                options={monthNames.map((name, i) => ({ value: String(i + 1), label: name }))}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">روز</label>
-              <select value={jd} onChange={(e) => setJd(Number(e.target.value))} className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px]">
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                  <option key={d} value={d}>{faNum(d)}</option>
-                ))}
-              </select>
+              <Select
+                value={String(jd)}
+                onChange={(v) => setJd(Number(v))}
+                options={Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: faNum(i + 1) }))}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">مدت (دقیقه)</label>
-              <select value={durationMin} onChange={(e) => setDurationMin(Number(e.target.value))} className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px]">
-                {[15, 30, 45, 60, 90, 120].map((d) => (
-                  <option key={d} value={d}>{faNum(d)}</option>
-                ))}
-              </select>
+              <Select
+                value={String(durationMin)}
+                onChange={(v) => setDurationMin(Number(v))}
+                options={[15, 30, 45, 60, 90, 120].map((d) => ({ value: String(d), label: `${faNum(d)} دقیقه` }))}
+              />
             </div>
           </div>
           <Button onClick={findSlots} loading={searching} className="w-full sm:w-auto">

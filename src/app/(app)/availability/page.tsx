@@ -9,6 +9,7 @@ import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, faStr, toJalali } from "@/lib";
+import { Select } from "@/components/ui/select";
 
 interface Slot {
   start: string;
@@ -86,40 +87,28 @@ export default function AvailabilityPage() {
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">شعبه</label>
-              <select
+              <Select
                 value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px] outline-none focus:border-ink"
-              >
-                <option value="">انتخاب…</option>
-                {(branchesData?.branches ?? []).map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
+                onChange={setBranchId}
+                placeholder="انتخاب…"
+                options={(branchesData?.branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">مدت جلسه</label>
-              <select
-                value={durationMin}
-                onChange={(e) => setDurationMin(Number(e.target.value))}
-                className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px] outline-none focus:border-ink"
-              >
-                {[15, 30, 45, 60, 90, 120].map((d) => (
-                  <option key={d} value={d}>{faNum(d)} دقیقه</option>
-                ))}
-              </select>
+              <Select
+                value={String(durationMin)}
+                onChange={(v) => setDurationMin(Number(v))}
+                options={[15, 30, 45, 60, 90, 120].map((d) => ({ value: String(d), label: `${faNum(d)} دقیقه` }))}
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">بازه جستجو</label>
-              <select
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value))}
-                className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3 text-[13px] outline-none focus:border-ink"
-              >
-                {[1, 2, 3, 7].map((d) => (
-                  <option key={d} value={d}>{faNum(d)} روز آینده</option>
-                ))}
-              </select>
+              <Select
+                value={String(days)}
+                onChange={(v) => setDays(Number(v))}
+                options={[1, 2, 3, 7].map((d) => ({ value: String(d), label: `${faNum(d)} روز آینده` }))}
+              />
             </div>
           </div>
 
