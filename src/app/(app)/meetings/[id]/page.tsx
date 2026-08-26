@@ -14,7 +14,8 @@ import { StatusBadge, TypeBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
-import { cn, faNum, faStr, formatJalali, CANCEL_REASONS as _, CANCEL_REASON_FA, RESPONSE_FA } from "@/lib";
+import { cn, faNum, faStr, formatJalali, CANCEL_REASON_FA, RESPONSE_FA } from "@/lib";
+import { Select } from "@/components/ui/select";
 import { CANCEL_REASONS } from "@/lib";
 
 interface MeetingDetail {
@@ -304,18 +305,16 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
             </div>
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">اتاق</label>
-              <select
+              <Select
                 value={rsRoomId}
-                onChange={(e) => setRsRoomId(e.target.value)}
-                className="h-10 w-full rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
-              >
-                <option value="">همان اتاق ({m.room?.name ?? "بدون اتاق"})</option>
-                {(roomsData?.rooms ?? []).map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} ({faNum(r.capacity)} نفر)
-                  </option>
-                ))}
-              </select>
+                onChange={setRsRoomId}
+                placeholder={`همان اتاق (${m.room?.name ?? "بدون اتاق"})`}
+                options={(roomsData?.rooms ?? []).map((r) => ({
+                  value: r.id,
+                  label: r.name,
+                  hint: `ظرفیت ${faNum(r.capacity)} نفر`,
+                }))}
+              />
             </div>
             <div className="flex items-end">
               <Button
@@ -360,17 +359,11 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
           <div className="grid gap-3 sm:grid-cols-3">
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">دلیل لغو</label>
-              <select
+              <Select
                 value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                className="h-10 w-full rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
-              >
-                {CANCEL_REASONS.map((r) => (
-                  <option key={r} value={r}>
-                    {CANCEL_REASON_FA[r]}
-                  </option>
-                ))}
-              </select>
+                onChange={setCancelReason}
+                options={CANCEL_REASONS.map((r) => ({ value: r, label: CANCEL_REASON_FA[r] }))}
+              />
             </div>
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">توضیح (اختیاری)</label>
@@ -402,20 +395,19 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
           <p className="mb-3 text-[13px] font-bold">افزودن مشارکت‌کننده</p>
           {usersData ? (
             <div className="flex flex-wrap gap-2">
-              <select
+              <Select
                 value={addUserId}
-                onChange={(e) => setAddUserId(e.target.value)}
-                className="h-10 min-w-56 flex-1 rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
-              >
-                <option value="">انتخاب کاربر…</option>
-                {usersData.users
+                onChange={setAddUserId}
+                placeholder="انتخاب کاربر…"
+                className="min-w-56 flex-1"
+                options={usersData.users
                   .filter((u) => !m.participants.some((p) => p.userId === u.id))
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.fullName} {u.jobTitle ? `— ${u.jobTitle}` : ""}
-                    </option>
-                  ))}
-              </select>
+                  .map((u) => ({
+                    value: u.id,
+                    label: u.fullName,
+                    hint: u.jobTitle ?? undefined,
+                  }))}
+              />
               <Button
                 disabled={!addUserId}
                 loading={busy === "adduser"}

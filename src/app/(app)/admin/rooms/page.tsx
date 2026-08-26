@@ -8,6 +8,7 @@ import { Card, CardHeader, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, EQUIPMENT_FA } from "@/lib";
+import { Select } from "@/components/ui/select";
 import { EQUIPMENT_LIST } from "@/lib";
 
 interface AdminRoom {
@@ -87,16 +88,12 @@ export default function AdminRoomsPage() {
       {showForm && (
         <Card className="p-4">
           <div className="grid gap-3 sm:grid-cols-3">
-            <select
+            <Select
               value={form.branchId}
-              onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-              className="h-10 rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
-            >
-              <option value="">انتخاب شعبه…</option>
-              {(branchesData?.branches ?? []).map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
+              onChange={(v) => setForm({ ...form, branchId: v })}
+              placeholder="انتخاب شعبه…"
+              options={(branchesData?.branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
+            />
             <input
               placeholder="نام اتاق"
               value={form.name}

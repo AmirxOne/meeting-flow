@@ -6,6 +6,7 @@ import { Download, BarChart3 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, SkeletonBlock } from "@/components/ui/card";
 import { cn, faNum, faStr, STATUS_FA, TYPE_FA } from "@/lib";
+import { Select } from "@/components/ui/select";
 
 interface Summary {
   totalMeetings: number;
@@ -82,29 +83,21 @@ export default function ReportsPage() {
           </div>
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">وضعیت</label>
-            <select
+            <Select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="h-10 w-full rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
-            >
-              <option value="">همه</option>
-              {Object.entries(STATUS_FA).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
+              onChange={setStatus}
+              placeholder="همه"
+              options={Object.entries(STATUS_FA).map(([value, label]) => ({ value, label }))}
+            />
           </div>
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">نوع جلسه</label>
-            <select
+            <Select
               value={meetingType}
-              onChange={(e) => setMeetingType(e.target.value)}
-              className="h-10 w-full rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
-            >
-              <option value="">همه</option>
-              {Object.entries(TYPE_FA).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
+              onChange={setMeetingType}
+              placeholder="همه"
+              options={Object.entries(TYPE_FA).map(([value, label]) => ({ value, label }))}
+            />
           </div>
         </div>
       </Card>
