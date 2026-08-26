@@ -59,34 +59,38 @@ const { chromium } = require("playwright");
   await page.screenshot({ path: "D:/meetinghub/e2e-datepicker.png" });
 
   // ── 4. PeoplePicker: search, pick internal + type new external ──
-  const peopleInput = page.locator('input[placeholder*="افزودن فرد"]').first();
+  const peopleInput = page.locator('input[placeholder*="جستجو و انتخاب"]').first();
   await peopleInput.click();
   await page.waitForTimeout(2000);
   // directory dropdown with badges
   const memberBadge = await page.locator('span:has-text("عضو شرکت")').count();
   check(`directory dropdown shows عضو شرکت badges (${memberBadge})`, memberBadge >= 1);
   // pick an internal member (امیر) — full list is open, no need to type
-  const amirBtn = page.locator('button:has-text("امیر حسینی")').first();
-  await amirBtn.waitFor({ state: "visible", timeout: 15000 });
-  await amirBtn.click();
+  // type to narrow then click the امیر row
+  await peopleInput.fill("امیر");
+  await page.waitForTimeout(900);
+  const amirRow = page.locator('[data-idx="0"]').first();
+  await amirRow.waitFor({ state: "visible", timeout: 15000 });
+  await amirRow.click();
   await page.waitForTimeout(600);
   const chip = await page.locator('span.chip, span.rounded-full:has-text("امیر حسینی")').count();
   check("internal member picked → chip", chip >= 1 || (await page.locator('text=امیر حسینی').count()) >= 1);
 
-  // type a brand-new external name and quick-add with Enter
-  await peopleInput.click();
-  await peopleInput.fill("زائر مهمان تستی");
-  await page.waitForTimeout(400);
-  await peopleInput.press("Enter");
-  await page.waitForTimeout(400);
-  const chip2 = await page.locator('span.rounded-full:has-text("زائر مهمان تستی"), span:has-text("زائر مهمان تستی")').count();
+  // type a brand-new external name and quick-add with Enter (input inside the combobox)
+  const comboInput = page.locator('div.min-h-11 input').first();
+  await comboInput.click();
+  await comboInput.fill("زائر مهمان تستی");
+  await page.waitForTimeout(600);
+  await comboInput.press("Enter");
+  await page.waitForTimeout(500);
+  const chip2 = await page.locator('div.min-h-11 span.rounded-full', { hasText: 'زائر مهمان تستی' }).count();
   check("manual typed external person added as chip", chip2 >= 1);
   await page.screenshot({ path: "D:/meetinghub/e2e-peoplepicker.png" });
 
   // ── 5. availability page PeoplePicker renders ──
   await page.goto("http://localhost:3100/availability", { waitUntil: "domcontentloaded" });
-  await page.locator('input[placeholder*="افزودن فرد"]').first().waitFor({ state: "visible", timeout: 30000 });
-  const availPicker = await page.locator('input[placeholder*="افزودن فرد"]').count();
+  await page.locator('input[placeholder*="جستجو و انتخاب"]').first().waitFor({ state: "visible", timeout: 30000 });
+  const availPicker = await page.locator('input[placeholder*="جستجو و انتخاب"]').count();
   check("availability has PeoplePicker", availPicker === 1);
 
   // ── 6. meeting detail: jalali picker in reschedule ──
