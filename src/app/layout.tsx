@@ -3,8 +3,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
-  title: "مرسا — مدیریت جلسات سازمانی",
-  description: "سیستم مدیریت جلسات مرسا — اتاق‌ها، زمان‌بندی و تأییدها",
+  title: "مهرسا — مدیریت جلسات سازمانی",
+  description: "سیستم مدیریت جلسات مهرسا — اتاق‌ها، زمان‌بندی و تأییدها",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
