@@ -8,6 +8,7 @@ import { Card, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
+import { Modal } from "@/components/ui/modal";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum, faStr } from "@/lib";
 
@@ -129,51 +130,57 @@ export default function BranchesPage() {
         )}
       </div>
 
-      {showForm && (
-        <Card className="p-4">
-          <p className="mb-3 text-[13px] font-bold">{editing ? `ویرایش ${editing.name}` : "شعبه جدید"}</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input
-              placeholder="نام شعبه *"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <input
-              placeholder="تلفن"
-              dir="ltr"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <input
-              placeholder="آدرس"
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink sm:col-span-2"
-            />
-            {managersData && (
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-[11px] text-ink-soft">مدیر شعبه</label>
-                <Select
-                  value={form.managerId}
-                  onChange={(v) => setForm({ ...form, managerId: v })}
-                  placeholder="بدون مدیر"
-                  options={managersData.users.map((u) => ({ value: u.id, label: u.fullName }))}
-                />
-              </div>
-            )}
-            <div className="flex gap-2 sm:col-span-2">
-              <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
-                {editing ? "ذخیره تغییرات" : "ایجاد شعبه"}
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>
-                انصراف
-              </Button>
-            </div>
+      <Modal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={editing ? `ویرایش ${editing.name}` : "شعبه جدید"}
+        subtitle="شعبه‌های سازمان — هر شعبه اتاق‌ها و کاربران خود را دارد"
+        wide
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
+              {editing ? "ذخیره تغییرات" : "ایجاد شعبه"}
+            </Button>
+            <Button variant="ghost" onClick={() => setShowForm(false)}>
+              انصراف
+            </Button>
           </div>
-        </Card>
-      )}
+        }
+      >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input
+          placeholder="نام شعبه *"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+        />
+        <input
+          placeholder="تلفن"
+          dir="ltr"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+        />
+        <input
+          placeholder="آدرس"
+          value={form.address}
+          onChange={(e) => setForm({ ...form, address: e.target.value })}
+          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink sm:col-span-2"
+        />
+        {managersData && (
+          <div className="sm:col-span-2">
+            <label className="mb-1 block text-[11px] text-ink-soft">مدیر شعبه</label>
+            <Select
+              value={form.managerId}
+              onChange={(v) => setForm({ ...form, managerId: v })}
+              placeholder="بدون مدیر"
+              options={managersData.users.map((u) => ({ value: u.id, label: u.fullName }))}
+            />
+          </div>
+        )}
+        
+        </div>
+      </Modal>
 
       {isLoading ? (
         <div className="space-y-4">

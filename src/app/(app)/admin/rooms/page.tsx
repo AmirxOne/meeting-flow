@@ -8,6 +8,7 @@ import { Card, CardHeader, SkeletonBlock, SkeletonTable } from "@/components/ui/
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
+import { Modal } from "@/components/ui/modal";
 import { cn, faNum, EQUIPMENT_FA, EQUIPMENT_LIST } from "@/lib";
 
 interface AdminRoom {
@@ -145,96 +146,101 @@ export default function AdminRoomsPage() {
         </Button>
       </div>
 
-      {showForm && (
-        <Card className="p-4">
-          <p className="mb-3 text-[13px] font-bold">{editing ? `ویرایش ${editing.name}` : "اتاق جدید"}</p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {!editing && (
-              <div>
-                <label className="mb-1 block text-[11px] text-ink-soft">شعبه *</label>
-                <Select
-                  value={form.branchId}
-                  onChange={(v) => setForm({ ...form, branchId: v })}
-                  placeholder="انتخاب شعبه…"
-                  options={(branchesData?.branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
-                />
-              </div>
-            )}
-            <input
-              placeholder="نام اتاق *"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <input
-              type="number"
-              dir="ltr"
-              placeholder="ظرفیت"
-              value={form.capacity}
-              onChange={(e) => setForm({ ...form, capacity: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <input
-              dir="ltr"
-              placeholder="ساعت باز (HH:MM)"
-              value={form.openTime}
-              onChange={(e) => setForm({ ...form, openTime: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <input
-              dir="ltr"
-              placeholder="ساعت بسته (HH:MM)"
-              value={form.closeTime}
-              onChange={(e) => setForm({ ...form, closeTime: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <label className="flex h-10 items-center gap-2 text-[12px]">
-              <input
-                type="checkbox"
-                checked={form.isVip}
-                onChange={(e) => setForm({ ...form, isVip: e.target.checked })}
-                className="h-4 w-4 accent-black"
-              />
-              اتاق VIP
-            </label>
-            <div className="sm:col-span-3">
-              <p className="mb-1.5 text-[11px] text-ink-soft">تجهیزات</p>
-              <div className="flex flex-wrap gap-1.5">
-                {EQUIPMENT_LIST.map((eq) => {
-                  const sel = form.equipment.includes(eq);
-                  return (
-                    <button
-                      key={eq}
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          equipment: sel ? form.equipment.filter((x) => x !== eq) : [...form.equipment, eq],
-                        })
-                      }
-                      className={cn(
-                        "rounded-full border px-3 py-1.5 text-[12px]",
-                        sel ? "border-ink bg-ink text-white" : "border-line text-ink-soft",
-                      )}
-                    >
-                      {EQUIPMENT_FA[eq]}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="sm:col-span-3">
-              <Button
-                onClick={save}
-                loading={busy}
-                disabled={!form.name.trim() || (!editing && !form.branchId)}
-              >
-                {editing ? "ذخیره تغییرات" : "ایجاد اتاق"}
-              </Button>
-            </div>
+      <Modal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={editing ? `ویرایش ${editing.name}` : "اتاق جدید"}
+        subtitle="اتاق جلسه در شعبه انتخابی ساخته می‌شود"
+        wide
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={save} loading={busy} disabled={!form.name.trim() || (!editing && !form.branchId)}>
+              {editing ? "ذخیره تغییرات" : "ایجاد اتاق"}
+            </Button>
+            <Button variant="ghost" onClick={() => setShowForm(false)}>
+              انصراف
+            </Button>
           </div>
-        </Card>
-      )}
+        }
+      >
+      <div className="grid gap-3 sm:grid-cols-3">
+        {!editing && (
+          <div>
+            <label className="mb-1 block text-[11px] text-ink-soft">شعبه *</label>
+            <Select
+              value={form.branchId}
+              onChange={(v) => setForm({ ...form, branchId: v })}
+              placeholder="انتخاب شعبه…"
+              options={(branchesData?.branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
+            />
+          </div>
+        )}
+        <input
+          placeholder="نام اتاق *"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+        />
+        <input
+          type="number"
+          dir="ltr"
+          placeholder="ظرفیت"
+          value={form.capacity}
+          onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+        />
+        <input
+          dir="ltr"
+          placeholder="ساعت باز (HH:MM)"
+          value={form.openTime}
+          onChange={(e) => setForm({ ...form, openTime: e.target.value })}
+          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+        />
+        <input
+          dir="ltr"
+          placeholder="ساعت بسته (HH:MM)"
+          value={form.closeTime}
+          onChange={(e) => setForm({ ...form, closeTime: e.target.value })}
+          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+        />
+        <label className="flex h-10 items-center gap-2 text-[12px]">
+          <input
+            type="checkbox"
+            checked={form.isVip}
+            onChange={(e) => setForm({ ...form, isVip: e.target.checked })}
+            className="h-4 w-4 accent-black"
+          />
+          اتاق VIP
+        </label>
+        <div className="sm:col-span-3">
+          <p className="mb-1.5 text-[11px] text-ink-soft">تجهیزات</p>
+          <div className="flex flex-wrap gap-1.5">
+            {EQUIPMENT_LIST.map((eq) => {
+              const sel = form.equipment.includes(eq);
+              return (
+                <button
+                  key={eq}
+                  type="button"
+                  onClick={() =>
+                    setForm({
+                      ...form,
+                      equipment: sel ? form.equipment.filter((x) => x !== eq) : [...form.equipment, eq],
+                    })
+                  }
+                  className={cn(
+                    "rounded-full border px-3 py-1.5 text-[12px]",
+                    sel ? "border-ink bg-ink text-white" : "border-line text-ink-soft",
+                  )}
+                >
+                  {EQUIPMENT_FA[eq]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        
+        </div>
+      </Modal>
 
       {isLoading ? (
         <Card className="overflow-hidden">
