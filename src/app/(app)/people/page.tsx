@@ -237,6 +237,7 @@ export default function PeoplePage() {
             <table className="w-full text-right text-[12px]">
               <thead className="border-b border-line bg-paper-soft/50 text-[11px] text-ink-soft">
                 <tr>
+                  <th className="w-10 px-2 py-2.5 text-center font-medium">ردیف</th>
                   <th className="px-4 py-2.5 font-medium">نام</th>
                   <th className="px-4 py-2.5 font-medium">نوع</th>
                   <th className="hidden px-4 py-2.5 font-medium md:table-cell">شرکت</th>
@@ -247,9 +248,12 @@ export default function PeoplePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {people.map((p) => (
+                {people.map((p, i) => (
                   <tr key={p.id} className="transition-colors hover:bg-paper-soft/50">
-                    <td className="px-4 py-3">
+                    <td className="px-2 py-3 text-center text-[11px] text-ink-faint">
+                      {faNum((page - 1) * PAGE_SIZE + i + 1)}
+                    </td>
+                      <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <span
                           className={cn(
