@@ -80,9 +80,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Image
             src="/logo-black@8x.png"
             alt="مهرسا"
-            width={40}
-            height={40}
-            className="h-10 w-10 object-contain"
+            width={52}
+            height={52}
+            className="h-13 w-13 object-contain"
             priority
           />
           <div>

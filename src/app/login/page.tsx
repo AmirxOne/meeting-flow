@@ -35,9 +35,9 @@ export default function LoginPage() {
           <Image
             src="/logo-black@8x.png"
             alt="مهرسا"
-            width={64}
-            height={64}
-            className="h-16 w-16 object-contain"
+            width={88}
+            height={88}
+            className="h-22 w-22 object-contain"
             priority
           />
           <div className="text-center">
