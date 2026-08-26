@@ -105,7 +105,7 @@ export default function AuditLogsPage() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="rounded-lg border border-line px-3 py-1.5 text-[12px] disabled:opacity-40"
+                className="rounded-md border border-line px-3 py-1.5 text-[12px] disabled:opacity-40"
               >
                 قبلی
               </button>
@@ -115,7 +115,7 @@ export default function AuditLogsPage() {
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="rounded-lg border border-line px-3 py-1.5 text-[12px] disabled:opacity-40"
+                className="rounded-md border border-line px-3 py-1.5 text-[12px] disabled:opacity-40"
               >
                 بعدی
               </button>

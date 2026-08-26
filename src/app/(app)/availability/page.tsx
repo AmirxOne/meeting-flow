@@ -116,7 +116,7 @@ export default function AvailabilityPage() {
             <label className="mb-1.5 block text-[12px] font-medium">
               افراد ({faNum(participantIds.length)} نفر)
             </label>
-            <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-line p-2.5">
+            <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto rounded-md border border-line p-2.5">
               {users.map((u) => {
                 const selected = participantIds.includes(u.id);
                 return (

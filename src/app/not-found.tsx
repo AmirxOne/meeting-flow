@@ -10,7 +10,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/dashboard"
-        className="mt-2 inline-flex h-10 items-center rounded-xl bg-ink px-5 text-[13px] font-medium text-white hover:bg-[#2a2a2e]"
+        className="mt-2 inline-flex h-10 items-center rounded-md bg-ink px-5 text-[13px] font-medium text-white hover:bg-[#2a2a2e]"
       >
         بازگشت به داشبورد
       </Link>

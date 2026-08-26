@@ -9,7 +9,7 @@ export default async function AdminPage() {
   if (!can(user, "user:update")) {
     return (
       <div className="p-6">
-        <div className="rounded-2xl border border-line bg-white p-8 text-center text-[13px] text-ink-soft">
+        <div className="rounded-md border border-line bg-white p-8 text-center text-[13px] text-ink-soft">
           دسترسی به بخش مدیریت ندارید.
         </div>
       </div>
@@ -29,7 +29,7 @@ export default async function AdminPage() {
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => (
           <Link key={item.href} href={item.href}>
-            <div className="rounded-2xl border border-line bg-white p-5 transition-colors hover:border-ink-faint">
+            <div className="rounded-md border border-line bg-white p-5 transition-colors hover:border-ink-faint">
               <item.icon className="h-5 w-5 text-ink-soft" />
               <p className="mt-3 text-[14px] font-bold">{item.label}</p>
               <p className="mt-1 text-[12px] text-ink-soft">{item.desc}</p>

@@ -121,14 +121,14 @@ export default function RoomsPage() {
                   </div>
 
                   {st?.current && (
-                    <div className="mt-3 rounded-xl bg-red-50 p-2.5">
+                    <div className="mt-3 rounded-md bg-red-50 p-2.5">
                       <p className="truncate text-[12px] font-medium text-red-700">
                         در حال جلسه: {st.current.title}
                       </p>
                     </div>
                   )}
                   {!st?.current && st?.next && (
-                    <div className="mt-3 rounded-xl bg-amber-50 p-2.5">
+                    <div className="mt-3 rounded-md bg-amber-50 p-2.5">
                       <p className="truncate text-[12px] text-amber-700">جلسه بعدی: {st.next.title}</p>
                     </div>
                   )}

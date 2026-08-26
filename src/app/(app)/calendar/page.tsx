@@ -87,7 +87,7 @@ export default function CalendarPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-bold">تقویم</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex overflow-hidden rounded-xl border border-line">
+          <div className="flex overflow-hidden rounded-md border border-line">
             <button
               onClick={() => setScope("all")}
               className={cn("px-3 py-1.5 text-[12px]", scope === "all" ? "bg-ink text-white" : "text-ink-soft")}
@@ -101,7 +101,7 @@ export default function CalendarPage() {
               من
             </button>
           </div>
-          <div className="flex overflow-hidden rounded-xl border border-line">
+          <div className="flex overflow-hidden rounded-md border border-line">
             <button
               onClick={() => setMode("jalali")}
               className={cn("px-3 py-1.5 text-[12px]", mode === "jalali" ? "bg-ink text-white" : "text-ink-soft")}
@@ -115,7 +115,7 @@ export default function CalendarPage() {
               میلادی
             </button>
           </div>
-          <div className="flex overflow-hidden rounded-xl border border-line">
+          <div className="flex overflow-hidden rounded-md border border-line">
             <button
               onClick={() => setView("month")}
               className={cn("px-3 py-1.5 text-[12px]", view === "month" ? "bg-ink text-white" : "text-ink-soft")}
@@ -138,7 +138,7 @@ export default function CalendarPage() {
         <Card className="overflow-hidden">
           {/* month header */}
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <button onClick={() => monthDelta(-1)} className="rounded-lg p-1.5 hover:bg-paper-soft" aria-label="ماه قبل">
+            <button onClick={() => monthDelta(-1)} className="rounded-md p-1.5 hover:bg-paper-soft" aria-label="ماه قبل">
               <ChevronRight className="h-4 w-4" />
             </button>
             <p className="text-[14px] font-bold">
@@ -146,7 +146,7 @@ export default function CalendarPage() {
                 ? `${J_MONTHS[jm - 1]} ${faNum(jy)}`
                 : gregorianMonthLabel(jy, jm)}
             </p>
-            <button onClick={() => monthDelta(1)} className="rounded-lg p-1.5 hover:bg-paper-soft" aria-label="ماه بعد">
+            <button onClick={() => monthDelta(1)} className="rounded-md p-1.5 hover:bg-paper-soft" aria-label="ماه بعد">
               <ChevronLeft className="h-4 w-4" />
             </button>
           </div>
@@ -223,11 +223,11 @@ export default function CalendarPage() {
         /* Day view */
         <Card>
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <button onClick={() => setSelectedIso(dayDelta(selectedIso, -1))} className="rounded-lg p-1.5 hover:bg-paper-soft" aria-label="روز قبل">
+            <button onClick={() => setSelectedIso(dayDelta(selectedIso, -1))} className="rounded-md p-1.5 hover:bg-paper-soft" aria-label="روز قبل">
               <ChevronRight className="h-4 w-4" />
             </button>
             <p className="text-[14px] font-bold">{dayLabel(selectedIso, mode)}</p>
-            <button onClick={() => setSelectedIso(dayDelta(selectedIso, 1))} className="rounded-lg p-1.5 hover:bg-paper-soft" aria-label="روز بعد">
+            <button onClick={() => setSelectedIso(dayDelta(selectedIso, 1))} className="rounded-md p-1.5 hover:bg-paper-soft" aria-label="روز بعد">
               <ChevronLeft className="h-4 w-4" />
             </button>
           </div>

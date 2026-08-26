@@ -150,7 +150,7 @@ export default function NewMeetingPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="مثلاً: جلسه هفتگی تیم فروش"
-              className="h-11 w-full rounded-xl border border-[#d9d9e0] px-3.5 text-[13px] outline-none focus:border-ink focus:ring-2 focus:ring-ink/15"
+              className="h-11 w-full rounded-md border border-[#d9d9e0] px-3.5 text-[13px] outline-none focus:border-ink focus:ring-2 focus:ring-ink/15"
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -174,7 +174,7 @@ export default function NewMeetingPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-medium">افراد ({faNum(participantIds.length)} نفر انتخاب شده)</label>
-            <div className="flex flex-wrap gap-1.5 rounded-xl border border-line p-2.5 max-h-40 overflow-y-auto">
+            <div className="flex flex-wrap gap-1.5 rounded-md border border-line p-2.5 max-h-40 overflow-y-auto">
               {users.map((u) => {
                 const selected = participantIds.includes(u.id);
                 return (
@@ -203,7 +203,7 @@ export default function NewMeetingPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full rounded-xl border border-[#d9d9e0] px-3.5 py-2.5 text-[13px] outline-none focus:border-ink"
+              className="w-full rounded-md border border-[#d9d9e0] px-3.5 py-2.5 text-[13px] outline-none focus:border-ink"
             />
           </div>
         </CardBody>
@@ -259,7 +259,7 @@ export default function NewMeetingPage() {
         <Card>
           <CardHeader title="۳. انتخاب زمان و اتاق" />
           <CardBody className="space-y-4">
-            <div className="rounded-xl bg-emerald-50 p-4">
+            <div className="rounded-md bg-emerald-50 p-4">
               <p className="flex items-center gap-2 text-[13px] font-bold text-emerald-700">
                 <CheckCircle2 className="h-4 w-4" />
                 زمان پیشنهادی: {tehranTime(slot.start)} تا {tehranTime(slot.end)}
@@ -279,7 +279,7 @@ export default function NewMeetingPage() {
                       type="button"
                       onClick={() => setRoomId(r.id)}
                       className={cn(
-                        "rounded-xl border p-3 text-right transition-colors",
+                        "rounded-md border p-3 text-right transition-colors",
                         roomId === r.id ? "border-ink bg-paper-soft" : "border-line hover:border-ink-faint",
                       )}
                     >
@@ -298,10 +298,10 @@ export default function NewMeetingPage() {
               <p className="mb-2 text-[12px] font-medium">مهمان‌های خارجی (اختیاری — نیاز به تأیید دارد)</p>
               {guests.map((g, i) => (
                 <div key={i} className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  <input placeholder="نام" value={g.name} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink" />
-                  <input placeholder="شرکت" value={g.company} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, company: e.target.value } : x))} className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink" />
-                  <input placeholder="تلفن" dir="ltr" value={g.phone} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, phone: e.target.value } : x))} className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink" />
-                  <input placeholder="ایمیل" dir="ltr" value={g.email} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                  <input placeholder="نام" value={g.name} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                  <input placeholder="شرکت" value={g.company} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, company: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                  <input placeholder="تلفن" dir="ltr" value={g.phone} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, phone: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                  <input placeholder="ایمیل" dir="ltr" value={g.email} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
                   <Button type="button" variant="ghost" size="sm" onClick={() => setGuests(guests.filter((_, j) => j !== i))}>حذف</Button>
                 </div>
               ))}
@@ -311,7 +311,7 @@ export default function NewMeetingPage() {
             </div>
 
             {/* Review */}
-            <div className="rounded-xl border border-line bg-paper-soft p-4 text-[12px] leading-6">
+            <div className="rounded-md border border-line bg-paper-soft p-4 text-[12px] leading-6">
               <p className="font-bold">بازبینی نهایی</p>
               <p>عنوان: {title}</p>
               <p>زمان: {formatJalali(new Date(slot.start), { withTime: true, monthName: true })} تا {tehranTime(slot.end)}</p>

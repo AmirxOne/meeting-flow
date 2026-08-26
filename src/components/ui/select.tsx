@@ -117,7 +117,7 @@ export function Select({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-3.5 text-right transition-colors",
+          "flex w-full items-center justify-between gap-2 rounded-md border bg-white px-3.5 text-right transition-colors",
           h,
           disabled
             ? "cursor-not-allowed border-[#ececf1] bg-[#f7f7f8] text-[#9b9ba7]"
@@ -142,7 +142,7 @@ export function Select({
         <ul
           ref={listRef}
           role="listbox"
-          className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 max-h-64 overflow-y-auto rounded-xl border border-line bg-white py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.14)]"
+          className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 max-h-64 overflow-y-auto rounded-md border border-line bg-white py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.14)]"
         >
           {options.length === 0 && (
             <li className="px-4 py-3 text-center text-[12px] text-ink-faint">موردی نیست</li>

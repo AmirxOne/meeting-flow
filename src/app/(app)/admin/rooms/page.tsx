@@ -98,7 +98,7 @@ export default function AdminRoomsPage() {
               placeholder="نام اتاق"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
             <input
               type="number"
@@ -106,21 +106,21 @@ export default function AdminRoomsPage() {
               placeholder="ظرفیت"
               value={form.capacity}
               onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })}
-              className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
             <input
               dir="ltr"
               placeholder="ساعت باز شدن (HH:MM)"
               value={form.openTime}
               onChange={(e) => setForm({ ...form, openTime: e.target.value })}
-              className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
             <input
               dir="ltr"
               placeholder="ساعت بسته شدن (HH:MM)"
               value={form.closeTime}
               onChange={(e) => setForm({ ...form, closeTime: e.target.value })}
-              className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
             <label className="flex h-10 items-center gap-2 text-[12px]">
               <input

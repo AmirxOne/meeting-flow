@@ -84,10 +84,10 @@ export default function AdminUsersPage() {
       {showForm && (
         <Card className="p-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <input dir="ltr" placeholder="ایمیل" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink" />
-            <input dir="ltr" placeholder="رمز موقت" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink" />
-            <input placeholder="نام کامل" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink" />
-            <input placeholder="عنوان شغلی" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} className="h-10 rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink" />
+            <input dir="ltr" placeholder="ایمیل" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+            <input dir="ltr" placeholder="رمز موقت" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+            <input placeholder="نام کامل" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+            <input placeholder="عنوان شغلی" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
             <div className="sm:col-span-2">
               <p className="mb-1.5 text-[11px] text-ink-soft">نقش‌ها</p>
               <div className="flex flex-wrap gap-1.5">

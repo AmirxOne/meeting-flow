@@ -135,7 +135,7 @@ export default function DashboardPage() {
                 action={
                   <Link
                     href="/meetings/new"
-                    className="mt-1 inline-flex h-9 items-center rounded-xl bg-ink px-4 text-[12px] font-medium text-white"
+                    className="mt-1 inline-flex h-9 items-center rounded-md bg-ink px-4 text-[12px] font-medium text-white"
                   >
                     ایجاد جلسه
                   </Link>
