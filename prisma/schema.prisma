@@ -268,6 +268,27 @@ model MeetingParticipant {
   @@index([meetingId])
 }
 
+// Company-wide people directory: internal members AND known external contacts.
+// Used by participant pickers everywhere — pick from directory OR type new.
+model PersonDirectory {
+  id        String   @id @default(cuid())
+  name      String
+  kind      String   @default("INTERNAL") // INTERNAL | EXTERNAL
+  email     String?
+  phone     String?
+  company   String?
+  jobTitle  String?
+  notes     String?
+  // link to a User account when kind=INTERNAL and one exists
+  userId    String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, company])
+  @@index([kind])
+  @@index([name])
+}
+
 model MeetingGuest {
   id           String    @id @default(cuid())
   meetingId    String

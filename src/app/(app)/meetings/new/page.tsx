@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, faStr, formatJalali, toJalali, EQUIPMENT_FA, TYPE_FA } from "@/lib";
 import { Select } from "@/components/ui/select";
+import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
+import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 
 interface Slot {
   start: string;
@@ -27,7 +29,7 @@ export default function NewMeetingPage() {
   const [description, setDescription] = useState("");
   const [meetingType, setMeetingType] = useState("INTERNAL");
   const [branchId, setBranchId] = useState("");
-  const [participantIds, setParticipantIds] = useState<string[]>([]);
+  const [people, setPeople] = useState<PickedPerson[]>([]);
   const [durationMin, setDurationMin] = useState(30);
   const [dateIso, setDateIso] = useState(""); // gregorian iso from jalali picker
   const [slot, setSlot] = useState<Slot | null>(null);
@@ -40,19 +42,13 @@ export default function NewMeetingPage() {
     queryKey: ["branches"],
     queryFn: () => api<{ branches: { id: string; name: string }[] }>("/api/branches"),
   });
-  const { data: usersData } = useQuery({
-    queryKey: ["users-lite"],
-    queryFn: () => api<{ users: { id: string; fullName: string; jobTitle: string | null; department: string | null }[] }>("/api/users"),
-  });
 
   const branches = branchesData?.branches ?? [];
-  const users = (usersData?.users ?? []).filter((u) => u.id);
 
-  // Jalali date state
-  const today = toJalali(new Date());
-  const [jy, setJy] = useState(today.jy);
-  const [jm, setJm] = useState(today.jm);
-  const [jd, setJd] = useState(today.jd);
+  function isoToday(): string {
+    const t = new Date(Date.now() + 210 * 60000);
+    return t.toISOString().slice(0, 10);
+  }
 
   async function findSlots() {
     if (!branchId || !title.trim()) {
@@ -63,10 +59,18 @@ export default function NewMeetingPage() {
     setSlot(null);
     setRoomId("");
     try {
-      // build UTC window for selected Jalali day
-      const [gy, gm, gd] = jalaliToIso(jy, jm, jd);
+      // window for the picked day (or today if none picked)
+      const iso = dateIso || isoToday();
+      const [gy, gm, gd] = iso.split("-").map(Number);
       const from = new Date(Date.UTC(gy, gm - 1, gd, 0, 0) - 210 * 60000);
       const to = new Date(from.getTime() + 86400000);
+      const internalIds = people.filter((p) => p.ref.startsWith("dir:"));
+      // resolve internal members to their user ids via directory lookup
+      const dir = await api<{ people: { id: string; userId: string | null }[] }>(`/api/people`);
+      const userIdByDir = new Map(dir.people.map((d) => [d.id, d.userId]));
+      const participantIds = internalIds
+        .map((p) => userIdByDir.get(p.ref.slice(4)))
+        .filter((x): x is string => !!x);
       const data = await api<{ slots: Slot[] }>("/api/availability", {
         method: "POST",
         json: {
@@ -75,7 +79,7 @@ export default function NewMeetingPage() {
           durationMin,
           from: from.toISOString(),
           to: to.toISOString(),
-          minCapacity: participantIds.length + 1,
+          minCapacity: people.length + 1,
         },
       });
       if (data.slots.length === 0) push("هیچ زمان آزادی برای این روز یافت نشد", "error");
@@ -103,6 +107,13 @@ export default function NewMeetingPage() {
     }
     setSubmitting(true);
     try {
+      const dir = await api<{ people: { id: string; userId: string | null }[] }>(`/api/people`);
+      const userIdByDir = new Map(dir.people.map((d) => [d.id, d.userId]));
+      const participantIds = people
+        .filter((p) => p.ref.startsWith("dir:"))
+        .map((p) => userIdByDir.get(p.ref.slice(4)))
+        .filter((x): x is string => !!x);
+      const guestPeople = people.filter((p) => p.kind === "EXTERNAL");
       const data = await api<{ meeting: { id: string } }>("/api/meetings", {
         method: "POST",
         json: {
@@ -114,14 +125,23 @@ export default function NewMeetingPage() {
           endAt: new Date(slot.end).toISOString(),
           meetingType,
           participantIds,
-          guests: guests
-            .filter((g) => g.name.trim())
-            .map((g) => ({
-              name: g.name.trim(),
-              company: g.company.trim() || undefined,
-              phone: g.phone.trim() || undefined,
-              email: g.email.trim() || undefined,
+          guests: [
+            ...guests
+              .filter((g) => g.name.trim())
+              .map((g) => ({
+                name: g.name.trim(),
+                company: g.company.trim() || undefined,
+                phone: g.phone.trim() || undefined,
+                email: g.email.trim() || undefined,
+              })),
+            ...guestPeople.map((p) => ({
+              name: p.name,
+              company: p.company || undefined,
+              phone: p.phone || undefined,
+              email: p.email || undefined,
+              notes: p.ref.startsWith("new:") ? "افزودهشده دستی هنگام ساخت جلسه" : undefined,
             })),
+          ],
         },
       });
       push("جلسه ایجاد شد", "success");
@@ -172,30 +192,15 @@ export default function NewMeetingPage() {
               />
             </div>
           </div>
+          
           <div>
-            <label className="mb-1.5 block text-[12px] font-medium">افراد ({faNum(participantIds.length)} نفر انتخاب شده)</label>
-            <div className="flex flex-wrap gap-1.5 rounded-md border border-line p-2.5 max-h-40 overflow-y-auto">
-              {users.map((u) => {
-                const selected = participantIds.includes(u.id);
-                return (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() =>
-                      setParticipantIds((prev) =>
-                        selected ? prev.filter((x) => x !== u.id) : [...prev, u.id],
-                      )
-                    }
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-[12px] transition-colors",
-                      selected ? "border-ink bg-ink text-white" : "border-line text-ink-soft hover:border-ink-faint",
-                    )}
-                  >
-                    {u.fullName}
-                  </button>
-                );
-              })}
-            </div>
+            <label className="mb-1.5 block text-[12px] font-medium">افراد دعوت‌شده ({faNum(people.length)} نفر — از لیست انتخاب کنید یا نام جدید بنویسید)</label>
+            <PeoplePicker value={people} onChange={setPeople} />
+            {people.filter((p) => p.kind === "EXTERNAL").length > 0 && (
+              <p className="mt-1.5 text-[11px] text-amber-600">
+                ⚠ افراد خارجی به‌عنوان مهمان ثبت می‌شوند و جلسه نیازمند تأیید اپراتور خواهد بود.
+              </p>
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-[12px] font-medium">توضیحات (اختیاری)</label>
@@ -213,29 +218,13 @@ export default function NewMeetingPage() {
       <Card>
         <CardHeader title="۲. تاریخ و مدت" subtitle="سیستم زمان‌های آزاد مشترک همه افراد را پیدا می‌کند" />
         <CardBody className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-[12px] font-medium">سال</label>
-              <Select
-                value={String(jy)}
-                onChange={(v) => setJy(Number(v))}
-                options={[0, 1].map((d) => ({ value: String(today.jy + d), label: faNum(today.jy + d) }))}
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[12px] font-medium">ماه</label>
-              <Select
-                value={String(jm)}
-                onChange={(v) => setJm(Number(v))}
-                options={monthNames.map((name, i) => ({ value: String(i + 1), label: name }))}
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-[12px] font-medium">روز</label>
-              <Select
-                value={String(jd)}
-                onChange={(v) => setJd(Number(v))}
-                options={Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: faNum(i + 1) }))}
+              <label className="mb-1.5 block text-[12px] font-medium">تاریخ (شمسی)</label>
+              <JalaliDatePicker
+                value={dateIso}
+                onChange={setDateIso}
+                min={isoToday()}
               />
             </div>
             <div>
@@ -271,8 +260,7 @@ export default function NewMeetingPage() {
               <p className="mb-2 text-[12px] font-medium">اتاق مناسب (مرتب‌شده بر اساس ظرفیت — کمترین ظرفیت کافی در اولویت است):</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {[...slot.availableRooms]
-                  .sort((a, b) => a.capacity - (participantIds.length + 1) - (b.capacity - (participantIds.length + 1)) * -1)
-                  .sort((a, b) => Math.abs(a.capacity - (participantIds.length + 1)) - Math.abs(b.capacity - (participantIds.length + 1)))
+                  .sort((a, b) => Math.abs(a.capacity - (people.length + 1)) - Math.abs(b.capacity - (people.length + 1)))
                   .map((r) => (
                     <button
                       key={r.id}
@@ -295,7 +283,7 @@ export default function NewMeetingPage() {
 
             {/* Guests (external) */}
             <div>
-              <p className="mb-2 text-[12px] font-medium">مهمان‌های خارجی (اختیاری — نیاز به تأیید دارد)</p>
+              <p className="mb-2 text-[12px] font-medium">مهمان‌های خارجی اضافی (افراد خارجی بالا خودکار مهمان محسوب می‌شوند)</p>
               {guests.map((g, i) => (
                 <div key={i} className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
                   <input placeholder="نام" value={g.name} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
@@ -316,8 +304,8 @@ export default function NewMeetingPage() {
               <p>عنوان: {title}</p>
               <p>زمان: {formatJalali(new Date(slot.start), { withTime: true, monthName: true })} تا {tehranTime(slot.end)}</p>
               <p>اتاق: {selectedRoom?.name} ({faNum(selectedRoom?.capacity ?? 0)} نفر)</p>
-              <p>افراد: {faNum(participantIds.length + 1)} نفر داخلی{guests.filter((g) => g.name).length > 0 ? ` + ${faNum(guests.filter((g) => g.name).length)} مهمان` : ""}</p>
-              {guests.filter((g) => g.name).length > 0 && (
+              <p>افراد: {faNum(people.filter((p) => p.kind === "INTERNAL").length + 1)} نفر داخلی{people.filter((p) => p.kind === "EXTERNAL").length + guests.filter((g) => g.name).length > 0 ? ` + ${faNum(people.filter((p) => p.kind === "EXTERNAL").length + guests.filter((g) => g.name).length)} مهمان` : ""}</p>
+              {(people.filter((p) => p.kind === "EXTERNAL").length > 0 || guests.filter((g) => g.name).length > 0) && (
                 <p className="mt-1 text-amber-600">⚠ این جلسه به دلیل داشتن مهمان خارجی نیازمند تأیید اپراتور است.</p>
               )}
             </div>
