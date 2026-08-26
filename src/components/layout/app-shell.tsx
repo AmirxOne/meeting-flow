@@ -78,14 +78,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="fixed top-0 right-0 z-50 hidden h-screen w-60 flex-col border-l border-line bg-white lg:flex">
         <div className="flex h-16 items-center gap-1.5 border-b border-line px-5">
-          <Image
-            src="/logo-black@8x.png"
-            alt="مهرسا"
-            width={52}
-            height={52}
-            className="h-13 w-13 object-contain [image-rendering:-webkit-optimize-contrast]"
-            priority
-          />
+          <div className="flex h-[52px] w-[52px] items-center justify-center rounded-lg bg-ink">
+            <Image
+              src="/logo-white.png"
+              alt="مهرسا"
+              width={40}
+              height={40}
+              className="h-10 w-10 object-contain"
+              priority
+            />
+          </div>
           <div>
             <p className="text-[14px] font-bold leading-4">مهرسا</p>
             <p className="text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
