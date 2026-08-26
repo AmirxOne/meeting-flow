@@ -260,7 +260,7 @@ function GlobalSearch() {
     r && (r.meetings.length || r.users.length || r.rooms.length || r.guests.length || r.branches.length);
 
   return (
-    <div className="relative mx-auto w-full max-w-xl">
+    <div className="relative w-full max-w-xl">
       <div className="flex h-10 items-center gap-2 rounded-md bg-paper-soft px-3">
         <Search className="h-4 w-4 text-ink-faint" />
         <input
