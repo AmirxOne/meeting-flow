@@ -115,9 +115,31 @@ export default function MeetingsPage() {
 
       {/* List */}
       {isLoading ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          {/* filter bar skeleton */}
+          <div className="rounded-lg border border-line bg-paper-soft/40 px-4 py-3">
+            <div className="skeleton mb-3 h-4 w-16" />
+            <div className="flex flex-wrap items-center gap-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="skeleton h-7 w-24 rounded-md" />
+              ))}
+              <div className="skeleton ml-auto h-9 w-56 rounded-md" />
+            </div>
+          </div>
+          {/* meeting cards skeleton — mirrors real card anatomy */}
           {Array.from({ length: 5 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-20" />
+            <Card key={i} className="p-4">
+              <div className="flex items-center gap-2">
+                <div className="skeleton h-4.5 w-44" />
+                <div className="skeleton h-5 w-20 rounded-full" />
+                <div className="skeleton h-5 w-14 rounded-full" />
+              </div>
+              <div className="mt-2.5 flex items-center gap-4">
+                <div className="skeleton h-3 w-40" />
+                <div className="skeleton h-3 w-24" />
+                <div className="skeleton mr-auto h-3 w-20" />
+              </div>
+            </Card>
           ))}
         </div>
       ) : meetings.length === 0 ? (

@@ -176,10 +176,40 @@ export default function BranchesPage() {
       )}
 
       {isLoading ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-44" />
-          ))}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="skeleton h-7 w-24" />
+            <div className="skeleton h-8 w-28 rounded-md" />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i} className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="skeleton h-5 w-28" />
+                      <div className="skeleton h-5 w-12 rounded-full" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="skeleton h-3 w-44" />
+                      <div className="skeleton h-3 w-32" />
+                      <div className="skeleton h-3 w-36" />
+                    </div>
+                    <div className="flex gap-1.5">
+                      {Array.from({ length: 3 }).map((_, j) => (
+                        <div key={j} className="skeleton h-5 w-16 rounded-full" />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {Array.from({ length: 3 }).map((_, j) => (
+                      <div key={j} className="skeleton h-8 w-8 rounded-md" />
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
       ) : branches.length === 0 ? (
         <Card>

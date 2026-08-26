@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserPlus, Search, Users, Building2, Trash2 } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, EmptyState, SkeletonBlock } from "@/components/ui/card";
+import { Card, CardHeader, EmptyState, SkeletonBlock, SkeletonTable } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -158,7 +158,13 @@ export default function AdminPeoplePage() {
       </FilterBar>
 
       {isLoading ? (
-        <SkeletonBlock className="h-72" />
+        <Card className="overflow-hidden">
+          <div className="border-b border-line px-5 py-4">
+            <SkeletonBlock className="h-4 w-40" />
+            <SkeletonBlock className="mt-1 h-3 w-32" />
+          </div>
+          <SkeletonTable rows={7} cols={6} />
+        </Card>
       ) : people.length === 0 ? (
         <Card>
           <EmptyState icon={<Users className="h-10 w-10" />} title="فردی یافت نشد" />

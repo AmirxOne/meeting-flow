@@ -38,13 +38,51 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="space-y-4 p-4 lg:p-6">
-        <SkeletonBlock className="h-8 w-48" />
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        {/* header — mirrors title + date */}
+        <div className="flex items-center justify-between">
+          <SkeletonBlock className="h-7 w-28" />
+          <SkeletonBlock className="h-5 w-40" />
+        </div>
+        {/* stats — mirrors 6 StatCards (label + big number + hint) */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-24" />
+            <Card key={i} className="p-4">
+              <SkeletonBlock className="h-3.5 w-20" />
+              <SkeletonBlock className="mt-2 h-7 w-14" />
+            </Card>
           ))}
         </div>
-        <SkeletonBlock className="h-64" />
+        {/* charts — mirrors weekly chart card + upcoming list card (2:1) */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <div className="border-b border-line px-5 py-4">
+              <SkeletonBlock className="h-4 w-44" />
+              <SkeletonBlock className="mt-1 h-3 w-24" />
+            </div>
+            <div className="flex h-48 items-end justify-between gap-2 p-5" dir="rtl">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center justify-end gap-1.5">
+                  <SkeletonBlock className="w-full rounded-t" style={{ height: `${30 + ((i * 37) % 55)}%` }} />
+                  <SkeletonBlock className="h-3 w-8" />
+                </div>
+              ))}
+            </div>
+          </Card>
+          <Card>
+            <div className="border-b border-line px-5 py-4">
+              <SkeletonBlock className="h-4 w-24" />
+            </div>
+            <div className="divide-y divide-line">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2 px-5 py-3.5">
+                  <SkeletonBlock className="h-4 w-3/4" />
+                  <SkeletonBlock className="h-3 w-1/2" />
+                  <SkeletonBlock className="h-3 w-1/3" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       </div>
     );
   }

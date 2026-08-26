@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Card, CardHeader, SkeletonBlock, EmptyState } from "@/components/ui/card";
+import { Card, CardHeader, SkeletonBlock, SkeletonTable, EmptyState } from "@/components/ui/card";
 import { cn, faNum, faStr, formatJalali } from "@/lib";
 
 interface AuditRow {
@@ -55,7 +55,13 @@ export default function AuditLogsPage() {
       <h1 className="text-lg font-bold">لاگ ممیزی</h1>
 
       {isLoading ? (
-        <SkeletonBlock className="h-96" />
+        <Card className="overflow-hidden">
+          <div className="border-b border-line px-5 py-4">
+            <SkeletonBlock className="h-4 w-44" />
+            <SkeletonBlock className="mt-1 h-3 w-28" />
+          </div>
+          <SkeletonTable rows={8} cols={5} />
+        </Card>
       ) : (
         <Card className="overflow-hidden">
           <CardHeader

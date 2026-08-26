@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserPlus, ShieldCheck } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, EmptyState, SkeletonBlock } from "@/components/ui/card";
+import { Card, CardHeader, EmptyState, SkeletonBlock, SkeletonTable } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
@@ -124,7 +124,12 @@ export default function AdminUsersPage() {
       )}
 
       {isLoading ? (
-        <SkeletonBlock className="h-96" />
+        <Card className="overflow-hidden">
+          <div className="border-b border-line px-5 py-4">
+            <SkeletonBlock className="h-4 w-40" />
+          </div>
+          <SkeletonTable rows={7} cols={6} />
+        </Card>
       ) : (
         <Card className="overflow-hidden">
           <CardHeader title={`کاربران (${faNum(data?.users.length ?? 0)})`} />
