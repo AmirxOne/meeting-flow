@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -76,9 +77,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-l border-line bg-white lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-line px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-ink text-[13px] font-bold text-white">
-            م
-          </div>
+          <Image
+            src="/logo-black@4x.png"
+            alt="مرسا"
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain"
+            priority
+          />
           <div>
             <p className="text-[14px] font-bold leading-4">مرسا</p>
             <p className="text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
