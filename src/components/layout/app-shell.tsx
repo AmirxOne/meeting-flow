@@ -73,16 +73,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const visibleNav = NAV.filter((n) => !n.perm || can(n.perm));
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="min-h-screen bg-white lg:pr-60">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-l border-line bg-white lg:flex">
+      <aside className="fixed top-0 right-0 z-50 hidden h-screen w-60 flex-col border-l border-line bg-white lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-line px-5">
           <Image
             src="/logo-black@8x.png"
             alt="مهرسا"
             width={52}
             height={52}
-            className="h-13 w-13 object-contain"
+            className="h-13 w-13 object-contain [image-rendering:-webkit-optimize-contrast]"
             priority
           />
           <div>
@@ -124,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-line bg-white/90 px-4 backdrop-blur lg:px-6">
+        <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-line bg-white/95 px-4 backdrop-blur lg:px-6 [transform:translateZ(0)]">
           <button
             className="rounded-md p-2 hover:bg-paper-soft lg:hidden"
             onClick={() => setDrawerOpen(true)}

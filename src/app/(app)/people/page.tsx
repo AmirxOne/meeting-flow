@@ -233,7 +233,7 @@ export default function PeoplePage() {
             title={`افراد (${faNum(total)} نفر)`}
             subtitle={`صفحه ${faNum(page)} از ${faNum(totalPages)} — در این صفحه: ${faNum(internalCount)} عضو شرکت · ${faNum(people.length - internalCount)} خارجی`}
           />
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto [contain:paint]">
             <table className="w-full text-right text-[12px]">
               <thead className="border-b border-line bg-paper-soft/50 text-[11px] text-ink-soft">
                 <tr>
