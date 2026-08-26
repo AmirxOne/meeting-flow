@@ -1,0 +1,387 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================ RBAC ============================
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  phone        String?   @unique
+  fullName     String
+  passwordHash String
+  avatarUrl    String?
+  jobTitle     String?
+  department   String?
+  isActive     Boolean   @default(true)
+  isSuperAdmin Boolean   @default(false)
+  branchId     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  branch          Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
+  roles           UserRole[]
+  sessions        Session[]
+  organized       Meeting[]            @relation("organizer")
+  participations  MeetingParticipant[]
+  approvals       MeetingApproval[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+  reminders       MeetingReminder[]
+  managedBranches Branch[]             @relation("branchManager")
+  managedRooms    MeetingRoom[]        @relation("roomManager")
+
+  @@index([branchId])
+  @@index([isActive])
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id    String   @id @default(cuid())
+  key   String   @unique
+  name  String
+  group String
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  token      String   @unique
+  userId     String
+  expiresAt  DateTime
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ======================= Organization =======================
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  legalName String?
+  timezone  String   @default("Asia/Tehran")
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches Branch[]
+  policies MeetingPolicy[]
+}
+
+model Branch {
+  id        String  @id @default(cuid())
+  orgId     String
+  name      String
+  address   String?
+  phone     String?
+  latitude  Float?
+  longitude Float?
+  isActive  Boolean @default(true)
+  managerId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org       Organization @relation(fields: [orgId], references: [id])
+  manager   User?        @relation("branchManager", fields: [managerId], references: [id], onDelete: SetNull)
+  users     User[]       @relation("UserBranch")
+  floors    Floor[]
+  rooms     MeetingRoom[]
+  meetings  Meeting[]
+
+  @@index([orgId])
+  @@index([managerId])
+}
+
+model Floor {
+  id        String   @id @default(cuid())
+  branchId  String
+  name      String
+  number    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  rooms  MeetingRoom[]
+
+  @@unique([branchId, number])
+  @@index([branchId])
+}
+
+model MeetingRoom {
+  id              String   @id @default(cuid())
+  branchId        String
+  name            String
+  capacity        Int
+  description     String?
+  color           String?
+  isActive        Boolean  @default(true)
+  isVip           Boolean  @default(false)
+  minDurationMin  Int      @default(15)
+  maxDurationMin  Int      @default(480)
+  minLeadTimeMin  Int      @default(0)
+  maxAdvanceDays  Int      @default(60)
+  openTime        String?
+  closeTime       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  branch     Branch          @relation(fields: [branchId], references: [id])
+  floorId    String?
+  floor     Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  managerId String?
+  manager   User?   @relation("roomManager", fields: [managerId], references: [id], onDelete: SetNull)
+  meetings   Meeting[]
+  equipment  RoomEquipment[]
+  exclusions RoomExclusion[]
+
+  @@index([branchId])
+  @@index([branchId, isActive])
+  @@index([floorId])
+}
+
+model RoomEquipment {
+  id        String   @id @default(cuid())
+  roomId    String
+  equipment String
+  createdAt DateTime @default(now())
+
+  room MeetingRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, equipment])
+}
+
+model RoomExclusion {
+  id        String   @id @default(cuid())
+  roomId    String
+  reason    String
+  startAt   DateTime
+  endAt     DateTime
+  createdAt DateTime @default(now())
+
+  room MeetingRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, startAt, endAt])
+}
+
+// ======================= Meetings =======================
+
+model Meeting {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  organizerId  String
+  branchId     String
+  roomId       String?
+  startAt      DateTime
+  endAt        DateTime
+  status       String   @default("DRAFT")
+  meetingType  String   @default("INTERNAL")
+  priority     String   @default("NORMAL")
+  cancelReason String?
+  cancelNote   String?
+  meetingCode  String   @unique @default(cuid())
+  isPrivate    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizer User                @relation("organizer", fields: [organizerId], references: [id])
+  branch    Branch              @relation(fields: [branchId], references: [id])
+  room      MeetingRoom?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  participants MeetingParticipant[]
+  guests       MeetingGuest[]
+  approvals    MeetingApproval[]
+  events       MeetingEvent[]
+  reminders    MeetingReminder[]
+
+  @@index([roomId, startAt, endAt])
+  @@index([branchId, startAt])
+  @@index([organizerId, startAt])
+  @@index([status])
+  @@index([startAt])
+}
+
+model MeetingParticipant {
+  id             String   @id @default(cuid())
+  meetingId      String
+  userId         String
+  role           String   @default("ATTENDEE")
+  required       Boolean  @default(true)
+  responseStatus String   @default("PENDING")
+  respondedAt    DateTime?
+  joinedAt       DateTime?
+  leftAt         DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([userId])
+  @@index([meetingId])
+}
+
+model MeetingGuest {
+  id           String    @id @default(cuid())
+  meetingId    String
+  name         String
+  company      String?
+  phone        String?
+  email        String?
+  notes        String?
+  hostId       String?
+  arrivedAt    DateTime?
+  leftAt       DateTime?
+  checkinCode  String?
+  createdAt    DateTime  @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId])
+  @@index([email])
+}
+
+model MeetingApproval {
+  id        String   @id @default(cuid())
+  meetingId String
+  step      Int      @default(1)
+  action    String   @default("REQUESTED")
+  reason    String?
+  actorId   String?
+  createdAt DateTime @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([meetingId])
+  @@index([actorId])
+}
+
+model MeetingEvent {
+  id        String   @id @default(cuid())
+  meetingId String
+  type      String
+  data      Json?
+  actorId   String?
+  createdAt DateTime @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, createdAt])
+}
+
+model MeetingReminder {
+  id        String    @id @default(cuid())
+  meetingId String
+  remindAt  DateTime
+  offsetMin Int
+  channel   String    @default("IN_APP")
+  status    String    @default("PENDING")
+  sentAt    DateTime?
+  lastError String?
+  createdAt DateTime  @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId  String?
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, remindAt])
+  @@index([meetingId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+model MeetingPolicy {
+  id          String   @id @default(cuid())
+  orgId       String
+  key         String
+  value       Json
+  description String?
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, key])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String
+  oldValue  Json?
+  newValue  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
+}

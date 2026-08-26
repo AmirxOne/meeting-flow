@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/Vazirmatn-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  overflow-x: clip;
+}
+
+body {
+  font-family: "Vazirmatn", Tahoma, "Segoe UI", sans-serif;
+  background: #ffffff;
+  color: #0d0d0d;
+  font-size: 14px;
+}
+
+::selection {
+  background: #0d0d0d;
+  color: #ffffff;
+}
+
+/* thin scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d8 transparent;
+}
+
+/* status dots & badges */
+.badge {
+  @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium;
+}
+
+.badge-gray { @apply bg-paper-soft text-ink-soft; }
+.badge-green { @apply bg-emerald-50 text-emerald-700; }
+.badge-red { @apply bg-red-50 text-red-600; }
+.badge-amber { @apply bg-amber-50 text-amber-700; }
+.badge-blue { @apply bg-blue-50 text-blue-700; }
+.badge-black { @apply bg-ink text-white; }
+
+/* skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f2f2f4 25%, #e8e8ec 50%, #f2f2f4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 8px;
+}
