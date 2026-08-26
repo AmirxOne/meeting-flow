@@ -34,7 +34,7 @@ export default function LoginPage() {
             م
           </div>
           <div className="text-center">
-            <h1 className="text-lg font-bold">میتینگ‌هاب</h1>
+            <h1 className="text-lg font-bold">مرسا</h1>
             <p className="mt-1 text-[12px] text-ink-soft">سیستم مدیریت جلسات سازمانی</p>
           </div>
         </div>

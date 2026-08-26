@@ -1,4 +1,4 @@
-# میتینگ‌هاب — MeetingHub
+# مرسا — سامانه مدیریت جلسات سازمانی
 
 سیستم مدیریت جلسات سازمانی (Corporate Meeting Management System) — Next.js + Prisma + PostgreSQL.
 

@@ -80,7 +80,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             م
           </div>
           <div>
-            <p className="text-[14px] font-bold leading-4">میتینگ‌هاب</p>
+            <p className="text-[14px] font-bold leading-4">مرسا</p>
             <p className="text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
           </div>
         </div>
@@ -175,7 +175,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="absolute inset-0 bg-black/30" onClick={() => setDrawerOpen(false)} />
           <div className="absolute right-0 top-0 h-full w-72 bg-white p-4 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-[14px] font-bold">میتینگ‌هاب</p>
+              <p className="text-[14px] font-bold">مرسا</p>
               <button onClick={() => setDrawerOpen(false)} aria-label="بستن">
                 <X className="h-5 w-5" />
               </button>
