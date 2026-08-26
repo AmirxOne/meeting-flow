@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-white lg:pr-60">
       {/* Desktop sidebar */}
       <aside className="fixed top-0 right-0 z-50 hidden h-screen w-60 flex-col border-l border-line bg-white lg:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-line px-5">
+        <div className="flex h-16 items-center gap-1.5 border-b border-line px-5">
           <Image
             src="/logo-black@8x.png"
             alt="مهرسا"
