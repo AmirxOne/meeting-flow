@@ -121,7 +121,17 @@ export default function AdminRoomsPage() {
       push("اتاق حذف شد", "success");
       qc.invalidateQueries({ queryKey: ["rooms"] });
     } catch (e) {
-      push((e as ApiError).message, "error");
+      const err = e as ApiError;
+      if (err.code === "ROOM_IN_USE") {
+        // offer the correct action instead of a dead-end
+        if (confirm(`${err.message}
+
+غیرفعالش کنیم؟ (جلسات فعلی حفظ می‌شوند ولی رزرو جدید ممکن نیست)`)) {
+          await toggleActive({ ...r, isActive: true });
+        }
+      } else {
+        push(err.message, "error");
+      }
     }
   }
 
