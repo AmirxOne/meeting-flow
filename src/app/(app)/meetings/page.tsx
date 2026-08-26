@@ -9,6 +9,7 @@ import { Card, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { StatusBadge, TypeBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { cn, faNum, formatJalali, STATUS_FA } from "@/lib";
 import { useAuth } from "@/lib/auth-store";
 
@@ -157,9 +158,10 @@ export default function MeetingsPage() {
           />
         </Card>
       ) : (
-        <div className="flex flex-col gap-3">
+        <StaggerList className="flex flex-col gap-3">
           {meetings.map((m) => (
-            <Link key={m.id} href={`/meetings/${m.id}`}>
+            <StaggerItem key={m.id}>
+            <Link href={`/meetings/${m.id}`}>
               <Card className="p-4 transition-colors hover:border-ink-faint">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-[14px] font-medium">{m.title}</p>
@@ -180,8 +182,9 @@ export default function MeetingsPage() {
                 </div>
               </Card>
             </Link>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerList>
       )}
     </div>
   );

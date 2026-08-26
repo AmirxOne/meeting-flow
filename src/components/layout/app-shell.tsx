@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -105,9 +106,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <item.icon className="h-[18px] w-[18px]" />
                 {item.label}
                 {item.href === "/notifications" && unread > 0 && (
-                  <span className="mr-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                  <motion.span
+                    key={unread}
+                    initial={{ scale: 0.4, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 22 }}
+                    className="mr-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                  >
                     {faNum(unread)}
-                  </span>
+                  </motion.span>
                 )}
               </Link>
             );
@@ -172,7 +179,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 pb-20 lg:pb-0">{children}</main>
+        <main className="min-w-0 flex-1 pb-20 lg:pb-0">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6, transition: { duration: 0.12 } }}
+                transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </main>
       </div>
 
       {/* Mobile drawer */}

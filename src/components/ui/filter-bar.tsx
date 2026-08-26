@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib";
+import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal, Check, ChevronDown } from "lucide-react";
 
 export interface FilterChipsGroup {
@@ -51,11 +52,16 @@ function FilterDropdown({
         />
       </button>
 
+      <AnimatePresence>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <ul
+          <motion.ul
             role="listbox"
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, transition: { duration: 0.12 } }}
+            transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
             className="absolute right-0 top-[calc(100%+6px)] z-20 max-h-64 w-52 overflow-y-auto rounded-md border border-line bg-white py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.14)]"
           >
             {group.options.map((opt) => {
@@ -86,9 +92,10 @@ function FilterDropdown({
                 </li>
               );
             })}
-          </ul>
+          </motion.ul>
         </>
       )}
+      </AnimatePresence>
     </div>
   );
 }
