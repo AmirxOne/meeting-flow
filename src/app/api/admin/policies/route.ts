@@ -1,0 +1,51 @@
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/server/db";
+import { requirePermission } from "@/server/auth/session";
+import { ok, handleError, audit } from "@/server/http";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  try {
+    await requirePermission("policy:manage");
+    const org = await prisma.organization.findFirst({
+      include: { policies: { orderBy: { key: "asc" } } },
+    });
+    return ok({ org, policies: org?.policies ?? [] });
+  } catch (e) {
+    return handleError(e);
+  }
+}
+
+const updateSchema = z.object({
+  key: z.string().min(1),
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.number())]),
+  description: z.string().optional(),
+});
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const actor = await requirePermission("policy:manage");
+    const input = updateSchema.parse(await req.json().catch(() => ({})));
+    const org = await prisma.organization.findFirst();
+    if (!org) return ok({ updated: false });
+    const updated = await prisma.meetingPolicy.upsert({
+      where: { orgId_key: { orgId: org.id, key: input.key } },
+      update: { value: input.value as object, updatedBy: actor.id },
+      create: {
+        orgId: org.id,
+        key: input.key,
+        value: input.value as object,
+        updatedBy: actor.id,
+      },
+    });
+    await audit({
+      actorId: actor.id, action: "POLICY_UPDATE", entity: "MeetingPolicy",
+      entityId: updated.id, newValue: { key: input.key, value: input.value },
+    });
+    return ok({ policy: updated });
+  } catch (e) {
+    return handleError(e);
+  }
+}

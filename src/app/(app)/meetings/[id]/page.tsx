@@ -1,0 +1,677 @@
+"use client";
+
+import { use, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Check, X, Play, Square, Clock, DoorOpen, UserPlus, History,
+  CalendarClock, ExternalLink, Users, UserCheck,
+} from "lucide-react";
+import { api, type ApiError } from "@/lib/api";
+import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
+import { StatusBadge, TypeBadge } from "@/components/ui/badges";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
+import { useAuth } from "@/lib/auth-store";
+import { cn, faNum, faStr, formatJalali, CANCEL_REASONS as _, CANCEL_REASON_FA, RESPONSE_FA } from "@/lib";
+import { CANCEL_REASONS } from "@/lib";
+
+interface MeetingDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  meetingType: string;
+  priority: string;
+  startAt: string;
+  endAt: string;
+  isPrivate: boolean;
+  cancelReason: string | null;
+  cancelNote: string | null;
+  organizer: { id: string; fullName: string; jobTitle: string | null };
+  room: { id: string; name: string; capacity: number; floor: { name: string } | null } | null;
+  branch: { id: string; name: string };
+  participants: {
+    id: string;
+    userId: string;
+    role: string;
+    responseStatus: string;
+    joinedAt: string | null;
+    user: { id: string; fullName: string; jobTitle: string | null; department: string | null };
+  }[];
+  guests: { id: string; name: string; company: string | null; phone: string | null; email: string | null }[];
+  approvals: {
+    id: string;
+    action: string;
+    reason: string | null;
+    createdAt: string;
+    actor: { fullName: string } | null;
+  }[];
+  events: {
+    id: string;
+    type: string;
+    data: unknown;
+    createdAt: string;
+    actor: { fullName: string } | null;
+  }[];
+}
+
+const EVENT_FA: Record<string, string> = {
+  CREATED: "ایجاد شد",
+  APPROVED: "تأیید شد",
+  REJECTED: "رد شد",
+  CANCELLED: "لغو شد",
+  RESCHEDULED: "زمان‌بندی مجدد",
+  ROOM_CHANGED: "تغییر اتاق",
+  STARTED: "شروع شد",
+  ENDED: "پایان یافت",
+  EXTENDED: "تمدید شد",
+  PARTICIPANT_ADDED: "افزودن مشارکت‌کننده",
+  PARTICIPANT_REMOVED: "حذف مشارکت‌کننده",
+  IN_PROGRESS: "در حال برگزاری",
+  COMPLETED: "تکمیل شد",
+};
+
+export default function MeetingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const qc = useQueryClient();
+  const { push } = useToast();
+  const { me, can } = useAuth();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState<string>("OTHER");
+  const [cancelNote, setCancelNote] = useState("");
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [addUserId, setAddUserId] = useState("");
+  const [showReschedule, setShowReschedule] = useState(false);
+  const [rsDate, setRsDate] = useState("");
+  const [rsTime, setRsTime] = useState("");
+  const [rsRoomId, setRsRoomId] = useState("");
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["meeting", id],
+    queryFn: () => api<{ meeting: MeetingDetail }>(`/api/meetings/${id}`),
+  });
+
+  const { data: usersData } = useQuery({
+    queryKey: ["users-lite"],
+    queryFn: () => api<{ users: { id: string; fullName: string; jobTitle: string | null }[] }>("/api/users"),
+    enabled: showAddUser && can("user:update"),
+  });
+
+  const { data: roomsData } = useQuery({
+    queryKey: ["rooms-lite"],
+    queryFn: () => api<{ rooms: { id: string; name: string; capacity: number }[] }>("/api/rooms"),
+    enabled: showReschedule || data?.meeting.status === "CONFIRMED",
+  });
+
+  async function act(
+    key: string,
+    path: string,
+    json?: unknown,
+    successMsg?: string,
+  ) {
+    setBusy(key);
+    try {
+      await api(path, { method: "POST", json });
+      push(successMsg ?? "انجام شد", "success");
+      qc.invalidateQueries({ queryKey: ["meeting", id] });
+      qc.invalidateQueries({ queryKey: ["meetings"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      setShowCancel(false);
+      setShowReschedule(false);
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 p-4 lg:p-6">
+        <SkeletonBlock className="h-10 w-64" />
+        <SkeletonBlock className="h-40" />
+        <SkeletonBlock className="h-64" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="p-6">
+        <Card className="p-6 text-center">
+          <EmptyState title="جلسه یافت نشد یا دسترسی ندارید" />
+        </Card>
+      </div>
+    );
+  }
+
+  const m = data.meeting;
+  const isOrganizer = me?.id === m.organizer.id;
+  const now = new Date();
+  const isLive = m.status === "IN_PROGRESS";
+  const canApprove = m.status === "PENDING_APPROVAL" && can("meeting:approve");
+  const canReject = m.status === "PENDING_APPROVAL" && can("meeting:reject");
+  const durationMin = Math.round((new Date(m.endAt).getTime() - new Date(m.startAt).getTime()) / 60000);
+
+  return (
+    <div className="mx-auto max-w-6xl space-y-4 p-4 lg:p-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-lg font-bold">{m.title}</h1>
+            <StatusBadge status={m.status} />
+            <TypeBadge type={m.meetingType} />
+          </div>
+          <p className="mt-1.5 text-[12px] text-ink-soft">
+            برگزارکننده: {m.organizer.fullName} · {m.branch.name}
+            {m.room ? ` · ${m.room.name}` : ""}
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => router.push("/meetings")}>
+          بازگشت به لیست
+        </Button>
+      </div>
+
+      {/* Live banner */}
+      {isLive && (
+        <Card className="border-ink bg-ink p-4 text-white">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
+              </span>
+              <p className="text-[14px] font-bold">جلسه در حال برگزاری</p>
+              <p className="text-[12px] text-white/70" dir="ltr">
+                {formatJalali(new Date(m.startAt), { withTime: true }).split("—")[1]} —{" "}
+                {formatJalali(new Date(m.endAt), { withTime: true }).split("—")[1]}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={busy === "ext15"}
+                onClick={() => act("ext15", `/api/meetings/${id}/extend`, { minutes: 15 }, "۱۵ دقیقه تمدید شد")}
+              >
+                +۱۵ دقیقه
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={busy === "ext30"}
+                onClick={() => act("ext30", `/api/meetings/${id}/extend`, { minutes: 30 }, "۳۰ دقیقه تمدید شد")}
+              >
+                +۳۰ دقیقه
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={busy === "ext60"}
+                onClick={() => act("ext60", `/api/meetings/${id}/extend`, { minutes: 60 }, "۶۰ دقیقه تمدید شد")}
+              >
+                +۶۰ دقیقه
+              </Button>
+              <Button
+                size="sm"
+                className="bg-white text-ink hover:bg-paper-soft"
+                loading={busy === "end"}
+                onClick={() => act("end", `/api/meetings/${id}/end`, {}, "جلسه پایان یافت")}
+              >
+                <Square className="h-3.5 w-3.5" />
+                پایان جلسه
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Actions bar */}
+      <div className="flex flex-wrap gap-2">
+        {canApprove && (
+          <Button
+            size="sm"
+            loading={busy === "approve"}
+            onClick={() => act("approve", `/api/meetings/${id}/approve`, {}, "جلسه تأیید شد")}
+          >
+            <Check className="h-4 w-4" />
+            تأیید جلسه
+          </Button>
+        )}
+        {canReject && (
+          <RejectButton meetingId={id} onDone={() => qc.invalidateQueries({ queryKey: ["meeting", id] })} />
+        )}
+        {(isOrganizer || can("meeting:start")) && m.status === "CONFIRMED" && new Date(m.startAt) <= now && (
+          <Button
+            size="sm"
+            loading={busy === "start"}
+            onClick={() => act("start", `/api/meetings/${id}/start`, {}, "جلسه شروع شد")}
+          >
+            <Play className="h-4 w-4" />
+            شروع جلسه
+          </Button>
+        )}
+        {(isOrganizer || can("meeting:reschedule")) && !["COMPLETED", "NO_SHOW", "CANCELLED", "REJECTED"].includes(m.status) && (
+          <Button size="sm" variant="outline" onClick={() => setShowReschedule((v) => !v)}>
+            <CalendarClock className="h-4 w-4" />
+            زمان‌بندی مجدد
+          </Button>
+        )}
+        {(isOrganizer || can("meeting:cancel")) && !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(m.status) && (
+          <Button size="sm" variant="outline" onClick={() => setShowCancel((v) => !v)}>
+            <X className="h-4 w-4" />
+            لغو جلسه
+          </Button>
+        )}
+        {(isOrganizer || can("meeting:add-participant")) &&
+          !["COMPLETED", "NO_SHOW", "CANCELLED", "REJECTED"].includes(m.status) && (
+            <Button size="sm" variant="outline" onClick={() => setShowAddUser((v) => !v)}>
+              <UserPlus className="h-4 w-4" />
+              افزودن فرد
+            </Button>
+          )}
+      </div>
+
+      {/* Reschedule form */}
+      {showReschedule && (
+        <Card className="p-4">
+          <p className="mb-3 text-[13px] font-bold">زمان‌بندی مجدد</p>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">تاریخ (YYYY-MM-DD)</label>
+              <input
+                dir="ltr"
+                value={rsDate}
+                onChange={(e) => setRsDate(e.target.value)}
+                placeholder={new Date(m.startAt).toISOString().slice(0, 10)}
+                className="h-10 w-full rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">ساعت شروع (HH:MM)</label>
+              <input
+                dir="ltr"
+                value={rsTime}
+                onChange={(e) => setRsTime(e.target.value)}
+                placeholder="10:00"
+                className="h-10 w-full rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">اتاق</label>
+              <select
+                value={rsRoomId}
+                onChange={(e) => setRsRoomId(e.target.value)}
+                className="h-10 w-full rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
+              >
+                <option value="">همان اتاق ({m.room?.name ?? "بدون اتاق"})</option>
+                {(roomsData?.rooms ?? []).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} ({faNum(r.capacity)} نفر)
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-end">
+              <Button
+                size="md"
+                className="w-full"
+                loading={busy === "reschedule"}
+                onClick={() => {
+                  const base = rsDate || new Date(m.startAt).toISOString().slice(0, 10);
+                  const time = rsTime || new Date(m.startAt).toISOString().slice(11, 16);
+                  // interpret as Tehran wall-clock → UTC
+                  const [y, mo, d] = base.split("-").map(Number);
+                  const [h, mi] = time.split(":").map(Number);
+                  const utc = new Date(Date.UTC(y, mo - 1, d, h, mi) - 210 * 60000);
+                  const end = new Date(utc.getTime() + durationMin * 60000);
+                  act(
+                    "reschedule",
+                    `/api/meetings/${id}/reschedule`,
+                    {
+                      startAt: utc.toISOString(),
+                      endAt: end.toISOString(),
+                      ...(rsRoomId ? { roomId: rsRoomId } : {}),
+                      reason: "زمان‌بندی مجدد از پنل",
+                    },
+                    "زمان جلسه تغییر کرد",
+                  );
+                }}
+              >
+                ثبت تغییر
+              </Button>
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] text-ink-faint">
+            قبل از ثبت، تداخل اتاق و افراد به‌صورت خودکار بررسی می‌شود.
+          </p>
+        </Card>
+      )}
+
+      {/* Cancel form */}
+      {showCancel && (
+        <Card className="p-4">
+          <p className="mb-3 text-[13px] font-bold text-red-600">لغو جلسه</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">دلیل لغو</label>
+              <select
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="h-10 w-full rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
+              >
+                {CANCEL_REASONS.map((r) => (
+                  <option key={r} value={r}>
+                    {CANCEL_REASON_FA[r]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">توضیح (اختیاری)</label>
+              <input
+                value={cancelNote}
+                onChange={(e) => setCancelNote(e.target.value)}
+                className="h-10 w-full rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="danger"
+                className="w-full"
+                loading={busy === "cancel"}
+                onClick={() =>
+                  act("cancel", `/api/meetings/${id}/cancel`, { reason: cancelReason, note: cancelNote || undefined }, "جلسه لغو شد")
+                }
+              >
+                تأیید لغو
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Add participant */}
+      {showAddUser && (
+        <Card className="p-4">
+          <p className="mb-3 text-[13px] font-bold">افزودن مشارکت‌کننده</p>
+          {usersData ? (
+            <div className="flex flex-wrap gap-2">
+              <select
+                value={addUserId}
+                onChange={(e) => setAddUserId(e.target.value)}
+                className="h-10 min-w-56 flex-1 rounded-xl border border-line bg-white px-3 text-[12px] outline-none focus:border-ink"
+              >
+                <option value="">انتخاب کاربر…</option>
+                {usersData.users
+                  .filter((u) => !m.participants.some((p) => p.userId === u.id))
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.fullName} {u.jobTitle ? `— ${u.jobTitle}` : ""}
+                    </option>
+                  ))}
+              </select>
+              <Button
+                disabled={!addUserId}
+                loading={busy === "adduser"}
+                onClick={() => act("adduser", `/api/meetings/${id}/participants`, { userId: addUserId }, "فرد اضافه شد")}
+              >
+                افزودن
+              </Button>
+            </div>
+          ) : (
+            <p className="text-[12px] text-ink-faint">در حال بارگذاری کاربران… (نیاز به دسترسی مدیریت کاربران)</p>
+          )}
+        </Card>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Details */}
+        <div className="space-y-4 lg:col-span-2">
+          <Card>
+            <CardHeader title="جزئیات جلسه" />
+            <CardBody className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <DetailRow label="شروع" value={formatJalali(new Date(m.startAt), { withTime: true })} />
+                <DetailRow label="پایان" value={formatJalali(new Date(m.endAt), { withTime: true })} />
+                <DetailRow label="مدت" value={`${faNum(durationMin)} دقیقه`} />
+                <DetailRow label="اتاق" value={m.room ? `${m.room.name} (${faNum(m.room.capacity)} نفر)` : "—"} />
+                <DetailRow label="شعبه" value={m.branch.name} />
+                <DetailRow label="برگزارکننده" value={m.organizer.fullName} />
+              </div>
+              {m.description && (
+                <div>
+                  <p className="mb-1 text-[11px] text-ink-soft">توضیحات</p>
+                  <p className="whitespace-pre-wrap text-[13px] leading-6">{m.description}</p>
+                </div>
+              )}
+              {m.cancelReason && (
+                <div className="rounded-xl bg-red-50 p-3">
+                  <p className="text-[12px] font-medium text-red-600">
+                    دلیل لغو: {CANCEL_REASON_FA[m.cancelReason] ?? m.cancelReason}
+                  </p>
+                  {m.cancelNote && <p className="mt-1 text-[11px] text-red-500">{m.cancelNote}</p>}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Participants */}
+          <Card>
+            <CardHeader
+              title={`مشارکت‌کنندان (${faNum(m.participants.length)})`}
+              subtitle={`داخلی: ${faNum(m.participants.length)} · خارجی: ${faNum(m.guests.length)}`}
+            />
+            <div className="divide-y divide-line">
+              {m.participants.map((p) => (
+                <div key={p.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-paper-soft text-[11px] font-bold">
+                    {p.user.fullName.slice(0, 1)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium">{p.user.fullName}</p>
+                    <p className="text-[11px] text-ink-faint">
+                      {p.role === "ORGANIZER" ? "برگزارکننده" : p.user.jobTitle ?? "مشارکت‌کننده"}
+                    </p>
+                  </div>
+                  {p.joinedAt && (
+                    <span className="badge badge-green">
+                      <UserCheck className="h-3 w-3" />
+                      حاضر
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "badge",
+                      p.responseStatus === "ACCEPTED" && "badge-green",
+                      p.responseStatus === "DECLINED" && "badge-red",
+                      p.responseStatus === "PENDING" && "badge-gray",
+                      p.responseStatus === "TENTATIVE" && "badge-amber",
+                    )}
+                  >
+                    {RESPONSE_FA[p.responseStatus]}
+                  </span>
+                  {(isOrganizer || can("meeting:remove-participant")) &&
+                    p.role !== "ORGANIZER" &&
+                    !["COMPLETED", "CANCELLED"].includes(m.status) && (
+                      <button
+                        className="text-ink-faint hover:text-red-600"
+                        aria-label="حذف"
+                        onClick={async () => {
+                          setBusy(`rm-${p.userId}`);
+                          try {
+                            await api(`/api/meetings/${id}/participants`, {
+                              method: "DELETE",
+                              json: { userId: p.userId },
+                            });
+                            push("حذف شد", "success");
+                            qc.invalidateQueries({ queryKey: ["meeting", id] });
+                          } catch (e) {
+                            push((e as ApiError).message, "error");
+                          } finally {
+                            setBusy(null);
+                          }
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                </div>
+              ))}
+              {m.guests.map((g) => (
+                <div key={g.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-[11px] font-bold text-amber-700">
+                    خ
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-medium">{g.name}</p>
+                    <p className="text-[11px] text-ink-faint">
+                      مهمان خارجی{g.company ? ` · ${g.company}` : ""}
+                      {g.phone ? ` · ${faStr(g.phone)}` : ""}
+                    </p>
+                  </div>
+                  <span className="badge badge-amber">مهمان</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* History */}
+          <Card>
+            <CardHeader title="تاریخچه جلسه" subtitle={`${faNum(m.events.length)} رخداد`} />
+            <CardBody>
+              <div className="space-y-0">
+                {m.events.map((ev, i) => (
+                  <div key={ev.id} className="relative flex gap-3 pb-4">
+                    {i < m.events.length - 1 && (
+                      <span className="absolute right-[7px] top-5 h-full w-px bg-line" />
+                    )}
+                    <span className="relative z-10 mt-1 h-[15px] w-[15px] shrink-0 rounded-full border-2 border-line bg-white" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-medium">{EVENT_FA[ev.type] ?? ev.type}</p>
+                      <p className="mt-0.5 text-[11px] text-ink-faint">
+                        {formatJalali(new Date(ev.createdAt), { withTime: true })}
+                        {ev.actor ? ` · ${ev.actor.fullName}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Approvals sidebar */}
+        <div className="space-y-4">
+          <Card>
+            <CardHeader title="گردش تأیید" />
+            <CardBody>
+              {m.approvals.length === 0 ? (
+                <p className="text-[12px] text-ink-soft">این جلسه نیاز به تأیید نداشته است.</p>
+              ) : (
+                <div className="space-y-3">
+                  {m.approvals.map((a) => (
+                    <div key={a.id} className="rounded-xl border border-line p-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[12px] font-medium">
+                          {a.action === "REQUESTED" ? "ارسال درخواست" : a.action === "APPROVED" ? "تأیید" : "رد"}
+                        </p>
+                        <span
+                          className={cn(
+                            "badge",
+                            a.action === "APPROVED" && "badge-green",
+                            a.action === "REJECTED" && "badge-red",
+                            a.action === "REQUESTED" && "badge-amber",
+                          )}
+                        >
+                          {a.action === "APPROVED" ? "تأیید شده" : a.action === "REJECTED" ? "رد شده" : "در انتظار"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-ink-faint">
+                        {formatJalali(new Date(a.createdAt), { withTime: true })}
+                        {a.actor ? ` · ${a.actor.fullName}` : ""}
+                      </p>
+                      {a.reason && <p className="mt-1 text-[11px] text-ink-soft">{a.reason}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody className="text-center">
+              <Link
+                href={`/calendar?focus=${m.id}`}
+                className="inline-flex items-center gap-1.5 text-[12px] text-ink-soft hover:text-ink"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                مشاهده در تقویم
+              </Link>
+            </CardBody>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] text-ink-soft">{label}</p>
+      <p className="mt-0.5 text-[13px] font-medium">{value}</p>
+    </div>
+  );
+}
+
+function RejectButton({ meetingId, onDone }: { meetingId: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const { push } = useToast();
+
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        <X className="h-4 w-4" />
+        رد جلسه
+      </Button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="دلیل رد (الزامی)"
+        className="h-8 w-56 rounded-lg border border-line px-3 text-[12px] outline-none focus:border-red-400"
+      />
+      <Button
+        size="sm"
+        variant="danger"
+        disabled={reason.trim().length < 3}
+        loading={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await api(`/api/meetings/${meetingId}/reject`, { method: "POST", json: { reason } });
+            push("جلسه رد شد", "success");
+            onDone();
+          } catch (e) {
+            push((e as ApiError).message, "error");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        ثبت رد
+      </Button>
+    </div>
+  );
+}
