@@ -43,8 +43,9 @@ export type NotificationType =
   | "MEETING_EXTENDED";
 
 function faDateTime(d: Date): string {
-  // lightweight ISO for logs/messages; UI formats via jalali.ts
-  return new Date(d.getTime() + 210 * 60000).toISOString().slice(0, 16).replace("T", " ");
+  const iso = new Date(d.getTime() + 210 * 60000).toISOString().slice(0, 16).replace("T", " ");
+  // Persian digits for user-facing notification bodies
+  return iso.replace(/[0-9]/g, (ch) => "۰۱۲۳۴۵۶۷۸۹"[Number(ch)]);
 }
 
 async function notifyUsers(

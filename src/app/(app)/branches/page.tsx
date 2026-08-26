@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, MapPin, Phone, User } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardBody, SkeletonBlock, EmptyState } from "@/components/ui/card";
-import { faNum } from "@/lib";
+import { faNum, faStr } from "@/lib";
 
 interface Branch {
   id: string;
@@ -61,7 +61,7 @@ export default function BranchesPage() {
                     {b.phone && (
                       <p className="flex items-center gap-1.5" dir="ltr">
                         <Phone className="h-3.5 w-3.5" />
-                        <span dir="ltr">{b.phone}</span>
+                        <span dir="ltr">{faStr(b.phone)}</span>
                       </p>
                     )}
                     {b.manager && (

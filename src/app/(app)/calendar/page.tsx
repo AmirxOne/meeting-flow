@@ -187,7 +187,7 @@ export default function CalendarPage() {
                       isToday && "bg-ink font-bold text-white",
                     )}
                   >
-                    {mode === "jalali" ? faNum(cell.jd) : gregorianDayOf(iso)}
+                    {mode === "jalali" ? faNum(cell.jd) : faNum(gregorianDayOf(iso))}
                   </span>
                   <div className="mt-1 space-y-0.5">
                     {dayMeetings.slice(0, 2).map((m) => (
@@ -305,6 +305,10 @@ function gregorianMonthLabel(jy: number, jm: number): string {
   const first = jalaliFirst(jy, jm);
   const d = new Date(first.getTime() + 12 * 3600000);
   return new Intl.DateTimeFormat("fa-IR", { month: "long", year: "numeric", timeZone: "UTC" }).format(d);
+}
+
+function faStrDigits(text: string): string {
+  return text.replace(/[0-9]/g, (ch) => "۰۱۲۳۴۵۶۷۸۹"[Number(ch)]);
 }
 
 function dayLabel(iso: string, mode: "jalali" | "gregorian"): string {
