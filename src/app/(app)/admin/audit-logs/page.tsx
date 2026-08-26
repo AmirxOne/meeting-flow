@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, CardHeader, SkeletonBlock, EmptyState } from "@/components/ui/card";
-import { cn, faNum, formatJalali } from "@/lib";
+import { cn, faNum, faStr, formatJalali } from "@/lib";
 
 interface AuditRow {
   id: string;
@@ -92,7 +92,7 @@ export default function AuditLogsPage() {
                         {ENTITY_FA[log.entity] ?? log.entity}
                       </td>
                       <td className="hidden px-4 py-2.5 text-ink-faint lg:table-cell" dir="ltr">
-                        {log.ip ?? "—"}
+                        {log.ip && log.ip !== "::1" ? faStr(log.ip) : log.ip === "::1" ? "محلی" : "—"}
                       </td>
                     </tr>
                   ))}

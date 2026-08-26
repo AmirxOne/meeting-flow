@@ -6,7 +6,7 @@ import { CalendarDays, Clock, DoorOpen, Hourglass, Users, XCircle } from "lucide
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, StatCard, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badges";
-import { faNum, faStr, formatJalali } from "@/lib";
+import { faNum, faStr, formatJalali, toJalali } from "@/lib";
 
 interface DashboardData {
   todayCount: number;
@@ -109,7 +109,7 @@ export default function DashboardPage() {
                       style={{ height: `${Math.max(4, (d.hours / maxHours) * 100)}%` }}
                     />
                     <span className="text-[10px] text-ink-faint">
-                      {formatJalali(new Date(d.date + "T12:00:00+03:30")).slice(5)}
+                      {(() => { const j = toJalali(new Date(d.date + "T12:00:00+03:30")); return `${faNum(j.jm)}/${faNum(j.jd)}`; })()}
                     </span>
                   </div>
                 ))}

@@ -149,6 +149,11 @@ export function jalaliToUtc(
   return zonedTimeToUtc(g.getFullYear(), g.getMonth() + 1, g.getDate(), h, min, 0, tz);
 }
 
+const FA_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
+function toFaDigits(text: string): string {
+  return text.replace(/[0-9]/g, (d) => FA_DIGITS[Number(d)]);
+}
+
 export function formatJalali(
   date: Date,
   opts: { withTime?: boolean; monthName?: boolean; tz?: string } = {},
@@ -160,6 +165,6 @@ export function formatJalali(
   const datePart = opts.monthName
     ? `${jd} ${J_MONTHS[jm - 1]} ${jy}`
     : `${jy}/${pad(jm)}/${pad(jd)}`;
-  if (!opts.withTime) return datePart;
-  return `${datePart} — ${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
+  if (!opts.withTime) return toFaDigits(datePart);
+  return toFaDigits(`${datePart} — ${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`);
 }
