@@ -128,7 +128,7 @@ export default function MeetingsPage() {
           />
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-3">
           {meetings.map((m) => (
             <Link key={m.id} href={`/meetings/${m.id}`}>
               <Card className="p-4 transition-colors hover:border-ink-faint">
