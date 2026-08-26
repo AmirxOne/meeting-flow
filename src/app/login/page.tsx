@@ -30,7 +30,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-paper-soft px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-ink text-lg font-bold text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-ink text-lg font-bold text-white">
             م
           </div>
           <div className="text-center">
@@ -41,7 +41,7 @@ export default function LoginPage() {
 
         <form
           onSubmit={submit}
-          className="space-y-4 rounded-2xl border border-line bg-white p-6 shadow-sm"
+          className="space-y-4 rounded-md border border-line bg-white p-6 shadow-sm"
         >
           <div>
             <label className="mb-1.5 block text-[12px] font-medium">ایمیل</label>
@@ -50,7 +50,7 @@ export default function LoginPage() {
               dir="ltr"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3.5 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
+              className="h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
               placeholder="admin@example.com"
               required
               autoFocus
@@ -63,25 +63,25 @@ export default function LoginPage() {
               dir="ltr"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-11 w-full rounded-xl border border-[#d9d9e0] bg-white px-3.5 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
+              className="h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
               placeholder="••••••••"
               required
             />
           </div>
 
           {error && (
-            <p className="rounded-xl bg-red-50 px-3 py-2.5 text-[12px] text-red-600">{error}</p>
+            <p className="rounded-md bg-red-50 px-3 py-2.5 text-[12px] text-red-600">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="h-11 w-full rounded-xl bg-ink text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] disabled:opacity-50"
+            className="h-11 w-full rounded-md bg-ink text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] disabled:opacity-50"
           >
             {loading ? "در حال ورود…" : "ورود"}
           </button>
 
-          <div className="rounded-xl bg-paper-soft px-3 py-2.5 text-[11px] leading-5 text-ink-soft" dir="rtl">
+          <div className="rounded-md bg-paper-soft px-3 py-2.5 text-[11px] leading-5 text-ink-soft" dir="rtl">
             حساب‌های آزمایشی (رمز همه: <span dir="ltr">Pass1234</span>)
             <br />
             <span dir="ltr">admin@ · operator@ · manager@ · room@ · ali@ · amir@ · sara@example.com</span>

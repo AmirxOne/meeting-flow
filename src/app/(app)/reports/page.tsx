@@ -51,7 +51,7 @@ export default function ReportsPage() {
           گزارش‌ها
         </h1>
         <a href={`/api/reports?${query.toString()}&format=csv`} download>
-          <button className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-[12px] font-medium hover:bg-paper-soft">
+          <button className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium hover:bg-paper-soft">
             <Download className="h-4 w-4" />
             خروجی CSV
           </button>
@@ -68,7 +68,7 @@ export default function ReportsPage() {
               dir="ltr"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="h-10 w-full rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
           </div>
           <div>
@@ -78,7 +78,7 @@ export default function ReportsPage() {
               dir="ltr"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="h-10 w-full rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+              className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
           </div>
           <div>

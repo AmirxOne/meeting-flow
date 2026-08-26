@@ -88,7 +88,7 @@ export default function AdminPoliciesPage() {
                       const v = Number(e.target.value);
                       if (v !== Number(p.value)) update(p.key, v);
                     }}
-                    className="h-9 w-24 shrink-0 rounded-xl border border-line px-3 text-center text-[12px] outline-none focus:border-ink"
+                    className="h-9 w-24 shrink-0 rounded-md border border-line px-3 text-center text-[12px] outline-none focus:border-ink"
                   />
                 )}
                 {meta.type === "list" && (

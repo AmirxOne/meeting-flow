@@ -75,7 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-l border-line bg-white lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-line px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-ink text-[13px] font-bold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-ink text-[13px] font-bold text-white">
             م
           </div>
           <div>
@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-colors",
+                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px] font-medium transition-colors",
                   active ? "bg-paper-soft text-ink" : "text-ink-soft hover:bg-paper-soft hover:text-ink",
                 )}
               >
@@ -108,7 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <Link
           href="/meetings/new"
-          className="m-3 flex h-10 items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white hover:bg-[#2a2a2e]"
+          className="m-3 flex h-10 items-center justify-center gap-2 rounded-md bg-ink text-[13px] font-medium text-white hover:bg-[#2a2a2e]"
         >
           <Plus className="h-4 w-4" />
           جلسه جدید
@@ -119,7 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Header */}
         <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b border-line bg-white/90 px-4 backdrop-blur lg:px-6">
           <button
-            className="rounded-lg p-2 hover:bg-paper-soft lg:hidden"
+            className="rounded-md p-2 hover:bg-paper-soft lg:hidden"
             onClick={() => setDrawerOpen(true)}
             aria-label="منو"
           >
@@ -131,7 +131,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="relative mr-auto">
             <button
               onClick={() => setUserMenu((v) => !v)}
-              className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-paper-soft"
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-paper-soft"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-white">
                 {me.fullName.slice(0, 1)}
@@ -147,14 +147,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {userMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setUserMenu(false)} />
-                <div className="absolute left-0 z-20 mt-2 w-52 rounded-xl border border-line bg-white p-1.5 shadow-lg">
+                <div className="absolute left-0 z-20 mt-2 w-52 rounded-md border border-line bg-white p-1.5 shadow-lg">
                   <div className="border-b border-line px-3 py-2">
                     <p className="text-[12px] font-medium">{me.fullName}</p>
                     <p className="text-[11px] text-ink-faint" dir="ltr">{me.email}</p>
                   </div>
                   <button
                     onClick={logout}
-                    className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-red-600 hover:bg-red-50"
+                    className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-red-600 hover:bg-red-50"
                   >
                     <LogOut className="h-4 w-4" />
                     خروج از حساب
@@ -187,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px]",
+                      "flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px]",
                       active ? "bg-paper-soft font-medium" : "text-ink-soft",
                     )}
                   >
@@ -254,7 +254,7 @@ function GlobalSearch() {
 
   return (
     <div className="relative mx-auto w-full max-w-xl">
-      <div className="flex h-10 items-center gap-2 rounded-xl bg-paper-soft px-3">
+      <div className="flex h-10 items-center gap-2 rounded-md bg-paper-soft px-3">
         <Search className="h-4 w-4 text-ink-faint" />
         <input
           value={q}
@@ -270,7 +270,7 @@ function GlobalSearch() {
       {open && q.trim().length >= 2 && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute inset-x-0 top-12 z-20 max-h-96 overflow-y-auto rounded-xl border border-line bg-white p-2 shadow-lg">
+          <div className="absolute inset-x-0 top-12 z-20 max-h-96 overflow-y-auto rounded-md border border-line bg-white p-2 shadow-lg">
             {!r && <p className="p-3 text-[12px] text-ink-faint">در حال جستجو…</p>}
             {r && !hasResults && (
               <p className="p-3 text-[12px] text-ink-faint">نتیجه‌ای یافت نشد</p>
@@ -330,7 +330,7 @@ function ResultRow({ label, hint, onClick }: { label: string; hint?: string; onC
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-right text-[13px] hover:bg-paper-soft"
+      className="flex w-full items-center justify-between rounded-md px-3 py-2 text-right text-[13px] hover:bg-paper-soft"
     >
       <span className="truncate">{label}</span>
       {hint && <span className="shrink-0 text-[11px] text-ink-faint">{hint}</span>}

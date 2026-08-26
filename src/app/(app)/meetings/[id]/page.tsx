@@ -290,7 +290,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
                 value={rsDate}
                 onChange={(e) => setRsDate(e.target.value)}
                 placeholder={new Date(m.startAt).toISOString().slice(0, 10)}
-                className="h-10 w-full rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
               />
             </div>
             <div>
@@ -300,7 +300,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
                 value={rsTime}
                 onChange={(e) => setRsTime(e.target.value)}
                 placeholder="10:00"
-                className="h-10 w-full rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
               />
             </div>
             <div>
@@ -370,7 +370,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
               <input
                 value={cancelNote}
                 onChange={(e) => setCancelNote(e.target.value)}
-                className="h-10 w-full rounded-xl border border-line px-3 text-[12px] outline-none focus:border-ink"
+                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
               />
             </div>
             <div className="flex items-end">
@@ -443,7 +443,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               )}
               {m.cancelReason && (
-                <div className="rounded-xl bg-red-50 p-3">
+                <div className="rounded-md bg-red-50 p-3">
                   <p className="text-[12px] font-medium text-red-600">
                     دلیل لغو: {CANCEL_REASON_FA[m.cancelReason] ?? m.cancelReason}
                   </p>
@@ -568,7 +568,7 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
               ) : (
                 <div className="space-y-3">
                   {m.approvals.map((a) => (
-                    <div key={a.id} className="rounded-xl border border-line p-3">
+                    <div key={a.id} className="rounded-md border border-line p-3">
                       <div className="flex items-center justify-between">
                         <p className="text-[12px] font-medium">
                           {a.action === "REQUESTED" ? "ارسال درخواست" : a.action === "APPROVED" ? "تأیید" : "رد"}
@@ -642,7 +642,7 @@ function RejectButton({ meetingId, onDone }: { meetingId: string; onDone: () => 
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         placeholder="دلیل رد (الزامی)"
-        className="h-8 w-56 rounded-lg border border-line px-3 text-[12px] outline-none focus:border-red-400"
+        className="h-8 w-56 rounded-md border border-line px-3 text-[12px] outline-none focus:border-red-400"
       />
       <Button
         size="sm"

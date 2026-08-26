@@ -67,7 +67,7 @@ export default function MeetingsPage() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         {can("meeting:view-all") && (
-          <div className="flex overflow-hidden rounded-xl border border-line">
+          <div className="flex overflow-hidden rounded-md border border-line">
             <button
               onClick={() => setScope("all")}
               className={cn("px-3 py-1.5 text-[12px]", scope === "all" ? "bg-ink text-white" : "text-ink-soft")}
@@ -96,7 +96,7 @@ export default function MeetingsPage() {
             {f.label}
           </button>
         ))}
-        <div className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-xl border border-line bg-white px-3 sm:max-w-64">
+        <div className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
           <Search className="h-4 w-4 text-ink-faint" />
           <input
             value={q}
