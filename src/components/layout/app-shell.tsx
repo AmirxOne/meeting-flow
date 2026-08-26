@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  LayoutDashboard, CalendarDays, Users, DoorOpen, Building2, Bell,
+  LayoutDashboard, CalendarDays, Users, UserRound, DoorOpen, Building2, Bell,
   BarChart3, Settings, Search, LogOut, Menu, X, Plus, ChevronDown,
 } from "lucide-react";
 import { cn, faNum } from "@/lib";
@@ -17,6 +17,7 @@ const NAV = [
   { href: "/calendar", label: "تقویم", icon: CalendarDays, perm: null },
   { href: "/meetings", label: "جلسات", icon: Users, perm: null },
   { href: "/availability", label: "زمان مناسب", icon: Search, perm: null },
+  { href: "/people", label: "افراد", icon: UserRound, perm: null },
   { href: "/rooms", label: "اتاق‌ها", icon: DoorOpen, perm: null },
   { href: "/branches", label: "شعب", icon: Building2, perm: null },
   { href: "/notifications", label: "اعلان‌ها", icon: Bell, perm: null },
