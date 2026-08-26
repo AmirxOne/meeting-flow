@@ -7,6 +7,8 @@ import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, SkeletonBlock } from "@/components/ui/card";
 import { cn, faNum, faStr, STATUS_FA, TYPE_FA } from "@/lib";
 import { Select } from "@/components/ui/select";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { FilterBar } from "@/components/ui/filter-bar";
 
 interface Summary {
   totalMeetings: number;
@@ -31,12 +33,17 @@ export default function ReportsPage() {
   const [from, setFrom] = useState(monthAgo.toISOString().slice(0, 10));
   const [to, setTo] = useState(now.toISOString().slice(0, 10));
   const [status, setStatus] = useState("");
-  const [meetingType, setMeetingType] = useState("");
+  const [type, setType] = useState("");
+  const [rangePreset, setRangePreset] = useState("30");
 
-  const query = new URLSearchParams({ from, to, ...(status ? { status } : {}), ...(meetingType ? { meetingType } : {}) });
+  const query = new URLSearchParams({
+    from, to,
+    ...(status ? { status } : {}),
+    ...(type ? { meetingType: type } : {}),
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["reports", from, to, status, meetingType],
+    queryKey: ["reports", from, to, status, type],
     queryFn: () => api<{ summary: Summary }>(`/api/reports?${query.toString()}`),
   });
 
@@ -59,48 +66,59 @@ export default function ReportsPage() {
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
-        <div className="grid gap-3 sm:grid-cols-4">
-          <div>
-            <label className="mb-1 block text-[11px] text-ink-soft">از تاریخ</label>
-            <input
-              type="date"
-              dir="ltr"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] text-ink-soft">تا تاریخ</label>
-            <input
-              type="date"
-              dir="ltr"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] text-ink-soft">وضعیت</label>
-            <Select
-              value={status}
-              onChange={setStatus}
-              placeholder="همه"
-              options={Object.entries(STATUS_FA).map(([value, label]) => ({ value, label }))}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] text-ink-soft">نوع جلسه</label>
-            <Select
-              value={meetingType}
-              onChange={setMeetingType}
-              placeholder="همه"
-              options={Object.entries(TYPE_FA).map(([value, label]) => ({ value, label }))}
-            />
-          </div>
+      <FilterBar
+        groups={[
+          {
+            key: "range",
+            label: "بازه",
+            options: [
+              { value: "7", label: "۷ روز" },
+              { value: "30", label: "۳۰ روز" },
+              { value: "90", label: "۳ ماه" },
+              { value: "", label: "دلخواه" },
+            ],
+          },
+          {
+            key: "status",
+            label: "وضعیت",
+            options: [{ value: "", label: "همه" }, ...Object.entries(STATUS_FA).map(([value, label]) => ({ value, label }))],
+          },
+          {
+            key: "type",
+            label: "نوع",
+            options: [{ value: "", label: "همه" }, ...Object.entries(TYPE_FA).map(([value, label]) => ({ value, label }))],
+          },
+        ]}
+        value={{ range: rangePreset, status, type }}
+        onChange={(v) => {
+          setRangePreset(v.range);
+          setStatus(v.status);
+          setType(v.type);
+          if (v.range) {
+            const days = Number(v.range);
+            const nowIso = new Date().toISOString().slice(0, 10);
+            const fromIso = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+            setFrom(fromIso);
+            setTo(nowIso);
+          }
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <JalaliDatePicker
+            value={from}
+            onChange={setFrom}
+            placeholder="از تاریخ"
+            className="w-40 [&>button]:h-9 [&>button]:text-[12px]"
+          />
+          <span className="text-[11px] text-ink-faint">تا</span>
+          <JalaliDatePicker
+            value={to}
+            onChange={setTo}
+            placeholder="تا تاریخ"
+            className="w-40 [&>button]:h-9 [&>button]:text-[12px]"
+          />
         </div>
-      </Card>
+      </FilterBar>
 
       {isLoading || !s ? (
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

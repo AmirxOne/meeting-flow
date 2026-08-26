@@ -7,6 +7,7 @@ import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, faStr } from "@/lib";
 
@@ -127,28 +128,34 @@ export default function AdminPeoplePage() {
       )}
 
       {/* filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex h-9 min-w-48 flex-1 items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
-          <Search className="h-4 w-4 text-ink-faint" />
+      <FilterBar
+        groups={[
+          {
+            key: "kind",
+            label: "نوع",
+            options: [
+              { value: "", label: "همه" },
+              { value: "INTERNAL", label: "اعضای شرکت" },
+              { value: "EXTERNAL", label: "افراد خارجی" },
+            ],
+          },
+        ]}
+        value={{ kind: kindFilter }}
+        onChange={(v) => setKindFilter(v.kind)}
+      >
+        <div className="flex h-9 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
+          <Search className="h-4 w-4 shrink-0 text-ink-faint" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="جستجوی نام، شرکت، سمت…"
             className="w-full bg-transparent text-[12px] outline-none"
           />
+          {q && (
+            <button onClick={() => setQ("")} className="text-ink-faint hover:text-ink" aria-label="پاک کردن">✕</button>
+          )}
         </div>
-        <div className="w-44">
-          <Select
-            value={kindFilter}
-            onChange={setKindFilter}
-            placeholder="همه"
-            options={[
-              { value: "INTERNAL", label: "اعضای شرکت" },
-              { value: "EXTERNAL", label: "افراد خارجی" },
-            ]}
-          />
-        </div>
-      </div>
+      </FilterBar>
 
       {isLoading ? (
         <SkeletonBlock className="h-72" />

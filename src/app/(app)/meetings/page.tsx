@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { Card, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { StatusBadge, TypeBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
+import { FilterBar } from "@/components/ui/filter-bar";
 import { cn, faNum, formatJalali, STATUS_FA } from "@/lib";
 import { useAuth } from "@/lib/auth-store";
 
@@ -50,6 +51,10 @@ export default function MeetingsPage() {
 
   const meetings = data?.meetings ?? [];
 
+  // status counts across the CURRENT result set (for filter chips)
+  const statusCounts = new Map<string, number>();
+  for (const m of meetings) statusCounts.set(m.status, (statusCounts.get(m.status) ?? 0) + 1);
+
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -65,47 +70,48 @@ export default function MeetingsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        {can("meeting:view-all") && (
-          <div className="flex overflow-hidden rounded-md border border-line">
-            <button
-              onClick={() => setScope("all")}
-              className={cn("px-3 py-1.5 text-[12px]", scope === "all" ? "bg-ink text-white" : "text-ink-soft")}
-            >
-              کل شرکت
-            </button>
-            <button
-              onClick={() => setScope("mine")}
-              className={cn("px-3 py-1.5 text-[12px]", scope === "mine" ? "bg-ink text-white" : "text-ink-soft")}
-            >
-              جلسات من
-            </button>
-          </div>
-        )}
-        {STATUS_FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setStatus(f.key)}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-[12px] transition-colors",
-              status === f.key
-                ? "border-ink bg-ink text-white"
-                : "border-line text-ink-soft hover:border-ink-faint",
-            )}
-          >
-            {f.label}
-          </button>
-        ))}
-        <div className="flex h-9 min-w-44 flex-1 items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
-          <Search className="h-4 w-4 text-ink-faint" />
+      <FilterBar
+        groups={[
+          ...(can("meeting:view-all")
+            ? [{
+                key: "scope",
+                options: [
+                  { value: "all", label: "کل شرکت" },
+                  { value: "mine", label: "جلسات من" },
+                ],
+              }]
+            : []),
+          {
+            key: "status",
+            label: "وضعیت",
+            options: STATUS_FILTERS.map((f) => ({
+              value: f.key,
+              label: f.label,
+              count: f.key === "" ? meetings.length : statusCounts.get(f.key) ?? 0,
+            })),
+          },
+        ]}
+        value={{ scope, status }}
+        onChange={(v) => {
+          if (v.scope !== scope) setScope(v.scope as "all" | "mine");
+          setStatus(v.status);
+        }}
+      >
+        <div className="flex h-9 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
+          <Search className="h-4 w-4 shrink-0 text-ink-faint" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="جستجوی عنوان…"
             className="w-full bg-transparent text-[12px] outline-none"
           />
+          {q && (
+            <button onClick={() => setQ("")} className="text-ink-faint hover:text-ink" aria-label="پاک کردن">
+              ✕
+            </button>
+          )}
         </div>
-      </div>
+      </FilterBar>
 
       {/* List */}
       {isLoading ? (
