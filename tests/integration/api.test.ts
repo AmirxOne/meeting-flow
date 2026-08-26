@@ -67,10 +67,37 @@ function tehran(dayOffset: number, hour: number, minute = 0): string {
   return new Date(base + dayOffset * 86400000 + hour * 3600000 + (minute + JITTER) * 60000).toISOString();
 }
 
+const TEST_TITLES = [
+  "تست یکپارچه — جلسه داخلی",
+  "جلسه با مهمان خارجی — نیاز به تأیید",
+  "رزرو جایگزین بعد از لغو",
+  "تلاش تداخلی — باید رد شود",
+];
+
 beforeAll(async () => {
   adminCookie = await login("admin@example.com");
   employeeCookie = await login("ali@example.com");
   operatorCookie = await login("operator@example.com");
+
+  // idempotency: wipe leftovers from previous runs
+  for (const t of TEST_TITLES) {
+    await api("/api/search?q=" + encodeURIComponent(t.slice(0, 12)), { cookie: adminCookie }).catch(() => {});
+  }
+  const list = await api(
+    "/api/meetings?scope=all&limit=500",
+    { cookie: adminCookie },
+  );
+  const mine = (list.body?.data?.meetings ?? []).filter((m: { title: string }) =>
+    TEST_TITLES.some((t) => m.title.startsWith(t)),
+  );
+  for (const m of mine) {
+    // cancel first (frees the room), then it stays as history — harmless
+    await api(`/api/meetings/${m.id}/cancel`, {
+      method: "POST",
+      cookie: adminCookie,
+      json: { reason: "DUPLICATE_MEETING" },
+    }).catch(() => {});
+  }
 });
 
 describe("auth", () => {
