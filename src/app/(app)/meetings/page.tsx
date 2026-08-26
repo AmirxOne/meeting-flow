@@ -90,6 +90,7 @@ export default function MeetingsPage() {
               count: f.key === "" ? meetings.length : statusCounts.get(f.key) ?? 0,
             })),
           },
+          // پیش‌فرض: همه (اولین آپشن با value="")
         ]}
         value={{ scope, status }}
         onChange={(v) => {
