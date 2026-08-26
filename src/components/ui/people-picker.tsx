@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Building2, Briefcase, Search, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { api, type ApiError } from "@/lib/api";
 import { cn, faNum, faStr } from "@/lib";
 import { useToast } from "@/components/ui/toast";
@@ -264,8 +265,14 @@ export function PeoplePicker({
       </div>
 
       {/* dropdown */}
+      <AnimatePresence>
       {open && !disabled && (
-        <div className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border border-line bg-white shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
+        <motion.div
+          initial={{ opacity: 0, y: -6, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -4, transition: { duration: 0.12 } }}
+          transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+          className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border border-line bg-white shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
           {/* manual form */}
           {manualMode ? (
             <div className="space-y-2 p-3">
@@ -359,8 +366,9 @@ export function PeoplePicker({
               )}
             </div>
           )}
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

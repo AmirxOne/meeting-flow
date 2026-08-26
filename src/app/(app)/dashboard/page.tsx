@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, StatCard, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badges";
 import { faNum, faStr, formatJalali, toJalali } from "@/lib";
+import { StaggerList, StaggerItem } from "@/components/ui/motion";
 
 interface DashboardData {
   todayCount: number;
@@ -107,28 +108,40 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <StatCard label="جلسات امروز" value={faNum(data.todayCount)} icon={<CalendarDays className="h-5 w-5" />} />
-        <StatCard
-          label="در حال برگزاری"
-          value={faNum(data.activeNow)}
-          tone={data.activeNow > 0 ? "success" : "default"}
-          icon={<Clock className="h-5 w-5" />}
-        />
-        <StatCard
-          label="در انتظار تأیید"
-          value={faNum(data.pendingApprovals)}
-          tone={data.pendingApprovals > 0 ? "warn" : "default"}
-          icon={<Hourglass className="h-5 w-5" />}
-        />
-        <StatCard
-          label="اتاق آزاد / کل"
-          value={`${faNum(data.rooms.total - data.rooms.occupied)} / ${faNum(data.rooms.total)}`}
-          icon={<DoorOpen className="h-5 w-5" />}
-        />
-        <StatCard label="لغو این هفته" value={faNum(data.cancelledThisWeek)} tone={data.cancelledThisWeek > 0 ? "danger" : "default"} icon={<XCircle className="h-5 w-5" />} />
-        <StatCard label="ساعت جلسات هفته" value={faNum(data.weekSeries.reduce((a, b) => a + b.hours, 0))} icon={<Users className="h-5 w-5" />} />
-      </div>
+      <StaggerList className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <StaggerItem>
+          <StatCard label="جلسات امروز" value={faNum(data.todayCount)} icon={<CalendarDays className="h-5 w-5" />} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard
+            label="در حال برگزاری"
+            value={faNum(data.activeNow)}
+            tone={data.activeNow > 0 ? "success" : "default"}
+            icon={<Clock className="h-5 w-5" />}
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard
+            label="در انتظار تأیید"
+            value={faNum(data.pendingApprovals)}
+            tone={data.pendingApprovals > 0 ? "warn" : "default"}
+            icon={<Hourglass className="h-5 w-5" />}
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard
+            label="اتاق آزاد / کل"
+            value={`${faNum(data.rooms.total - data.rooms.occupied)} / ${faNum(data.rooms.total)}`}
+            icon={<DoorOpen className="h-5 w-5" />}
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard label="لغو این هفته" value={faNum(data.cancelledThisWeek)} tone={data.cancelledThisWeek > 0 ? "danger" : "default"} icon={<XCircle className="h-5 w-5" />} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard label="ساعت جلسات هفته" value={faNum(data.weekSeries.reduce((a, b) => a + b.hours, 0))} icon={<Users className="h-5 w-5" />} />
+        </StaggerItem>
+      </StaggerList>
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly chart */}

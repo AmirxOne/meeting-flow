@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib";
+import { motion, AnimatePresence } from "framer-motion";
 
 export interface SelectOption {
   value: string;
@@ -138,10 +139,15 @@ export function Select({
         />
       </button>
 
-      {open && (
-        <ul
+      <AnimatePresence>
+        {open && (
+        <motion.ul
           ref={listRef}
           role="listbox"
+          initial={{ opacity: 0, y: -6, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -4, scale: 0.98, transition: { duration: 0.12 } }}
+          transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
           className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 max-h-64 overflow-y-auto rounded-md border border-line bg-white py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.14)]"
         >
           {options.length === 0 && (
@@ -172,8 +178,9 @@ export function Select({
               </li>
             );
           })}
-        </ul>
-      )}
+        </motion.ul>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

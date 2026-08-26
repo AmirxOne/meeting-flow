@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
 
 type ToastTone = "success" | "error" | "info";
@@ -31,9 +32,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <Ctx.Provider value={{ push }}>
       {children}
       <div className="fixed bottom-4 left-4 z-[100] flex flex-col gap-2">
+        <AnimatePresence mode="popLayout">
         {toasts.map((t) => (
-          <div
+          <motion.div
             key={t.id}
+            layout
+            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, x: -32, transition: { duration: 0.15 } }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             className="flex max-w-sm items-center gap-2 rounded-md border border-line bg-white px-4 py-3 shadow-lg"
           >
             {t.tone === "success" && <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />}
@@ -47,8 +54,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             >
               <X className="h-3.5 w-3.5" />
             </button>
-          </div>
+          </motion.div>
         ))}
+        </AnimatePresence>
       </div>
     </Ctx.Provider>
   );
