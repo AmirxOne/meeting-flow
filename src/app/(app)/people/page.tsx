@@ -8,6 +8,7 @@ import { Card, CardHeader, EmptyState, SkeletonTable } from "@/components/ui/car
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, faStr } from "@/lib";
 
@@ -124,62 +125,66 @@ export default function PeoplePage() {
         </Button>
       </div>
 
-      {/* add/edit form */}
-      {showForm && (
-        <Card className="p-4">
-          <p className="mb-3 text-[13px] font-bold">{editing ? `ویرایش ${editing.name}` : "افزودن فرد"}</p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <input
-              placeholder="نام و نام خانوادگی *"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <Select
-              value={form.kind}
-              onChange={(v) => setForm({ ...form, kind: v })}
-              options={[
-                { value: "INTERNAL", label: "عضو شرکت" },
-                { value: "EXTERNAL", label: "خارجی (مهمان / ارتباط)" },
-              ]}
-            />
-            <input
-              placeholder="شرکت / سازمان"
-              value={form.company}
-              onChange={(e) => setForm({ ...form, company: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <input
-              placeholder="عنوان شغلی"
-              value={form.jobTitle}
-              onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <input
-              dir="ltr"
-              placeholder="تلفن"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <input
-              dir="ltr"
-              placeholder="ایمیل"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-            <div className="flex gap-2 sm:col-span-3">
-              <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
-                {editing ? "ذخیره تغییرات" : "افزودن"}
-              </Button>
-              <Button variant="ghost" onClick={() => setShowForm(false)}>
-                انصراف
-              </Button>
-            </div>
+      {/* add/edit modal (bottom sheet on mobile) */}
+      <Modal
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={editing ? `ویرایش ${editing.name}` : "افزودن فرد"}
+        subtitle="اعضای شرکت و ارتباط‌های خارجی — هنگام ساخت جلسه از همین لیست انتخاب می‌شوند"
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
+              {editing ? "ذخیره تغییرات" : "افزودن"}
+            </Button>
+            <Button variant="ghost" onClick={() => setShowForm(false)}>
+              انصراف
+            </Button>
           </div>
-        </Card>
-      )}
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input
+            placeholder="نام و نام خانوادگی *"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <Select
+            value={form.kind}
+            onChange={(v) => setForm({ ...form, kind: v })}
+            options={[
+              { value: "INTERNAL", label: "عضو شرکت" },
+              { value: "EXTERNAL", label: "خارجی (مهمان / ارتباط)" },
+            ]}
+          />
+          <input
+            placeholder="شرکت / سازمان"
+            value={form.company}
+            onChange={(e) => setForm({ ...form, company: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            placeholder="عنوان شغلی"
+            value={form.jobTitle}
+            onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            dir="ltr"
+            placeholder="تلفن"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            dir="ltr"
+            placeholder="ایمیل"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+        </div>
+      </Modal>
 
       {/* filters */}
       <FilterBar
