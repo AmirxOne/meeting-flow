@@ -1,37 +1,43 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { requireUser, requirePermission } from "@/server/auth/session";
+import { requireUser } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 
 export const dynamic = "force-dynamic";
 
-/** People directory — searchable picker source for participants & guests. */
+/** People directory — server-side searchable picker source (scales to 1000+). */
 export async function GET(req: NextRequest) {
   try {
     await requireUser();
     const sp = req.nextUrl.searchParams;
     const q = sp.get("q")?.trim() ?? "";
     const kind = sp.get("kind"); // INTERNAL | EXTERNAL | undefined (all)
+    const take = Math.min(Number(sp.get("take") ?? 50), 200);
 
-    const people = await prisma.personDirectory.findMany({
-      where: {
-        ...(kind ? { kind } : {}),
-        ...(q
-          ? {
-              OR: [
-                { name: { contains: q } },
-                { company: { contains: q } },
-                { jobTitle: { contains: q } },
-                { email: { contains: q } },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ kind: "asc" }, { name: "asc" }],
-      take: 50,
-    });
-    return ok({ people });
+    const where = {
+      ...(kind ? { kind } : {}),
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: q } },
+              { company: { contains: q } },
+              { jobTitle: { contains: q } },
+              { email: { contains: q } },
+            ],
+          }
+        : {}),
+    };
+
+    const [people, total] = await Promise.all([
+      prisma.personDirectory.findMany({
+        where,
+        orderBy: [{ kind: "asc" }, { name: "asc" }],
+        take,
+      }),
+      prisma.personDirectory.count({ where: { ...(kind ? { kind } : {}) } }),
+    ]);
+    return ok({ people, total });
   } catch (e) {
     return handleError(e);
   }
@@ -49,7 +55,7 @@ const createSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const actor = await requireUser(); // any user can add contacts they meet
+    const actor = await requireUser(); // any user can enrich the shared directory
     const input = createSchema.parse(await req.json().catch(() => ({})));
 
     const dup = await prisma.personDirectory.findFirst({

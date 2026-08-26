@@ -49,6 +49,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (input.isActive === false) {
       await prisma.session.deleteMany({ where: { userId: id } });
+      // leaving the company → remove from the pickable directory
+      await prisma.personDirectory.deleteMany({ where: { userId: id } }).catch(() => {});
+    }
+
+    // keep directory entry in sync with profile changes (only for ACTIVE users —
+    // deactivated users were removed from the pickable directory above and must stay out)
+    if (updated.isActive) {
+      await prisma.personDirectory.upsert({
+        where: { userId: id },
+        update: {
+          ...(input.fullName ? { name: input.fullName } : {}),
+          ...(input.jobTitle !== undefined ? { jobTitle: input.jobTitle || null } : {}),
+        },
+        create: {
+          name: updated.fullName,
+          kind: "INTERNAL",
+          email: updated.email,
+          jobTitle: updated.jobTitle,
+          userId: id,
+        },
+      }).catch(() => {});
     }
 
     await audit({

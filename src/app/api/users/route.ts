@@ -65,6 +65,19 @@ export async function POST(req: NextRequest) {
       newValue: { email: user.email, roles: input.roleKeys },
       ip: req.headers.get("x-forwarded-for"),
     });
+    // mirror into the shared people directory (internal member)
+    await prisma.personDirectory.upsert({
+      where: { userId: user.id },
+      update: { name: user.fullName, email: user.email, jobTitle: user.jobTitle, kind: "INTERNAL" },
+      create: {
+        name: user.fullName,
+        kind: "INTERNAL",
+        email: user.email,
+        phone: user.phone,
+        jobTitle: user.jobTitle,
+        userId: user.id,
+      },
+    }).catch(() => {});
     return ok({ user: { id: user.id, email: user.email } }, 201);
   } catch (e) {
     return handleError(e);
