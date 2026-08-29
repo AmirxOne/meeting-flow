@@ -89,35 +89,36 @@ function MehrsaCard({
       setTargetRect(r);
       const cardW = Math.min(320, window.innerWidth - 24);
       const cardH = 230;
-      // ── ALWAYS BELOW the target (falls back to above only if impossible) ──
       const margin = 16;
-      const spaceBelow = window.innerHeight - r.bottom;
-      const spaceAbove = r.top;
-      let top: number;
-      let left = Math.max(12, Math.min(r.left, window.innerWidth - cardW - 12));
-      // horizontally centered on the target when possible
-      left = Math.max(12, Math.min(r.left + r.width / 2 - cardW / 2, window.innerWidth - cardW - 12));
 
-      // ── place BELOW the target ──
-      const maxTop = window.innerHeight - cardH - 12;
-      const roomBelow = maxTop - (r.bottom + margin);
-      const canScroll = document.documentElement.scrollHeight > window.innerHeight + 8;
-      if (roomBelow >= 0) {
-        top = r.bottom + margin;
-      } else if (canScroll) {
-        // scroll the target up; re-locate (after settle) will place the card under it
-        const delta = -(roomBelow) + margin;
-        document.body.style.overflow = "";
-        window.scrollBy({ top: delta, behavior: "smooth" });
-        setTimeout(() => {
-          if (mounted) document.body.style.overflow = "hidden";
-        }, 500);
-        top = Math.max(12, maxTop); // temporary; re-locate refines after scroll
-      } else {
-        // page can't scroll (short page): only option is ABOVE the target
-        top = Math.max(12, r.top - cardH - margin);
+      // ── smart placement: try BELOW first, then whichever side has room.
+      // The card must be FULLY inside the viewport — never clipped.
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      const fits = (t: number, l: number) =>
+        t >= 8 && l >= 8 && t + cardH <= vh - 8 && l + cardW <= vw - 8;
+
+      // horizontally centered on the target as the base
+      let baseLeft = Math.round(r.left + r.width / 2 - cardW / 2);
+      baseLeft = Math.max(8, Math.min(baseLeft, vw - cardW - 8));
+
+      const candidates: Array<{ top: number; left: number }> = [
+        { top: r.bottom + margin, left: baseLeft }, // below (preferred)
+        { top: r.top - cardH - margin, left: baseLeft }, // above
+        { top: r.top + r.height / 2 - cardH / 2, left: r.right + margin }, // right side
+        { top: r.top + r.height / 2 - cardH / 2, left: r.left - cardW - margin }, // left side
+      ];
+
+      let chosen = candidates[0];
+      for (const c of candidates) {
+        if (fits(c.top, c.left)) {
+          chosen = c;
+          break;
+        }
       }
-      top = Math.max(12, top);
+      // nothing fits perfectly (tiny viewport) → clamp into view
+      const top = Math.max(8, Math.min(chosen.top, vh - cardH - 8));
+      const left = Math.max(8, Math.min(chosen.left, vw - cardW - 8));
       setPos({ top, left });
     }
   }, [step]);
