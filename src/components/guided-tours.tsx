@@ -89,34 +89,48 @@ function MehrsaCard({
       setTargetRect(r);
       const cardW = Math.min(320, window.innerWidth - 24);
       const cardH = 230;
-      // ── desktop: side-by-side (left of target in RTL) ──
-      if (window.innerWidth >= 768) {
-        let top = r.top + r.height / 2 - cardH / 2;
-        let left = r.left - cardW - 16;
-        if (left < 12) left = r.right + 16;
-        top = Math.max(12, Math.min(top, window.innerHeight - cardH - 12));
-        left = Math.max(12, Math.min(left, window.innerWidth - cardW - 12));
-        setPos({ top, left });
-        return;
+      // ── ALWAYS BELOW the target (falls back to above only if impossible) ──
+      const margin = 16;
+      const spaceBelow = window.innerHeight - r.bottom;
+      const spaceAbove = r.top;
+      let top: number;
+      let left = Math.max(12, Math.min(r.left, window.innerWidth - cardW - 12));
+      // horizontally centered on the target when possible
+      left = Math.max(12, Math.min(r.left + r.width / 2 - cardW / 2, window.innerWidth - cardW - 12));
+
+      // ── place BELOW the target ──
+      const maxTop = window.innerHeight - cardH - 12;
+      const roomBelow = maxTop - (r.bottom + margin);
+      const canScroll = document.documentElement.scrollHeight > window.innerHeight + 8;
+      if (roomBelow >= 0) {
+        top = r.bottom + margin;
+      } else if (canScroll) {
+        // scroll the target up; re-locate (after settle) will place the card under it
+        const delta = -(roomBelow) + margin;
+        document.body.style.overflow = "";
+        window.scrollBy({ top: delta, behavior: "smooth" });
+        setTimeout(() => {
+          if (mounted) document.body.style.overflow = "hidden";
+        }, 500);
+        top = Math.max(12, maxTop); // temporary; re-locate refines after scroll
+      } else {
+        // page can't scroll (short page): only option is ABOVE the target
+        top = Math.max(12, r.top - cardH - margin);
       }
-      // ── mobile: bottom sheet clamped above safe area. If it would cover
-      // the target, nudge the page so the target sits above the card. ──
-      const sheetTop = window.innerHeight - cardH - 16;
-      setPos({ top: sheetTop, left: Math.round((window.innerWidth - cardW) / 2) });
-      if (r.bottom > sheetTop - 12) {
-        const delta = r.bottom - (sheetTop - 12);
-        window.scrollBy({ top: delta + 24, behavior: "smooth" });
-      }
+      top = Math.max(12, top);
+      setPos({ top, left });
     }
   }, [step]);
 
   useEffect(() => {
     locate();
-    const t = setTimeout(locate, 350); // re-measure after scroll-into-view settles
+    const t1 = setTimeout(locate, 350); // after nextstepjs scroll-into-view
+    const t2 = setTimeout(locate, 900); // after our smooth nudge settles
     window.addEventListener("resize", locate);
     window.addEventListener("scroll", locate, true);
     return () => {
-      clearTimeout(t);
+      clearTimeout(t1);
+      clearTimeout(t2);
       window.removeEventListener("resize", locate);
       window.removeEventListener("scroll", locate, true);
     };
@@ -185,12 +199,7 @@ function MehrsaCard({
 
 /** nextstepjs cuts a hole in its overlay — find the element under the hole center. */
 function findHoleTarget(): HTMLElement | null {
-  // the overlay dims everything except the target; probe a few candidate points
-  const overlay = [...document.querySelectorAll('div')].find(
-    (d) => getComputedStyle(d).zIndex === "998" && d.getBoundingClientRect().width > 100,
-  );
-  if (!overlay) return null;
-  return null; // handled via selector directly in locate()
+  return null; // positioning uses the step selector directly
 }
 
 /** little line connecting card → target edge */
@@ -223,7 +232,7 @@ const TOURS: Tour[] = [
           "این راهنمای کوتاه (فقط همین بار) شما را با بخش‌های اصلی آشنا می‌کند. با «بعدی» ادامه دهید.",
         pointerPadding: 0,
         pointerRadius: 8,
-        selector: '[data-tour="nav"]',
+        selector: '[data-tour="nav"] > a:first-child',
         side: "right",
       },
       {
@@ -232,7 +241,7 @@ const TOURS: Tour[] = [
           "از این‌جا به داشبورد، تقویم، جلسات، افراد و اتاق‌ها دسترسی دارید. گزینه‌ها بر اساس نقش شما نمایش داده می‌شوند.",
         pointerPadding: 0,
         pointerRadius: 8,
-        selector: '[data-tour="nav"]',
+        selector: '[data-tour="nav"] > a:first-child',
         side: "right",
       },
       {
