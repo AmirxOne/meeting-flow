@@ -60,6 +60,22 @@ function MehrsaCard({
 
   useEffect(() => setMounted(true), []);
 
+  // lock page scroll while the tour card is open — the page must not move
+  // under the spotlight. Unlock briefly when the step changes so the
+  // spotlight can scroll its target into view, then re-lock.
+  useEffect(() => {
+    if (!mounted) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "";
+    const t = setTimeout(() => {
+      document.body.style.overflow = "hidden";
+    }, 600); // nextstepjs scroll-into-view settles within ~500ms
+    return () => {
+      clearTimeout(t);
+      document.body.style.overflow = prev;
+    };
+  }, [mounted, currentStep]);
+
   // locate the currently-highlighted element (nextstepjs marks it)
   const locate = useCallback(() => {
     const sel = (step as { selector?: string }).selector;
