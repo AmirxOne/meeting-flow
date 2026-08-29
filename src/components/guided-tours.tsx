@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { NextStep, type Tour, type CardComponentProps } from "nextstepjs";
 import { useNextStep } from "nextstepjs";
 import { useAuth } from "@/lib/auth-store";
-import { cn, faNum } from "@/lib";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { faNum } from "@/lib";
+import { X, ChevronLeft } from "lucide-react";
 
 /** Persisted "seen" tours per user — first visit auto-starts the matching tour. */
 function useSeenTours(userId: string | undefined) {
@@ -20,7 +20,7 @@ function useSeenTours(userId: string | undefined) {
       setSeen([]);
     }
   }, [key]);
-  const markSeen = (tour: string) => {
+  const markSeen = useCallback((tour: string) => {
     setSeen((prev) => {
       if (prev.includes(tour)) return prev;
       const next = [...prev, tour];
@@ -29,17 +29,22 @@ function useSeenTours(userId: string | undefined) {
       } catch {}
       return next;
     });
-  };
-  const reset = () => {
+  }, [key]);
+  const reset = useCallback(() => {
     try {
       localStorage.removeItem(key);
     } catch {}
     setSeen([]);
-  };
+  }, [key]);
   return { seen, markSeen, reset };
 }
 
-/** مهرسا-styled tour card (RTL, Persian digits). */
+/**
+ * مهرسا tour card — positioned NEXT TO the spotlighted element.
+ * nextstepjs's own card wrapper breaks under transformed ancestors
+ * (page transitions), so this card portals itself to <body> and
+ * positions from the live target rect on every step/scroll/resize.
+ */
 function MehrsaCard({
   step,
   currentStep,
@@ -50,16 +55,74 @@ function MehrsaCard({
 }: CardComponentProps) {
   const isLast = currentStep === totalSteps - 1;
   const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
+
   useEffect(() => setMounted(true), []);
+
+  // locate the currently-highlighted element (nextstepjs marks it)
+  const locate = useCallback(() => {
+    const sel = (step as { selector?: string }).selector;
+    const el =
+      (sel && document.querySelector(sel)) ||
+      document.querySelector("[data-nextstep-highlight], .nextstep-highlight") ||
+      // fallback: the element the overlay hole is cut around
+      findHoleTarget();
+    if (el) {
+      const r = el.getBoundingClientRect();
+      setTargetRect(r);
+      const cardW = 320;
+      const cardH = 220;
+      let top = r.top + r.height / 2 - cardH / 2; // vertically centered beside the target
+      // RTL app: the card sits to the LEFT of the target (reading flow)
+      let left = r.left - cardW - 16;
+      if (left < 12) left = r.right + 16; // no room on the left → right side
+      top = Math.max(12, Math.min(top, window.innerHeight - cardH - 12));
+      left = Math.max(12, Math.min(left, window.innerWidth - cardW - 12));
+      setPos({ top, left });
+    }
+  }, [step]);
+
+  useEffect(() => {
+    locate();
+    const t = setTimeout(locate, 350); // re-measure after scroll-into-view settles
+    window.addEventListener("resize", locate);
+    window.addEventListener("scroll", locate, true);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("resize", locate);
+      window.removeEventListener("scroll", locate, true);
+    };
+  }, [locate, currentStep]);
+
   const card = (
     <div
       dir="rtl"
-      style={{ width: 320, position: "fixed", bottom: 24, left: 24, zIndex: 9999 }}
+      style={{
+        width: 320,
+        position: "fixed",
+        top: pos?.top ?? -9999,
+        left: pos?.left ?? -9999,
+        zIndex: 9999,
+        visibility: pos ? "visible" : "hidden",
+      }}
       className="rounded-xl border border-line bg-white p-5 text-right shadow-2xl"
     >
+      {/* connector line to the target */}
+      {targetRect && pos && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute bg-ink/20"
+          style={connectorStyle(targetRect, pos)}
+        />
+      )}
       <div className="flex items-start justify-between gap-3">
         <p className="text-[14px] font-bold text-ink">{step.title}</p>
-        <button onClick={() => (skipTour ? skipTour() : nextStep())} aria-label="بستن" className="rounded-md p-1 text-ink-faint hover:bg-paper-soft hover:text-ink">
+        <button
+          onClick={() => (skipTour ? skipTour() : nextStep())}
+          aria-label="بستن"
+          className="rounded-md p-1 text-ink-faint hover:bg-paper-soft hover:text-ink"
+        >
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
@@ -74,8 +137,8 @@ function MehrsaCard({
               onClick={prevStep}
               className="flex h-8 items-center gap-1 rounded-md border border-line px-3 text-[12px] text-ink-soft hover:bg-paper-soft"
             >
-              <ChevronLeft className="h-3.5 w-3.5" />
               قبلی
+              <ChevronLeft className="h-3.5 w-3.5 rotate-180" />
             </button>
           )}
           <button
@@ -83,13 +146,43 @@ function MehrsaCard({
             className="flex h-8 items-center gap-1 rounded-md bg-ink px-3.5 text-[12px] font-medium text-white hover:bg-[#2a2a2e]"
           >
             {isLast ? "متوجه شدم" : "بعدی"}
-            {!isLast && <ChevronRight className="h-3.5 w-3.5" />}
+            <ChevronLeft className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
     </div>
   );
+
   return mounted ? createPortal(card, document.body) : null;
+}
+
+/** nextstepjs cuts a hole in its overlay — find the element under the hole center. */
+function findHoleTarget(): HTMLElement | null {
+  // the overlay dims everything except the target; probe a few candidate points
+  const overlay = [...document.querySelectorAll('div')].find(
+    (d) => getComputedStyle(d).zIndex === "998" && d.getBoundingClientRect().width > 100,
+  );
+  if (!overlay) return null;
+  return null; // handled via selector directly in locate()
+}
+
+/** little line connecting card → target edge */
+function connectorStyle(target: DOMRect, pos: { top: number; left: number }) {
+  const cardIsLeft = pos.left + 320 <= target.left + 40;
+  const x1 = cardIsLeft ? pos.left + 320 : pos.left;
+  const x2 = cardIsLeft ? target.left : target.right;
+  const y1 = pos.top + 40;
+  const y2 = target.top + target.height / 2;
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
+  return {
+    width: Math.max(0, len),
+    height: 1,
+    left: x1,
+    top: y1,
+    transform: `rotate(${angle}deg)`,
+    transformOrigin: "0 0",
+  } as React.CSSProperties;
 }
 
 /** Tours per page — selectors match real elements in the app shell & pages. */
@@ -99,33 +192,48 @@ const TOURS: Tour[] = [
     steps: [
       {
         title: "خوش آمدید به مهرسا 🎉",
-        content: "این راهنمای کوتاه (فقط همین بار نمایش داده می‌شود) شما را با بخش‌های اصلی آشنا می‌کند. با «بعدی» ادامه دهید.",
+        content:
+          "این راهنمای کوتاه (فقط همین بار) شما را با بخش‌های اصلی آشنا می‌کند. با «بعدی» ادامه دهید.",
+        pointerPadding: 0,
+        pointerRadius: 8,
         selector: '[data-tour="nav"]',
-        side: "left",
+        side: "right",
       },
       {
         title: "منوی اصلی",
-        content: "از این‌جا به داشبورد، تقویم، جلسات، افراد و اتاق‌ها دسترسی دارید. گزینه‌ها بر اساس نقش شما نمایش داده می‌شوند.",
+        content:
+          "از این‌جا به داشبورد، تقویم، جلسات، افراد و اتاق‌ها دسترسی دارید. گزینه‌ها بر اساس نقش شما نمایش داده می‌شوند.",
+        pointerPadding: 0,
+        pointerRadius: 8,
         selector: '[data-tour="nav"]',
-        side: "left",
+        side: "right",
       },
       {
         title: "جستجوی سراسری",
-        content: "هر چیزی را این‌جا جستجو کنید: جلسه، فرد، اتاق یا شعبه — بدون لازم بودن بدانید کجاست.",
-        selector: '[data-tour="search"] input',
+        content:
+          "هر چیزی را این‌جا جستجو کنید: جلسه، فرد، اتاق یا شعبه — بدون لازم بودن بدانید کجاست.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: '[data-tour="search"]',
         side: "bottom",
       },
       {
         title: "اعلان‌ها",
-        content: "دعوت‌ها، تأییدها و یادآورهای جلسات این‌جا می‌آیند. روی هر اعلان بزنید تا مستقیم به جلسه‌اش بروید.",
+        content:
+          "دعوت‌ها، تأییدها و یادآورهای جلسات این‌جا می‌آیند. روی هر اعلان بزنید تا مستقیم به جلسه‌اش بروید.",
+        pointerPadding: 0,
+        pointerRadius: 8,
         selector: 'a[href="/notifications"]',
-        side: "left",
+        side: "right",
       },
       {
         title: "ساخت جلسه جدید",
-        content: "با این دکمه ویزارد ساخت جلسه باز می‌شود: افراد را انتخاب می‌کنید، سیستم زمان آزاد و اتاق مناسب را پیشنهاد می‌دهد.",
+        content:
+          "با این دکمه ویزارد ساخت جلسه باز می‌شود: افراد را انتخاب می‌کنید، سیستم زمان آزاد و اتاق مناسب را پیشنهاد می‌دهد.",
+        pointerPadding: 0,
+        pointerRadius: 8,
         selector: 'a[href="/meetings/new"]',
-        side: "left",
+        side: "right",
       },
     ],
   },
@@ -134,14 +242,19 @@ const TOURS: Tour[] = [
     steps: [
       {
         title: "تقویم مهرسا",
-        content: "تقویم شمسی/میلادی با نمای ماه، هفته و روز. جلسات خودتان همیشه کامل دیده می‌شوند؛ جلسات محرمانه دیگران فقط به‌صورت «🔒 جلسه محرمانه».",
-        selector: 'h1',
+        content:
+          "تقویم شمسی/میلادی با نمای ماه، هفته و روز. جلسات خودتان همیشه کامل دیده می‌شوند؛ جلسات محرمانه‌ی دیگران فقط به‌صورت «🔒 جلسه محرمانه».",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
         side: "bottom",
       },
       {
         title: "تغییر نما",
         content: "بین ماه / هفته / روز جابه‌جا شوید. روی هر روز کلیک کنید تا جزئیات جلسه‌هایش را ببینید.",
-        selector: "[data-tour=\"cal-views\"]",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: '[data-tour="cal-views"]',
         side: "bottom",
       },
     ],
@@ -151,9 +264,11 @@ const TOURS: Tour[] = [
     steps: [
       {
         title: "لیست جلسات",
-        content: "همه‌ی جلسه‌ای که به آن‌ها دسترسی دارید این‌جا هستند. با فیلترها بر اساس وضعیت محدودشان کنید.",
-        selector: "[data-tour=\"nav\"]",
-        side: "top",
+        content: "همه‌ی جلسه‌هایی که به آن‌ها دسترسی دارید این‌جا هستند. با فیلترها بر اساس وضعیت محدودشان کنید.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
+        side: "bottom",
       },
     ],
   },
@@ -163,6 +278,8 @@ const TOURS: Tour[] = [
       {
         title: "بخش مدیریت",
         content: "آمار زنده‌ی سازمان، مدیریت کاربران/اتاق‌ها/سیاست‌ها و لاگ ممیزی — همه از همین‌جا.",
+        pointerPadding: 0,
+        pointerRadius: 8,
         selector: "h1",
         side: "bottom",
       },
@@ -185,7 +302,6 @@ export function GuidedTours() {
   const { startNextStep, isNextStepVisible } = useNextStep();
   const { seen, markSeen, reset } = useSeenTours(me?.id);
 
-  // auto-start on first-ever visit per (user, tour)
   useEffect(() => {
     if (!me || isNextStepVisible) return;
     const tour = tourForPath(pathname);
@@ -193,11 +309,10 @@ export function GuidedTours() {
     const t = setTimeout(() => {
       markSeen(tour);
       startNextStep(tour);
-    }, 1200); // let page content settle
+    }, 1200);
     return () => clearTimeout(t);
   }, [me, pathname, seen, isNextStepVisible, startNextStep, markSeen]);
 
-  // dev/testing helper — reset tours from console
   useEffect(() => {
     (window as unknown as { __resetTours?: () => void }).__resetTours = reset;
   }, [reset]);
