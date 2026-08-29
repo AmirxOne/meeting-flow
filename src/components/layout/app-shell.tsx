@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, DoorOpen, Building2, Bell,
-  CircleHelp,
+  LifeBuoy,
   BarChart3, Settings, Search, LogOut, Menu, X, Plus, ChevronDown,
 } from "lucide-react";
 import { cn, faNum } from "@/lib";
@@ -146,15 +146,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <GlobalSearch />
 
-          <div className="relative mr-auto">
+          <div className="mr-auto flex items-center gap-1">
             <button
               onClick={() => replayCurrentTour()}
               title="راهنمای این صفحه"
               aria-label="راهنمای این صفحه"
-              className="rounded-md p-2 text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+              className="hidden h-9 w-9 items-center justify-center rounded-md border border-transparent text-ink-soft transition-colors hover:border-line hover:bg-paper-soft hover:text-ink sm:flex"
             >
-              <CircleHelp className="h-[18px] w-[18px]" />
+              <LifeBuoy className="h-[18px] w-[18px]" />
             </button>
+            <div className="relative">
             <button
               onClick={() => setUserMenu((v) => !v)}
               className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-paper-soft"
@@ -173,7 +174,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {userMenu && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setUserMenu(false)} />
-                <div className="absolute left-0 z-20 mt-2 w-52 rounded-md border border-line bg-white p-1.5 shadow-lg">
+                <div dir="rtl" className="absolute left-0 z-20 mt-2 w-52 rounded-md border border-line bg-white p-1.5 shadow-lg">
                   <div className="border-b border-line px-3 py-2">
                     <p className="text-[12px] font-medium">{me.fullName}</p>
                     <p className="text-[11px] text-ink-faint" dir="ltr">{me.email}</p>
@@ -188,6 +189,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               </>
             )}
+            </div>
           </div>
         </header>
 
