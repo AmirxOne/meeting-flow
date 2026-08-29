@@ -1,4 +1,6 @@
-# مهرسا — سامانه مدیریت جلسات سازمانی
+# Meeting Flow (مهرسا)
+
+> Corporate meeting management system — rooms, approval workflow, conflict detection, Jalali (Persian) calendar, notifications & analytics. Next.js + Prisma + PostgreSQL.
 
 سیستم مدیریت جلسات سازمانی (Corporate Meeting Management System) — Next.js + Prisma + PostgreSQL.
 
@@ -105,3 +107,59 @@ Integration شامل: لاگین اشتباه (401)، me، ساخت جلسه (au
 - **SMS/Email واقعی**: فقط Provider جدید implement کنید (`SmsProvider` interface) — کال‌سایت‌ها تغییر نمی‌کنند.
 - **Google/Outlook Calendar sync**: معماری event-based است؛ `MeetingEvent` + provider interface آماده اتصال.
 - **QR Check-in مهمان‌ها**: فیلد `checkinCode` در `MeetingGuest` از روز اول هست.
+
+## معماری
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── (app)/              # صفحات احراز‌هویت‌شده (RTL shell)
+│   │   ├── dashboard/      # داشبورد + نمودارها
+│   │   ├── calendar/       # تقویم شمسی/میلادی (ماه/هفته/روز)
+│   │   ├── meetings/       # لیست، ویزارد ساخت، جزئیات + اکشن‌ها
+│   │   ├── rooms/ people/  # اتاق‌ها، دایرکتوری افراد (جدول صفحه‌بندی‌دار)
+│   │   ├── availability/   # یافتن زمان مشترک افراد
+│   │   └── admin/          # کاربران، اتاق‌ها، سیاست‌ها، لاگ ممیزی
+│   └── api/                # Route Handlers (Zod + RBAC + audit)
+├── server/                 # لایه سرویس (modular monolith)
+│   ├── auth/               # session + permissions (RBAC)
+│   └── services/           # meeting, conflict, availability,
+│                           # notification, reminder, report
+├── components/ui/          # Select, Modal/BottomSheet, DatePicker شمسی،
+│                           # PeoplePicker, FilterBar, Toast, Motion
+├── lib/                    # jalali (ICU-based), fa (اعداد فارسی), validations
+└── worker/                 # job runner: یادآورها + lifecycle جلسات
+```
+
+## نکات فنی مهم
+
+- **ضد رزرو همزمان (Double-booking)**: سه لایه — سرویس، تراکنش SERIALIZABLE، و
+  `EXCLUSION constraint` دیتابیسی (`prisma/sql/room-exclusion.sql`). اگر دیتابیس
+  ریست شود، این SQL را دوباره اجرا کنید.
+- **تقویم شمسی**: بر پایه‌ی ICU رسمی Node (`Intl` با `ca-persian`) — الگوریتم
+  دستی در سال‌های کبیسه خطا دارد؛ از `src/lib/jalali.ts` استفاده کنید.
+- **اعداد فارسی**: فقط لایه‌ی نمایش (`faNum/faStr`) — ذخیره‌سازی همیشه UTC/لاتین.
+- **Timezone**: همه‌ی زمان‌ها UTC ذخیره و با offset تهران (+03:30) نمایش داده می‌شوند.
+
+## تست
+
+```bash
+pnpm run test        # unit + integration (vitest)
+pnpm run typecheck   # tsc --noEmit
+# E2E (نیازمند dev server روی :3100):
+node scripts/e2e-calendar.cjs
+node scripts/e2e-modal-forms.cjs
+node scripts/e2e-people-pagination.cjs
+```
+
+## نقشه‌ی ادامه‌ی توسعه (Roadmap)
+
+- [ ] اتصال SMS واقعی (Kavenegar) — provider ports آماده در `notification.service`
+- [ ] ایمیل SMTP — همان interface
+- [ ] Sync تقویم Google / Outlook — معماری CalendarProvider آماده است
+- [ ] QR Check-in مهمان‌ها — مدل MeetingGuest فیلدهایش را دارد
+- [ ] SSO / LDAP / Active Directory
+
+## لایسنس
+
+MIT
