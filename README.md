@@ -51,6 +51,16 @@ pnpm worker                           # در ترمینال دوم — یادآ�
 | `pnpm db:migrate` / `pnpm db:seed` | migration / seed |
 | `pnpm worker` | پروسه پس‌زمینه یادآور/lifecycle |
 
+## قاعده‌ی تست — بعد از هر فیچر
+
+هر فیچر/فیکس قبل از کامیت باید این چرخه را طی کند (جزئیات کامل در `CLAUDE.md`):
+
+1. `pnpm run typecheck` → صفر خطا
+2. `pnpm run test` → همه سبز (۴۷ تست)
+3. تست جدید مخصوص همان فیچر (unit یا E2E در `scripts/`)
+4. تست دستی با رول‌های مختلف: `admin` (ADMIN)، `ali` (EMPLOYEE)، `sara` (BRANCH_MANAGER) و برای فیچرهای دسترسی `superadmin` (SUPER_ADMIN) — پسوردها در seed
+5. کامیت + push به origin
+
 ## معماری
 
 ```
@@ -107,6 +117,16 @@ Integration شامل: لاگین اشتباه (401)، me، ساخت جلسه (au
 - **SMS/Email واقعی**: فقط Provider جدید implement کنید (`SmsProvider` interface) — کال‌سایت‌ها تغییر نمی‌کنند.
 - **Google/Outlook Calendar sync**: معماری event-based است؛ `MeetingEvent` + provider interface آماده اتصال.
 - **QR Check-in مهمان‌ها**: فیلد `checkinCode` در `MeetingGuest` از روز اول هست.
+
+## قاعده‌ی تست — بعد از هر فیچر
+
+هر فیچر/فیکس قبل از کامیت باید این چرخه را طی کند (جزئیات کامل در `CLAUDE.md`):
+
+1. `pnpm run typecheck` → صفر خطا
+2. `pnpm run test` → همه سبز (۴۷ تست)
+3. تست جدید مخصوص همان فیچر (unit یا E2E در `scripts/`)
+4. تست دستی با رول‌های مختلف: `admin` (ADMIN)، `ali` (EMPLOYEE)، `sara` (BRANCH_MANAGER) و برای فیچرهای دسترسی `superadmin` (SUPER_ADMIN) — پسوردها در seed
+5. کامیت + push به origin
 
 ## معماری
 
