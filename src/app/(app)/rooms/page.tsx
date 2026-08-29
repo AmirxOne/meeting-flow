@@ -107,7 +107,7 @@ export default function RoomsPage() {
 
       {rooms.length === 0 ? (
         <Card>
-          <EmptyState icon={<DoorOpen className="h-10 w-10" />} title="اتاقی ثبت نشده است" />
+          <EmptyState icon={<DoorOpen className="h-10 w-10" />} title="اتاقی ثبت نشده است" description="اتاق‌ها را از بخش مدیریت › اتاق‌ها بسازید تا رزرو امکان‌پذیر شود" />
         </Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

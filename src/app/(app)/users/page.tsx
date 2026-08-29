@@ -79,7 +79,7 @@ export default function UsersPage() {
           ))}
           {(data?.users ?? []).length === 0 && (
             <Card className="sm:col-span-2 xl:col-span-3">
-              <EmptyState title="کاربری یافت نشد" />
+              <EmptyState title="کاربری یافت نشد" description="جستجو را عوض کنید یا از بخش مدیریت کاربر جدیدی بسازید" />
             </Card>
           )}
         </div>

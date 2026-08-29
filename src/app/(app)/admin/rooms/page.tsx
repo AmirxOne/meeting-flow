@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Power } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, SkeletonBlock, SkeletonTable } from "@/components/ui/card";
+import { Card, CardHeader, EmptyState, SkeletonBlock, SkeletonTable } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
@@ -248,6 +248,14 @@ export default function AdminRoomsPage() {
             <SkeletonBlock className="h-4 w-32" />
           </div>
           <SkeletonTable rows={5} cols={7} />
+        </Card>
+      ) : (data?.rooms ?? []).length === 0 ? (
+        <Card>
+          <EmptyState
+            title="هنوز اتاقی نساخته‌اید"
+            description="اولین اتاق جلسه را بسازید تا رزرو و زمان‌بندی آغاز شود"
+            action={<Button size="sm" onClick={openCreate}>ساخت اولین اتاق</Button>}
+          />
         </Card>
       ) : (
         <Card className="overflow-hidden">

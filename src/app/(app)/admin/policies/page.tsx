@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, CardBody, SkeletonBlock } from "@/components/ui/card";
+import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { faNum } from "@/lib";
 
@@ -76,6 +76,9 @@ export default function AdminPoliciesPage() {
       <Card>
         <CardHeader title="قواعد تأیید و محدودیت‌ها" subtitle="تغییرات بلافاصله اعمال می‌شود" />
         <CardBody className="space-y-4">
+          {policies.length === 0 && (
+            <EmptyState title="سیاستی ثبت نشده است" description="قواعد پیش‌فرض سیستم فعال است. با افزودن سیاست، رفتار تأیید جلسات قابل تنظیم می‌شود." />
+          )}
           {policies.map((p) => {
             const meta = POLICY_FA[p.key] ?? { label: p.key, type: "bool" as const };
             return (
