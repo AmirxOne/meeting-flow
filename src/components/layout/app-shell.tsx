@@ -7,12 +7,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, CalendarDays, Users, UserRound, DoorOpen, Building2, Bell,
+  CircleHelp,
   BarChart3, Settings, Search, LogOut, Menu, X, Plus, ChevronDown,
 } from "lucide-react";
 import { cn, faNum } from "@/lib";
 import { useAuth } from "@/lib/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { replayCurrentTour } from "@/components/guided-tours";
 
 const NAV = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard, perm: null },
@@ -145,6 +147,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <GlobalSearch />
 
           <div className="relative mr-auto">
+            <button
+              onClick={() => replayCurrentTour()}
+              title="راهنمای این صفحه"
+              aria-label="راهنمای این صفحه"
+              className="rounded-md p-2 text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+            >
+              <CircleHelp className="h-[18px] w-[18px]" />
+            </button>
             <button
               onClick={() => setUserMenu((v) => !v)}
               className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-paper-soft"
