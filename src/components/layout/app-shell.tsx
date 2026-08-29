@@ -115,7 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     initial={{ scale: 0.4, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: "spring", stiffness: 500, damping: 22 }}
-                    className="mr-auto rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white"
+                    className="mr-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white"
                   >
                     {faNum(unread)}
                   </motion.span>
@@ -257,7 +257,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <item.icon className="h-5 w-5" />
               {item.label}
               {item.href === "/notifications" && unread > 0 && (
-                <span className="absolute right-1/2 top-2 translate-x-4 rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+                <span className="absolute right-1/2 top-1.5 flex h-4 min-w-4 translate-x-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
                   {faNum(unread)}
                 </span>
               )}
