@@ -16,6 +16,8 @@ interface CalMeeting {
   endAt: string;
   status: string;
   meetingType: string;
+  isPrivate?: boolean;
+  isMasked?: boolean;
   organizer: { fullName: string };
   room: { id: string; name: string } | null;
   _count: { participants: number };
@@ -184,7 +186,7 @@ export default function CalendarPage() {
               ))}
             </div>
           )}
-          <div className="flex overflow-hidden rounded-md border border-line">
+          <div data-tour="cal-views" className="flex overflow-hidden rounded-md border border-line">
             {([["month", "ماه"], ["week", "هفته"], ["day", "روز"]] as const).map(([k, l]) => (
               <button key={k} onClick={() => setView(k)} className={cn("px-3 py-1.5 text-[12px]", view === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
             ))}
@@ -243,7 +245,7 @@ export default function CalendarPage() {
                           : m.status === "CANCELLED" ? "bg-paper-deep text-ink-faint line-through"
                           : "bg-paper-deep text-ink",
                         )}>
-                          {timeOf(m.startAt)} {m.title}
+                          {timeOf(m.startAt)} {m.isMasked ? "🔒 جلسه محرمانه" : m.title}
                         </div>
                       ))}
                       {dayMeetings.length > 2 && (
@@ -332,7 +334,7 @@ export default function CalendarPage() {
                           )}
                           style={{ top, height }}
                         >
-                          <p className="truncate font-medium">{m.title}</p>
+                          <p className="truncate font-medium">{m.isMasked ? "🔒 جلسه محرمانه" : m.title}</p>
                           <p className="truncate opacity-80">{timeOf(m.startAt)}</p>
                           {m.room && <p className="truncate opacity-70">{m.room.name}</p>}
                         </Link>
@@ -361,7 +363,7 @@ export default function CalendarPage() {
                 {/* color bar */}
                 <div className={cn("w-1 shrink-0 rounded-full", m.status === "IN_PROGRESS" ? "bg-red-500" : m.status === "CANCELLED" ? "bg-ink-faint" : "bg-ink")} />
                 <div className="min-w-0 flex-1">
-                  <p className={cn("truncate text-[13px] font-medium", m.status === "CANCELLED" && "line-through opacity-60")}>{m.title}</p>
+                  <p className={cn("truncate text-[13px] font-medium", m.status === "CANCELLED" && "line-through opacity-60")}>{m.isMasked ? "🔒 جلسه محرمانه" : m.title}</p>
                   <p className="mt-0.5 truncate text-[11px] text-ink-soft">
                     {m.room ? `${m.room.name} · ` : ""}{m.organizer.fullName}
                   </p>
@@ -428,7 +430,7 @@ function MobileAgenda({
             </div>
             <div className={cn("h-8 w-1 shrink-0 rounded-full", m.status === "IN_PROGRESS" ? "bg-red-500" : m.status === "CANCELLED" ? "bg-ink-faint" : "bg-ink")} />
             <div className="min-w-0 flex-1">
-              <p className={cn("truncate text-[12px] font-medium", m.status === "CANCELLED" && "line-through opacity-60")}>{m.title}</p>
+              <p className={cn("truncate text-[12px] font-medium", m.status === "CANCELLED" && "line-through opacity-60")}>{m.isMasked ? "🔒 جلسه محرمانه" : m.title}</p>
               <p className="truncate text-[10px] text-ink-faint">{m.room?.name ?? m.organizer.fullName}</p>
             </div>
           </Link>

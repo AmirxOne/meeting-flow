@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
+import { maskPrivateMeeting } from "@/server/services/privacy";
 import { requireUser, can } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { meetingCreateSchema } from "@/lib/validations";
@@ -43,12 +44,15 @@ export async function GET(req: NextRequest) {
         organizer: { select: { id: true, fullName: true, avatarUrl: true } },
         room: { select: { id: true, name: true } },
         branch: { select: { id: true, name: true } },
+        participants: { select: { userId: true } },
         _count: { select: { participants: true, guests: true } },
       },
       orderBy: { startAt: "asc" },
       take: Math.min(Number(sp.get("limit") ?? 200), 500),
     });
-    return ok({ meetings });
+    const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
+    const masked = meetings.map((m) => maskPrivateMeeting(m, viewer));
+    return ok({ meetings: masked });
   } catch (e) {
     return handleError(e);
   }

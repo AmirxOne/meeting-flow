@@ -93,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
           </div>
         </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
+        <nav data-tour="nav" className="flex-1 space-y-0.5 overflow-y-auto p-3">
           {visibleNav.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -281,7 +281,7 @@ function GlobalSearch() {
     r && (r.meetings.length || r.users.length || r.rooms.length || r.guests.length || r.branches.length);
 
   return (
-    <div className="relative w-full max-w-xl">
+    <div data-tour="search" className="relative w-full max-w-xl">
       <div className="flex h-10 items-center gap-2 rounded-md bg-paper-soft px-3">
         <Search className="h-4 w-4 text-ink-faint" />
         <input

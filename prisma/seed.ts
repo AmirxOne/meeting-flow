@@ -133,6 +133,7 @@ async function main() {
   const password = await bcrypt.hash("Pass1234", 10);
   const users = [
     { email: "admin@example.com", fullName: "علیرضا محمدی", jobTitle: "مدیر سیستم", roleKeys: ["ADMIN"], branchId: branch1.id },
+    { email: "superadmin@example.com", fullName: "مدیر ارشد سیستم", jobTitle: "مدیر ارشد", roleKeys: ["SUPER_ADMIN"], branchId: branch1.id },
     { email: "operator@example.com", fullName: "مریم احمدی", jobTitle: "اپراتور جلسات", roleKeys: ["MEETING_OPERATOR"], branchId: branch1.id },
     { email: "manager@example.com", fullName: "حسین کریمی", jobTitle: "مدیر شعبه ونک", roleKeys: ["BRANCH_MANAGER"], branchId: branch2.id },
     { email: "room@example.com", fullName: "سارا موسوی", jobTitle: "مسئول اتاق‌ها", roleKeys: ["ROOM_MANAGER"], branchId: branch1.id },

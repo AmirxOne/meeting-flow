@@ -120,6 +120,7 @@ export async function createMeeting(input: CreateMeetingInput): Promise<Meeting>
           endAt: input.endAt,
           meetingType: input.meetingType ?? "INTERNAL",
           priority: input.priority ?? "NORMAL",
+          isPrivate: input.isPrivate ?? false,
           status: needsApproval ? "PENDING_APPROVAL" : "CONFIRMED",
         },
       });
