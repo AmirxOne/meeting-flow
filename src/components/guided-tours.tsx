@@ -307,6 +307,11 @@ function tourForPath(pathname: string): string | null {
   return null;
 }
 
+/** Replay a tour from anywhere: window.dispatchEvent(new CustomEvent("mehrsa:replay-tour")) */
+export function replayCurrentTour() {
+  window.dispatchEvent(new CustomEvent("mehrsa:replay-tour"));
+}
+
 export function GuidedTours() {
   const pathname = usePathname();
   const me = useAuth((s) => s.me);
@@ -327,6 +332,17 @@ export function GuidedTours() {
   useEffect(() => {
     (window as unknown as { __resetTours?: () => void }).__resetTours = reset;
   }, [reset]);
+
+  // user asked to see the guide again (header button)
+  useEffect(() => {
+    const onReplay = () => {
+      const tour = tourForPath(pathname);
+      if (!tour) return;
+      startNextStep(tour);
+    };
+    window.addEventListener("mehrsa:replay-tour", onReplay);
+    return () => window.removeEventListener("mehrsa:replay-tour", onReplay);
+  }, [pathname, startNextStep]);
 
   return (
     <NextStep
