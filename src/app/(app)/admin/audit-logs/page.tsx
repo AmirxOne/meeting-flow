@@ -69,7 +69,7 @@ export default function AuditLogsPage() {
             subtitle="تمام عملیات مهم سیستم"
           />
           {(data?.logs ?? []).length === 0 ? (
-            <EmptyState title="لاگی ثبت نشده" />
+            <EmptyState title="لاگی ثبت نشده" description="با انجام عملیات در سیستم (ساخت جلسه، ویرایش اتاق و…) ردپای آن‌ها اینجا نمایش داده می‌شود" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-right text-[12px]">

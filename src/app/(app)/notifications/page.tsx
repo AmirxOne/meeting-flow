@@ -125,7 +125,7 @@ export default function NotificationsPage() {
         <Card>
           <EmptyState
             icon={<Bell className="h-10 w-10" />}
-            title={onlyUnread ? "اعلان خوانده‌نشنده ندارید" : "اعلانی ندارید"}
+            title={onlyUnread ? "همه اعلان‌ها را خوانده‌اید" : "اعلانی ندارید"} description={onlyUnread ? undefined : "دعوت‌ها، تأییدها و یادآورهای جلسات اینجا ظاهر می‌شوند"}
           />
         </Card>
       ) : (

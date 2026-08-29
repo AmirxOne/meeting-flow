@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Clock, CheckCircle2 } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, faStr, toJalali } from "@/lib";
@@ -125,6 +125,15 @@ export default function AvailabilityPage() {
           </Button>
         </CardBody>
       </Card>
+
+      {slots && slots.length === 0 && (
+        <Card>
+          <EmptyState
+            title="زمان مشترکی پیدا نشد"
+            description="افراد انتخابی در این بازه همگی آزاد نیستند. بازه را عوض کنید، تعداد افراد را کم کنید یا مدت جلسه را کوتاه‌تر کنید."
+          />
+        </Card>
+      )}
 
       {slots && slots.length > 0 && (
         <Card>

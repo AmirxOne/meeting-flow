@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, BarChart3 } from "lucide-react";
 import { api } from "@/lib/api";
-import { Card, CardHeader, CardBody, SkeletonBlock } from "@/components/ui/card";
+import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { cn, faNum, faStr, STATUS_FA, TYPE_FA } from "@/lib";
 import { Select } from "@/components/ui/select";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
@@ -162,6 +162,13 @@ export default function ReportsPage() {
             ))}
           </div>
         </>
+      ) : s && s.totalMeetings === 0 ? (
+        <Card>
+          <EmptyState
+            title="در این بازه جلسه‌ای نبوده است"
+            description="بازه زمانی یا فیلترها را تغییر دهید — مثلاً بازه ۳۰ روز اخیر را امتحان کنید"
+          />
+        </Card>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

@@ -220,7 +220,7 @@ export default function BranchesPage() {
         </div>
       ) : branches.length === 0 ? (
         <Card>
-          <EmptyState icon={<Building2 className="h-10 w-10" />} title="شعبه‌ای ثبت نشده" />
+          <EmptyState icon={<Building2 className="h-10 w-10" />} title="شعبه‌ای ثبت نشده" description="هر شعبه اتاق‌ها و کاربران خود را دارد — اولین شعبه را بسازید" />
         </Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
