@@ -22,6 +22,7 @@ interface MeetingRow {
   endAt: string;
   isPrivate: boolean;
   organizer: { id: string; fullName: string };
+  isMasked?: boolean;
   room: { id: string; name: string } | null;
   branch: { id: string; name: string };
   _count: { participants: number; guests: number };
@@ -164,10 +165,13 @@ export default function MeetingsPage() {
             <Link href={`/meetings/${m.id}`}>
               <Card className="p-4 transition-colors hover:border-ink-faint">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[14px] font-medium">{m.title}</p>
+                  <p className="flex items-center gap-1 text-[14px] font-medium">
+                    {m.isMasked && <span title="جلسه محرمانه">🔒</span>}
+                    {m.title}
+                  </p>
                   <StatusBadge status={m.status} />
                   <TypeBadge type={m.meetingType} />
-                  {m.isPrivate && <span className="badge badge-gray">خصوصی</span>}
+                  {m.isPrivate && !m.isMasked && <span className="badge badge-gray">محرمانه</span>}
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-soft">
                   <span>{formatJalali(new Date(m.startAt), { withTime: true })}</span>

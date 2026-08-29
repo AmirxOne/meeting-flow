@@ -51,7 +51,8 @@ export async function GET(
     const isParticipant =
       meeting.organizerId === user.id ||
       meeting.participants.some((p) => p.userId === user.id);
-    if (!isParticipant && !can(user, "meeting:view-all") && meeting.isPrivate) {
+    const isSuper = !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN");
+    if (!isParticipant && !isSuper && meeting.isPrivate) {
       throw new HttpError(403, "دسترسی به این جلسه ندارید", "FORBIDDEN");
     }
 

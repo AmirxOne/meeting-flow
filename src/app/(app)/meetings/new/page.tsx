@@ -26,6 +26,7 @@ export default function NewMeetingPage() {
 
   // form state
   const [title, setTitle] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [description, setDescription] = useState("");
   const [meetingType, setMeetingType] = useState("INTERNAL");
   const [branchId, setBranchId] = useState("");
@@ -119,6 +120,7 @@ export default function NewMeetingPage() {
         json: {
           title: title.trim(),
           description: description.trim() || undefined,
+          isPrivate,
           branchId,
           roomId,
           startAt: new Date(slot.start).toISOString(),
@@ -173,6 +175,10 @@ export default function NewMeetingPage() {
               className="h-11 w-full rounded-md border border-[#d9d9e0] px-3.5 text-[13px] outline-none focus:border-ink focus:ring-2 focus:ring-ink/15"
             />
           </div>
+          <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-white px-3.5">
+            <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="h-4 w-4 accent-black" />
+            <span className="text-[12px]">جلسه محرمانه — عنوان و جزئیات فقط برای برگزارکننده و دعوت‌شدگان دیده می‌شود</span>
+          </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">نوع جلسه</label>

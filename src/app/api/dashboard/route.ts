@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
-import { requireUser } from "@/server/auth/session";
+import { maskPrivateMeeting } from "@/server/services/privacy";
+import { requireUser, can } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,7 @@ export async function GET(_req: NextRequest) {
             organizer: { select: { fullName: true } },
             room: { select: { name: true } },
             branch: { select: { name: true } },
+            participants: { select: { userId: true } },
           },
           orderBy: { startAt: "asc" },
           take: 6,
@@ -60,6 +62,7 @@ export async function GET(_req: NextRequest) {
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, hours]) => ({ date, hours: Math.round(hours * 10) / 10 }));
 
+    const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
     return ok({
       todayCount,
       activeNow,
@@ -67,7 +70,7 @@ export async function GET(_req: NextRequest) {
       rooms: { total: availableRooms, occupied: occupiedRooms },
       cancelledThisWeek,
       weekSeries,
-      upcoming: upcomingMine,
+      upcoming: upcomingMine.map((m) => maskPrivateMeeting(m, viewer)),
       seeAll,
     });
   } catch (e) {

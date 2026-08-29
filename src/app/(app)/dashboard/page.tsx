@@ -25,6 +25,8 @@ interface DashboardData {
     organizer: { fullName: string };
     room: { name: string } | null;
     branch: { name: string };
+    isPrivate?: boolean;
+    isMasked?: boolean;
   }[];
   seeAll: boolean;
 }
@@ -200,7 +202,7 @@ export default function DashboardPage() {
                 className="block px-5 py-3.5 transition-colors hover:bg-paper-soft"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-[13px] font-medium">{m.title}</p>
+                  <p className="truncate text-[13px] font-medium">{m.isMasked ? "🔒 جلسه محرمانه" : m.title}</p>
                   <StatusBadge status={m.status} />
                 </div>
                 <p className="mt-1 flex items-center gap-2 text-[11px] text-ink-soft">
