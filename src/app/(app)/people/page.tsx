@@ -119,7 +119,7 @@ export default function PeoplePage() {
             دایرکتوری اعضای شرکت و ارتباط‌های خارجی — هنگام ساخت جلسه از همین لیست انتخاب می‌شود
           </p>
         </div>
-        <Button size="sm" onClick={openCreate}>
+        <Button size="sm" onClick={openCreate} data-tour="people-add">
           <UserPlus className="h-4 w-4" />
           فرد جدید
         </Button>
@@ -229,7 +229,7 @@ export default function PeoplePage() {
             icon={<UserRound className="h-10 w-10" />}
             title="فردی یافت نشد"
             description="افراد شرکت و مهمان‌های خارجی را اینجا ثبت کنید تا هنگام ساخت جلسه سریع انتخاب شوند"
-            action={<Button size="sm" onClick={openCreate}>افزودن اولین فرد</Button>}
+            action={<Button size="sm" onClick={openCreate} data-tour="people-add">افزودن اولین فرد</Button>}
           />
         </Card>
       ) : (

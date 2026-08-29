@@ -309,6 +309,105 @@ const TOURS: Tour[] = [
     ],
   },
   {
+    tour: "people",
+    steps: [
+      {
+        title: "دایرکتوری افراد",
+        content: "اعضای شرکت و ارتباط‌های خارجی این‌جا مدیریت می‌شوند — همان لیستی که هنگام ساخت جلسه برای انتخاب افراد استفاده می‌شود.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
+        side: "bottom",
+      },
+      {
+        title: "افزودن فرد",
+        content: "عضو جدید شرکت یا مهمان خارجی اضافه کنید. حذف/ویرایش از همان ردیف جدول انجام می‌شود.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: '[data-tour="people-add"]',
+        side: "bottom",
+      },
+    ],
+  },
+  {
+    tour: "rooms",
+    steps: [
+      {
+        title: "اتاق‌های جلسه",
+        content: "وضعیت زنده‌ی همه‌ی اتاق‌ها — سبز: آزاد، قرمز: در حال برگزاری. روی هر اتاق بزنید تا تقویم و جزئیاتش را ببینید.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
+        side: "bottom",
+      },
+    ],
+  },
+  {
+    tour: "availability",
+    steps: [
+      {
+        title: "زمان مناسب مشترک",
+        content: "افراد را انتخاب کنید و بگویید جلسه چقدر طول می‌کشد — سیستم زمان‌هایی که همه آزادند و اتاق هم خالی است را پیشنهاد می‌دهد.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
+        side: "bottom",
+      },
+    ],
+  },
+  {
+    tour: "reports",
+    steps: [
+      {
+        title: "گزارش‌ها",
+        content: "آمار جلسات در بازه‌ی دلخواه: تعداد، ساعت‌ها، نرخ لغو و استفاده‌ی اتاق‌ها — با خروجی CSV.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
+        side: "bottom",
+      },
+    ],
+  },
+  {
+    tour: "notifications",
+    steps: [
+      {
+        title: "اعلان‌ها",
+        content: "دعوت‌ها، تأییدها، تغییر زمان/اتاق و یادآورها. روی هر اعلان بزنید تا مستقیم به جلسه‌اش بروید.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
+        side: "bottom",
+      },
+    ],
+  },
+  {
+    tour: "branches",
+    steps: [
+      {
+        title: "شعبه‌ها",
+        content: "هر شعبه اتاق‌ها و کاربران خود را دارد — ساخت، ویرایش و مدیریت از همین صفحه.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
+        side: "bottom",
+      },
+    ],
+  },
+  {
+    tour: "users",
+    steps: [
+      {
+        title: "کاربران سیستم",
+        content: "همه‌ی کاربران سازمان با نقش‌هایشان. مدیریت کامل (افزودن/ویرایش/غیرفعال‌سازی) از بخش مدیریت است.",
+        pointerPadding: 0,
+        pointerRadius: 8,
+        selector: "h1",
+        side: "bottom",
+      },
+    ],
+  },
+  {
     tour: "admin",
     steps: [
       {
@@ -329,7 +428,14 @@ function tourForPath(pathname: string): string | null {
   if (pathname.startsWith("/calendar")) return "calendar";
   if (pathname === "/meetings") return "meetings-list";
   if (pathname.startsWith("/admin")) return "admin";
-  return null;
+  if (pathname.startsWith("/people")) return "people";
+  if (pathname.startsWith("/rooms")) return "rooms";
+  if (pathname.startsWith("/availability")) return "availability";
+  if (pathname.startsWith("/reports")) return "reports";
+  if (pathname.startsWith("/notifications")) return "notifications";
+  if (pathname.startsWith("/branches")) return "branches";
+  if (pathname.startsWith("/users")) return "users";
+  return "dashboard"; // fallback: every page gets at least the general tour
 }
 
 /** Replay a tour from anywhere: window.dispatchEvent(new CustomEvent("mehrsa:replay-tour")) */
