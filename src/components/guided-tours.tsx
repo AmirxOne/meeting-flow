@@ -71,15 +71,26 @@ function MehrsaCard({
     if (el) {
       const r = el.getBoundingClientRect();
       setTargetRect(r);
-      const cardW = 320;
-      const cardH = 220;
-      let top = r.top + r.height / 2 - cardH / 2; // vertically centered beside the target
-      // RTL app: the card sits to the LEFT of the target (reading flow)
-      let left = r.left - cardW - 16;
-      if (left < 12) left = r.right + 16; // no room on the left → right side
-      top = Math.max(12, Math.min(top, window.innerHeight - cardH - 12));
-      left = Math.max(12, Math.min(left, window.innerWidth - cardW - 12));
-      setPos({ top, left });
+      const cardW = Math.min(320, window.innerWidth - 24);
+      const cardH = 230;
+      // ── desktop: side-by-side (left of target in RTL) ──
+      if (window.innerWidth >= 768) {
+        let top = r.top + r.height / 2 - cardH / 2;
+        let left = r.left - cardW - 16;
+        if (left < 12) left = r.right + 16;
+        top = Math.max(12, Math.min(top, window.innerHeight - cardH - 12));
+        left = Math.max(12, Math.min(left, window.innerWidth - cardW - 12));
+        setPos({ top, left });
+        return;
+      }
+      // ── mobile: bottom sheet clamped above safe area. If it would cover
+      // the target, nudge the page so the target sits above the card. ──
+      const sheetTop = window.innerHeight - cardH - 16;
+      setPos({ top: sheetTop, left: Math.round((window.innerWidth - cardW) / 2) });
+      if (r.bottom > sheetTop - 12) {
+        const delta = r.bottom - (sheetTop - 12);
+        window.scrollBy({ top: delta + 24, behavior: "smooth" });
+      }
     }
   }, [step]);
 
