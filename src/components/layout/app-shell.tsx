@@ -80,7 +80,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="fixed top-0 right-0 z-50 hidden h-screen w-60 flex-col border-l border-line bg-white lg:flex">
         <div className="flex h-16 items-center gap-1.5 border-b border-line px-5">
-          <div className="flex h-[52px] w-[52px] items-center justify-center rounded-lg bg-ink">
+          <div className="flex h-[40px] w-[40px] items-center justify-center rounded-lg bg-ink">
             <Image
               src="/logo-white.png"
               alt="مهرسا"

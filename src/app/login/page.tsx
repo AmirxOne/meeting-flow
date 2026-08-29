@@ -32,13 +32,13 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-paper-soft px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-[88px] w-[88px] items-center justify-center rounded-xl bg-ink">
+          <div className="flex h-[40px] w-[40px] items-center justify-center rounded-lg bg-ink">
             <Image
               src="/logo-white.png"
               alt="مهرسا"
-              width={64}
-              height={64}
-              className="h-16 w-16 object-contain"
+              width={28}
+              height={28}
+              className="h-7 w-7 object-contain"
               priority
             />
           </div>
