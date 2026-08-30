@@ -164,11 +164,11 @@ export function CalendarPage() {
       {/* ── header: month title + nav + today ── */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
-          <button onClick={() => { if (view === "month") monthDelta(-1); else if (view === "week") setSelectedIso((s) => addDaysIso(s, -7)); else setSelectedIso((s) => addDaysIso(s, -1)); }} className="rounded-md border border-line bg-white p-1.5 hover:bg-paper-soft" aria-label="قبلی">
+          <button onClick={() => { if (view === "month") monthDelta(-1); else if (view === "week") setSelectedIso((s) => addDaysIso(s, -7)); else setSelectedIso((s) => addDaysIso(s, -1)); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 hover:bg-paper-soft" aria-label="قبلی">
             <ChevronRight className="h-4 w-4" />
           </button>
           <h1 className={cn("min-w-36 text-center text-[15px] font-bold sm:min-w-44", view === "day" && isFridayIso(selectedIso) && "text-red-600")}>{view === "day" ? dayLabel(selectedIso) : monthTitle}</h1>
-          <button onClick={() => { if (view === "month") monthDelta(1); else if (view === "week") setSelectedIso((s) => addDaysIso(s, 7)); else setSelectedIso((s) => addDaysIso(s, 1)); }} className="rounded-md border border-line bg-white p-1.5 hover:bg-paper-soft" aria-label="بعدی">
+          <button onClick={() => { if (view === "month") monthDelta(1); else if (view === "week") setSelectedIso((s) => addDaysIso(s, 7)); else setSelectedIso((s) => addDaysIso(s, 1)); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 hover:bg-paper-soft" aria-label="بعدی">
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button

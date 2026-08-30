@@ -55,18 +55,11 @@ function meetingWhere(f: ReportFilters) {
 export async function summaryReport(f: ReportFilters): Promise<SummaryReport> {
   const where = meetingWhere(f);
 
-  const [total, activeCount, cancelled, noShow, external, completed, byDayRaw, byRoomRaw, byBranchRaw, byTypeRaw] =
+  const [meetings, byRoomRaw, byBranchRaw, byTypeRaw] =
     await Promise.all([
-      prisma.meeting.count({ where }),
-      prisma.meeting.count({ where: { ...where, status: { in: ACTIVE } } }),
-      prisma.meeting.count({ where: { ...where, status: "CANCELLED" } }),
-      prisma.meeting.count({ where: { ...where, status: "NO_SHOW" } }),
-      prisma.meeting.count({ where: { ...where, meetingType: { in: ["EXTERNAL", "CLIENT", "INTERVIEW"] } } }),
-      prisma.meeting.count({ where: { ...where, status: "COMPLETED" } }),
-      prisma.meeting.groupBy({
-        by: ["startAt"],
+      prisma.meeting.findMany({
         where,
-        _count: { _all: true },
+        select: { startAt: true, endAt: true, status: true, meetingType: true },
       }),
       prisma.meetingRoom.findMany({
         include: {
@@ -84,11 +77,13 @@ export async function summaryReport(f: ReportFilters): Promise<SummaryReport> {
       }),
     ]);
 
-  // durations
-  const meetings = await prisma.meeting.findMany({
-    where,
-    select: { startAt: true, endAt: true, status: true },
-  });
+  const total = meetings.length;
+  const cancelled = meetings.filter((m) => m.status === "CANCELLED").length;
+  const noShow = meetings.filter((m) => m.status === "NO_SHOW").length;
+  const completed = meetings.filter((m) => m.status === "COMPLETED").length;
+  const external = meetings.filter((m) =>
+    ["EXTERNAL", "CLIENT", "INTERVIEW"].includes(m.meetingType),
+  ).length;
   const activeDurations = meetings
     .filter((m) => ACTIVE.includes(m.status))
     .map((m) => m.endAt.getTime() - m.startAt.getTime());
@@ -173,6 +168,20 @@ export interface MeetingRow {
   startAt: Date;
   endAt: Date;
   durationMin: number;
+}
+
+export function meetingsCsv(rows: MeetingRow[]): string {
+  const header = "id,title,status,type,branch,room,organizer,participants,guests,start,end,duration_min";
+  const esc = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+  const lines = rows.map((r) =>
+    [
+      r.id, r.title, r.status, r.type, r.branch, r.room, r.organizer,
+      r.participants, r.guests, r.startAt.toISOString(), r.endAt.toISOString(), r.durationMin,
+    ]
+      .map(esc)
+      .join(","),
+  );
+  return `\uFEFF${[header, ...lines].join("\n")}`;
 }
 
 export async function meetingsForExport(f: ReportFilters): Promise<MeetingRow[]> {

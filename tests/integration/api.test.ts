@@ -120,6 +120,26 @@ describe("auth", () => {
     expect([401, 429]).toContain(status);
   });
 
+  it("logs in with identifier (email) or seeded mobile", async () => {
+    const byEmail = await api("/api/auth/login", {
+      method: "POST",
+      json: { identifier: "admin@example.com", password: "Pass1234" },
+    });
+    expect([200, 429]).toContain(byEmail.status);
+    if (byEmail.status === 200) {
+      expect(byEmail.body.data.user.email).toBe("admin@example.com");
+    }
+
+    const byPhone = await api("/api/auth/login", {
+      method: "POST",
+      json: { identifier: "۰۹۱۲۰۰۰۱۰۰۱", password: "Pass1234" },
+    });
+    expect([200, 429]).toContain(byPhone.status);
+    if (byPhone.status === 200) {
+      expect(byPhone.body.data.user.email).toBe("admin@example.com");
+    }
+  });
+
   it("me returns the logged-in user", async () => {
     const { status, body } = await api("/api/auth/me", { cookie: adminCookie });
     expect(status).toBe(200);
@@ -422,6 +442,36 @@ describe("availability & permissions", () => {
     expect(filtered.body.data.summary.totalMeetings).toBeLessThanOrEqual(
       all.body.data.summary.totalMeetings,
     );
+  });
+
+  it("reports status filter does not leak other status metrics", async () => {
+    const { status, body } = await api(
+      "/api/reports?from=2026-08-01&to=2026-08-31&status=CANCELLED",
+      { cookie: adminCookie },
+    );
+    expect(status).toBe(200);
+    const s = body.data.summary;
+    expect(s.completedCount).toBe(0);
+    expect(s.noShowRate).toBe(0);
+    if (s.totalMeetings > 0) expect(s.cancellationRate).toBe(100);
+  });
+
+  it("reports date range includes the full Tehran day", async () => {
+    const day = "2026-08-30";
+    const { status, body } = await api(`/api/reports?from=${day}&to=${day}`, { cookie: adminCookie });
+    expect(status).toBe(200);
+    expect(body.data.summary.totalMeetings).toBeGreaterThan(0);
+  });
+
+  it("reports CSV has BOM and real line breaks", async () => {
+    const res = await fetch(`${BASE}/api/reports?from=2026-08-01&to=2026-08-31&format=csv`, {
+      headers: { cookie: adminCookie },
+    });
+    const text = await res.text();
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toMatch(/csv/);
+    expect(text.charCodeAt(0)).toBe(0xfeff);
+    expect(text.split(/\r?\n/).filter(Boolean).length).toBeGreaterThan(2);
   });
 
   it("audit log records the actions", async () => {

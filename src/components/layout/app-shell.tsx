@@ -341,7 +341,7 @@ function SidebarNavLink({
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors",
+        "group relative flex items-center gap-2.5 overflow-hidden rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors",
         active
           ? "bg-white text-ink shadow-[0_1px_2px_rgba(13,13,13,0.06)]"
           : "text-ink-soft hover:bg-white/70 hover:text-ink",
@@ -350,7 +350,7 @@ function SidebarNavLink({
       {active && layoutId && (
         <motion.span
           layoutId={layoutId}
-          className="absolute inset-y-1.5 right-0 w-[3px] rounded-full bg-ink"
+          className="absolute top-2 bottom-2 right-0 w-[3px] rounded-full bg-ink"
           transition={easeOut}
         />
       )}

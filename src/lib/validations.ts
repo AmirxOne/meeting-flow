@@ -1,9 +1,20 @@
 import { z } from "zod";
 
-export const loginSchema = z.object({
-  email: z.string().email("ایمیل نامعتبر است"),
-  password: z.string().min(6, "رمز عبور حداقل ۶ کاراکتر است"),
-});
+export const loginSchema = z
+  .object({
+    password: z.string().min(6, "رمز عبور حداقل ۶ کاراکتر است"),
+    /** @deprecated use identifier — kept so existing clients/tests keep working */
+    email: z.string().optional(),
+    identifier: z.string().optional(),
+  })
+  .transform((data) => ({
+    password: data.password,
+    identifier: (data.identifier ?? data.email ?? "").trim(),
+  }))
+  .refine((data) => data.identifier.length >= 3, {
+    message: "ایمیل یا شماره موبایل را وارد کنید",
+    path: ["identifier"],
+  });
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const meetingCreateSchema = z.object({

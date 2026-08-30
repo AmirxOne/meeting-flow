@@ -134,23 +134,23 @@ async function main() {
   // users
   const password = await bcrypt.hash("Pass1234", 10);
   const users = [
-    { email: "admin@example.com", fullName: "علیرضا محمدی", jobTitle: "مدیر سیستم", roleKeys: ["ADMIN"], branchId: branch1.id },
-    { email: "superadmin@example.com", fullName: "مدیر ارشد سیستم", jobTitle: "مدیر ارشد", roleKeys: ["SUPER_ADMIN"], branchId: branch1.id },
-    { email: "operator@example.com", fullName: "مریم احمدی", jobTitle: "اپراتور جلسات", roleKeys: ["MEETING_OPERATOR"], branchId: branch1.id },
-    { email: "manager@example.com", fullName: "حسین کریمی", jobTitle: "مدیر شعبه ونک", roleKeys: ["BRANCH_MANAGER"], branchId: branch2.id },
-    { email: "room@example.com", fullName: "سارا موسوی", jobTitle: "مسئول اتاق‌ها", roleKeys: ["ROOM_MANAGER"], branchId: branch1.id },
-    { email: "ali@example.com", fullName: "علی رضایی", jobTitle: "کارشناس فروش", department: "فروش", roleKeys: ["EMPLOYEE"], branchId: branch1.id },
-    { email: "amir@example.com", fullName: "امیر حسینی", jobTitle: "کارشناس بازاریابی", department: "بازاریابی", roleKeys: ["EMPLOYEE"], branchId: branch1.id },
-    { email: "sara@example.com", fullName: "سارا نجفی", jobTitle: "مدیر منابع انسانی", department: "منابع انسانی", roleKeys: ["EMPLOYEE", "BRANCH_MANAGER"], branchId: branch1.id },
+    { email: "admin@example.com", phone: "09120001001", fullName: "علیرضا محمدی", jobTitle: "مدیر سیستم", roleKeys: ["ADMIN"], branchId: branch1.id },
+    { email: "superadmin@example.com", phone: "09120001002", fullName: "مدیر ارشد سیستم", jobTitle: "مدیر ارشد", roleKeys: ["SUPER_ADMIN"], branchId: branch1.id },
+    { email: "operator@example.com", phone: "09120001003", fullName: "مریم احمدی", jobTitle: "اپراتور جلسات", roleKeys: ["MEETING_OPERATOR"], branchId: branch1.id },
+    { email: "manager@example.com", phone: "09120001004", fullName: "حسین کریمی", jobTitle: "مدیر شعبه ونک", roleKeys: ["BRANCH_MANAGER"], branchId: branch2.id },
+    { email: "room@example.com", phone: "09120001005", fullName: "سارا موسوی", jobTitle: "مسئول اتاق‌ها", roleKeys: ["ROOM_MANAGER"], branchId: branch1.id },
+    { email: "ali@example.com", phone: "09120001006", fullName: "علی رضایی", jobTitle: "کارشناس فروش", department: "فروش", roleKeys: ["EMPLOYEE"], branchId: branch1.id },
+    { email: "amir@example.com", phone: "09120001007", fullName: "امیر حسینی", jobTitle: "کارشناس بازاریابی", department: "بازاریابی", roleKeys: ["EMPLOYEE"], branchId: branch1.id },
+    { email: "sara@example.com", phone: "09120001008", fullName: "سارا نجفی", jobTitle: "مدیر منابع انسانی", department: "منابع انسانی", roleKeys: ["EMPLOYEE", "BRANCH_MANAGER"], branchId: branch1.id },
   ];
   const userIds: Record<string, string> = {};
   for (const u of users) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { fullName: u.fullName, jobTitle: u.jobTitle, branchId: u.branchId },
+      update: { fullName: u.fullName, jobTitle: u.jobTitle, branchId: u.branchId, phone: u.phone },
       create: {
         email: u.email, fullName: u.fullName, passwordHash: password,
-        jobTitle: u.jobTitle, department: u.department ?? null, branchId: u.branchId,
+        phone: u.phone, jobTitle: u.jobTitle, department: u.department ?? null, branchId: u.branchId,
       },
     });
     userIds[u.email] = user.id;

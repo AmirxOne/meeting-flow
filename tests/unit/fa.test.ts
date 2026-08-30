@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faNum, faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
+import { faNum, faStr, sanitizeFaNumericInput, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
 
 describe("Persian digits", () => {
   it("faNum converts ASCII digits", () => {
@@ -20,6 +20,12 @@ describe("Persian digits", () => {
 
   it("round-trips a typed phone value", () => {
     expect(toEnDigits(faStr("09121234567"))).toBe("09121234567");
+  });
+
+  it("sanitizes typed Persian digits for storage", () => {
+    expect(sanitizeFaNumericInput("۸", "digits")).toBe("8");
+    expect(sanitizeFaNumericInput("۰۸:۰۰", "time")).toBe("08:00");
+    expect(sanitizeFaNumericInput("۰۹۱۲abc", "phone")).toBe("0912");
   });
 
   it("pins displayed values to the RTL edge without changing stored digits", () => {

@@ -56,3 +56,14 @@ export function faPad2(n: number): string {
 export function faInt(n: number): string {
   return new Intl.NumberFormat("fa-IR").format(n);
 }
+
+export type FaNumericAllow = "digits" | "decimal" | "time" | "phone";
+
+/** Normalize a typed field to ASCII digits (and allowed punctuation) for storage. */
+export function sanitizeFaNumericInput(raw: string, allow: FaNumericAllow = "digits"): string {
+  const next = toEnDigits(stripBidiMarks(raw));
+  if (allow === "digits") return next.replace(/[^\d]/g, "");
+  if (allow === "decimal") return next.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+  if (allow === "time") return next.replace(/[^\d:]/g, "").slice(0, 5);
+  return next.replace(/[^\d+]/g, "");
+}

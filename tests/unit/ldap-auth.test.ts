@@ -117,6 +117,71 @@ describe("LDAP login", () => {
     expect(user.id).toBe("u1");
   });
 
+  it("local mode accepts Iranian mobile", async () => {
+    process.env.AUTH_MODE = "local";
+    setLdapClientForTests(null);
+
+    const bcrypt = await import("bcryptjs");
+    const hash = await bcrypt.hash("Pass1234", 10);
+
+    vi.mocked(prisma.user.findUnique).mockImplementation((async (args: { where: { email?: string; phone?: string } }) => {
+      const where = args.where;
+      if (where.phone === "09120001001" || where.email === "admin@example.com") {
+        return {
+          id: "u1",
+          email: "admin@example.com",
+          fullName: "Admin",
+          jobTitle: null,
+          isActive: true,
+          passwordHash: hash,
+        };
+      }
+      return null;
+    }) as never);
+
+    const user = await authenticateLogin("۰۹۱۲۰۰۰۱۰۰۱", "Pass1234");
+    expect(user.id).toBe("u1");
+    expect(user.email).toBe("admin@example.com");
+  });
+
+  it("LDAP phone login binds with the stored email", async () => {
+    setLdapClientForTests(
+      new MockLdapClient({
+        "ali@example.com": {
+          password: "ldap-pass",
+          profile: { email: "ali@example.com", fullName: "علی" },
+        },
+      }),
+    );
+
+    vi.mocked(prisma.user.findUnique).mockImplementation((async (args: { where: { email?: string; phone?: string } }) => {
+      const where = args.where;
+      if (where.phone === "09120001006" || where.email === "ali@example.com") {
+        return {
+          id: "u1",
+          email: "ali@example.com",
+          fullName: "علی",
+          jobTitle: null,
+          isActive: true,
+          department: null,
+          roles: [],
+        };
+      }
+      return null;
+    }) as never);
+
+    const user = await authenticateLogin("09120001006", "ldap-pass");
+    expect(user.id).toBe("u1");
+  });
+
+  it("rejects an identifier that is neither email nor mobile", async () => {
+    process.env.AUTH_MODE = "local";
+    await expect(authenticateLogin("not-a-login", "Pass1234")).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_IDENTIFIER",
+    });
+  });
+
   it("rejects disabled accounts after LDAP bind", async () => {
     setLdapClientForTests(
       new MockLdapClient({

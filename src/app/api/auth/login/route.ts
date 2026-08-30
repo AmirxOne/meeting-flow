@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const input = loginSchema.parse(body);
 
-    const user = await authenticateLogin(input.email, input.password);
+    const user = await authenticateLogin(input.identifier, input.password);
     return buildLoginResponse(user);
   } catch (e) {
     return handleError(e);

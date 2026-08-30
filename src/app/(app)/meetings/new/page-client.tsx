@@ -13,6 +13,7 @@ import { formatClockInTz, DEFAULT_ORG_TIMEZONE } from "@/lib/timezone";
 import { Select } from "@/components/ui/select";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
+import { FaInput } from "@/components/ui/fa-input";
 import {
   bookingMatchesQuery,
   clearAvailabilityBooking,
@@ -409,7 +410,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                 <div key={i} className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
                   <input placeholder="نام" value={g.name} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
                   <input placeholder="شرکت" value={g.company} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, company: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
-                  <input placeholder="تلفن" dir="ltr" value={g.phone} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, phone: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                  <FaInput allow="phone" placeholder="تلفن" value={g.phone} onChange={(phone) => setGuests(guests.map((x, j) => j === i ? { ...x, phone } : x))} />
                   <input placeholder="ایمیل" dir="ltr" value={g.email} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
                   <Button type="button" variant="ghost" size="sm" onClick={() => setGuests(guests.filter((_, j) => j !== i))}>حذف</Button>
                 </div>
