@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, type ButtonHTMLAttributes } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@/components/ui/icon";
 import { cn } from "@/lib";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";

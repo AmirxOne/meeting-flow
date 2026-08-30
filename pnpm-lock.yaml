@@ -77,15 +77,15 @@ importers:
       framer-motion:
         specifier: ^13.1.1
         version: 13.1.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      iconsax:
+        specifier: ^0.1.1
+        version: 0.1.1
       ioredis:
         specifier: ^5.8.0
         version: 5.11.1
       ldapjs:
         specifier: ^3.0.7
         version: 3.0.7
-      lucide-react:
-        specifier: ^0.544.0
-        version: 0.544.0(react@19.2.8)
       next:
         specifier: ^15.5.6
         version: 15.5.24(@types/node@22.20.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -110,9 +110,6 @@ importers:
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.1
-      vazirmatn:
-        specifier: 33.0.3
-        version: 33.0.3
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -1909,6 +1906,11 @@ packages:
     resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
 
+  iconsax@0.1.1:
+    resolution: {integrity: sha512-/HXomG+SuhytKH/Yw4ZdunDGyWP02Osuk/pjony1k9CCMOsg7dUpnomu7HZUOHNu0yK0b3phErjH2IgUTJFjPA==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
+
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
 
@@ -2031,11 +2033,6 @@ packages:
 
   loupe@3.2.1:
     resolution: {integrity: sha512-CdzqowRJCeLU72bHvWqwRBBlLcMEtIvGrlvef74kMnV2AolS9Y8xUv1I0U/MNAWMhBlKIoyuEgoJ0t/bbwHbLQ==}
-
-  lucide-react@0.544.0:
-    resolution: {integrity: sha512-t5tS44bqd825zAW45UQxpG2CvcC4urOwn2TrwSH8u+MjeE+1NnWl6QqeQ/6NdjMqdOygyiT9p3Ev0p1NJykxjw==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
@@ -2621,9 +2618,6 @@ packages:
   vasync@2.2.1:
     resolution: {integrity: sha512-Hq72JaTpcTFdWiNA4Y22Amej2GH3BFmBaKPPlDZ4/oC8HNn2ISHLkFrJU4Ds8R3jcUi7oo5Y9jcMHKjES+N9wQ==}
     engines: {'0': node >=0.6.0}
-
-  vazirmatn@33.0.3:
-    resolution: {integrity: sha512-fbjNc0CMjazZpIegWzz9OHGzI1APFboT+x7ZecXlUCtDe/nkyx7gtCTZnWS/+eeXG7fbfXymCPKJI8EsnM3iqw==}
 
   verror@1.10.0:
     resolution: {integrity: sha512-ZZKSmDAEFOijERBLkmYfJ+vmk3w+7hOLYDNkRCuRuMJGEmqYNCNLyBBFwWKVMhfwaEF3WOd0Zlw86U/WC/+nYw==}
@@ -4284,6 +4278,8 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
+  iconsax@0.1.1: {}
+
   ieee754@1.2.1: {}
 
   immediate@3.0.6: {}
@@ -4400,10 +4396,6 @@ snapshots:
   lodash.uniq@4.5.0: {}
 
   loupe@3.2.1: {}
-
-  lucide-react@0.544.0(react@19.2.8):
-    dependencies:
-      react: 19.2.8
 
   magic-string@0.30.21:
     dependencies:
@@ -4981,8 +4973,6 @@ snapshots:
   vasync@2.2.1:
     dependencies:
       verror: 1.10.0
-
-  vazirmatn@33.0.3: {}
 
   verror@1.10.0:
     dependencies:

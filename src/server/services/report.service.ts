@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db";
+import { fillHourlyHistogram } from "@/lib/report-histogram";
 
 export interface ReportFilters {
   from?: Date;
@@ -153,9 +154,7 @@ export async function summaryReport(f: ReportFilters): Promise<SummaryReport> {
         ) / 10,
     })),
     byType: byTypeRaw.map((t) => ({ type: t.meetingType, count: t._count._all })),
-    hourlyHistogram: [...hourMap.entries()]
-      .sort((a, b) => a[0] - b[0])
-      .map(([hour, count]) => ({ hour, count })),
+    hourlyHistogram: fillHourlyHistogram(hourMap),
   };
 }
 

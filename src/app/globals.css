@@ -3,21 +3,31 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: "Vazirmatn";
-  src: url("/fonts/Vazirmatn-Regular.woff2") format("woff2");
+  font-family: alibaba;
+  src: url("/fonts/Alibaba-Regular.woff2") format("woff2");
   font-weight: 400;
+  font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "Vazirmatn";
-  src: url("/fonts/Vazirmatn-Medium.woff2") format("woff2");
+  font-family: alibaba;
+  src: url("/fonts/Alibaba-Regular.woff2") format("woff2");
   font-weight: 500;
+  font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "Vazirmatn";
-  src: url("/fonts/Vazirmatn-Bold.woff2") format("woff2");
+  font-family: alibaba;
+  src: url("/fonts/Alibaba-Bold.woff2") format("woff2");
   font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: alibaba;
+  src: url("/fonts/Alibaba-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
   font-display: swap;
 }
 
@@ -30,7 +40,7 @@ html {
 }
 
 body {
-  font-family: "Vazirmatn", Tahoma, "Segoe UI", sans-serif;
+  font-family: alibaba, Tahoma, "Segoe UI", sans-serif;
   background: #ffffff;
   color: #0d0d0d;
   font-size: 14px;
@@ -69,4 +79,21 @@ body {
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
   border-radius: 8px;
+}
+
+/* logo inside skeleton — mirror shine sweep */
+.brand-logo-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 65%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  pointer-events: none;
 }

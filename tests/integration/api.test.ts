@@ -489,6 +489,8 @@ describe("colleagues directory", () => {
     const first = body.data.users[0];
     expect(first).toHaveProperty("fullName");
     expect(first).toHaveProperty("roles");
+    expect(first).toHaveProperty("jobTitle");
+    expect(first).toHaveProperty("department");
     expect(first).not.toHaveProperty("email");
     expect(first).not.toHaveProperty("isActive");
   });

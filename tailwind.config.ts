@@ -20,7 +20,7 @@ const config: Config = {
         success: "#059669",
       },
       fontFamily: {
-        sans: ["var(--font-vazir)", "Tahoma", "Segoe UI", "sans-serif"],
+        sans: ["alibaba", "Tahoma", "Segoe UI", "sans-serif"],
       },
     },
   },

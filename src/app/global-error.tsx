@@ -13,7 +13,7 @@ export default function GlobalError({
       <body
         style={{
           margin: 0,
-          fontFamily: "Vazirmatn, system-ui, sans-serif",
+          fontFamily: "alibaba, Tahoma, system-ui, sans-serif",
           background: "#fff",
           color: "#0d0d0d",
         }}

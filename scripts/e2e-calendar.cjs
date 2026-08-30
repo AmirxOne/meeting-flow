@@ -14,18 +14,33 @@ const { login, safeClick, dismissTour, launchBrowser, finish, BASE } = require("
   await page.waitForTimeout(1500);
   await dismissTour(page);
 
-  check("month: weekday header", (await page.locator("text=ش").first().isVisible()));
+  check("month: weekday header", (await page.locator("text=شنبه").first().isVisible()));
   const todayBadge = await page.locator("span.bg-ink.rounded-full").count();
   check(`month: today circle highlighted (${todayBadge})`, todayBadge >= 1);
+
+  const fridayHeader = page.locator("text=جمعه").first();
+  const fridayHeaderRed = await fridayHeader.evaluate((el) => el.className.includes("text-red-500")).catch(() => false);
+  check("month: جمعه header is light-red", fridayHeaderRed);
+  const fridayCells = page.locator('[data-weekday="friday"]');
+  const fridayCount = await fridayCells.count();
+  check(`month: Friday cells rendered (${fridayCount})`, fridayCount >= 3);
+  const fridayDisabled = await fridayCells.first().getAttribute("disabled");
+  check("month: Friday cells stay bookable (not disabled)", fridayDisabled === null);
 
   await safeClick(page, page.locator('button:has-text("هفته")').first());
   await page.waitForTimeout(1200);
   check("week: hour grid renders", (await page.locator("div.min-w-\\[640px\\]").count()) >= 1);
 
-  await safeClick(page, page.locator('button:has-text("روز")').first());
-  await page.waitForTimeout(1200);
+  await safeClick(page, page.locator('[data-tour="cal-views"] button:has-text("روز")').first());
+  const dayTl = page.locator('[data-tour="day-timeline"]');
+  await dayTl.waitFor({ timeout: 15000 }).catch(() => {});
   check("day view renders (agenda or empty state)", true);
-  check("day view shows a meeting (seed data today)", (await page.locator('a[href^="/meetings/"]').count()) >= 1);
+  check("day: hour timeline", (await dayTl.count()) >= 1);
+  check(
+    "day: hour labels",
+    (await dayTl.getByText("۰۸:۰۰").count()) + (await dayTl.getByText("۰۸", { exact: true }).count()) >= 1,
+  );
+  check("day view shows a meeting (seed data today)", (await dayTl.locator('a[href^="/meetings/"]').count()) >= 1);
 
   await safeClick(page, page.locator('button:has-text("امروز")').first());
   await page.waitForTimeout(800);

@@ -100,4 +100,37 @@ describe("approval policy evaluation", () => {
       }),
     ).toBe(true);
   });
+
+  it("solo room booking auto-approves like internal", () => {
+    expect(
+      evaluateApprovalNeed(DEFAULT_POLICIES, {
+        hasExternalGuest: false,
+        isVipRoom: false,
+        durationMin: 30,
+        meetingType: "SOLO",
+      }),
+    ).toBe(false);
+  });
+
+  it("online-in-room meeting auto-approves like internal", () => {
+    expect(
+      evaluateApprovalNeed(DEFAULT_POLICIES, {
+        hasExternalGuest: false,
+        isVipRoom: false,
+        durationMin: 45,
+        meetingType: "ONLINE",
+      }),
+    ).toBe(false);
+  });
+
+  it("solo booking in a VIP room still needs approval", () => {
+    expect(
+      evaluateApprovalNeed(DEFAULT_POLICIES, {
+        hasExternalGuest: false,
+        isVipRoom: true,
+        durationMin: 30,
+        meetingType: "SOLO",
+      }),
+    ).toBe(true);
+  });
 });

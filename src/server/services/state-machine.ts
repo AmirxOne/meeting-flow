@@ -1,3 +1,5 @@
+import { isAutoApproveMeetingType } from "@/lib";
+
 // Meeting lifecycle state machine — transitions validated everywhere.
 
 export const STATUS_FLOW: Record<string, string[]> = {
@@ -62,6 +64,6 @@ export function evaluateApprovalNeed(
     input.durationMin > p.requireApprovalLongerThanMin
   )
     return true;
-  if (input.meetingType === "INTERNAL" && p.autoApproveInternal) return false;
+  if (isAutoApproveMeetingType(input.meetingType) && p.autoApproveInternal) return false;
   return true;
 }

@@ -1,5 +1,5 @@
 import { faNum, faStr } from "./fa";
-import { toJalali, tzOffsetMinutes } from "./jalali";
+import { jalaliPartsInTz, tzOffsetMinutes } from "./jalali";
 import { isoDateInTz, startOfDayUtcFromIso } from "./index";
 
 export const DEFAULT_ORG_TIMEZONE = "Asia/Tehran";
@@ -15,9 +15,7 @@ export function formatClockInTz(date: Date, tz: string): string {
 
 /** jD/jM in org timezone with Persian digits. */
 export function formatJalaliDayMonthInTz(instant: Date, tz: string): string {
-  const off = tzOffsetMinutes(tz, instant);
-  const local = new Date(instant.getTime() + off * 60000);
-  const j = toJalali(local);
+  const j = jalaliPartsInTz(instant, tz);
   return `${faNum(j.jd)}/${faNum(j.jm)}`;
 }
 

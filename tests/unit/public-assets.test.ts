@@ -12,9 +12,9 @@ describe("public static assets", () => {
   });
 
   for (const file of [
-    "Vazirmatn-Regular.woff2",
-    "Vazirmatn-Medium.woff2",
-    "Vazirmatn-Bold.woff2",
+    "Alibaba-Regular.woff2",
+    "Alibaba-Bold.woff2",
+    "Alibaba-Black.woff2",
   ]) {
     it(`includes font ${file}`, () => {
       const path = join(publicDir, "fonts", file);

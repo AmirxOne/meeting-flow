@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserRound, Search, Pencil, Trash2, UserPlus, ChevronRight, ChevronLeft } from "lucide-react";
+import { UserRound, Search, Pencil, Trash2, UserPlus, ChevronRight, ChevronLeft } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, EmptyState, SkeletonTable } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

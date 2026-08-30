@@ -11,13 +11,18 @@ export interface JDate {
 
 const PERSIAN_FMT = "en-US-u-ca-persian";
 
-function icuJalali(date: Date): JDate {
+function icuJalali(date: Date, timeZone = "UTC"): JDate {
   const parts = new Intl.DateTimeFormat(PERSIAN_FMT, {
     year: "numeric", month: "numeric", day: "numeric",
-    timeZone: "UTC",
+    timeZone,
   }).formatToParts(date);
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   return { jy: get("year"), jm: get("month"), jd: get("day") };
+}
+
+/** Jalali date parts for an instant in a timezone (ICU — no browser-local drift). */
+export function jalaliPartsInTz(date: Date, tz = "Asia/Tehran"): JDate {
+  return icuJalali(date, tz);
 }
 
 function icuGregorian(jy: number, jm: number, jd: number): Date {
@@ -82,7 +87,7 @@ export function jMonthLen(jy: number, jm: number): number {
 }
 
 export function jalaliToday(tz = "Asia/Tehran"): JDate {
-  return toJalali(nowInTz(tz));
+  return jalaliPartsInTz(new Date(), tz);
 }
 
 export function jMonthGrid(jy: number, jm: number): (JDate | null)[] {
@@ -102,6 +107,17 @@ export const J_MONTHS = [
 ];
 
 export const J_WEEKDAYS_SHORT = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+export const J_WEEKDAYS_LONG = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+
+/** Iranian weekday: Saturday=0 … Friday=6. `iso` is a calendar date (YYYY-MM-DD). */
+export function iranianWeekdayIndex(iso: string): number {
+  return (new Date(`${iso}T12:00:00Z`).getUTCDay() + 1) % 7;
+}
+
+/** Friday is the official weekly holiday — still a bookable meeting day. */
+export function isFridayIso(iso: string): boolean {
+  return iranianWeekdayIndex(iso) === 6;
+}
 
 // ── time zone helpers ─────────────────────────────────────────
 
@@ -159,12 +175,19 @@ export function formatJalali(
   opts: { withTime?: boolean; monthName?: boolean; tz?: string } = {},
 ): string {
   const tz = opts.tz ?? "Asia/Tehran";
-  const local = new Date(date.getTime() + tzOffsetMinutes(tz, date) * 60000);
-  const { jy, jm, jd } = toJalali(local);
+  const { jy, jm, jd } = jalaliPartsInTz(date, tz);
   const pad = (n: number) => (n < 10 ? `0${n}` : String(n));
   const datePart = opts.monthName
     ? `${jd} ${J_MONTHS[jm - 1]} ${jy}`
     : `${jy}/${pad(jm)}/${pad(jd)}`;
   if (!opts.withTime) return toFaDigits(datePart);
-  return toFaDigits(`${datePart} — ${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`);
+  const timeParts = new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: tz,
+  }).formatToParts(date);
+  const h = Number(timeParts.find((p) => p.type === "hour")?.value ?? 0);
+  const min = Number(timeParts.find((p) => p.type === "minute")?.value ?? 0);
+  return toFaDigits(`${datePart} — ${pad(h)}:${pad(min)}`);
 }

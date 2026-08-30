@@ -1,41 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  LayoutDashboard, CalendarDays, Users, UsersRound, UserRound, DoorOpen, Building2, Bell,
+  LayoutDashboard, CalendarDays, Bell,
   LifeBuoy,
-  BarChart3, Settings, Search, LogOut, Menu, X, Plus, ChevronDown, ScrollText, UserCircle,
-} from "lucide-react";
+  Search, LogOut, Menu, X, Plus, ChevronDown, UserCircle,
+} from "@/components/ui/icon";
+import type { AppIcon } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
+import { groupedVisibleNav, isNavActive } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { replayCurrentTour } from "@/components/guided-tours";
-import { OrgBrandMark } from "@/components/layout/org-brand-mark";
-
-const NAV = [
-  { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard, perm: null },
-  { href: "/calendar", label: "تقویم", icon: CalendarDays, perm: null },
-  { href: "/meetings", label: "جلسات", icon: Users, perm: null },
-  { href: "/availability", label: "زمان مناسب", icon: Search, perm: null },
-  { href: "/people", label: "افراد", icon: UserRound, perm: null },
-  { href: "/users", label: "کاربران", icon: UsersRound, perm: null },
-  { href: "/rooms", label: "اتاق‌ها", icon: DoorOpen, perm: null },
-  { href: "/branches", label: "شعب", icon: Building2, perm: null },
-  { href: "/notifications", label: "اعلان‌ها", icon: Bell, perm: null },
-  { href: "/reports", label: "گزارش‌ها", icon: BarChart3, perm: "report:view" },
-  {
-    href: "/admin/audit-logs",
-    label: "لاگ ممیزی",
-    icon: ScrollText,
-    perm: "audit:view",
-    excludeIfPerm: "user:update",
-  },
-  { href: "/admin", label: "مدیریت", icon: Settings, perm: "user:update" },
-] as const;
+import { OrgBrandMark, BrandLogoSkeleton } from "@/components/layout/org-brand-mark";
+import { easeOut } from "@/components/ui/motion";
 
 const MOBILE_NAV = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -89,68 +71,90 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (!loaded || !me) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="skeleton h-8 w-8 rounded-full" />
+      <div className="flex min-h-screen flex-col bg-white lg:pr-60">
+        <aside className="fixed top-0 right-0 hidden h-screen w-60 flex-col border-l border-line bg-paper-soft lg:flex">
+          <div className="flex h-16 items-center gap-2.5 border-b border-line px-4">
+            <BrandLogoSkeleton size={36} />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="skeleton h-3.5 w-24" />
+              <div className="skeleton h-2.5 w-32" />
+            </div>
+          </div>
+          <div className="space-y-4 p-3">
+            {[4, 4, 2].map((count, g) => (
+              <div key={g} className="space-y-1">
+                <div className="skeleton mx-2 h-2 w-8" />
+                {Array.from({ length: count }).map((_, i) => (
+                  <div key={i} className="skeleton h-9 w-full rounded-lg" />
+                ))}
+              </div>
+            ))}
+          </div>
+        </aside>
+        <div className="flex flex-1 flex-col">
+          <header className="flex h-16 items-center gap-3 border-b border-line px-4 lg:px-6">
+            <div className="skeleton h-10 w-full max-w-xl rounded-md" />
+            <div className="skeleton mr-auto h-8 w-8 rounded-full" />
+          </header>
+          <main className="flex flex-1 items-center justify-center p-6">
+            <div className="flex flex-col items-center gap-3">
+              <BrandLogoSkeleton size={48} />
+              <div className="skeleton h-3 w-28" />
+            </div>
+          </main>
+        </div>
       </div>
     );
   }
 
-  const visibleNav = NAV.filter((n) => {
-    if ("excludeIfPerm" in n && n.excludeIfPerm && can(n.excludeIfPerm)) return false;
-    return !n.perm || can(n.perm);
-  });
-
-  function isNavActive(href: string) {
-    return pathname === href || pathname.startsWith(`${href}/`);
-  }
+  const navGroups = groupedVisibleNav(can);
+  const siblingHrefs = navGroups.flatMap((g) => g.items.map((item) => item.href));
 
   return (
     <div className="min-h-screen bg-white lg:pr-60">
       {/* Desktop sidebar */}
-      <aside className="fixed top-0 right-0 z-50 hidden h-screen w-60 flex-col border-l border-line bg-white lg:flex">
-        <div className="flex h-16 items-center gap-1.5 border-b border-line px-5">
-          <OrgBrandMark orgName={orgName} logoUrl={logoUrl} size={40} />
-          <div>
-            <p className="text-[14px] font-bold leading-4">{orgName}</p>
-            <p className="text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
-          </div>
-        </div>
-        <nav data-tour="nav" className="flex-1 space-y-0.5 overflow-y-auto p-3">
-          {visibleNav.map((item) => {
-            const active = isNavActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px] font-medium transition-colors",
-                  active ? "bg-paper-soft text-ink" : "text-ink-soft hover:bg-paper-soft hover:text-ink",
-                )}
-              >
-                <item.icon className="h-[18px] w-[18px]" />
-                {item.label}
-                {item.href === "/notifications" && unread > 0 && (
-                  <motion.span
-                    key={unread}
-                    initial={{ scale: 0.4, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 22 }}
-                    className="mr-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white"
-                  >
-                    {faNum(unread)}
-                  </motion.span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
+      <aside className="fixed top-0 right-0 z-50 hidden h-screen w-60 flex-col border-l border-line bg-paper-soft lg:flex">
         <Link
-          href="/meetings/new"
-          className="m-3 flex h-10 items-center justify-center gap-2 rounded-md bg-ink text-[13px] font-medium text-white hover:bg-[#2a2a2e]"
+          href="/dashboard"
+          className="flex h-16 items-center gap-2.5 border-b border-line px-4 transition-colors hover:bg-white/50"
         >
-          <Plus className="h-4 w-4" />
-          جلسه جدید
+          <OrgBrandMark orgName={orgName} logoUrl={logoUrl} size={36} />
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-bold leading-4">{orgName}</p>
+            <p className="truncate text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
+          </div>
         </Link>
+        <nav data-tour="nav" className="flex-1 overflow-y-auto px-2.5 py-3">
+          <LayoutGroup id="desktop-nav">
+            {navGroups.map((group) => (
+              <div key={group.id} className="mb-4 last:mb-0">
+                <p className="mb-1 px-2 text-[10px] font-medium text-ink-faint">{group.label}</p>
+                <div className="space-y-0.5">
+                  {group.items.map((item) => (
+                    <SidebarNavLink
+                      key={item.href}
+                      href={item.href}
+                      label={item.label}
+                      icon={item.icon}
+                      active={isNavActive(pathname, item.href, siblingHrefs)}
+                      unread={item.href === "/notifications" ? unread : 0}
+                      layoutId="nav-active-rail"
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </LayoutGroup>
+        </nav>
+        <div className="border-t border-line p-2.5">
+          <Link
+            href="/meetings/new"
+            className="flex h-10 items-center justify-center gap-2 rounded-lg bg-ink text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-[#2a2a2e] active:bg-black"
+          >
+            <Plus className="h-4 w-4" />
+            جلسه جدید
+          </Link>
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -171,9 +175,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => replayCurrentTour()}
               title="راهنمای این صفحه"
               aria-label="راهنمای این صفحه"
-              className="hidden h-9 w-9 items-center justify-center rounded-md border border-transparent text-ink-soft transition-colors hover:border-line hover:bg-paper-soft hover:text-ink sm:flex"
+              className="hidden h-9 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line hover:bg-paper-soft hover:text-ink sm:flex"
             >
-              <LifeBuoy className="h-[18px] w-[18px]" />
+              <LifeBuoy className="h-4 w-4" />
+              راهنما
             </button>
             <div className="relative">
             <button
@@ -240,34 +245,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {drawerOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/30" onClick={() => setDrawerOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-72 bg-white p-4 shadow-xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <div className="absolute right-0 top-0 flex h-full w-72 flex-col bg-paper-soft shadow-xl">
+            <div className="flex h-16 items-center justify-between border-b border-line px-4">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <OrgBrandMark orgName={orgName} logoUrl={logoUrl} size={32} />
-                <p className="text-[14px] font-bold">{orgName}</p>
+                <p className="truncate text-[14px] font-bold">{orgName}</p>
               </div>
-              <button onClick={() => setDrawerOpen(false)} aria-label="بستن">
+              <button
+                onClick={() => setDrawerOpen(false)}
+                aria-label="بستن"
+                className="rounded-md p-1.5 text-ink-soft hover:bg-white hover:text-ink"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="space-y-0.5">
-              {visibleNav.map((item) => {
-                const active = isNavActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2.5 text-[13px]",
-                      active ? "bg-paper-soft font-medium" : "text-ink-soft",
-                    )}
-                  >
-                    <item.icon className="h-[18px] w-[18px]" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+            <nav className="flex-1 overflow-y-auto px-2.5 py-3">
+              {navGroups.map((group) => (
+                <div key={group.id} className="mb-4 last:mb-0">
+                  <p className="mb-1 px-2 text-[10px] font-medium text-ink-faint">{group.label}</p>
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => (
+                      <SidebarNavLink
+                        key={item.href}
+                        href={item.href}
+                        label={item.label}
+                        icon={item.icon}
+                        active={isNavActive(pathname, item.href, siblingHrefs)}
+                        unread={item.href === "/notifications" ? unread : 0}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </nav>
+            <div className="border-t border-line p-2.5">
+              <Link
+                href="/meetings/new"
+                className="flex h-10 items-center justify-center gap-2 rounded-lg bg-ink text-[13px] font-medium text-white"
+              >
+                <Plus className="h-4 w-4" />
+                جلسه جدید
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -297,6 +316,63 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
     </div>
+  );
+}
+
+function SidebarNavLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+  unread = 0,
+  layoutId,
+}: {
+  href: string;
+  label: string;
+  icon: AppIcon;
+  active: boolean;
+  unread?: number;
+  layoutId?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors",
+        active
+          ? "bg-white text-ink shadow-[0_1px_2px_rgba(13,13,13,0.06)]"
+          : "text-ink-soft hover:bg-white/70 hover:text-ink",
+      )}
+    >
+      {active && layoutId && (
+        <motion.span
+          layoutId={layoutId}
+          className="absolute inset-y-1.5 right-0 w-[3px] rounded-full bg-ink"
+          transition={easeOut}
+        />
+      )}
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+          active ? "bg-ink text-white" : "text-ink-faint group-hover:text-ink-soft",
+        )}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 truncate">{label}</span>
+      {unread > 0 && (
+        <motion.span
+          key={unread}
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={easeOut}
+          className="mr-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white"
+        >
+          {faNum(unread)}
+        </motion.span>
+      )}
+    </Link>
   );
 }
 

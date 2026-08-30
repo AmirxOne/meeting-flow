@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { toJalali, toGregorian, jMonthLen, jMonthGrid, zonedTimeToUtc, tzOffsetMinutes } from "@/lib/jalali";
+import {
+  toJalali, toGregorian, jMonthLen, jMonthGrid, zonedTimeToUtc, tzOffsetMinutes,
+  formatJalali, jalaliPartsInTz, iranianWeekdayIndex, isFridayIso,
+} from "@/lib/jalali";
 
 describe("jalali ↔ gregorian conversion", () => {
   it("converts known pairs correctly", () => {
@@ -80,6 +83,15 @@ describe("jMonthGrid", () => {
   });
 });
 
+describe("formatJalali timezone", () => {
+  it("uses Asia/Tehran wall date — not browser local offset twice", () => {
+    // 2026-08-30 22:00 Tehran = 1405-06-08 (still same calendar day)
+    const eveningTehran = new Date("2026-08-30T18:30:00.000Z");
+    expect(jalaliPartsInTz(eveningTehran, "Asia/Tehran")).toEqual({ jy: 1405, jm: 6, jd: 8 });
+    expect(formatJalali(eveningTehran, { monthName: true, tz: "Asia/Tehran" })).toBe("۸ شهریور ۱۴۰۵");
+  });
+});
+
 describe("timezone helpers", () => {
   it("Tehran offset is +210 minutes (no DST since 2022)", () => {
     const off = tzOffsetMinutes("Asia/Tehran", new Date(Date.UTC(2026, 7, 26, 12, 0)));
@@ -89,5 +101,28 @@ describe("timezone helpers", () => {
   it("zonedTimeToUtc maps Tehran wall-clock to UTC", () => {
     const utc = zonedTimeToUtc(2026, 8, 26, 10, 0, 0, "Asia/Tehran");
     expect(utc.toISOString()).toBe("2026-08-26T06:30:00.000Z");
+  });
+});
+
+describe("Iranian Friday holiday", () => {
+  it("treats Friday as weekday 6 and other days as not Friday", () => {
+    // 2026-08-31 is Monday; 2026-08-28 is Friday; 2026-08-29 is Saturday
+    expect(iranianWeekdayIndex("2026-08-29")).toBe(0);
+    expect(iranianWeekdayIndex("2026-08-31")).toBe(2);
+    expect(iranianWeekdayIndex("2026-08-28")).toBe(6);
+    expect(isFridayIso("2026-08-28")).toBe(true);
+    expect(isFridayIso("2026-08-31")).toBe(false);
+    expect(isFridayIso("2026-08-29")).toBe(false);
+  });
+
+  it("last column of a Sat-start month grid is Friday", () => {
+    const grid = jMonthGrid(1405, 6);
+    for (let i = 6; i < grid.length; i += 7) {
+      const cell = grid[i];
+      if (!cell) continue;
+      const g = toGregorian(cell.jy, cell.jm, cell.jd);
+      const iso = `${g.getFullYear()}-${String(g.getMonth() + 1).padStart(2, "0")}-${String(g.getDate()).padStart(2, "0")}`;
+      expect(isFridayIso(iso)).toBe(true);
+    }
   });
 });
