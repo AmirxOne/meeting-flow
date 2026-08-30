@@ -7,7 +7,7 @@ import { NextStep, type Tour, type CardComponentProps } from "nextstepjs";
 import { useNextStep } from "nextstepjs";
 import { useAuth } from "@/lib/auth-store";
 import { faNum } from "@/lib";
-import { X, ChevronLeft } from "lucide-react";
+import { X, ChevronLeft } from "@/components/ui/icon";
 
 /** Persisted "seen" tours per user — first visit auto-starts the matching tour. */
 function useSeenTours(userId: string | undefined) {
@@ -314,7 +314,7 @@ const TOURS: Tour[] = [
         content:
           "این راهنمای کوتاه (فقط همین بار) شما را با بخش‌های اصلی آشنا می‌کند. با «بعدی» ادامه دهید.",
         ...TOUR_SPOT,
-        selector: '[data-tour="nav"] > a:first-child',
+        selector: '[data-tour="nav"] a[href="/dashboard"]',
         side: "right",
       },
       {
@@ -322,7 +322,7 @@ const TOURS: Tour[] = [
         content:
           "از این‌جا به داشبورد، تقویم، جلسات، افراد و اتاق‌ها دسترسی دارید. گزینه‌ها بر اساس نقش شما نمایش داده می‌شوند.",
         ...TOUR_SPOT,
-        selector: '[data-tour="nav"] > a:first-child',
+        selector: '[data-tour="nav"] a[href="/dashboard"]',
         side: "right",
       },
       {
@@ -344,7 +344,7 @@ const TOURS: Tour[] = [
       {
         title: "ساخت جلسه جدید",
         content:
-          "با این دکمه ویزارد ساخت جلسه باز می‌شود: افراد را انتخاب می‌کنید، سیستم زمان آزاد و اتاق مناسب را پیشنهاد می‌دهد.",
+          "با این دکمه ویزارد ساخت جلسه باز می‌شود: افراد را دعوت کنید، یا رزرو تکی / جلسه آنلاین از داخل اتاق بسازید.",
         ...TOUR_SPOT,
         selector: 'a[href="/meetings/new"]',
         side: "right",
@@ -468,9 +468,16 @@ const TOURS: Tour[] = [
       {
         title: "کاربران",
         content:
-          "فهرست همکاران سازمان — نام، نقش و شعبه. افزودن یا ویرایش کاربران فقط از بخش «مدیریت → کاربران» در دسترس مدیران است.",
+          "فهرست همکاران سازمان — نام، سمت، واحد، نقش و شعبه. افزودن یا ویرایش کاربران فقط از بخش «مدیریت → کاربران» در دسترس مدیران است.",
         ...TOUR_SPOT,
         selector: "h1",
+        side: "bottom",
+      },
+      {
+        title: "جستجو و فیلتر",
+        content: "با نام، سمت یا واحد جستجو کنید و فهرست را بر اساس شعبه، نقش یا واحد سازمانی محدود کنید.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="users-filters"]',
         side: "bottom",
       },
     ],

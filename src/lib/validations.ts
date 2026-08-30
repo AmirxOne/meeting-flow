@@ -15,6 +15,7 @@ export const meetingCreateSchema = z.object({
   endAt: z.string().datetime({ offset: true }).or(z.string().min(10)),
   meetingType: z.enum([
     "INTERNAL", "EXTERNAL", "ONE_ON_ONE", "GROUP", "INTERVIEW", "CLIENT", "QUICK",
+    "SOLO", "ONLINE",
   ]).default("INTERNAL"),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
   isPrivate: z.boolean().default(false),

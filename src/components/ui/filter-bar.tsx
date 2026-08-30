@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib";
 import { motion, AnimatePresence } from "framer-motion";
-import { SlidersHorizontal, Check, ChevronDown } from "lucide-react";
+import { SlidersHorizontal, Check, ChevronDown } from "@/components/ui/icon";
 
 export interface FilterChipsGroup {
   key: string;

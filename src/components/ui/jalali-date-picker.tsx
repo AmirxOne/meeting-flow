@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { ChevronRight, ChevronLeft, CalendarDays } from "lucide-react";
+import { ChevronRight, ChevronLeft, CalendarDays } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
 import { Select } from "@/components/ui/select";
 import { jMonthGrid, J_MONTHS, J_WEEKDAYS_SHORT, toJalali, toGregorian } from "@/lib/jalali";

@@ -52,15 +52,18 @@ export async function GET(_req: NextRequest) {
         }),
       ]);
 
-    // weekly hours by day (Tehran local)
+    // weekly hours by day (Tehran local) — always 7 days from today
     const byDay = new Map<string, number>();
     for (const m of weekMeetings) {
       const key = new Date(m.startAt.getTime() + 210 * 60000).toISOString().slice(0, 10);
       byDay.set(key, (byDay.get(key) ?? 0) + (m.endAt.getTime() - m.startAt.getTime()) / 3600000);
     }
-    const weekSeries = [...byDay.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, hours]) => ({ date, hours: Math.round(hours * 10) / 10 }));
+    const weekSeries = Array.from({ length: 7 }, (_, i) => {
+      const dayStart = new Date(todayStart.getTime() + i * 86400000);
+      const date = new Date(dayStart.getTime() + 210 * 60000).toISOString().slice(0, 10);
+      const hours = byDay.get(date) ?? 0;
+      return { date, hours: Math.round(hours * 10) / 10 };
+    });
 
     const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
     return ok({

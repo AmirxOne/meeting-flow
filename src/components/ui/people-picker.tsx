@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, Building2, Briefcase, Search, ChevronDown } from "lucide-react";
+import { X, Building2, Briefcase, Search, ChevronDown } from "@/components/ui/icon";
 import { motion, AnimatePresence } from "framer-motion";
 import { api, type ApiError } from "@/lib/api";
 import { cn, faNum, faStr } from "@/lib";

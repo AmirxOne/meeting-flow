@@ -60,8 +60,19 @@ export type MeetingStatus = (typeof MEETING_STATUSES)[number];
 
 export const MEETING_TYPES = [
   "INTERNAL", "EXTERNAL", "ONE_ON_ONE", "GROUP", "INTERVIEW", "CLIENT", "QUICK",
+  "SOLO", "ONLINE",
 ] as const;
 export type MeetingType = (typeof MEETING_TYPES)[number];
+
+/** Solo room use — no invitees (personal booking or online call from the room). */
+export function isSoloMeetingType(type: string): boolean {
+  return type === "SOLO" || type === "ONLINE";
+}
+
+/** Types that follow the internal auto-approve policy when there are no extra flags. */
+export function isAutoApproveMeetingType(type: string): boolean {
+  return type === "INTERNAL" || isSoloMeetingType(type);
+}
 
 export const MEETING_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
 export type MeetingPriority = (typeof MEETING_PRIORITIES)[number];
@@ -104,6 +115,13 @@ export const TYPE_FA: Record<string, string> = {
   INTERVIEW: "مصاحبه",
   CLIENT: "مشتری",
   QUICK: "سریع",
+  SOLO: "رزرو تکی",
+  ONLINE: "جلسه آنلاین",
+};
+
+export const TYPE_HINT_FA: Record<string, string> = {
+  SOLO: "اتاق را فقط برای خودتان رزرو می‌کنید — بدون دعوت‌شونده",
+  ONLINE: "جلسه آنلاین را از داخل اتاق برگزار می‌کنید — معمولاً تنها در اتاق",
 };
 
 export const PRIORITY_FA: Record<string, string> = {

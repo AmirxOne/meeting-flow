@@ -1,38 +1,29 @@
 /**
- * Copy Vazirmatn webfonts from the npm package into public/fonts/.
- * Keeps committed assets in sync after `pnpm install` / vazirmatn version bumps.
+ * Verify committed webfonts + logo exist in public/.
+ * Alibaba fonts are vendored under public/fonts/ (not an npm package).
  */
-import { cpSync, existsSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const fontSrc = join(root, "node_modules/vazirmatn/fonts/webfonts");
 const fontDst = join(root, "public/fonts");
 
 const FONTS = [
-  "Vazirmatn-Regular.woff2",
-  "Vazirmatn-Medium.woff2",
-  "Vazirmatn-Bold.woff2",
+  "Alibaba-Regular.woff2",
+  "Alibaba-Bold.woff2",
+  "Alibaba-Black.woff2",
 ];
 
-if (!existsSync(fontSrc)) {
-  console.warn("[assets] vazirmatn not installed — skip font sync (run pnpm install)");
-  process.exit(0);
-}
-
-mkdirSync(fontDst, { recursive: true });
-
-let copied = 0;
+let ok = 0;
 for (const file of FONTS) {
-  const src = join(fontSrc, file);
-  const dst = join(fontDst, file);
-  if (!existsSync(src)) {
-    console.error(`[assets] missing ${src}`);
+  const path = join(fontDst, file);
+  if (!existsSync(path) || statSync(path).size < 1000) {
+    console.error(`[assets] missing or invalid ${path}`);
     process.exit(1);
   }
-  cpSync(src, dst);
-  copied += 1;
+  ok += 1;
 }
 
 const logo = join(root, "public/logo-white.png");
@@ -41,4 +32,9 @@ if (!existsSync(logo) || statSync(logo).size < 100) {
   process.exit(1);
 }
 
-console.log(`[assets] synced ${copied} Vazirmatn fonts → public/fonts/`);
+console.log(`[assets] verified ${ok} Alibaba fonts → public/fonts/`);
+
+const extract = spawnSync(process.execPath, [join(root, "scripts/extract-iconsax.mjs")], {
+  stdio: "inherit",
+});
+if (extract.status !== 0) process.exit(extract.status ?? 1);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check } from "@/components/ui/icon";
 import { faStr } from "@/lib";
 import { CheckinQrCode } from "./checkin-qr-code";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown, Check } from "@/components/ui/icon";
 import { cn } from "@/lib";
 import { motion, AnimatePresence } from "framer-motion";
 

@@ -26,7 +26,7 @@
 
 ## قوانین پروژه
 
-- UI کاملاً فارسی RTL · فونت Vazirmatn · **همه‌ی اعداد نمایشی فارسی** (`faNum` / `formatJalali`)
+- UI کاملاً فارسی RTL · فونت alibaba (علی‌بابا) · **همه‌ی اعداد نمایشی فارسی** (`faNum` / `formatJalali`)
 - **Native `<select>` ممنوع** — همیشه Select کاستوم (`src/components/ui/select.tsx`)
 - تقویم شمسی فقط با ICU رسمی Node (`src/lib/jalali.ts`) — نه الگوریتم دستی
 - فرم‌های افزودن/ویرایش در Modal/BottomSheet (`src/components/ui/modal.tsx`) نه inline

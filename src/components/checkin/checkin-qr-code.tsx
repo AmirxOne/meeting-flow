@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { Download, Printer } from "lucide-react";
+import { Download, Printer } from "@/components/ui/icon";
 import { buildCheckinUrl } from "@/lib/checkin-url";
 import { faStr } from "@/lib";
 

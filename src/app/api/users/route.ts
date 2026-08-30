@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
           ? {
               OR: [
                 { fullName: { contains: q } },
+                { jobTitle: { contains: q } },
+                { department: { contains: q } },
                 ...(manage ? [{ email: { contains: q } }] : []),
               ],
             }
@@ -41,6 +43,8 @@ export async function GET(req: NextRequest) {
         : {
             id: true,
             fullName: true,
+            jobTitle: true,
+            department: true,
             branch: { select: { id: true, name: true } },
             roles: { include: { role: { select: { key: true, name: true } } } },
           },
