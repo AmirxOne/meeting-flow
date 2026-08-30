@@ -15,6 +15,7 @@ describe("official Iconsax glyphs", () => {
   it("does not keep lucide package names as glyph ids", () => {
     expect(ICONSAX_MAP.LayoutDashboard).toBe("category");
     expect(ICONSAX_MAP.LifeBuoy).toBe("lifebuoy");
+    expect(ICONSAX_MAP.MessageQuestion).toBe("message-question");
     expect(ICONSAX_MAP.Plus).toBe("add");
     expect(ICONSAX_MAP.ChevronDown).toBe("arrow-down-02");
   });
