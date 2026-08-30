@@ -81,6 +81,7 @@ export const KeyRound = named(ICONSAX_MAP.KeyRound);
 export const Layers = named(ICONSAX_MAP.Layers);
 export const LayoutDashboard = named(ICONSAX_MAP.LayoutDashboard);
 export const LifeBuoy = named(ICONSAX_MAP.LifeBuoy);
+export const MessageQuestion = named(ICONSAX_MAP.MessageQuestion);
 export const Loader2 = named(ICONSAX_MAP.Loader2);
 export const LogOut = named(ICONSAX_MAP.LogOut);
 export const MapPin = named(ICONSAX_MAP.MapPin);

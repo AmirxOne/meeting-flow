@@ -52,6 +52,7 @@ export const ICON_MAP = {
   Layers: "layer",
   LayoutDashboard: "category",
   LifeBuoy: "lifebuoy",
+  MessageQuestion: "message-question",
   Loader2: "rotate-right",
   LogOut: "logout-01",
   MapPin: "location",

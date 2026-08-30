@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, CalendarDays, Bell,
-  LifeBuoy,
+  MessageQuestion,
   Search, LogOut, Menu, X, Plus, ChevronDown, UserCircle,
 } from "@/components/ui/icon";
 import type { AppIcon } from "@/components/ui/icon";
@@ -178,7 +178,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 aria-label="راهنمای این صفحه"
                 className="hidden h-9 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line hover:bg-paper-soft hover:text-ink sm:flex"
               >
-                <LifeBuoy className="h-4 w-4" />
+                <MessageQuestion className="h-4 w-4" />
                 راهنما
               </button>
             </Tooltip>
