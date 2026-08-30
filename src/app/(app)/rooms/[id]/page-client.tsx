@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, SkeletonBlock, EmptyState } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badges";
 import { cn, faNum, faStr, formatJalali, EQUIPMENT_FA, pad2 } from "@/lib";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface RoomDetail {
   room: {
@@ -161,15 +162,15 @@ export function RoomDetailPage() {
                       const right = ((Math.max(s, dayStartMin) - dayStartMin) / (dayEndMin - dayStartMin)) * 100;
                       const width = ((Math.min(e, dayEndMin) - Math.max(s, dayStartMin)) / (dayEndMin - dayStartMin)) * 100;
                       return (
+                        <Tooltip key={m.id} content={m.title}>
                         <div
-                          key={m.id}
                           className={cn(
                             "absolute top-7 h-2 rounded-full",
                             m.status === "IN_PROGRESS" ? "bg-red-500" : "bg-ink",
                           )}
                           style={{ right: `${right}%`, width: `${width}%` }}
-                          title={m.title}
                         />
+                        </Tooltip>
                       );
                     })}
                   {[8, 10, 12, 14, 16, 18, 20].map((h) => (

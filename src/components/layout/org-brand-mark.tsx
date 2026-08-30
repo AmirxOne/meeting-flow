@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { cn } from "@/lib";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface OrgBrandMarkProps {
   orgName: string;
@@ -16,6 +17,7 @@ export function OrgBrandMark({ orgName, logoUrl, size = 40, className }: OrgBran
   const hasCustom = customSrc.length > 0;
 
   return (
+    <Tooltip content={orgName}>
     <div
       className={cn(
         "flex shrink-0 items-center justify-center rounded-lg",
@@ -23,7 +25,6 @@ export function OrgBrandMark({ orgName, logoUrl, size = 40, className }: OrgBran
         className,
       )}
       style={{ width: size, height: size }}
-      title={orgName}
     >
       {hasCustom ? (
         <Image
@@ -48,6 +49,7 @@ export function OrgBrandMark({ orgName, logoUrl, size = 40, className }: OrgBran
         />
       )}
     </div>
+    </Tooltip>
   );
 }
 

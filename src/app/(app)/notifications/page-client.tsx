@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, EmptyState, SkeletonBlock } from "@/components/ui/card";
+import { IconTipButton, Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { cn, faNum, formatJalali, isoDateInTz } from "@/lib";
@@ -285,9 +286,9 @@ export function NotificationsPage() {
                             <p className="mt-1 line-clamp-2 text-[12px] leading-5 text-ink-soft">{n.body}</p>
                           )}
                           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-faint">
-                            <span title={formatJalali(new Date(n.createdAt), { withTime: true })}>
-                              {relativeTime(n.createdAt)}
-                            </span>
+                            <Tooltip content={formatJalali(new Date(n.createdAt), { withTime: true })}>
+                              <span>{relativeTime(n.createdAt)}</span>
+                            </Tooltip>
                             {clickable && (
                               <span className="text-ink-soft group-hover:text-ink">مشاهده جزئیات</span>
                             )}
@@ -298,14 +299,13 @@ export function NotificationsPage() {
                           {unread && (
                             <>
                               <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden />
-                              <button
-                                type="button"
-                                title="علامت‌گذاری به‌عنوان خوانده‌شده"
+                              <IconTipButton
+                                tip="علامت‌گذاری به‌عنوان خوانده‌شده"
                                 onClick={(e) => markOne(e, n.id)}
                                 className="rounded-md p-1.5 text-ink-faint opacity-0 transition-opacity hover:bg-white hover:text-ink group-hover:opacity-100"
                               >
                                 <Check className="h-4 w-4" />
-                              </button>
+                              </IconTipButton>
                             </>
                           )}
                           {clickable && (

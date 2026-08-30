@@ -101,13 +101,13 @@ const { chromium } = require("playwright");
 
   // ══ UI: admin sees action buttons on branches page ══
   await page.goto("http://localhost:3100/branches", { waitUntil: "domcontentloaded" });
-  await page.locator('button[title="ویرایش"]').first().waitFor({ state: "visible", timeout: 30000 });
-  const editBtns = await page.locator('button[title="ویرایش"]').count();
-  const delBtns = await page.locator('button[title="حذف"]').count();
+  await page.locator('button[data-tooltip="ویرایش"]').first().waitFor({ state: "visible", timeout: 30000 });
+  const editBtns = await page.locator('button[data-tooltip="ویرایش"]').count();
+  const delBtns = await page.locator('button[data-tooltip="حذف"]').count();
   check(`branches UI shows manage buttons (${editBtns} edit / ${delBtns} delete)`, editBtns >= 2 && delBtns >= 2);
 
   // UI: edit branch name via form
-  await page.locator('button[title="ویرایش"]').first().click();
+  await page.locator('button[data-tooltip="ویرایش"]').first().click();
   await page.waitForTimeout(600);
   const formVisible = await page.locator('text=ویرایش شعبه').count();
   check("edit form opens", formVisible >= 1);
@@ -116,15 +116,15 @@ const { chromium } = require("playwright");
 
   // UI: admin/rooms edit buttons
   await page.goto("http://localhost:3100/admin/rooms", { waitUntil: "domcontentloaded" });
-  await page.locator('button[title="ویرایش"]').first().waitFor({ state: "visible", timeout: 30000 });
-  const roomEdits = await page.locator('button[title="ویرایش"]').count();
+  await page.locator('button[data-tooltip="ویرایش"]').first().waitFor({ state: "visible", timeout: 30000 });
+  const roomEdits = await page.locator('button[data-tooltip="ویرایش"]').count();
   check(`admin/rooms shows edit buttons (${roomEdits})`, roomEdits >= 4);
 
   // employee sees NO manage buttons on branches page
   await loginAs("ali@example.com");
   await page.goto("http://localhost:3100/branches", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(2500);
-  const empEditBtns = await page.locator('button[title="ویرایش"]').count();
+  const empEditBtns = await page.locator('button[data-tooltip="ویرایش"]').count();
   check(`employee sees no manage buttons (${empEditBtns} = 0)`, empEditBtns === 0);
 
   let pass = 0;

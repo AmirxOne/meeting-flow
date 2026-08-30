@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown } from "@/components/ui/icon";
 import { Card } from "@/components/ui/card";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn, faNum, faPad2, faStr, STATUS_FA } from "@/lib";
 import {
   DAY_PERIOD_FA,
@@ -152,8 +153,9 @@ export function DayTimeline({
             {density.map((slot) => {
               const active = slot.count > 0;
               return (
+                <Tooltip key={slot.hour} content={`${faPad2(slot.hour)}:۰۰`}>
+                <span className="inline-flex">
                 <button
-                  key={slot.hour}
                   type="button"
                   disabled={!active}
                   onClick={() => jumpToHour(slot.hour)}
@@ -162,7 +164,6 @@ export function DayTimeline({
                     active ? "hover:bg-paper-soft" : "cursor-default opacity-50",
                     isToday && slot.hour === nowHour && "ring-1 ring-red-200",
                   )}
-                  title={`${faPad2(slot.hour)}:۰۰`}
                 >
                   <span className="text-[10px] tabular-nums text-ink-soft">{faPad2(slot.hour)}</span>
                   <span className={cn("h-1.5 w-full rounded-full", densityLevel(slot.count, densMax))} />
@@ -170,6 +171,8 @@ export function DayTimeline({
                     {slot.count ? faNum(slot.count) : "·"}
                   </span>
                 </button>
+                </span>
+                </Tooltip>
               );
             })}
           </div>

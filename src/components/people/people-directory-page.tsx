@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
+import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum, faStr } from "@/lib";
 
 interface Person {
@@ -298,22 +299,20 @@ export function PeopleDirectoryPage({ variant = "default" }: PeopleDirectoryPage
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button
+                        <IconTipButton
+                          tip="ویرایش"
                           onClick={() => openEdit(p)}
                           className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                          title="ویرایش"
-                          aria-label="ویرایش"
                         >
                           <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
+                        </IconTipButton>
+                        <IconTipButton
+                          tip="حذف"
                           onClick={() => remove(p)}
                           className="rounded-md p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-600"
-                          title="حذف"
-                          aria-label="حذف"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        </IconTipButton>
                       </div>
                     </td>
                   </tr>

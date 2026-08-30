@@ -9,6 +9,7 @@ import { cn, faNum, faPad2, faStr, STATUS_FA, TYPE_FA } from "@/lib";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface Summary {
   totalMeetings: number;
@@ -288,10 +289,9 @@ export function ReportsPage() {
                     const peak = s.peakHour === h.hour;
                     const pct = h.count ? Math.max(10, (h.count / maxHourly) * 100) : 0;
                     return (
+                      <Tooltip key={h.hour} content={`${faPad2(h.hour)}:۰۰ — ${faNum(h.count)} جلسه`}>
                       <div
-                        key={h.hour}
                         className="flex min-w-0 flex-1 flex-col items-center gap-1"
-                        title={`${faPad2(h.hour)}:۰۰ — ${faNum(h.count)} جلسه`}
                       >
                         <div className="flex w-full flex-1 items-end">
                           <div
@@ -311,6 +311,7 @@ export function ReportsPage() {
                           {faPad2(h.hour)}
                         </span>
                       </div>
+                      </Tooltip>
                     );
                   })}
                 </div>

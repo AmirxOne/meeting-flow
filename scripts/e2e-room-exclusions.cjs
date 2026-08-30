@@ -69,11 +69,11 @@ const { chromium } = require("playwright");
   check(`booking blocked during exclusion (${r.status()} = 409)`, r.status() === 409);
 
   await page.goto("http://localhost:3100/admin/rooms", { waitUntil: "domcontentloaded" });
-  await page.locator('button[title="تعمیر / غیرفعال موقت"]').first().waitFor({ state: "visible", timeout: 30000 });
-  const wrenchCount = await page.locator('button[title="تعمیر / غیرفعال موقت"]').count();
+  await page.locator('button[data-tooltip="تعمیر / غیرفعال موقت"]').first().waitFor({ state: "visible", timeout: 30000 });
+  const wrenchCount = await page.locator('button[data-tooltip="تعمیر / غیرفعال موقت"]').count();
   check(`admin/rooms shows exclusion buttons (${wrenchCount} >= 4)`, wrenchCount >= 4);
 
-  await page.locator('button[title="تعمیر / غیرفعال موقت"]').first().click();
+  await page.locator('button[data-tooltip="تعمیر / غیرفعال موقت"]').first().click();
   await page.waitForTimeout(600);
   const modalVisible = await page
     .locator("text=غیرفعال‌سازی آینده‌ای ثبت نشده")

@@ -30,7 +30,6 @@ function Glyph({ id, className, size, title }: IconProps & { id: IconsaxId }) {
       role={title ? "img" : undefined}
       aria-hidden={title ? undefined : true}
       aria-label={title}
-      title={title}
       className={cn("inline-flex shrink-0 [&>svg]:block [&>svg]:h-full [&>svg]:w-full", className)}
       style={style}
       dangerouslySetInnerHTML={{ __html: html }}

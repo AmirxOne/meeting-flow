@@ -18,6 +18,7 @@ import { api } from "@/lib/api";
 import { replayCurrentTour } from "@/components/guided-tours";
 import { OrgBrandMark, BrandLogoSkeleton } from "@/components/layout/org-brand-mark";
 import { easeOut } from "@/components/ui/motion";
+import { Tooltip } from "@/components/ui/tooltip";
 
 const MOBILE_NAV = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -171,15 +172,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <GlobalSearch />
 
           <div className="mr-auto flex items-center gap-1">
-            <button
-              onClick={() => replayCurrentTour()}
-              title="راهنمای این صفحه"
-              aria-label="راهنمای این صفحه"
-              className="hidden h-9 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line hover:bg-paper-soft hover:text-ink sm:flex"
-            >
-              <LifeBuoy className="h-4 w-4" />
-              راهنما
-            </button>
+            <Tooltip content="راهنمای این صفحه">
+              <button
+                onClick={() => replayCurrentTour()}
+                aria-label="راهنمای این صفحه"
+                className="hidden h-9 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line hover:bg-paper-soft hover:text-ink sm:flex"
+              >
+                <LifeBuoy className="h-4 w-4" />
+                راهنما
+              </button>
+            </Tooltip>
             <div className="relative">
             <button
               onClick={() => setUserMenu((v) => !v)}
