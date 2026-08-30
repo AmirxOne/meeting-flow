@@ -1,5 +1,9 @@
 name: meetinghub
 
+# Dev (local Next.js):  docker compose up -d postgres redis
+#                       pnpm dev  +  pnpm worker:dev  (worker جدا — یادآورها بدون آن ارسال نمی‌شوند)
+# Full stack (prod-like): docker compose up -d  → app + postgres + redis + worker
+
 services:
   postgres:
     image: postgres:16-alpine

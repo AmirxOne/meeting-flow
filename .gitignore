@@ -1,4 +1,5 @@
 node_modules/
+.manual-pkgs/
 .next/
 out/
 build/

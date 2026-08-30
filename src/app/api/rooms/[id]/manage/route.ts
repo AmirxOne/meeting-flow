@@ -1,15 +1,23 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/db";
-import { requirePermission, can, requireUser, HttpError } from "@/server/auth/session";
+import { requirePermission, requireUser, HttpError } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { roomCreateSchema } from "@/lib/validations";
+import { assertFloorInBranch } from "@/server/services/floor.service";
+import { assertRoomManageAccess, isRoomManagerScoped } from "@/server/services/room-access.service";
 
 export const dynamic = "force-dynamic";
 
 const updateSchema = roomCreateSchema.partial().extend({
   isActive: z.boolean().optional(),
 });
+
+async function assertManagerExists(managerId: string | null | undefined) {
+  if (!managerId) return;
+  const user = await prisma.user.findUnique({ where: { id: managerId } });
+  if (!user) throw new HttpError(404, "مدیر اتاق یافت نشد", "NOT_FOUND");
+}
 
 /** GET /api/rooms/:id — detail + today's timeline (existing live status). */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -41,6 +49,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const room = await prisma.meetingRoom.findUnique({ where: { id } });
     if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");
+    assertRoomManageAccess(actor, room);
+
+    if (input.floorId !== undefined) {
+      await assertFloorInBranch(room.branchId, input.floorId);
+    }
+    if (input.managerId !== undefined) {
+      if (isRoomManagerScoped(actor)) {
+        throw new HttpError(403, "تغییر مدیر اتاق مجاز نیست", "FORBIDDEN");
+      }
+      await assertManagerExists(input.managerId);
+    }
 
     const updated = await prisma.$transaction(async (tx) => {
       const r = await tx.meetingRoom.update({
@@ -56,6 +75,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           ...(input.openTime !== undefined ? { openTime: input.openTime || null } : {}),
           ...(input.closeTime !== undefined ? { closeTime: input.closeTime || null } : {}),
           ...(input.floorId !== undefined ? { floorId: input.floorId || null } : {}),
+          ...(input.managerId !== undefined ? { managerId: input.managerId || null } : {}),
         },
       });
       if (input.equipment) {
@@ -93,6 +113,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       include: { meetings: { where: { status: { in: ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "RESCHEDULED", "IN_PROGRESS"] } } } },
     });
     if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");
+    assertRoomManageAccess(actor, room);
 
     if (room.meetings.length > 0) {
       // block delete, suggest disable instead

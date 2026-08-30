@@ -3,27 +3,12 @@ import { prisma } from "@/server/db";
 import { loginSchema } from "@/lib/validations";
 import { SESSION_COOKIE, createSession, destroySession } from "@/server/auth/session";
 import { ok, fail, handleError } from "@/server/http";
-
-// in-memory rate limiter (per process) — good enough for login brute-force
-const attempts = new Map<string, { count: number; first: number }>();
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 10;
-
-function rateLimited(key: string): boolean {
-  const now = Date.now();
-  const rec = attempts.get(key);
-  if (!rec || now - rec.first > WINDOW_MS) {
-    attempts.set(key, { count: 1, first: now });
-    return false;
-  }
-  rec.count += 1;
-  return rec.count > MAX_ATTEMPTS;
-}
+import { getLoginRateLimiter } from "@/server/rate-limit/login-rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "local";
-    if (rateLimited(ip)) {
+    if (await getLoginRateLimiter().isLimited(ip)) {
       return fail(429, "تلاش بیش از حد — بعداً تلاش کنید", "RATE_LIMITED");
     }
 

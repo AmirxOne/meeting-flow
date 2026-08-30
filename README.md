@@ -23,9 +23,11 @@ pnpm install
 pnpm exec prisma migrate dev          # migration
 docker compose exec -T postgres psql -U meetinghub -d meetinghub < prisma/sql/room-exclusion.sql
 pnpm db:seed                          # داده اولیه
-pnpm dev                              # → http://localhost:3100
-pnpm worker                           # در ترمینال دوم — یادآورها و lifecycle
+pnpm dev                              # ترمینال ۱ → http://localhost:3100
+pnpm worker:dev                       # ترمینال ۲ — **الزامی برای یادآورها** (in-app/SMS/Email)
 ```
+
+> **یادآور جلسات** فقط وقتی ارسال می‌شوند که worker در حال اجرا باشد (`pnpm worker:dev` در dev، یا سرویس `worker` در docker compose). بدون worker، ردیف‌های `MeetingReminder` schedule می‌شوند ولی send نمی‌شوند.
 
 ## حساب‌های نمونه (رمز همه: `Pass1234`)
 
@@ -49,7 +51,8 @@ pnpm worker                           # در ترمینال دوم — یادآ�
 | `pnpm test` | تست‌های unit |
 | `pnpm vitest run tests/integration` | تست‌های integration (نیازمند dev server + seed) |
 | `pnpm db:migrate` / `pnpm db:seed` | migration / seed |
-| `pnpm worker` | پروسه پس‌زمینه یادآور/lifecycle |
+| `pnpm worker` | worker یک‌بار (production) |
+| `pnpm worker:dev` | worker با hot-reload — **همراه dev لازم است** |
 
 ## قاعده‌ی تست — بعد از هر فیچر
 
@@ -110,11 +113,11 @@ Integration شامل: لاگین اشتباه (401)، me، ساخت جلسه (au
 
 ## Environment Variables
 
-همه در `.env.example` با توضیح — مهم‌ترین‌ها: `DATABASE_URL`، `SESSION_SECRET`، `SESSION_TTL_HOURS`، `NOTIFICATION_SMS_PROVIDER`، `WORKER_POLL_INTERVAL_MS`.
+همه در `.env.example` با توضیح — مهم‌ترین‌ها: `DATABASE_URL`، `SESSION_SECRET`، `SESSION_TTL_HOURS`، `REMINDER_CHANNELS`، `NOTIFICATION_SMS_PROVIDER`، `WORKER_POLL_INTERVAL_MS`.
 
 ## قابلیت‌های آماده برای آینده
 
-- **SMS/Email واقعی**: فقط Provider جدید implement کنید (`SmsProvider` interface) — کال‌سایت‌ها تغییر نمی‌کنند.
+- **SMS/Email واقعی**: فقط Provider جدید implement کنید (`SmsProvider` interface) — کال‌سایت‌ها تغییر نمی‌کنند. یادآورها با `REMINDER_CHANNELS=IN_APP,SMS,EMAIL` در `MeetingReminder` schedule می‌شوند و worker ارسال می‌کند.
 - **Google/Outlook Calendar sync**: معماری event-based است؛ `MeetingEvent` + provider interface آماده اتصال.
 - **QR Check-in مهمان‌ها**: فیلد `checkinCode` در `MeetingGuest` از روز اول هست.
 
@@ -166,10 +169,21 @@ src/
 ```bash
 pnpm run test        # unit + integration (vitest)
 pnpm run typecheck   # tsc --noEmit
-# E2E (نیازمند dev server روی :3100):
+# E2E (نیازمند dev server روی :3100 + Chrome سیستمی):
+node scripts/e2e-smoke.cjs
 node scripts/e2e-calendar.cjs
 node scripts/e2e-modal-forms.cjs
 node scripts/e2e-people-pagination.cjs
+node scripts/e2e-people-page.cjs
+node scripts/e2e-notification-click.cjs
+node scripts/e2e-private-meetings.cjs
+node scripts/e2e-guided-tours.cjs
+node scripts/e2e-datepicker-people.cjs
+node scripts/e2e-room-branch-crud.cjs
+node scripts/e2e-reports.cjs
+node scripts/e2e-availability.cjs
+node scripts/e2e-branches.cjs
+node scripts/e2e-admin-policies.cjs
 ```
 
 ## نقشه‌ی ادامه‌ی توسعه (Roadmap)

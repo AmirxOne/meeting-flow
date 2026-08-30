@@ -1,0 +1,25 @@
+import { existsSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const publicDir = join(process.cwd(), "public");
+
+describe("public static assets", () => {
+  it("includes logo-white.png for sidebar/login/404", () => {
+    const logo = join(publicDir, "logo-white.png");
+    expect(existsSync(logo)).toBe(true);
+    expect(statSync(logo).size).toBeGreaterThan(100);
+  });
+
+  for (const file of [
+    "Vazirmatn-Regular.woff2",
+    "Vazirmatn-Medium.woff2",
+    "Vazirmatn-Bold.woff2",
+  ]) {
+    it(`includes font ${file}`, () => {
+      const path = join(publicDir, "fonts", file);
+      expect(existsSync(path)).toBe(true);
+      expect(statSync(path).size).toBeGreaterThan(1000);
+    });
+  }
+});

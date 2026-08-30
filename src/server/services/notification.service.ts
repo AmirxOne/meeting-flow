@@ -38,6 +38,7 @@ export type NotificationType =
   | "MEETING_RESCHEDULED"
   | "ROOM_CHANGED"
   | "PARTICIPANT_ADDED"
+  | "PARTICIPANT_RESPONDED"
   | "MEETING_REMINDER"
   | "MEETING_STARTED"
   | "MEETING_EXTENDED";
@@ -176,6 +177,28 @@ export const notificationService = {
       `به جلسه «${meeting.title}» دعوت شدید`,
       `${faDateTime(meeting.startAt)}`,
       { meetingId: meeting.id },
+    );
+  },
+
+  async participantResponded(
+    meeting: Meeting,
+    participantUserId: string,
+    actorId: string,
+    responseStatus: string,
+    participantName: string,
+  ) {
+    if (participantUserId !== actorId) return;
+    const labels: Record<string, string> = {
+      ACCEPTED: "پذیرفت",
+      DECLINED: "رد کرد",
+      TENTATIVE: "مردد است",
+    };
+    await notifyUsers(
+      [meeting.organizerId],
+      "PARTICIPANT_RESPONDED",
+      `${participantName} به دعوت «${meeting.title}» پاسخ داد`,
+      labels[responseStatus] ?? responseStatus,
+      { meetingId: meeting.id, userId: participantUserId, responseStatus },
     );
   },
 

@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserPlus, ShieldCheck } from "lucide-react";
+import { UserPlus, Pencil, KeyRound, Power } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, EmptyState, SkeletonBlock, SkeletonTable } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum } from "@/lib";
@@ -22,35 +24,186 @@ interface AdminUser {
   roles: { role: { key: string; name: string } }[];
 }
 
+interface BranchOption {
+  id: string;
+  name: string;
+}
+
 const ROLE_KEYS = ["SUPER_ADMIN", "ADMIN", "MEETING_OPERATOR", "BRANCH_MANAGER", "ROOM_MANAGER", "EMPLOYEE"];
 const ROLE_NAMES: Record<string, string> = {
-  SUPER_ADMIN: "مدیر ارشد", ADMIN: "مدیر سیستم", MEETING_OPERATOR: "اپراتور جلسات",
-  BRANCH_MANAGER: "مدیر شعبه", ROOM_MANAGER: "مدیر اتاق", EMPLOYEE: "کارمند",
+  SUPER_ADMIN: "مدیر ارشد",
+  ADMIN: "مدیر سیستم",
+  MEETING_OPERATOR: "اپراتور جلسات",
+  BRANCH_MANAGER: "مدیر شعبه",
+  ROOM_MANAGER: "مدیر اتاق",
+  EMPLOYEE: "کارمند",
 };
+
+const emptyCreateForm = {
+  email: "",
+  fullName: "",
+  password: "",
+  phone: "",
+  jobTitle: "",
+  department: "",
+  branchId: "",
+  roleKeys: ["EMPLOYEE"] as string[],
+};
+
+function canManageRoles(me: { isSuperAdmin: boolean; roles: { key: string }[] } | null): boolean {
+  if (!me) return false;
+  if (me.isSuperAdmin) return true;
+  return me.roles.some((r) => r.key === "ADMIN" || r.key === "SUPER_ADMIN");
+}
+
+function RolePicker({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string[];
+  onChange: (keys: string[]) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {ROLE_KEYS.map((r) => {
+        const sel = value.includes(r);
+        return (
+          <button
+            key={r}
+            type="button"
+            disabled={disabled}
+            onClick={() =>
+              onChange(sel ? value.filter((x) => x !== r) : [...value, r])
+            }
+            className={cn(
+              "rounded-full border px-3 py-1.5 text-[12px]",
+              disabled && "cursor-not-allowed opacity-50",
+              sel ? "border-ink bg-ink text-white" : "border-line text-ink-soft",
+            )}
+          >
+            {ROLE_NAMES[r]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function AdminUsersPage() {
   const qc = useQueryClient();
   const { push } = useToast();
-  const { me } = useAuth();
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
-    email: "", fullName: "", password: "", jobTitle: "", roleKeys: ["EMPLOYEE"],
+  const { me, can } = useAuth();
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [editing, setEditing] = useState<AdminUser | null>(null);
+  const [resetUser, setResetUser] = useState<AdminUser | null>(null);
+  const [createForm, setCreateForm] = useState(emptyCreateForm);
+  const [editForm, setEditForm] = useState({
+    fullName: "",
+    phone: "",
+    jobTitle: "",
+    department: "",
+    branchId: "",
+    roleKeys: [] as string[],
   });
+  const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const manageRoles = canManageRoles(me);
 
   const { data, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => api<{ users: AdminUser[] }>("/api/users"),
   });
 
+  const { data: branchesData } = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => api<{ branches: BranchOption[] }>("/api/branches"),
+  });
+
+  const branchOptions = (branchesData?.branches ?? []).map((b) => ({
+    value: b.id,
+    label: b.name,
+  }));
+
+  function openEdit(u: AdminUser) {
+    setEditing(u);
+    setEditForm({
+      fullName: u.fullName,
+      phone: u.phone ?? "",
+      jobTitle: u.jobTitle ?? "",
+      department: u.department ?? "",
+      branchId: u.branch?.id ?? "",
+      roleKeys: u.roles.map((r) => r.role.key),
+    });
+  }
+
+  function openReset(u: AdminUser) {
+    setResetUser(u);
+    setNewPassword("");
+  }
+
   async function createUser() {
     setBusy(true);
     try {
-      await api("/api/users", { method: "POST", json: form });
+      await api("/api/users", {
+        method: "POST",
+        json: {
+          ...createForm,
+          branchId: createForm.branchId || null,
+          phone: createForm.phone || undefined,
+          jobTitle: createForm.jobTitle || undefined,
+          department: createForm.department || undefined,
+        },
+      });
       push("کاربر ایجاد شد", "success");
-      setShowForm(false);
-      setForm({ email: "", fullName: "", password: "", jobTitle: "", roleKeys: ["EMPLOYEE"] });
+      setShowCreate(false);
+      setCreateForm(emptyCreateForm);
       qc.invalidateQueries({ queryKey: ["users"] });
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    setBusy(true);
+    try {
+      const payload: Record<string, unknown> = {
+        fullName: editForm.fullName.trim(),
+        phone: editForm.phone.trim() || "",
+        jobTitle: editForm.jobTitle.trim() || "",
+        department: editForm.department.trim() || "",
+        branchId: editForm.branchId || null,
+      };
+      if (manageRoles) payload.roleKeys = editForm.roleKeys;
+
+      await api(`/api/users/${editing.id}`, { method: "PATCH", json: payload });
+      push("کاربر ویرایش شد", "success");
+      setEditing(null);
+      qc.invalidateQueries({ queryKey: ["users"] });
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resetPassword() {
+    if (!resetUser) return;
+    setBusy(true);
+    try {
+      await api(`/api/users/${resetUser.id}/reset-password`, {
+        method: "POST",
+        json: { password: newPassword },
+      });
+      push("رمز عبور بازنشانی شد", "success");
+      setResetUser(null);
+      setNewPassword("");
     } catch (e) {
       push((e as ApiError).message, "error");
     } finally {
@@ -75,53 +228,192 @@ export default function AdminUsersPage() {
     <div className="space-y-4 p-4 lg:p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">مدیریت کاربران</h1>
-        <Button size="sm" onClick={() => setShowForm((v) => !v)}>
-          <UserPlus className="h-4 w-4" />
-          کاربر جدید
-        </Button>
+        {can("user:create") && (
+          <Button size="sm" onClick={() => setShowCreate(true)}>
+            <UserPlus className="h-4 w-4" />
+            کاربر جدید
+          </Button>
+        )}
       </div>
 
-      {showForm && (
-        <Card className="p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <input dir="ltr" placeholder="ایمیل" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
-            <input dir="ltr" placeholder="رمز موقت" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
-            <input placeholder="نام کامل" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
-            <input placeholder="عنوان شغلی" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+      <Modal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="کاربر جدید"
+        subtitle="حساب داخلی با رمز موقت ساخته می‌شود"
+        wide
+        footer={
+          <div className="flex gap-2">
+            <Button
+              onClick={createUser}
+              loading={busy}
+              disabled={
+                !createForm.email ||
+                !createForm.fullName ||
+                createForm.password.length < 6 ||
+                createForm.roleKeys.length === 0
+              }
+            >
+              ایجاد کاربر
+            </Button>
+            <Button variant="ghost" onClick={() => setShowCreate(false)}>
+              انصراف
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input
+            dir="ltr"
+            placeholder="ایمیل *"
+            value={createForm.email}
+            onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            dir="ltr"
+            placeholder="رمز موقت *"
+            value={createForm.password}
+            onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            placeholder="نام کامل *"
+            value={createForm.fullName}
+            onChange={(e) => setCreateForm({ ...createForm, fullName: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            placeholder="عنوان شغلی"
+            value={createForm.jobTitle}
+            onChange={(e) => setCreateForm({ ...createForm, jobTitle: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            placeholder="دپارتمان"
+            value={createForm.department}
+            onChange={(e) => setCreateForm({ ...createForm, department: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            dir="ltr"
+            placeholder="تلفن"
+            value={createForm.phone}
+            onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <div>
+            <label className="mb-1 block text-[11px] text-ink-soft">شعبه</label>
+            <Select
+              value={createForm.branchId}
+              onChange={(v) => setCreateForm({ ...createForm, branchId: v })}
+              placeholder="انتخاب شعبه…"
+              options={branchOptions}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <p className="mb-1.5 text-[11px] text-ink-soft">نقش‌ها *</p>
+            <RolePicker
+              value={createForm.roleKeys}
+              onChange={(roleKeys) => setCreateForm({ ...createForm, roleKeys })}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title={editing ? `ویرایش ${editing.fullName}` : "ویرایش کاربر"}
+        subtitle={editing?.email}
+        wide
+        footer={
+          <div className="flex gap-2">
+            <Button
+              onClick={saveEdit}
+              loading={busy}
+              disabled={!editForm.fullName.trim() || (manageRoles && editForm.roleKeys.length === 0)}
+            >
+              ذخیره تغییرات
+            </Button>
+            <Button variant="ghost" onClick={() => setEditing(null)}>
+              انصراف
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input
+            placeholder="نام کامل *"
+            value={editForm.fullName}
+            onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            placeholder="عنوان شغلی"
+            value={editForm.jobTitle}
+            onChange={(e) => setEditForm({ ...editForm, jobTitle: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            placeholder="دپارتمان"
+            value={editForm.department}
+            onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <input
+            dir="ltr"
+            placeholder="تلفن"
+            value={editForm.phone}
+            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+          <div>
+            <label className="mb-1 block text-[11px] text-ink-soft">شعبه</label>
+            <Select
+              value={editForm.branchId}
+              onChange={(v) => setEditForm({ ...editForm, branchId: v })}
+              placeholder="بدون شعبه"
+              options={branchOptions}
+            />
+          </div>
+          {manageRoles && (
             <div className="sm:col-span-2">
               <p className="mb-1.5 text-[11px] text-ink-soft">نقش‌ها</p>
-              <div className="flex flex-wrap gap-1.5">
-                {ROLE_KEYS.map((r) => {
-                  const sel = form.roleKeys.includes(r);
-                  return (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() =>
-                        setForm({
-                          ...form,
-                          roleKeys: sel ? form.roleKeys.filter((x) => x !== r) : [...form.roleKeys, r],
-                        })
-                      }
-                      className={cn(
-                        "rounded-full border px-3 py-1.5 text-[12px]",
-                        sel ? "border-ink bg-ink text-white" : "border-line text-ink-soft",
-                      )}
-                    >
-                      {ROLE_NAMES[r]}
-                    </button>
-                  );
-                })}
-              </div>
+              <RolePicker
+                value={editForm.roleKeys}
+                onChange={(roleKeys) => setEditForm({ ...editForm, roleKeys })}
+              />
             </div>
-            <div className="sm:col-span-2">
-              <Button onClick={createUser} loading={busy} disabled={!form.email || !form.fullName || form.password.length < 6 || form.roleKeys.length === 0}>
-                ایجاد کاربر
-              </Button>
-            </div>
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!resetUser}
+        onClose={() => setResetUser(null)}
+        title={resetUser ? `بازنشانی رمز — ${resetUser.fullName}` : "بازنشانی رمز"}
+        subtitle="کاربر باید با رمز جدید دوباره وارد شود"
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={resetPassword} loading={busy} disabled={newPassword.length < 6}>
+              بازنشانی رمز
+            </Button>
+            <Button variant="ghost" onClick={() => setResetUser(null)}>
+              انصراف
+            </Button>
           </div>
-        </Card>
-      )}
+        }
+      >
+        <input
+          dir="ltr"
+          type="password"
+          placeholder="رمز جدید (حداقل ۶ کاراکتر)"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+        />
+      </Modal>
 
       {isLoading ? (
         <Card className="overflow-hidden">
@@ -129,6 +421,10 @@ export default function AdminUsersPage() {
             <SkeletonBlock className="h-4 w-40" />
           </div>
           <SkeletonTable rows={7} cols={6} />
+        </Card>
+      ) : (data?.users ?? []).length === 0 ? (
+        <Card>
+          <EmptyState title="کاربری یافت نشد" description="اولین کاربر را بسازید" />
         </Card>
       ) : (
         <Card className="overflow-hidden">
@@ -158,7 +454,9 @@ export default function AdminUsersPage() {
                     <td className="hidden px-4 py-3 md:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {u.roles.map((r) => (
-                          <span key={r.role.key} className="badge badge-gray">{r.role.name}</span>
+                          <span key={r.role.key} className="badge badge-gray">
+                            {r.role.name}
+                          </span>
                         ))}
                       </div>
                     </td>
@@ -170,12 +468,38 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       {me?.id !== u.id && (
-                        <button
-                          onClick={() => toggleActive(u)}
-                          className={cn("text-[11px] underline", u.isActive ? "text-red-600" : "text-emerald-600")}
-                        >
-                          {u.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-                        </button>
+                        <div className="flex justify-end gap-1">
+                          {can("user:update") && (
+                            <button
+                              onClick={() => openEdit(u)}
+                              className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
+                              title="ویرایش"
+                              aria-label="ویرایش"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {can("user:reset-password") && (
+                            <button
+                              onClick={() => openReset(u)}
+                              className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
+                              title="بازنشانی رمز"
+                              aria-label="بازنشانی رمز"
+                            >
+                              <KeyRound className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {can("user:update") && (
+                            <button
+                              onClick={() => toggleActive(u)}
+                              className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
+                              title={u.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
+                              aria-label="تغییر وضعیت"
+                            >
+                              <Power className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { requireUser, can, HttpError } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { guestAddSchema } from "@/lib/validations";
+import { generateCheckinCode } from "@/server/services/guest-checkin.service";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -19,6 +20,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       throw new HttpError(400, "نمی‌توان به این جلسه مهمان اضافه کرد", "BAD_STATE");
     }
 
+    const checkinCode = await generateCheckinCode();
+
     const guest = await prisma.meetingGuest.create({
       data: {
         meetingId: id,
@@ -27,6 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         phone: input.phone || null,
         email: input.email || null,
         notes: input.notes || null,
+        checkinCode,
       },
     });
     await prisma.meetingEvent.create({

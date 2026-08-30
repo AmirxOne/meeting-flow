@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
-import { requirePermission } from "@/server/auth/session";
+import { requireUser, requirePermission, can } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { userCreateSchema } from "@/lib/validations";
 import bcrypt from "bcryptjs";
@@ -9,23 +9,41 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await requirePermission("user:update");
+    const actor = await requireUser();
+    const manage = can(actor, "user:update");
     const q = req.nextUrl.searchParams.get("q");
+
     const users = await prisma.user.findMany({
-      where: q
-        ? {
-            OR: [
-              { fullName: { contains: q } },
-              { email: { contains: q } },
-            ],
-          }
-        : {},
-      select: {
-        id: true, email: true, fullName: true, phone: true, jobTitle: true,
-        department: true, isActive: true, branchId: true,
-        branch: { select: { id: true, name: true } },
-        roles: { include: { role: { select: { key: true, name: true } } } },
+      where: {
+        ...(manage ? {} : { isActive: true }),
+        ...(q
+          ? {
+              OR: [
+                { fullName: { contains: q } },
+                ...(manage ? [{ email: { contains: q } }] : []),
+              ],
+            }
+          : {}),
       },
+      select: manage
+        ? {
+            id: true,
+            email: true,
+            fullName: true,
+            phone: true,
+            jobTitle: true,
+            department: true,
+            isActive: true,
+            branchId: true,
+            branch: { select: { id: true, name: true } },
+            roles: { include: { role: { select: { key: true, name: true } } } },
+          }
+        : {
+            id: true,
+            fullName: true,
+            branch: { select: { id: true, name: true } },
+            roles: { include: { role: { select: { key: true, name: true } } } },
+          },
       orderBy: { fullName: "asc" },
       take: 200,
     });

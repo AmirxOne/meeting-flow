@@ -1,4 +1,5 @@
 /* Seed: organization, branches, rooms, users (all roles), sample meetings. */
+import { randomBytes } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -159,6 +160,11 @@ async function main() {
     });
   }
 
+  await prisma.meetingRoom.update({
+    where: { id: "room-a" },
+    data: { managerId: userIds["room@example.com"] },
+  });
+
   // people directory — internal members mirrored from users + known externals
   await prisma.personDirectory.deleteMany({});
   const allUsers = await prisma.user.findMany({ select: { id: true, fullName: true, email: true, phone: true, jobTitle: true } });
@@ -284,7 +290,8 @@ async function main() {
       });
     }
     for (const g of guests ?? []) {
-      await prisma.meetingGuest.create({ data: { meetingId: m.id, ...g } });
+      const checkinCode = randomBytes(4).toString("hex").toUpperCase();
+      await prisma.meetingGuest.create({ data: { meetingId: m.id, ...g, checkinCode } });
     }
     await prisma.meetingEvent.create({
       data: { meetingId: m.id, type: "CREATED", actorId: m.organizerId, data: { seed: true } },
