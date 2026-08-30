@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/modal";
 import { useAuth } from "@/lib/auth-store";
 import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum, faStr } from "@/lib";
+import { FaInput } from "@/components/ui/fa-input";
 
 interface Branch {
   id: string;
@@ -227,12 +228,11 @@ export function BranchesPage() {
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
         />
-        <input
+        <FaInput
+          allow="phone"
           placeholder="تلفن"
-          dir="ltr"
           value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          onChange={(phone) => setForm({ ...form, phone })}
         />
         <input
           placeholder="آدرس"
@@ -276,14 +276,11 @@ export function BranchesPage() {
               onChange={(e) => setFloorForm({ ...floorForm, name: e.target.value })}
               className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
-            <input
+            <FaInput
               data-testid="floor-number-input"
-              type="number"
-              dir="ltr"
               placeholder="شماره طبقه *"
               value={floorForm.number}
-              onChange={(e) => setFloorForm({ ...floorForm, number: e.target.value })}
-              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+              onChange={(number) => setFloorForm({ ...floorForm, number })}
             />
             <div className="flex gap-2">
               <Button

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/modal";
-import { cn, faNum, formatJalali, EQUIPMENT_FA, EQUIPMENT_LIST } from "@/lib";
+import { cn, faNum, faStr, formatJalali, EQUIPMENT_FA, EQUIPMENT_LIST } from "@/lib";
+import { FaInput } from "@/components/ui/fa-input";
 import { useAuth } from "@/lib/auth-store";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { IconTipButton } from "@/components/ui/tooltip";
@@ -343,27 +344,22 @@ export function AdminRoomsPage() {
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
         />
-        <input
-          type="number"
-          dir="ltr"
+        <FaInput
           placeholder="ظرفیت"
           value={form.capacity}
-          onChange={(e) => setForm({ ...form, capacity: e.target.value })}
-          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          onChange={(capacity) => setForm({ ...form, capacity })}
         />
-        <input
-          dir="ltr"
-          placeholder="ساعت باز (HH:MM)"
+        <FaInput
+          allow="time"
+          placeholder="ساعت باز"
           value={form.openTime}
-          onChange={(e) => setForm({ ...form, openTime: e.target.value })}
-          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          onChange={(openTime) => setForm({ ...form, openTime })}
         />
-        <input
-          dir="ltr"
-          placeholder="ساعت بسته (HH:MM)"
+        <FaInput
+          allow="time"
+          placeholder="ساعت بسته"
           value={form.closeTime}
-          onChange={(e) => setForm({ ...form, closeTime: e.target.value })}
-          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          onChange={(closeTime) => setForm({ ...form, closeTime })}
         />
         <label className="flex h-10 items-center gap-2 text-[12px]">
           <input
@@ -546,7 +542,7 @@ export function AdminRoomsPage() {
                       </div>
                     </td>
                     <td className="hidden px-4 py-3 text-ink-soft md:table-cell" dir="rtl">
-                      {r.openTime ? `${faStr2(r.openTime)}–${faStr2(r.closeTime ?? "")}` : "—"}
+                      {r.openTime ? `${faStr(r.openTime)}–${faStr(r.closeTime ?? "")}` : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <span className={cn("badge", r.isActive ? "badge-green" : "badge-gray")}>
@@ -594,10 +590,6 @@ export function AdminRoomsPage() {
       )}
     </div>
   );
-}
-
-function faStr2(s: string): string {
-  return s.replace(/[0-9]/g, (ch) => "۰۱۲۳۴۵۶۷۸۹"[Number(ch)]);
 }
 
 function tehranInstant(isoDate: string, time: string): Date {

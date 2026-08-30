@@ -161,7 +161,11 @@ export function FilterBar({
           />
         ))}
 
-        {children && <div className="flex min-w-48 flex-1 items-center gap-2">{children}</div>}
+        {children && (
+          <div className="flex min-w-0 max-w-full flex-[1_1_20rem] flex-wrap items-center gap-2">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );

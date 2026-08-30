@@ -5,11 +5,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, BarChart3 } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
-import { cn, faNum, faPad2, faStr, STATUS_FA, TYPE_FA } from "@/lib";
+import { cn, faNum, faPad2, faStr, formatJalali, isoDateInTz, startOfDayUtcFromIso, STATUS_FA, TYPE_FA } from "@/lib";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { Tooltip } from "@/components/ui/tooltip";
+
+function tehranRange(days: number) {
+  const now = new Date();
+  return {
+    from: isoDateInTz(new Date(now.getTime() - days * 86400000)),
+    to: isoDateInTz(now),
+  };
+}
 
 interface Summary {
   totalMeetings: number;
@@ -28,20 +36,10 @@ interface Summary {
   hourlyHistogram: { hour: number; count: number }[];
 }
 
-function userIdFromPerson(
-  person: PickedPerson | undefined,
-  dir: { id: string; userId: string | null }[] | undefined,
-): string {
-  if (!person?.ref.startsWith("dir:") || !dir) return "";
-  const dirId = person.ref.slice(4);
-  return dir.find((p) => p.id === dirId)?.userId ?? "";
-}
-
 export function ReportsPage() {
-  const now = new Date();
-  const monthAgo = new Date(now.getTime() - 30 * 86400000);
-  const [from, setFrom] = useState(monthAgo.toISOString().slice(0, 10));
-  const [to, setTo] = useState(now.toISOString().slice(0, 10));
+  const initial = tehranRange(30);
+  const [from, setFrom] = useState(initial.from);
+  const [to, setTo] = useState(initial.to);
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [branchId, setBranchId] = useState("");
@@ -62,15 +60,10 @@ export function ReportsPage() {
       ),
     enabled: !!branchId,
   });
-  const { data: peopleDir } = useQuery({
-    queryKey: ["people", "dir-ids"],
-    queryFn: () => api<{ people: { id: string; userId: string | null }[] }>("/api/people"),
-  });
-
   const branches = branchesData?.branches ?? [];
   const rooms = roomsData?.rooms ?? [];
-  const organizerId = userIdFromPerson(organizer[0], peopleDir?.people);
-  const participantId = userIdFromPerson(participant[0], peopleDir?.people);
+  const organizerId = organizer[0]?.userId ?? "";
+  const participantId = participant[0]?.userId ?? "";
 
   const queryString = useMemo(() => {
     const q = new URLSearchParams({ from, to });
@@ -136,8 +129,17 @@ export function ReportsPage() {
   function handleFilterChange(v: Record<string, string>) {
     const allEmpty = Object.values(v).every((x) => !x);
     if (allEmpty) {
+      const r = tehranRange(30);
       setOrganizer([]);
       setParticipant([]);
+      setFrom(r.from);
+      setTo(r.to);
+      setRangePreset("30");
+      setBranchId("");
+      setRoomId("");
+      setStatus("");
+      setType("");
+      return;
     }
     if (v.branch !== branchId) {
       v.room = "";
@@ -150,11 +152,9 @@ export function ReportsPage() {
     setStatus(v.status ?? "");
     setType(v.type ?? "");
     if (v.range) {
-      const days = Number(v.range);
-      const nowIso = new Date().toISOString().slice(0, 10);
-      const fromIso = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-      setFrom(fromIso);
-      setTo(nowIso);
+      const r = tehranRange(Number(v.range));
+      setFrom(r.from);
+      setTo(r.to);
     }
   }
 
@@ -178,19 +178,19 @@ export function ReportsPage() {
         value={{ range: rangePreset, branch: branchId, room: roomId, status, type }}
         onChange={handleFilterChange}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <JalaliDatePicker
             value={from}
-            onChange={setFrom}
+            onChange={(iso) => { setFrom(iso); setRangePreset(""); }}
             placeholder="از تاریخ"
-            className="w-40 [&>button]:h-9 [&>button]:text-[12px]"
+            className="w-40 min-w-0 max-w-full [&>button]:h-9 [&>button]:text-[12px]"
           />
           <span className="text-[11px] text-ink-faint">تا</span>
           <JalaliDatePicker
             value={to}
-            onChange={setTo}
+            onChange={(iso) => { setTo(iso); setRangePreset(""); }}
             placeholder="تا تاریخ"
-            className="w-40 [&>button]:h-9 [&>button]:text-[12px]"
+            className="w-40 min-w-0 max-w-full [&>button]:h-9 [&>button]:text-[12px]"
           />
         </div>
       </FilterBar>
@@ -205,6 +205,9 @@ export function ReportsPage() {
             allowManual={false}
             placeholder="جستجوی برگزارکننده…"
           />
+          {organizer[0] && !organizerId && (
+            <p className="mt-1 text-[11px] text-ink-faint">این فرد حساب کاربری ندارد و در فیلتر برگزارکننده اعمال نمی‌شود.</p>
+          )}
         </div>
         <div>
           <label className="mb-1.5 block text-[12px] font-medium">شرکت‌کننده</label>
@@ -215,6 +218,9 @@ export function ReportsPage() {
             allowManual={false}
             placeholder="جستجوی شرکت‌کننده…"
           />
+          {participant[0] && !participantId && (
+            <p className="mt-1 text-[11px] text-ink-faint">این فرد حساب کاربری ندارد و در فیلتر شرکت‌کننده اعمال نمی‌شود.</p>
+          )}
         </div>
       </div>
 
@@ -321,7 +327,10 @@ export function ReportsPage() {
             <Card>
               <CardHeader title="بهره‌وری اتاق‌ها" subtitle="درصد اشغال در ساعات کاری" />
               <CardBody className="space-y-3">
-                {s.roomUtilization.map((r) => (
+                {s.roomUtilization.filter((r) => r.meetings > 0).length === 0 ? (
+                  <p className="text-[12px] text-ink-faint">در این بازه اتاقی جلسه نداشته است</p>
+                ) : (
+                  s.roomUtilization.filter((r) => r.meetings > 0).map((r) => (
                   <div key={r.roomId}>
                     <div className="flex items-center justify-between text-[12px]">
                       <span className="font-medium">
@@ -333,24 +342,29 @@ export function ReportsPage() {
                       </span>
                     </div>
                     <div className="mt-1 h-1.5 rounded-full bg-paper-soft">
-                      <div className="h-1.5 rounded-full bg-ink" style={{ width: `${r.utilization}%` }} />
+                      <div className="h-1.5 rounded-full bg-ink" style={{ width: `${Math.min(100, r.utilization)}%` }} />
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </CardBody>
             </Card>
 
             <Card>
               <CardHeader title="جلسات به تفکیک شعبه" />
               <CardBody>
-                {s.byBranch.map((b) => (
+                {s.byBranch.filter((b) => b.meetings > 0).length === 0 ? (
+                  <p className="text-[12px] text-ink-faint">در این بازه جلسه‌ای ثبت نشده است</p>
+                ) : (
+                  s.byBranch.filter((b) => b.meetings > 0).map((b) => (
                   <div key={b.branchId} className="flex items-center justify-between border-b border-line py-2.5 text-[13px] last:border-0">
                     <span>{b.branchName}</span>
                     <span className="text-ink-soft">
                       {faNum(b.meetings)} جلسه · {faStr(b.hours.toFixed(1))} ساعت
                     </span>
                   </div>
-                ))}
+                  ))
+                )}
               </CardBody>
             </Card>
 
@@ -366,6 +380,22 @@ export function ReportsPage() {
               </CardBody>
             </Card>
           </div>
+
+          {s.meetingsByDay.length > 0 && (
+            <Card>
+              <CardHeader title="روند روزانه" subtitle="روزهایی از بازه که جلسه داشته‌اند" />
+              <CardBody>
+                {s.meetingsByDay.map((d) => (
+                  <div key={d.date} className="flex items-center justify-between border-b border-line py-2.5 text-[13px] last:border-0">
+                    <span>{formatJalali(startOfDayUtcFromIso(d.date), { monthName: true })}</span>
+                    <span className="text-ink-soft">
+                      {faNum(d.count)} جلسه · {faStr(d.hours.toFixed(1))} ساعت
+                    </span>
+                  </div>
+                ))}
+              </CardBody>
+            </Card>
+          )}
         </>
       )}
     </div>

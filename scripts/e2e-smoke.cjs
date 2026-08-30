@@ -13,11 +13,11 @@ const { chromium } = require("playwright");
   try {
     // 1. login page renders in Persian RTL
     await page.goto("http://localhost:3100/login", { waitUntil: "networkidle" });
-    check("login page title فارسی", (await page.title()).includes("میتینگ‌هاب"));
+    check("login page title فارسی", (await page.title()).includes("مهرسا"));
     check("dir=rtl", await page.getAttribute("html", "dir") === "rtl");
 
     // 2. login with admin
-    await page.fill('input[type="email"]', "admin@example.com");
+    await page.fill('input[name="identifier"]', "admin@example.com");
     await page.fill('input[type="password"]', "Pass1234");
     await page.click('button[type="submit"]');
     await page.waitForURL("**/dashboard", { timeout: 30000 });

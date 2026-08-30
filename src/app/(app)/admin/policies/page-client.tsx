@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum } from "@/lib";
+import { FaInput } from "@/components/ui/fa-input";
 import { validateReminderOffsets } from "@/lib/reminder-offsets";
 
 interface Policy {
@@ -75,15 +76,12 @@ function ReminderOffsetsEditor({
       <div className="space-y-2">
         {draft.map((offset, index) => (
           <div key={index} className="flex items-center gap-2" data-testid="reminder-offset-row">
-            <input
-              type="number"
-              min={1}
-              dir="ltr"
+            <FaInput
               value={offset || ""}
               disabled={busy}
-              onChange={(e) => updateAt(index, e.target.value)}
+              onChange={(raw) => updateAt(index, raw)}
               onBlur={() => commit(draft)}
-              className="h-9 flex-1 rounded-md border border-line px-3 text-center text-[12px] outline-none focus:border-ink disabled:opacity-50"
+              className="h-9 flex-1 text-center"
               aria-label={`یادآور ${faNum(index + 1)}`}
             />
             <span className="text-[11px] text-ink-faint">دقیقه</span>
@@ -116,6 +114,24 @@ function ReminderOffsetsEditor({
         <p className="mt-1 text-[10px] text-ink-faint">بدون یادآور — جلسات جدید یادآوری دریافت نمی‌کنند</p>
       ) : null}
     </div>
+  );
+}
+
+function PolicyNumberInput({ value, onCommit }: { value: number; onCommit: (n: number) => void }) {
+  const [draft, setDraft] = useState(String(value));
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+  return (
+    <FaInput
+      value={draft}
+      onChange={setDraft}
+      onBlur={(ascii) => {
+        const v = Number(ascii);
+        if (!Number.isNaN(v) && v !== value) onCommit(v);
+      }}
+      className="h-9 w-24 shrink-0 text-center"
+    />
   );
 }
 
@@ -217,15 +233,9 @@ export function AdminPoliciesPage() {
                   </button>
                 )}
                 {meta.type === "number" && (
-                  <input
-                    type="number"
-                    dir="ltr"
-                    defaultValue={Number(p.value)}
-                    onBlur={(e) => {
-                      const v = Number(e.target.value);
-                      if (v !== Number(p.value)) update(p.key, v);
-                    }}
-                    className="h-9 w-24 shrink-0 rounded-md border border-line px-3 text-center text-[12px] outline-none focus:border-ink"
+                  <PolicyNumberInput
+                    value={Number(p.value)}
+                    onCommit={(v) => update(p.key, v)}
                   />
                 )}
                 {meta.type === "list" && (

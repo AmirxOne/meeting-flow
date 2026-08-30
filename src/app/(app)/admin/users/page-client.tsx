@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum } from "@/lib";
+import { FaInput } from "@/components/ui/fa-input";
 
 interface AdminUser {
   id: string;
@@ -305,12 +306,11 @@ export function AdminUsersPage() {
             onChange={(e) => setCreateForm({ ...createForm, department: e.target.value })}
             className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
           />
-          <input
-            dir="ltr"
+          <FaInput
+            allow="phone"
             placeholder="تلفن"
             value={createForm.phone}
-            onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
-            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+            onChange={(phone) => setCreateForm({ ...createForm, phone })}
           />
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">شعبه</label>
@@ -372,12 +372,11 @@ export function AdminUsersPage() {
             onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
             className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
           />
-          <input
-            dir="ltr"
+          <FaInput
+            allow="phone"
             placeholder="تلفن"
             value={editForm.phone}
-            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+            onChange={(phone) => setEditForm({ ...editForm, phone })}
           />
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">شعبه</label>

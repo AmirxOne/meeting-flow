@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { requirePermission, HttpError, can } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { userUpdateSchema } from "@/lib/validations";
+import { uniqueUserPhone } from "@/server/services/user-phone";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -29,11 +30,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       throw new HttpError(400, "نمی‌توانید خودتان را غیرفعال کنید", "BAD_REQUEST");
     }
 
+    const phone =
+      input.phone !== undefined ? await uniqueUserPhone(input.phone, id) : undefined;
+
     const updated = await prisma.user.update({
       where: { id },
       data: {
         ...(input.fullName ? { fullName: input.fullName } : {}),
-        ...(input.phone !== undefined ? { phone: input.phone || null } : {}),
+        ...(phone !== undefined ? { phone } : {}),
         ...(input.jobTitle !== undefined ? { jobTitle: input.jobTitle || null } : {}),
         ...(input.department !== undefined ? { department: input.department || null } : {}),
         ...(input.branchId !== undefined ? { branchId: input.branchId || null } : {}),
@@ -55,11 +59,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         update: {
           ...(input.fullName ? { name: input.fullName } : {}),
           ...(input.jobTitle !== undefined ? { jobTitle: input.jobTitle || null } : {}),
+          ...(phone !== undefined ? { phone } : {}),
         },
         create: {
           name: updated.fullName,
           kind: "INTERNAL",
           email: updated.email,
+          phone: updated.phone,
           jobTitle: updated.jobTitle,
           userId: id,
         },

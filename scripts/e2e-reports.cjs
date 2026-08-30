@@ -14,6 +14,21 @@ const { BASE, login, gotoApp, safeClick, launchBrowser, finish } = require("./e2
   await page.locator("h1:has-text('گزارش‌ها')").waitFor({ timeout: 60000 });
   check("reports heading visible", true);
 
+  await page.setViewportSize({ width: 1200, height: 900 });
+  const datesInsideBar = await page.evaluate(() => {
+    const label = [...document.querySelectorAll("span")].find((el) => el.textContent?.trim() === "فیلترها");
+    const bar = label?.closest(".rounded-md");
+    const dates = [...document.querySelectorAll('button[aria-haspopup="dialog"]')];
+    if (!bar || dates.length < 2) return false;
+    const br = bar.getBoundingClientRect();
+    return dates.every((d) => {
+      const r = d.getBoundingClientRect();
+      return r.left >= br.left - 1 && r.right <= br.right + 1 && r.top >= br.top - 1 && r.bottom <= br.bottom + 1;
+    });
+  });
+  check("date pickers stay inside filter bar", datesInsideBar);
+  await page.setViewportSize({ width: 1440, height: 900 });
+
   await page.locator("text=ساعت‌های پرتقاضا").first().waitFor({ timeout: 20000 }).catch(() => {});
   const hourBars = await page.locator('[data-tooltip*=":۰۰ —"]').count();
   check(`peak-hours chart shows a full day axis (${hourBars} hours)`, hourBars >= 10);
@@ -52,6 +67,8 @@ const { BASE, login, gotoApp, safeClick, launchBrowser, finish } = require("./e2
   const csvBody = await csvRes.text();
   check(`CSV download (${csvRes.status()})`, csvRes.status() === 200);
   check("CSV has header row", csvBody.includes("id,title,status,type,branch,room"));
+  check("CSV has real line breaks", csvBody.split(/\r?\n/).filter(Boolean).length > 2);
+  check("CSV starts with UTF-8 BOM", csvBody.charCodeAt(0) === 0xfeff || csvBody.startsWith("\uFEFF"));
   check("CSV export button visible", (await page.locator('button:has-text("خروجی CSV")').count()) === 1);
 
   const branchReport = await page.request.get(

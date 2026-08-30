@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum, faStr } from "@/lib";
+import { FaInput } from "@/components/ui/fa-input";
 
 interface Person {
   id: string;
@@ -177,12 +178,11 @@ export function PeopleDirectoryPage({ variant = "default" }: PeopleDirectoryPage
             onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
             className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
           />
-          <input
-            dir="ltr"
+          <FaInput
+            allow="phone"
             placeholder="تلفن"
             value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+            onChange={(phone) => setForm({ ...form, phone })}
           />
           <input
             dir="ltr"

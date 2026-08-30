@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { requireUser, requirePermission, can } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { userCreateSchema } from "@/lib/validations";
+import { uniqueUserPhone } from "@/server/services/user-phone";
 import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
@@ -78,13 +79,14 @@ export async function POST(req: NextRequest) {
         { status: 409 },
       );
     }
+    const phone = await uniqueUserPhone(input.phone);
     const roles = await prisma.role.findMany({ where: { key: { in: input.roleKeys } } });
     const passwordHash = await bcrypt.hash(input.password, 10);
     const user = await prisma.user.create({
       data: {
         email: input.email.toLowerCase(),
         fullName: input.fullName,
-        phone: input.phone || null,
+        phone,
         passwordHash,
         jobTitle: input.jobTitle || null,
         department: input.department || null,

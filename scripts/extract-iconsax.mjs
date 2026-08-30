@@ -45,6 +45,8 @@ export const ICON_MAP = {
   DoorOpen: "house",
   Download: "document-download",
   ExternalLink: "link-2",
+  Eye: "eye",
+  EyeOff: "eye-slash",
   History: "refresh-circle",
   Hourglass: "hourglass",
   Info: "info-circle",

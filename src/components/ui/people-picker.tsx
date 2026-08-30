@@ -6,6 +6,7 @@ import { X, Building2, Briefcase, Search, ChevronDown } from "@/components/ui/ic
 import { motion, AnimatePresence } from "framer-motion";
 import { api, type ApiError } from "@/lib/api";
 import { cn, faNum, faStr } from "@/lib";
+import { FaInput } from "@/components/ui/fa-input";
 import { useToast } from "@/components/ui/toast";
 
 export interface PickedPerson {
@@ -17,6 +18,8 @@ export interface PickedPerson {
   kind: "INTERNAL" | "EXTERNAL";
   email?: string;
   phone?: string;
+  /** linked app user — needed for organizer/participant report filters */
+  userId?: string | null;
 }
 
 interface DirectoryPerson {
@@ -27,6 +30,7 @@ interface DirectoryPerson {
   phone: string | null;
   company: string | null;
   jobTitle: string | null;
+  userId?: string | null;
 }
 
 const PAGE = 20;
@@ -139,6 +143,7 @@ export function PeoplePicker({
         kind: p.kind,
         email: p.email ?? undefined,
         phone: p.phone ?? undefined,
+        userId: p.userId ?? null,
       },
     ]);
     setQuery("");
@@ -281,7 +286,7 @@ export function PeoplePicker({
               <div className="grid grid-cols-2 gap-2">
                 <input value={manual.company} onChange={(e) => setManual({ ...manual, company: e.target.value })} placeholder="شرکت / سازمان" className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
                 <input value={manual.jobTitle} onChange={(e) => setManual({ ...manual, jobTitle: e.target.value })} placeholder="عنوان شغلی" className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
-                <input dir="ltr" value={manual.phone} onChange={(e) => setManual({ ...manual, phone: e.target.value })} placeholder="تلفن" className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                <FaInput allow="phone" value={manual.phone} onChange={(phone) => setManual({ ...manual, phone })} placeholder="تلفن" />
                 <input dir="ltr" value={manual.email} onChange={(e) => setManual({ ...manual, email: e.target.value })} placeholder="ایمیل" className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
               </div>
               <div className="flex gap-2">
