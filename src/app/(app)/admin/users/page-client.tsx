@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
+import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum } from "@/lib";
 
 interface AdminUser {
@@ -481,34 +482,31 @@ export function AdminUsersPage() {
                       {me?.id !== u.id && (
                         <div className="flex justify-end gap-1">
                           {can("user:update") && (
-                            <button
+                            <IconTipButton
+                              tip="ویرایش"
                               onClick={() => openEdit(u)}
                               className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                              title="ویرایش"
-                              aria-label="ویرایش"
                             >
                               <Pencil className="h-3.5 w-3.5" />
-                            </button>
+                            </IconTipButton>
                           )}
                           {can("user:reset-password") && (
-                            <button
+                            <IconTipButton
+                              tip="بازنشانی رمز"
                               onClick={() => openReset(u)}
                               className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                              title="بازنشانی رمز"
-                              aria-label="بازنشانی رمز"
                             >
                               <KeyRound className="h-3.5 w-3.5" />
-                            </button>
+                            </IconTipButton>
                           )}
                           {can("user:update") && (
-                            <button
+                            <IconTipButton
+                              tip={u.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
                               onClick={() => toggleActive(u)}
                               className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                              title={u.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-                              aria-label="تغییر وضعیت"
                             >
                               <Power className="h-3.5 w-3.5" />
-                            </button>
+                            </IconTipButton>
                           )}
                         </div>
                       )}

@@ -30,6 +30,10 @@ const { login, gotoApp, launchBrowser, finish } = require("./e2e-lib.cjs");
   check("dashboard is aria-current on /dashboard", (await dashLink.getAttribute("aria-current")) === "page");
   const helpBtn = page.getByRole("button", { name: "راهنمای این صفحه" });
   check("header help button shows «راهنما»", (await helpBtn.count()) === 1 && (await helpBtn.innerText()).includes("راهنما"));
+  await helpBtn.hover();
+  const tip = page.getByRole("tooltip");
+  await tip.waitFor({ timeout: 5000 }).catch(() => {});
+  check("custom tooltip replaces native title", (await tip.count()) >= 1 && (await tip.innerText()).includes("راهنما"));
 
   await gotoApp(page, "/calendar", admin.userId);
   const navAfter = page.locator('[data-tour="nav"]');

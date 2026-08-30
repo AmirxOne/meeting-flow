@@ -15,7 +15,7 @@ const { BASE, login, gotoApp, safeClick, launchBrowser, finish } = require("./e2
   check("reports heading visible", true);
 
   await page.locator("text=ساعت‌های پرتقاضا").first().waitFor({ timeout: 20000 }).catch(() => {});
-  const hourBars = await page.locator('[title*=":۰۰ —"]').count();
+  const hourBars = await page.locator('[data-tooltip*=":۰۰ —"]').count();
   check(`peak-hours chart shows a full day axis (${hourBars} hours)`, hourBars >= 10);
 
   await page.locator("text=کل جلسات").first().waitFor({ timeout: 30000 });

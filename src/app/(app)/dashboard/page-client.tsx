@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/badges";
 import { cn, faNum, faStr, formatJalali, isoDateInTz } from "@/lib";
 import { J_MONTHS, J_WEEKDAYS_LONG, jalaliPartsInTz } from "@/lib/jalali";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface DashboardData {
   todayCount: number;
@@ -175,13 +176,12 @@ export function DashboardPage() {
               const { weekday, date } = dayLabel(d.date);
               const barPct = d.hours > 0 ? Math.max(6, (d.hours / maxHours) * 100) : 0;
               return (
+                <Tooltip key={d.date} content={`${weekday} ${date} — ${faStr(d.hours.toFixed(1))} ساعت`}>
                 <div
-                  key={d.date}
                   className={cn(
                     "rounded-lg px-3 py-2.5 transition-colors sm:px-4 sm:py-3",
                     isToday ? "bg-paper-soft ring-1 ring-line" : "hover:bg-paper-soft/50",
                   )}
-                  title={`${weekday} ${date} — ${faStr(d.hours.toFixed(1))} ساعت`}
                 >
                   <div className="mb-2 flex items-baseline justify-between gap-3">
                     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -214,6 +214,7 @@ export function DashboardPage() {
                     />
                   </div>
                 </div>
+                </Tooltip>
               );
             })}
           </CardBody>

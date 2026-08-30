@@ -83,7 +83,7 @@ async function runCrudFlow(page, path, prefix, uniq, check) {
   {
     const row = page.locator("tbody tr", { hasText: `${uniq} زائر تستی` }).first();
     await row.waitFor({ timeout: 15000 });
-    await row.locator('button[title="ویرایش"]').click();
+    await row.locator('button[data-tooltip="ویرایش"]').click();
   }
   const editDlg = page.locator('[role="dialog"]');
   await editDlg.waitFor({ timeout: 15000 });
@@ -97,7 +97,7 @@ async function runCrudFlow(page, path, prefix, uniq, check) {
   {
     const row = page.locator("tbody tr", { hasText: `${uniq} renamed` }).first();
     await row.waitFor({ timeout: 15000 });
-    await row.locator('button[title="حذف"]').click();
+    await row.locator('button[data-tooltip="حذف"]').click();
   }
   await page.waitForTimeout(2000);
   const gone = await page.locator("tbody tr", { hasText: `${uniq} renamed` }).count();

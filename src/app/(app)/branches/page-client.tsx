@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/modal";
 import { useAuth } from "@/lib/auth-store";
+import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum, faStr } from "@/lib";
 
 interface Branch {
@@ -323,22 +324,20 @@ export function BranchesPage() {
                     <p className="text-[11px] text-ink-soft">شماره {faNum(f.number)}</p>
                   </div>
                   <div className="flex gap-1">
-                    <button
+                    <IconTipButton
+                      tip="ویرایش"
                       onClick={() => openFloorEdit(f)}
                       className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                      aria-label="ویرایش طبقه"
-                      title="ویرایش"
                     >
                       <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
+                    </IconTipButton>
+                    <IconTipButton
+                      tip="حذف"
                       onClick={() => removeFloor(f)}
                       className="rounded-md p-2 text-ink-faint hover:bg-red-50 hover:text-red-600"
-                      aria-label="حذف طبقه"
-                      title="حذف"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </IconTipButton>
                   </div>
                 </div>
               ))}
@@ -430,38 +429,34 @@ export function BranchesPage() {
                 </div>
                 {canManage && (
                   <div className="flex shrink-0 flex-col gap-1">
-                    <button
+                    <IconTipButton
+                      tip="مدیریت طبقات"
                       onClick={() => openFloors(b)}
                       className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                      aria-label="مدیریت طبقات"
-                      title="مدیریت طبقات"
                     >
                       <Layers className="h-4 w-4" />
-                    </button>
-                    <button
+                    </IconTipButton>
+                    <IconTipButton
+                      tip="ویرایش"
                       onClick={() => openEdit(b)}
                       className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                      aria-label="ویرایش"
-                      title="ویرایش"
                     >
                       <Pencil className="h-4 w-4" />
-                    </button>
-                    <button
+                    </IconTipButton>
+                    <IconTipButton
+                      tip={b.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
                       onClick={() => toggleActive(b)}
                       className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                      aria-label={b.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-                      title={b.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
                     >
                       <Power className="h-4 w-4" />
-                    </button>
-                    <button
+                    </IconTipButton>
+                    <IconTipButton
+                      tip="حذف"
                       onClick={() => remove(b)}
                       className="rounded-md p-2 text-ink-faint hover:bg-red-50 hover:text-red-600"
-                      aria-label="حذف"
-                      title="حذف"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </IconTipButton>
                   </div>
                 )}
               </div>

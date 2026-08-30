@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/modal";
 import { cn, faNum, formatJalali, EQUIPMENT_FA, EQUIPMENT_LIST } from "@/lib";
 import { useAuth } from "@/lib/auth-store";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
+import { IconTipButton } from "@/components/ui/tooltip";
 
 interface BranchOption {
   id: string;
@@ -479,14 +480,13 @@ export function AdminRoomsPage() {
                       {formatJalali(new Date(ex.startAt), { withTime: true })} — {formatJalali(new Date(ex.endAt), { withTime: true })}
                     </p>
                   </div>
-                  <button
+                  <IconTipButton
+                    tip="حذف"
                     onClick={() => removeExclusion(ex)}
                     className="rounded-md p-2 text-ink-faint hover:bg-red-50 hover:text-red-600"
-                    aria-label="حذف"
-                    title="حذف"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </IconTipButton>
                 </div>
               ))}
             </div>
@@ -555,38 +555,34 @@ export function AdminRoomsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <button
+                        <IconTipButton
+                          tip="تعمیر / غیرفعال موقت"
                           onClick={() => openExclusions(r)}
                           className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                          title="تعمیر / غیرفعال موقت"
-                          aria-label="غیرفعال‌سازی موقت"
                         >
                           <Wrench className="h-3.5 w-3.5" />
-                        </button>
-                        <button
+                        </IconTipButton>
+                        <IconTipButton
+                          tip="ویرایش"
                           onClick={() => openEdit(r)}
                           className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                          title="ویرایش"
-                          aria-label="ویرایش"
                         >
                           <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
+                        </IconTipButton>
+                        <IconTipButton
+                          tip={r.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
                           onClick={() => toggleActive(r)}
                           className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                          title={r.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-                          aria-label="تغییر وضعیت"
                         >
                           <Power className="h-3.5 w-3.5" />
-                        </button>
-                        <button
+                        </IconTipButton>
+                        <IconTipButton
+                          tip="حذف"
                           onClick={() => remove(r)}
                           className="rounded-md p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-600"
-                          title="حذف"
-                          aria-label="حذف"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        </IconTipButton>
                       </div>
                     </td>
                   </tr>

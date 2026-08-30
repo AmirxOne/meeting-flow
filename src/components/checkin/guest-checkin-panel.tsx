@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Copy, Check } from "@/components/ui/icon";
 import { faStr } from "@/lib";
+import { Tooltip } from "@/components/ui/tooltip";
 import { CheckinQrCode } from "./checkin-qr-code";
 
 export function GuestCheckinPanel({
@@ -54,15 +55,16 @@ export function GuestCheckinPanel({
       />
 
       <div className="flex flex-wrap justify-end gap-1">
+        <Tooltip content="کپی لینک ورود">
         <button
           type="button"
           onClick={copyLink}
           className="flex items-center gap-1 rounded-md border border-line px-2 py-1 text-[10px] text-ink-soft hover:bg-paper-soft"
-          title="کپی لینک ورود"
         >
           {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           لینک ورود
         </button>
+        </Tooltip>
         {!arrivedAt && (
           <button
             type="button"
@@ -74,16 +76,17 @@ export function GuestCheckinPanel({
           </button>
         )}
       </div>
+      <Tooltip content={checkinUrl}>
       <a
         href={`/checkin/${checkinCode}`}
         target="_blank"
         rel="noopener noreferrer"
         className="max-w-[140px] truncate text-[10px] text-ink-faint hover:text-ink"
         dir="ltr"
-        title={checkinUrl}
       >
         /checkin/{checkinCode}
       </a>
+      </Tooltip>
       <p className="text-[9px] text-ink-faint">اسکن QR یا باز کردن لینک</p>
     </div>
   );

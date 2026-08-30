@@ -10,6 +10,7 @@ import { StatusBadge, TypeBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn, faNum, formatJalali, STATUS_FA } from "@/lib";
 import { useAuth } from "@/lib/auth-store";
 
@@ -166,7 +167,11 @@ export function MeetingsPage() {
               <Card className="p-4 transition-colors hover:border-ink-faint">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="flex items-center gap-1 text-[14px] font-medium">
-                    {m.isMasked && <span title="جلسه محرمانه">🔒</span>}
+                    {m.isMasked && (
+                      <Tooltip content="جلسه محرمانه">
+                        <span>🔒</span>
+                      </Tooltip>
+                    )}
                     {m.title}
                   </p>
                   <StatusBadge status={m.status} />
