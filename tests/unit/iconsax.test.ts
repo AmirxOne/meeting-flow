@@ -16,5 +16,6 @@ describe("official Iconsax glyphs", () => {
     expect(ICONSAX_MAP.LayoutDashboard).toBe("category");
     expect(ICONSAX_MAP.LifeBuoy).toBe("lifebuoy");
     expect(ICONSAX_MAP.Plus).toBe("add");
+    expect(ICONSAX_MAP.ChevronDown).toBe("arrow-down-02");
   });
 });

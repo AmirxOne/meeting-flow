@@ -196,7 +196,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   {me.roles[0]?.name ?? ""}
                 </p>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-ink-faint" />
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 self-center text-ink-faint" />
             </button>
             {userMenu && (
               <>
