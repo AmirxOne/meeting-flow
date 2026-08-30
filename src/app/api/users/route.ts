@@ -57,6 +57,16 @@ export async function POST(req: NextRequest) {
   try {
     const actor = await requirePermission("user:create");
     const input = userCreateSchema.parse(await req.json().catch(() => ({})));
+    const roleKeys = input.roleKeys;
+    if (!can(actor, "role:manage")) {
+      const allowed = roleKeys.length === 1 && roleKeys[0] === "EMPLOYEE";
+      if (!allowed) {
+        return Response.json(
+          { ok: false, error: { message: "تخصیص نقش مجاز نیست", code: "FORBIDDEN" } },
+          { status: 403 },
+        );
+      }
+    }
     const exists = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });
     if (exists) {
       return Response.json(

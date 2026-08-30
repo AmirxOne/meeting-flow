@@ -29,15 +29,10 @@ interface BranchOption {
   name: string;
 }
 
-const ROLE_KEYS = ["SUPER_ADMIN", "ADMIN", "MEETING_OPERATOR", "BRANCH_MANAGER", "ROOM_MANAGER", "EMPLOYEE"];
-const ROLE_NAMES: Record<string, string> = {
-  SUPER_ADMIN: "مدیر ارشد",
-  ADMIN: "مدیر سیستم",
-  MEETING_OPERATOR: "اپراتور جلسات",
-  BRANCH_MANAGER: "مدیر شعبه",
-  ROOM_MANAGER: "مدیر اتاق",
-  EMPLOYEE: "کارمند",
-};
+interface RoleOption {
+  key: string;
+  name: string;
+}
 
 const emptyCreateForm = {
   email: "",
@@ -50,32 +45,28 @@ const emptyCreateForm = {
   roleKeys: ["EMPLOYEE"] as string[],
 };
 
-function canManageRoles(me: { isSuperAdmin: boolean; roles: { key: string }[] } | null): boolean {
-  if (!me) return false;
-  if (me.isSuperAdmin) return true;
-  return me.roles.some((r) => r.key === "ADMIN" || r.key === "SUPER_ADMIN");
-}
-
 function RolePicker({
+  roles,
   value,
   onChange,
   disabled,
 }: {
+  roles: RoleOption[];
   value: string[];
   onChange: (keys: string[]) => void;
   disabled?: boolean;
 }) {
   return (
     <div className="flex flex-wrap gap-1.5">
-      {ROLE_KEYS.map((r) => {
-        const sel = value.includes(r);
+      {roles.map((r) => {
+        const sel = value.includes(r.key);
         return (
           <button
-            key={r}
+            key={r.key}
             type="button"
             disabled={disabled}
             onClick={() =>
-              onChange(sel ? value.filter((x) => x !== r) : [...value, r])
+              onChange(sel ? value.filter((x) => x !== r.key) : [...value, r.key])
             }
             className={cn(
               "rounded-full border px-3 py-1.5 text-[12px]",
@@ -83,7 +74,7 @@ function RolePicker({
               sel ? "border-ink bg-ink text-white" : "border-line text-ink-soft",
             )}
           >
-            {ROLE_NAMES[r]}
+            {r.name}
           </button>
         );
       })}
@@ -95,7 +86,6 @@ export default function AdminUsersPage() {
   const qc = useQueryClient();
   const { push } = useToast();
   const { me, can } = useAuth();
-
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [resetUser, setResetUser] = useState<AdminUser | null>(null);
@@ -111,16 +101,25 @@ export default function AdminUsersPage() {
   const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const manageRoles = canManageRoles(me);
+  const manageRoles = can("role:manage");
+
+  const { data: rolesData } = useQuery({
+    queryKey: ["admin-roles"],
+    queryFn: () => api<{ roles: RoleOption[] }>("/api/admin/roles"),
+    enabled: manageRoles,
+  });
+  const roleOptions: RoleOption[] = rolesData?.roles ?? [{ key: "EMPLOYEE", name: "کارمند" }];
 
   const { data, isLoading } = useQuery({
     queryKey: ["users"],
     queryFn: () => api<{ users: AdminUser[] }>("/api/users"),
+    enabled: can("user:update"),
   });
 
   const { data: branchesData } = useQuery({
     queryKey: ["branches"],
     queryFn: () => api<{ branches: BranchOption[] }>("/api/branches"),
+    enabled: can("user:update"),
   });
 
   const branchOptions = (branchesData?.branches ?? []).map((b) => ({
@@ -224,6 +223,16 @@ export default function AdminUsersPage() {
     }
   }
 
+  if (!can("user:update")) {
+    return (
+      <div className="p-6">
+        <Card className="p-8 text-center text-[13px] text-ink-soft">
+          مدیریت کاربران نیازمند دسترسی user:update است.
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div className="flex items-center justify-between">
@@ -314,6 +323,7 @@ export default function AdminUsersPage() {
           <div className="sm:col-span-2">
             <p className="mb-1.5 text-[11px] text-ink-soft">نقش‌ها *</p>
             <RolePicker
+              roles={roleOptions}
               value={createForm.roleKeys}
               onChange={(roleKeys) => setCreateForm({ ...createForm, roleKeys })}
             />
@@ -381,6 +391,7 @@ export default function AdminUsersPage() {
             <div className="sm:col-span-2">
               <p className="mb-1.5 text-[11px] text-ink-soft">نقش‌ها</p>
               <RolePicker
+                roles={roleOptions}
                 value={editForm.roleKeys}
                 onChange={(roleKeys) => setEditForm({ ...editForm, roleKeys })}
               />

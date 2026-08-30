@@ -1,20 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   LayoutDashboard, CalendarDays, Users, UsersRound, UserRound, DoorOpen, Building2, Bell,
   LifeBuoy,
-  BarChart3, Settings, Search, LogOut, Menu, X, Plus, ChevronDown,
+  BarChart3, Settings, Search, LogOut, Menu, X, Plus, ChevronDown, ScrollText, UserCircle,
 } from "lucide-react";
 import { cn, faNum } from "@/lib";
 import { useAuth } from "@/lib/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { replayCurrentTour } from "@/components/guided-tours";
+import { OrgBrandMark } from "@/components/layout/org-brand-mark";
 
 const NAV = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard, perm: null },
@@ -27,8 +27,15 @@ const NAV = [
   { href: "/branches", label: "شعب", icon: Building2, perm: null },
   { href: "/notifications", label: "اعلان‌ها", icon: Bell, perm: null },
   { href: "/reports", label: "گزارش‌ها", icon: BarChart3, perm: "report:view" },
+  {
+    href: "/admin/audit-logs",
+    label: "لاگ ممیزی",
+    icon: ScrollText,
+    perm: "audit:view",
+    excludeIfPerm: "user:update",
+  },
   { href: "/admin", label: "مدیریت", icon: Settings, perm: "user:update" },
-];
+] as const;
 
 const MOBILE_NAV = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard },
@@ -46,6 +53,19 @@ function useUnreadCount() {
   return data?.unreadCount ?? 0;
 }
 
+function useOrgBranding() {
+  const { data } = useQuery({
+    queryKey: ["organization-branding"],
+    queryFn: () =>
+      api<{ branding: { name: string; logoUrl: string | null } }>("/api/organization/branding"),
+    staleTime: 5 * 60_000,
+  });
+  return {
+    orgName: data?.branding.name ?? "مهرسا",
+    logoUrl: data?.branding.logoUrl ?? null,
+  };
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -53,6 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const unread = useUnreadCount();
+  const { orgName, logoUrl } = useOrgBranding();
 
   useEffect(() => {
     if (!loaded) refresh();
@@ -74,31 +95,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const visibleNav = NAV.filter((n) => !n.perm || can(n.perm));
+  const visibleNav = NAV.filter((n) => {
+    if ("excludeIfPerm" in n && n.excludeIfPerm && can(n.excludeIfPerm)) return false;
+    return !n.perm || can(n.perm);
+  });
+
+  function isNavActive(href: string) {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   return (
     <div className="min-h-screen bg-white lg:pr-60">
       {/* Desktop sidebar */}
       <aside className="fixed top-0 right-0 z-50 hidden h-screen w-60 flex-col border-l border-line bg-white lg:flex">
         <div className="flex h-16 items-center gap-1.5 border-b border-line px-5">
-          <div className="flex h-[40px] w-[40px] items-center justify-center rounded-lg bg-ink">
-            <Image
-              src="/logo-white.png"
-              alt="مهرسا"
-              width={40}
-              height={40}
-              className="h-10 w-10 object-contain"
-              priority
-            />
-          </div>
+          <OrgBrandMark orgName={orgName} logoUrl={logoUrl} size={40} />
           <div>
-            <p className="text-[14px] font-bold leading-4">مهرسا</p>
+            <p className="text-[14px] font-bold leading-4">{orgName}</p>
             <p className="text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
           </div>
         </div>
         <nav data-tour="nav" className="flex-1 space-y-0.5 overflow-y-auto p-3">
           {visibleNav.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            const active = isNavActive(item.href);
             return (
               <Link
                 key={item.href}
@@ -180,6 +199,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <p className="text-[12px] font-medium">{me.fullName}</p>
                     <p className="text-[11px] text-ink-faint" dir="ltr">{me.email}</p>
                   </div>
+                  <Link
+                    href="/profile"
+                    onClick={() => setUserMenu(false)}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-ink hover:bg-paper-soft"
+                  >
+                    <UserCircle className="h-4 w-4" />
+                    پروفایل من
+                  </Link>
                   <button
                     onClick={logout}
                     className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-[13px] text-red-600 hover:bg-red-50"
@@ -215,14 +242,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="absolute inset-0 bg-black/30" onClick={() => setDrawerOpen(false)} />
           <div className="absolute right-0 top-0 h-full w-72 bg-white p-4 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-[14px] font-bold">مهرسا</p>
+              <div className="flex items-center gap-2">
+                <OrgBrandMark orgName={orgName} logoUrl={logoUrl} size={32} />
+                <p className="text-[14px] font-bold">{orgName}</p>
+              </div>
               <button onClick={() => setDrawerOpen(false)} aria-label="بستن">
                 <X className="h-5 w-5" />
               </button>
             </div>
             <nav className="space-y-0.5">
               {visibleNav.map((item) => {
-                const active = pathname === item.href;
+                const active = isNavActive(item.href);
                 return (
                   <Link
                     key={item.href}

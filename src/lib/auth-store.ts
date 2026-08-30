@@ -7,6 +7,7 @@ export interface Me {
   id: string;
   email: string;
   fullName: string;
+  phone: string | null;
   avatarUrl: string | null;
   jobTitle: string | null;
   department: string | null;

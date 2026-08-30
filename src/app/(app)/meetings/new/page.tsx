@@ -1,17 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, XCircle, AlertTriangle, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { cn, faNum, faStr, formatJalali, toJalali, EQUIPMENT_FA, TYPE_FA } from "@/lib";
+import { cn, faNum, formatJalali, isoDateInTz, EQUIPMENT_FA, TYPE_FA } from "@/lib";
+import { formatClockInTz, DEFAULT_ORG_TIMEZONE } from "@/lib/timezone";
 import { Select } from "@/components/ui/select";
-import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
+import {
+  bookingMatchesQuery,
+  clearAvailabilityBooking,
+  loadAvailabilityBooking,
+  suggestRoomId,
+} from "@/lib/availability-booking";
 
 interface Slot {
   start: string;
@@ -21,8 +28,13 @@ interface Slot {
 }
 
 export default function NewMeetingPage() {
+  return <NewMeetingPageContent />;
+}
+
+function NewMeetingPageContent() {
   const router = useRouter();
   const { push } = useToast();
+  const prefilledFromAvailability = useRef(false);
 
   // form state
   const [title, setTitle] = useState("");
@@ -38,6 +50,7 @@ export default function NewMeetingPage() {
   const [guests, setGuests] = useState<{ name: string; company: string; phone: string; email: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [fromAvailabilityHandoff, setFromAvailabilityHandoff] = useState(false);
 
   const { data: branchesData } = useQuery({
     queryKey: ["branches"],
@@ -45,6 +58,67 @@ export default function NewMeetingPage() {
   });
 
   const branches = branchesData?.branches ?? [];
+
+  const { data: brandingData } = useQuery({
+    queryKey: ["organization-branding"],
+    queryFn: () =>
+      api<{ branding: { timezone: string } }>("/api/organization/branding"),
+  });
+  const orgTz = brandingData?.branding.timezone ?? DEFAULT_ORG_TIMEZONE;
+
+  useEffect(() => {
+    if (prefilledFromAvailability.current) return;
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("from") !== "availability") return;
+
+    const draft = loadAvailabilityBooking();
+    if (
+      !draft ||
+      !bookingMatchesQuery(draft, {
+        branchId: params.get("branchId"),
+        startAt: params.get("startAt"),
+        endAt: params.get("endAt"),
+        durationMin: params.get("durationMin"),
+      })
+    ) {
+      return;
+    }
+
+    prefilledFromAvailability.current = true;
+    clearAvailabilityBooking();
+
+    setBranchId(draft.branchId);
+    setDurationMin(draft.durationMin);
+    setPeople(draft.people);
+    setDateIso(isoDateInTz(new Date(draft.startAt), orgTz));
+
+    const rooms = draft.availableRooms.map((r) => ({
+      ...r,
+      equipment: r.equipment ?? [],
+    }));
+    const slotData: Slot = {
+      start: draft.startAt,
+      end: draft.endAt,
+      availableRooms: rooms,
+      conflicts: [],
+    };
+    setSlot(slotData);
+
+    const queryRoomId = params.get("roomId");
+    const picked =
+      (queryRoomId && rooms.some((r) => r.id === queryRoomId) ? queryRoomId : undefined) ??
+      draft.roomId ??
+      suggestRoomId(rooms, draft.people.length + 1) ??
+      "";
+    setRoomId(picked);
+    setFromAvailabilityHandoff(true);
+
+    requestAnimationFrame(() => {
+      document.getElementById("meeting-step-room")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [orgTz]);
 
   function isoToday(): string {
     const t = new Date(Date.now() + 210 * 60000);
@@ -156,7 +230,7 @@ export default function NewMeetingPage() {
     }
   }
 
-  const monthNames = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"];
+  const fromAvailability = fromAvailabilityHandoff && !!slot;
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-4 lg:p-6">
@@ -222,7 +296,14 @@ export default function NewMeetingPage() {
 
       {/* Step 2: date + duration + find slots */}
       <Card>
-        <CardHeader title="۲. تاریخ و مدت" subtitle="سیستم زمان‌های آزاد مشترک همه افراد را پیدا می‌کند" />
+        <CardHeader
+          title="۲. تاریخ و مدت"
+          subtitle={
+            fromAvailability
+              ? "زمان از صفحه یافتن زمان مناسب انتخاب شده — می‌توانید دوباره جستجو کنید"
+              : "سیستم زمان‌های آزاد مشترک همه افراد را پیدا می‌کند"
+          }
+        />
         <CardBody className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -242,22 +323,25 @@ export default function NewMeetingPage() {
               />
             </div>
           </div>
-          <Button onClick={findSlots} loading={searching} className="w-full sm:w-auto">
-            <Sparkles className="h-4 w-4" />
-            یافتن زمان‌های آزاد
-          </Button>
+          {!fromAvailability && (
+            <Button onClick={findSlots} loading={searching} className="w-full sm:w-auto">
+              <Sparkles className="h-4 w-4" />
+              یافتن زمان‌های آزاد
+            </Button>
+          )}
         </CardBody>
       </Card>
 
       {/* Step 3: slot + room */}
       {slot && (
+        <div id="meeting-step-room">
         <Card>
           <CardHeader title="۳. انتخاب زمان و اتاق" />
           <CardBody className="space-y-4">
             <div className="rounded-md bg-emerald-50 p-4">
               <p className="flex items-center gap-2 text-[13px] font-bold text-emerald-700">
                 <CheckCircle2 className="h-4 w-4" />
-                زمان پیشنهادی: {tehranTime(slot.start)} تا {tehranTime(slot.end)}
+                زمان پیشنهادی: {formatClockInTz(new Date(slot.start), orgTz)} تا {formatClockInTz(new Date(slot.end), orgTz)}
               </p>
               <p className="mt-1 pr-6 text-[11px] text-emerald-600">همه افراد انتخابی در این بازه آزاد هستند</p>
             </div>
@@ -308,7 +392,7 @@ export default function NewMeetingPage() {
             <div className="rounded-md border border-line bg-paper-soft p-4 text-[12px] leading-6">
               <p className="font-bold">بازبینی نهایی</p>
               <p>عنوان: {title}</p>
-              <p>زمان: {formatJalali(new Date(slot.start), { withTime: true, monthName: true })} تا {tehranTime(slot.end)}</p>
+              <p>زمان: {formatJalali(new Date(slot.start), { withTime: true, monthName: true })} تا {formatClockInTz(new Date(slot.end), orgTz)}</p>
               <p>اتاق: {selectedRoom?.name} ({faNum(selectedRoom?.capacity ?? 0)} نفر)</p>
               <p>افراد: {faNum(people.filter((p) => p.kind === "INTERNAL").length + 1)} نفر داخلی{people.filter((p) => p.kind === "EXTERNAL").length + guests.filter((g) => g.name).length > 0 ? ` + ${faNum(people.filter((p) => p.kind === "EXTERNAL").length + guests.filter((g) => g.name).length)} مهمان` : ""}</p>
               {(people.filter((p) => p.kind === "EXTERNAL").length > 0 || guests.filter((g) => g.name).length > 0) && (
@@ -321,37 +405,8 @@ export default function NewMeetingPage() {
             </Button>
           </CardBody>
         </Card>
+        </div>
       )}
     </div>
   );
-}
-
-function tehranTime(iso: string): string {
-  const d = new Date(iso);
-  const t = new Date(d.getTime() + 210 * 60000);
-  return faStr(`${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`);
-}
-
-function jalaliToIso(jy: number, jm: number, jd: number): [number, number, number] {
-  // reuse lib via dynamic import at module scope is awkward; inline minimal conversion
-  // using the algorithm from lib/jalali (toGregorian)
-  const breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
-  let bl = breaks.length, gy = jy + 621, leapJ = -14, jp = breaks[0], jump = 0;
-  for (let i = 1; i < bl; i += 1) {
-    const jm2 = breaks[i];
-    jump = jm2 - jp;
-    if (jy < jm2) break;
-    leapJ += Math.floor(jump / 33) * 8 + Math.floor((jump % 33) / 4);
-    jp = jm2;
-  }
-  let n = jy - jp;
-  leapJ += Math.floor(n / 33) * 8 + Math.floor(((n % 33) + 3) / 4);
-  if (jump % 33 === 4 && jump - n === 4) leapJ += 1;
-  const leapG = Math.floor(gy / 4) - Math.floor((Math.floor(gy / 100) + 1) * 3 / 4) - 150;
-  const march = 20 + leapJ - leapG;
-  // day-of-year
-  const doy = (jm - 1) * 31 - Math.floor(jm / 7) * (jm - 7) + jd - 1;
-  const date = new Date(Date.UTC(gy, 2, march)); // March
-  const g = new Date(date.getTime() + doy * 86400000);
-  return [g.getUTCFullYear(), g.getUTCMonth() + 1, g.getUTCDate()];
 }

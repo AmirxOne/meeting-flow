@@ -2,7 +2,7 @@ import { cookies, headers } from "next/headers";
 import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "@/server/db";
 import {
-  ROLE_DEFINITIONS,
+  PERMISSION_KEYS,
   type PermissionKey,
 } from "@/server/auth/permissions";
 
@@ -12,6 +12,7 @@ export interface AuthUser {
   id: string;
   email: string;
   fullName: string;
+  phone: string | null;
   avatarUrl: string | null;
   jobTitle: string | null;
   department: string | null;
@@ -61,7 +62,17 @@ export async function getSessionUser(): Promise<AuthUser | null> {
     where: { token: hashToken(token) },
     include: {
       user: {
-        include: { roles: { include: { role: true } } },
+        include: {
+          roles: {
+            include: {
+              role: {
+                include: {
+                  permissions: { include: { permission: { select: { key: true } } } },
+                },
+              },
+            },
+          },
+        },
       },
     },
   });
@@ -79,22 +90,26 @@ export async function getSessionUser(): Promise<AuthUser | null> {
 
   const roleKeys = session.user.roles.map((r) => r.role.key);
   const permissions = new Set<string>();
-  for (const key of roleKeys) {
-    const def = ROLE_DEFINITIONS[key];
-    if (def) for (const p of def.permissions) permissions.add(p);
+  for (const ur of session.user.roles) {
+    for (const rp of ur.role.permissions) {
+      permissions.add(rp.permission.key);
+    }
   }
+
+  const isSuperAdmin = session.user.isSuperAdmin || roleKeys.includes("SUPER_ADMIN");
 
   return {
     id: session.user.id,
     email: session.user.email,
     fullName: session.user.fullName,
+    phone: session.user.phone,
     avatarUrl: session.user.avatarUrl,
     jobTitle: session.user.jobTitle,
     department: session.user.department,
-    isSuperAdmin: session.user.isSuperAdmin || roleKeys.includes("SUPER_ADMIN"),
+    isSuperAdmin,
     branchId: session.user.branchId,
-    permissions: session.user.isSuperAdmin
-      ? new Set(Object.keys(ROLE_DEFINITIONS.SUPER_ADMIN.permissions))
+    permissions: isSuperAdmin
+      ? new Set(PERMISSION_KEYS)
       : permissions,
     roleKeys,
   };

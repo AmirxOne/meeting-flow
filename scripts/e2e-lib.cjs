@@ -40,22 +40,14 @@ async function dismissTour(page) {
       localStorage.setItem(key, JSON.stringify(tours));
     }
     document.querySelectorAll('[data-name^="nextstep-"]').forEach((el) => el.remove());
-    document.querySelectorAll(".rounded-xl.border.border-line.bg-white.p-3.text-right.shadow-2xl").forEach((el) => {
-      if (el.querySelector('[aria-label="بستن"]')) el.remove();
-    });
-    document.querySelector('[aria-label="بستن"]')?.click();
   }, { tours: ALL_TOURS });
   await page.waitForTimeout(300);
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 8; i++) {
     const overlay = await page.locator('[data-name="nextstep-overlay"]').count();
-    const card = await page.locator('[aria-label="بستن"]').count();
-    if (overlay === 0 && card === 0) break;
+    const prevent = await page.locator('[data-name^="nextstep-prevent-click"]').count();
+    if (overlay === 0 && prevent === 0) break;
     await page.evaluate(() => {
-      document.querySelector('[aria-label="بستن"]')?.click();
       document.querySelectorAll('[data-name^="nextstep-"]').forEach((el) => el.remove());
-      document.querySelectorAll(".rounded-xl.border.border-line.bg-white.p-3.text-right.shadow-2xl").forEach((el) => {
-        if (el.querySelector('[aria-label="بستن"]')) el.remove();
-      });
     });
     await page.waitForTimeout(350);
   }
@@ -74,9 +66,13 @@ async function safeClick(page, locator) {
 }
 
 async function gotoApp(page, path, userId) {
-  await page.evaluate(markToursSeenScript, { uid: userId, tours: ALL_TOURS });
   await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForTimeout(2500);
+  try {
+    await page.evaluate(markToursSeenScript, { uid: userId, tours: ALL_TOURS });
+  } catch {
+    /* ignore — e.g. transient document state */
+  }
   await dismissTour(page);
 }
 

@@ -90,6 +90,51 @@ const { chromium } = require("playwright");
     await page.screenshot({ path: "D:/meetinghub/e2e-meetings.png", fullPage: false });
     check("screenshots saved", true);
 
+    // 13. profile self-service (ali): change password → re-login → restore seed
+    const BASE = "http://localhost:3100";
+    const SEED_PASS = "Pass1234";
+    const TEMP_PASS = "Pass5678";
+
+    const aliLogin = await page.request.post(`${BASE}/api/auth/login`, {
+      data: { email: "ali@example.com", password: SEED_PASS },
+    });
+    check("ali login for profile test", aliLogin.status() === 200);
+    const aliCookie = (await aliLogin.headersArray()).find((h) => h.name === "set-cookie")?.value.split(";")[0] ?? "";
+    const [aliCookieName, aliCookieValue] = aliCookie.split("=");
+    await page.context().addCookies([{
+      name: aliCookieName,
+      value: aliCookieValue,
+      domain: "localhost",
+      path: "/",
+    }]);
+    await page.goto(`${BASE}/profile`, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector("text=پروفایل من", { timeout: 20000 });
+    check("profile page renders", (await page.locator("h1:has-text('پروفایل من')").count()) === 1);
+
+    const changeRes = await page.request.post(`${BASE}/api/auth/change-password`, {
+      headers: { Cookie: aliCookie },
+      data: { currentPassword: SEED_PASS, newPassword: TEMP_PASS },
+    });
+    check("change-password API success", changeRes.status() === 200);
+
+    const relogin = await page.request.post(`${BASE}/api/auth/login`, {
+      data: { email: "ali@example.com", password: TEMP_PASS },
+    });
+    check("login with new password", relogin.status() === 200);
+
+    const adminLogin = await page.request.post(`${BASE}/api/auth/login`, {
+      data: { email: "admin@example.com", password: SEED_PASS },
+    });
+    const adminCookieHdr = (await adminLogin.headersArray()).find((h) => h.name === "set-cookie")?.value.split(";")[0] ?? "";
+    const usersRes = await page.request.get(`${BASE}/api/users?q=ali`, { headers: { Cookie: adminCookieHdr } });
+    const usersBody = await usersRes.json();
+    const ali = usersBody?.data?.users?.find((u) => u.email === "ali@example.com");
+    const restore = await page.request.post(`${BASE}/api/users/${ali?.id}/reset-password`, {
+      headers: { Cookie: adminCookieHdr },
+      data: { password: SEED_PASS },
+    });
+    check("restore ali seed password", restore.status() === 200);
+
   } catch (e) {
     results.push(["FATAL: " + e.message.split("\n")[0], false]);
   }

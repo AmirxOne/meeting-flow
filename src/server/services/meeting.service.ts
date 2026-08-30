@@ -7,6 +7,7 @@ import {
   evaluateApprovalNeed,
   type PolicyValues,
 } from "./state-machine";
+import { coerceReminderOffsets } from "@/lib/reminder-offsets";
 import { findRoomConflicts, findUserConflicts } from "./conflict.service";
 import { assertRoomNotExcludedOutsideTx, assertRoomNotExcluded } from "./room-exclusion.service";
 import { notificationService } from "./notification.service";
@@ -16,6 +17,7 @@ import {
   isParticipantResponse,
 } from "./participant-response.service";
 import { generateCheckinCode } from "./guest-checkin.service";
+import { calendarSyncBestEffort } from "./calendar-sync.service";
 
 export interface CreateMeetingInput {
   title: string;
@@ -46,7 +48,14 @@ export async function getOrgPolicies(): Promise<PolicyValues> {
   const merged: PolicyValues = { ...DEFAULT_POLICIES };
   for (const p of org.policies) {
     if (p.key in merged) {
-      (merged as unknown as Record<string, unknown>)[p.key] = p.value;
+      if (p.key === "defaultReminderOffsets") {
+        merged.defaultReminderOffsets = coerceReminderOffsets(
+          p.value,
+          DEFAULT_POLICIES.defaultReminderOffsets,
+        );
+      } else {
+        (merged as unknown as Record<string, unknown>)[p.key] = p.value;
+      }
     }
   }
   return merged;
@@ -179,6 +188,7 @@ export async function createMeeting(input: CreateMeetingInput): Promise<Meeting>
       // side effects (outside tx)
       await scheduleReminders(meeting);
       await notificationService.meetingCreated(meeting, input.organizerId);
+      void calendarSyncBestEffort("create", meeting);
       return meeting;
     })
     .catch((e) => {
@@ -344,6 +354,7 @@ export async function rescheduleMeeting(
   ).then(async (m) => {
     await scheduleReminders(m);
     await notificationService.meetingRescheduled(m, ctx.actorId, old);
+    void calendarSyncBestEffort("update", m);
     return m;
   });
 }
@@ -378,6 +389,7 @@ export async function cancelMeeting(
     data: { status: "CANCELLED" },
   });
   await notificationService.meetingCancelled(updated, ctx.actorId, input.reason);
+  void calendarSyncBestEffort("cancel", updated);
   return updated;
 }
 

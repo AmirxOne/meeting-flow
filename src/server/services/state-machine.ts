@@ -13,6 +13,8 @@ export const STATUS_FLOW: Record<string, string[]> = {
   CANCELLED: [],
 };
 
+/** Auto no-show / complete rules: see meeting-lifecycle.ts (worker processMeetingLifecycle). */
+
 export function canTransition(from: string, to: string): boolean {
   return (STATUS_FLOW[from] ?? []).includes(to);
 }

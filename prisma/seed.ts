@@ -19,9 +19,10 @@ const PERM = {
   SETTINGS: ["policy:manage", "org:manage"],
 };
 
+const USER_ADMIN = ["user:create", "user:update", "user:disable", "user:reset-password"];
 const ROLES: { key: string; name: string; description: string; perms: string[] }[] = [
   { key: "SUPER_ADMIN", name: "مدیر ارشد سیستم", description: "دسترسی کامل", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...PERM.USER, ...PERM.REPORT, ...PERM.SETTINGS] },
-  { key: "ADMIN", name: "مدیر سیستم", description: "مدیریت کامل به جز نقش‌ها", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...PERM.USER, ...PERM.REPORT, ...PERM.SETTINGS] },
+  { key: "ADMIN", name: "مدیر سیستم", description: "مدیریت کامل به جز نقش‌ها", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...USER_ADMIN, ...PERM.REPORT, ...PERM.SETTINGS] },
   { key: "MEETING_OPERATOR", name: "اپراتور جلسات", description: "تأیید درخواست‌های جلسه", perms: [...PERM.MEETING, "report:view"] },
   { key: "BRANCH_MANAGER", name: "مدیر شعبه", description: "مدیریت شعبه و اتاق‌ها", perms: ["meeting:view", "meeting:view-all", "meeting:create", "meeting:update", "meeting:cancel", "meeting:reschedule", "meeting:change-room", "meeting:add-participant", "meeting:remove-participant", "room:create", "room:update", "room:disable", "report:view", "audit:view"] },
   { key: "ROOM_MANAGER", name: "مدیر اتاق", description: "مدیریت اتاق‌ها", perms: ["meeting:view", "meeting:view-all", "room:update", "room:disable", "report:view"] },

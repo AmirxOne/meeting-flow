@@ -2,6 +2,11 @@ import type { Meeting } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { notificationService, smsProvider, emailProvider } from "./notification.service";
 import { getOrgPolicies } from "./meeting.service";
+import {
+  MEETING_END_GRACE_MS,
+  resolveStaleMeetingStatus,
+  STALE_MEETING_STATUSES,
+} from "./meeting-lifecycle";
 
 export type ReminderChannel = "IN_APP" | "SMS" | "EMAIL";
 
@@ -152,12 +157,46 @@ export async function processDueReminders(): Promise<number> {
   return sent;
 }
 
-/** Worker tick: auto-mark no-shows (started but never ended) & auto-complete. */
+/** Worker tick: auto-mark no-shows & auto-complete stale meetings. */
 export async function processMeetingLifecycle(): Promise<number> {
   const now = new Date();
-  const stale = await prisma.meeting.updateMany({
-    where: { status: "IN_PROGRESS", endAt: { lt: new Date(now.getTime() - 60 * 60000) } },
-    data: { status: "COMPLETED" },
+  const cutoff = new Date(now.getTime() - MEETING_END_GRACE_MS);
+
+  const stale = await prisma.meeting.findMany({
+    where: {
+      status: { in: [...STALE_MEETING_STATUSES] },
+      endAt: { lt: cutoff },
+    },
+    select: {
+      id: true,
+      status: true,
+      events: { where: { type: "STARTED" }, take: 1, select: { id: true } },
+    },
+    take: 100,
   });
-  return stale.count;
+
+  let closed = 0;
+  for (const m of stale) {
+    const next = resolveStaleMeetingStatus({
+      status: m.status,
+      hasStartedEvent: m.events.length > 0,
+    });
+    if (!next) continue;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.meeting.update({ where: { id: m.id }, data: { status: next } });
+      await tx.meetingEvent.create({
+        data: {
+          meetingId: m.id,
+          type: next,
+          data: {
+            auto: true,
+            reason: next === "NO_SHOW" ? "AUTO_NO_SHOW" : "AUTO_COMPLETE",
+          },
+        },
+      });
+    });
+    closed += 1;
+  }
+  return closed;
 }

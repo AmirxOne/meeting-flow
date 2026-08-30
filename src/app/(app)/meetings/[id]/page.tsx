@@ -85,6 +85,7 @@ const EVENT_FA: Record<string, string> = {
   GUEST_CHECKED_IN: "ثبت حضور مهمان",
   IN_PROGRESS: "در حال برگزاری",
   COMPLETED: "تکمیل شد",
+  NO_SHOW: "غیبت",
 };
 
 export default function MeetingDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -324,15 +325,26 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
               >
                 +۶۰ دقیقه
               </Button>
-              <Button
-                size="sm"
-                className="bg-white text-ink hover:bg-paper-soft"
-                loading={busy === "end"}
-                onClick={() => act("end", `/api/meetings/${id}/end`, {}, "جلسه پایان یافت")}
-              >
-                <Square className="h-3.5 w-3.5" />
-                پایان جلسه
-              </Button>
+              <EndMeetingControls
+                busy={busy}
+                onEnd={async (noShow) => {
+                  setBusy(noShow ? "end-noshow" : "end");
+                  try {
+                    await api(`/api/meetings/${id}/end`, {
+                      method: "POST",
+                      json: { noShow },
+                    });
+                    push(noShow ? "جلسه به‌عنوان غیبت ثبت شد" : "جلسه پایان یافت", "success");
+                    qc.invalidateQueries({ queryKey: ["meeting", id] });
+                    qc.invalidateQueries({ queryKey: ["meetings"] });
+                    qc.invalidateQueries({ queryKey: ["dashboard"] });
+                  } catch (e) {
+                    push((e as ApiError).message, "error");
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              />
             </div>
           </div>
         </Card>
@@ -647,6 +659,8 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
                     <GuestCheckinPanel
                       checkinCode={g.checkinCode}
                       arrivedAt={g.arrivedAt}
+                      guestName={g.name}
+                      meetingTitle={m.title}
                       busy={busy === `checkin-${g.id}`}
                       onManualCheckin={() => manualGuestCheckin(g.id)}
                     />
@@ -744,6 +758,69 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <p className="text-[11px] text-ink-soft">{label}</p>
       <p className="mt-0.5 text-[13px] font-medium">{value}</p>
     </div>
+  );
+}
+
+function EndMeetingControls({
+  busy,
+  onEnd,
+}: {
+  busy: string | null;
+  onEnd: (noShow: boolean) => Promise<void>;
+}) {
+  const [confirmNoShow, setConfirmNoShow] = useState(false);
+
+  if (confirmNoShow) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+        <span className="text-[11px] font-medium text-red-700">
+          این جلسه بدون برگزاری به‌عنوان «غیبت» ثبت شود؟
+        </span>
+        <Button
+          size="sm"
+          variant="danger"
+          loading={busy === "end-noshow"}
+          disabled={!!busy}
+          onClick={async () => {
+            await onEnd(true);
+            setConfirmNoShow(false);
+          }}
+        >
+          بله، ثبت غیبت
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={!!busy}
+          onClick={() => setConfirmNoShow(false)}
+        >
+          انصراف
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        className="bg-white text-ink hover:bg-paper-soft"
+        loading={busy === "end"}
+        disabled={!!busy}
+        onClick={() => onEnd(false)}
+      >
+        <Square className="h-3.5 w-3.5" />
+        پایان جلسه
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!!busy}
+        onClick={() => setConfirmNoShow(true)}
+      >
+        ثبت به‌عنوان غیبت
+      </Button>
+    </>
   );
 }
 

@@ -5,7 +5,7 @@
 بعد از **هر** فیچر یا فیکس (قبل از کامیت):
 
 1. **typecheck** — `pnpm run typecheck` باید صفر خطا باشد
-2. **تست‌های موجود** — `pnpm run test` نباید هیچ‌کدام fail شوند (الان: ۴۷)
+2. **تست‌های موجود** — `pnpm run test` نباید هیچ‌کدام fail شوند (الان: **242** — 155 unit + 87 integration)
 3. **تست جدید برای خود فیچر** — unit (vitest) برای منطق، یا E2E در `scripts/e2e-*.cjs` برای رفتار UI
 4. **تست با رول‌های مختلف** — فیچر را با حداقل این کاربرها امتحان کن:
    - `admin@example.com` (ADMIN)
@@ -67,6 +67,7 @@ src/
 
 ## تست‌ها
 
-- `pnpm run test` — vitest (unit + integration)
+- `pnpm run test` — vitest **242** تست (155 unit در `tests/unit/` + 87 integration در `tests/integration/api.test.ts`)
+- `pnpm vitest run tests/integration` — فقط integration (87)؛ dev server `:3100` + seed
 - `pnpm run typecheck`
-- E2E: `node scripts/e2e-*.cjs` — smoke, calendar, people-pagination, people-page, notification-click, private-meetings, modal-forms, guided-tours, datepicker-people, room-branch-crud, reports, availability, branches, admin-policies
+- E2E: `node scripts/e2e-*.cjs` — smoke, calendar, people-pagination, people-page, notification-click, private-meetings, modal-forms, guided-tours, datepicker-people, room-branch-crud, reports, availability, branches, admin-policies, audit-logs, checkin, **missing-pages** (admin/settings, meetings/new wizard, rooms/[id], colleagues /users), org-branding, room-exclusions

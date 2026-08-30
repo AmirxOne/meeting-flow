@@ -186,9 +186,9 @@ export default function BranchesPage() {
     }
   }
 
-  const floorList = floorBranch
-    ? (branches.find((b) => b.id === floorBranch.id)?.floors ?? floorBranch.floors)
-    : [];
+  // While the floors modal is open, trust floorBranch (refreshed after each mutation).
+  // Using branches[] here caused stale React Query cache to override fresh floorBranch.floors.
+  const floorList = floorBranch?.floors ?? [];
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
@@ -269,12 +269,14 @@ export default function BranchesPage() {
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <input
+              data-testid="floor-name-input"
               placeholder="نام طبقه *"
               value={floorForm.name}
               onChange={(e) => setFloorForm({ ...floorForm, name: e.target.value })}
               className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
             <input
+              data-testid="floor-number-input"
               type="number"
               dir="ltr"
               placeholder="شماره طبقه *"
@@ -283,7 +285,12 @@ export default function BranchesPage() {
               className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
             />
             <div className="flex gap-2">
-              <Button onClick={saveFloor} loading={floorBusy} disabled={floorForm.name.trim().length < 1 || floorForm.number === ""}>
+              <Button
+                data-testid="floor-save-btn"
+                onClick={saveFloor}
+                loading={floorBusy}
+                disabled={floorForm.name.trim().length < 1 || floorForm.number === ""}
+              >
                 {floorEditing ? "ذخیره" : "افزودن طبقه"}
               </Button>
               {floorEditing && (
@@ -305,7 +312,12 @@ export default function BranchesPage() {
           ) : (
             <div className="divide-y divide-line rounded-md border border-line">
               {floorList.map((f) => (
-                <div key={f.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                <div
+                  key={f.id}
+                  data-testid="floor-row"
+                  data-floor-id={f.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3"
+                >
                   <div>
                     <p className="text-[13px] font-medium">{f.name}</p>
                     <p className="text-[11px] text-ink-soft">شماره {faNum(f.number)}</p>

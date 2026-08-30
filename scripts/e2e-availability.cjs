@@ -41,7 +41,10 @@ const { BASE, login, dismissTour, safeClick, gotoApp, launchBrowser, finish } = 
     await page.locator('[data-idx="0"]').first().click();
     await page.waitForTimeout(500);
   }
-  const peopleLabel = await page.locator('label:has-text("افراد")').textContent();
+  await page.locator("h1:has-text('یافتن زمان مناسب')").click();
+  await page.waitForTimeout(300);
+  await page.locator('label:has-text("افراد")').first().waitFor({ timeout: 15000 });
+  const peopleLabel = await page.locator('label:has-text("افراد")').first().textContent();
   check(`two people picked (${peopleLabel?.trim()})`, (peopleLabel ?? "").includes("۲"));
 
   await safeClick(page, page.locator('button:has-text("جستجوی زمان‌های آزاد")'));
@@ -57,8 +60,35 @@ const { BASE, login, dismissTour, safeClick, gotoApp, launchBrowser, finish } = 
   if (suggestions >= 1) {
     const slotRows = await page.locator("text=همه افراد آزاد هستند").count();
     check(`slot suggestions listed (${slotRows})`, slotRows >= 1);
-    const reserveLink = await page.locator('a:has-text("رزرو با این زمان")').count();
-    check("reserve link on slot", reserveLink >= 1);
+    const reserveLink = page.locator('a:has-text("رزرو با این زمان")').first();
+    await reserveLink.waitFor({ state: "visible", timeout: 10000 });
+    check("reserve link on slot", (await reserveLink.count()) >= 1);
+
+    const href = await reserveLink.getAttribute("href");
+    check("reserve href has availability params", (href ?? "").includes("from=availability"));
+
+    await dismissTour(page);
+    await reserveLink.click({ force: true });
+    await page.waitForTimeout(500);
+    await page.goto(`${BASE}${href}`, { waitUntil: "domcontentloaded", timeout: 90000 });
+    await dismissTour(page);
+    await page.locator("h1:has-text('جلسه جدید')").waitFor({ timeout: 60000 });
+    check("navigated to new meeting", true);
+
+    check(
+      "step 3 room selection visible",
+      (await page.locator("#meeting-step-room").count()) >= 1,
+    );
+    check(
+      "branch prefilled (query param)",
+      page.url().includes("branchId=branch-niavaran"),
+    );
+    const peopleLabelAfter = await page.locator('label:has-text("افراد")').first().textContent();
+    check(`people prefilled (${peopleLabelAfter?.trim()})`, (peopleLabelAfter ?? "").includes("۲"));
+    check(
+      "suggested time banner visible",
+      (await page.locator("text=زمان پیشنهادی").count()) >= 1,
+    );
   }
 
   await finish(results, browser);

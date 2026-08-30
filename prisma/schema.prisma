@@ -239,6 +239,7 @@ model Meeting {
   approvals    MeetingApproval[]
   events       MeetingEvent[]
   reminders    MeetingReminder[]
+  calendarSyncs MeetingCalendarSync[]
 
   @@index([roomId, startAt, endAt])
   @@index([branchId, startAt])
@@ -336,6 +337,21 @@ model MeetingEvent {
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@index([meetingId, createdAt])
+}
+
+/// External calendar link (Google/Outlook) — separate from MeetingEvent audit log.
+model MeetingCalendarSync {
+  id              String   @id @default(cuid())
+  meetingId       String
+  provider        String
+  externalEventId String
+  lastSyncedAt    DateTime @default(now())
+  lastError       String?
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, provider])
+  @@index([meetingId])
 }
 
 model MeetingReminder {

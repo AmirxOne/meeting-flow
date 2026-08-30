@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, BarChart3 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { cn, faNum, faStr, STATUS_FA, TYPE_FA } from "@/lib";
-import { Select } from "@/components/ui/select";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { FilterBar } from "@/components/ui/filter-bar";
+import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 
 interface Summary {
   totalMeetings: number;
@@ -27,6 +27,15 @@ interface Summary {
   hourlyHistogram: { hour: number; count: number }[];
 }
 
+function userIdFromPerson(
+  person: PickedPerson | undefined,
+  dir: { id: string; userId: string | null }[] | undefined,
+): string {
+  if (!person?.ref.startsWith("dir:") || !dir) return "";
+  const dirId = person.ref.slice(4);
+  return dir.find((p) => p.id === dirId)?.userId ?? "";
+}
+
 export default function ReportsPage() {
   const now = new Date();
   const monthAgo = new Date(now.getTime() - 30 * 86400000);
@@ -34,21 +43,119 @@ export default function ReportsPage() {
   const [to, setTo] = useState(now.toISOString().slice(0, 10));
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [roomId, setRoomId] = useState("");
+  const [organizer, setOrganizer] = useState<PickedPerson[]>([]);
+  const [participant, setParticipant] = useState<PickedPerson[]>([]);
   const [rangePreset, setRangePreset] = useState("30");
 
-  const query = new URLSearchParams({
-    from, to,
-    ...(status ? { status } : {}),
-    ...(type ? { meetingType: type } : {}),
+  const { data: branchesData } = useQuery({
+    queryKey: ["branches"],
+    queryFn: () => api<{ branches: { id: string; name: string }[] }>("/api/branches"),
+  });
+  const { data: roomsData } = useQuery({
+    queryKey: ["rooms", branchId],
+    queryFn: () =>
+      api<{ rooms: { id: string; name: string }[] }>(
+        `/api/rooms?branchId=${encodeURIComponent(branchId)}`,
+      ),
+    enabled: !!branchId,
+  });
+  const { data: peopleDir } = useQuery({
+    queryKey: ["people", "dir-ids"],
+    queryFn: () => api<{ people: { id: string; userId: string | null }[] }>("/api/people"),
   });
 
+  const branches = branchesData?.branches ?? [];
+  const rooms = roomsData?.rooms ?? [];
+  const organizerId = userIdFromPerson(organizer[0], peopleDir?.people);
+  const participantId = userIdFromPerson(participant[0], peopleDir?.people);
+
+  const queryString = useMemo(() => {
+    const q = new URLSearchParams({ from, to });
+    if (status) q.set("status", status);
+    if (type) q.set("meetingType", type);
+    if (branchId) q.set("branchId", branchId);
+    if (roomId) q.set("roomId", roomId);
+    if (organizerId) q.set("organizerId", organizerId);
+    if (participantId) q.set("participantId", participantId);
+    return q.toString();
+  }, [from, to, status, type, branchId, roomId, organizerId, participantId]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ["reports", from, to, status, type],
-    queryFn: () => api<{ summary: Summary }>(`/api/reports?${query.toString()}`),
+    queryKey: ["reports", queryString],
+    queryFn: () => api<{ summary: Summary }>(`/api/reports?${queryString}`),
   });
+
+  const filterGroups = useMemo(
+    () => [
+      {
+        key: "range",
+        label: "بازه",
+        options: [
+          { value: "7", label: "۷ روز" },
+          { value: "30", label: "۳۰ روز" },
+          { value: "90", label: "۳ ماه" },
+          { value: "", label: "دلخواه" },
+        ],
+      },
+      {
+        key: "branch",
+        label: "شعبه",
+        options: [
+          { value: "", label: "همه" },
+          ...branches.map((b) => ({ value: b.id, label: b.name })),
+        ],
+      },
+      {
+        key: "room",
+        label: "اتاق",
+        options: [
+          { value: "", label: branchId ? "همه" : "ابتدا شعبه" },
+          ...rooms.map((r) => ({ value: r.id, label: r.name })),
+        ],
+      },
+      {
+        key: "status",
+        label: "وضعیت",
+        options: [{ value: "", label: "همه" }, ...Object.entries(STATUS_FA).map(([value, label]) => ({ value, label }))],
+      },
+      {
+        key: "type",
+        label: "نوع",
+        options: [{ value: "", label: "همه" }, ...Object.entries(TYPE_FA).map(([value, label]) => ({ value, label }))],
+      },
+    ],
+    [branches, rooms, branchId],
+  );
 
   const s = data?.summary;
   const maxHourly = Math.max(1, ...(s?.hourlyHistogram.map((h) => h.count) ?? [1]));
+
+  function handleFilterChange(v: Record<string, string>) {
+    const allEmpty = Object.values(v).every((x) => !x);
+    if (allEmpty) {
+      setOrganizer([]);
+      setParticipant([]);
+    }
+    if (v.branch !== branchId) {
+      v.room = "";
+      setRoomId("");
+    } else {
+      setRoomId(v.room ?? "");
+    }
+    setRangePreset(v.range ?? "");
+    setBranchId(v.branch ?? "");
+    setStatus(v.status ?? "");
+    setType(v.type ?? "");
+    if (v.range) {
+      const days = Number(v.range);
+      const nowIso = new Date().toISOString().slice(0, 10);
+      const fromIso = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+      setFrom(fromIso);
+      setTo(nowIso);
+    }
+  }
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
@@ -57,7 +164,7 @@ export default function ReportsPage() {
           <BarChart3 className="h-5 w-5" />
           گزارش‌ها
         </h1>
-        <a href={`/api/reports?${query.toString()}&format=csv`} download>
+        <a href={`/api/reports?${queryString}&format=csv`} download>
           <button className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium hover:bg-paper-soft">
             <Download className="h-4 w-4" />
             خروجی CSV
@@ -65,43 +172,10 @@ export default function ReportsPage() {
         </a>
       </div>
 
-      {/* Filters */}
       <FilterBar
-        groups={[
-          {
-            key: "range",
-            label: "بازه",
-            options: [
-              { value: "7", label: "۷ روز" },
-              { value: "30", label: "۳۰ روز" },
-              { value: "90", label: "۳ ماه" },
-              { value: "", label: "دلخواه" },
-            ],
-          },
-          {
-            key: "status",
-            label: "وضعیت",
-            options: [{ value: "", label: "همه" }, ...Object.entries(STATUS_FA).map(([value, label]) => ({ value, label }))],
-          },
-          {
-            key: "type",
-            label: "نوع",
-            options: [{ value: "", label: "همه" }, ...Object.entries(TYPE_FA).map(([value, label]) => ({ value, label }))],
-          },
-        ]}
-        value={{ range: rangePreset, status, type }}
-        onChange={(v) => {
-          setRangePreset(v.range);
-          setStatus(v.status);
-          setType(v.type);
-          if (v.range) {
-            const days = Number(v.range);
-            const nowIso = new Date().toISOString().slice(0, 10);
-            const fromIso = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-            setFrom(fromIso);
-            setTo(nowIso);
-          }
-        }}
+        groups={filterGroups}
+        value={{ range: rangePreset, branch: branchId, room: roomId, status, type }}
+        onChange={handleFilterChange}
       >
         <div className="flex items-center gap-2">
           <JalaliDatePicker
@@ -119,6 +193,29 @@ export default function ReportsPage() {
           />
         </div>
       </FilterBar>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium">برگزارکننده</label>
+          <PeoplePicker
+            value={organizer}
+            onChange={setOrganizer}
+            max={1}
+            allowManual={false}
+            placeholder="جستجوی برگزارکننده…"
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-[12px] font-medium">شرکت‌کننده</label>
+          <PeoplePicker
+            value={participant}
+            onChange={setParticipant}
+            max={1}
+            allowManual={false}
+            placeholder="جستجوی شرکت‌کننده…"
+          />
+        </div>
+      </div>
 
       {isLoading || !s ? (
         <>
@@ -183,7 +280,6 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            {/* Hourly histogram */}
             <Card>
               <CardHeader title="ساعت‌های پرتقاضا" subtitle="توزیع شروع جلسات در ساعات روز" />
               <CardBody>
@@ -201,7 +297,6 @@ export default function ReportsPage() {
               </CardBody>
             </Card>
 
-            {/* Room utilization */}
             <Card>
               <CardHeader title="بهره‌وری اتاق‌ها" subtitle="درصد اشغال در ساعات کاری" />
               <CardBody className="space-y-3">
@@ -224,7 +319,6 @@ export default function ReportsPage() {
               </CardBody>
             </Card>
 
-            {/* By branch */}
             <Card>
               <CardHeader title="جلسات به تفکیک شعبه" />
               <CardBody>
@@ -239,7 +333,6 @@ export default function ReportsPage() {
               </CardBody>
             </Card>
 
-            {/* By type */}
             <Card>
               <CardHeader title="جلسات به تفکیک نوع" />
               <CardBody>

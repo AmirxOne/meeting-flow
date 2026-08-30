@@ -4,31 +4,16 @@
 
 import type { Meeting } from "@prisma/client";
 import { prisma } from "@/server/db";
+import { createEmailProvider, type EmailProvider } from "./email-provider";
+import { createSmsProvider, type SmsProvider } from "./sms-provider";
+import { getOrgTimezone } from "./org-timezone.service";
+import { formatDateTimeInTz } from "@/lib/timezone";
 
-export interface SmsProvider {
-  readonly name: string;
-  send(to: string, text: string): Promise<void>;
-}
-export interface EmailProvider {
-  readonly name: string;
-  send(to: string, subject: string, body: string): Promise<void>;
-}
+export type { EmailProvider } from "./email-provider";
+export type { SmsProvider } from "./sms-provider";
 
-class MockSmsProvider implements SmsProvider {
-  readonly name = "mock-sms";
-  async send(to: string, text: string) {
-    console.log(`[sms:${this.name}] → ${to} :: ${text.replace(/\n/g, " ").slice(0, 80)}`);
-  }
-}
-class MockEmailProvider implements EmailProvider {
-  readonly name = "mock-email";
-  async send(to: string, subject: string, body: string) {
-    console.log(`[email:${this.name}] → ${to} :: ${subject}`);
-  }
-}
-
-export const smsProvider: SmsProvider = new MockSmsProvider();
-export const emailProvider: EmailProvider = new MockEmailProvider();
+export const smsProvider: SmsProvider = createSmsProvider();
+export const emailProvider: EmailProvider = createEmailProvider();
 
 export type NotificationType =
   | "MEETING_CREATED"
@@ -43,10 +28,9 @@ export type NotificationType =
   | "MEETING_STARTED"
   | "MEETING_EXTENDED";
 
-function faDateTime(d: Date): string {
-  const iso = new Date(d.getTime() + 210 * 60000).toISOString().slice(0, 16).replace("T", " ");
-  // Persian digits for user-facing notification bodies
-  return iso.replace(/[0-9]/g, (ch) => "۰۱۲۳۴۵۶۷۸۹"[Number(ch)]);
+async function faDateTime(d: Date): Promise<string> {
+  const tz = await getOrgTimezone();
+  return formatDateTimeInTz(d, tz);
 }
 
 async function notifyUsers(
@@ -90,7 +74,7 @@ export const notificationService = {
       others,
       "MEETING_CREATED",
       `جلسه «${meeting.title}» ایجاد شد`,
-      `${faDateTime(meeting.startAt)} تا ${faDateTime(meeting.endAt)}`,
+      `${await faDateTime(meeting.startAt)} تا ${await faDateTime(meeting.endAt)}`,
       { meetingId: meeting.id },
     );
     if (meeting.status === "PENDING_APPROVAL") {
@@ -105,7 +89,7 @@ export const notificationService = {
         operators.map((o) => o.id),
         "MEETING_CREATED",
         `درخواست جلسه «${meeting.title}» در انتظار تأیید`,
-        `${faDateTime(meeting.startAt)}`,
+        `${await faDateTime(meeting.startAt)}`,
         { meetingId: meeting.id, pendingApproval: true },
       );
     }
@@ -117,7 +101,7 @@ export const notificationService = {
       people,
       "MEETING_APPROVED",
       `جلسه «${meeting.title}» تأیید شد`,
-      `${faDateTime(meeting.startAt)}`,
+      `${await faDateTime(meeting.startAt)}`,
       { meetingId: meeting.id },
     );
   },
@@ -154,7 +138,7 @@ export const notificationService = {
       people,
       "MEETING_RESCHEDULED",
       `زمان جلسه «${meeting.title}» تغییر کرد`,
-      `${faDateTime(old.startAt)} ← ${faDateTime(meeting.startAt)}`,
+      `${await faDateTime(old.startAt)} ← ${await faDateTime(meeting.startAt)}`,
       { meetingId: meeting.id },
     );
   },
@@ -175,7 +159,7 @@ export const notificationService = {
       [userId],
       "PARTICIPANT_ADDED",
       `به جلسه «${meeting.title}» دعوت شدید`,
-      `${faDateTime(meeting.startAt)}`,
+      `${await faDateTime(meeting.startAt)}`,
       { meetingId: meeting.id },
     );
   },
@@ -208,7 +192,7 @@ export const notificationService = {
       people,
       "MEETING_STARTED",
       `جلسه «${meeting.title}» شروع شد`,
-      faDateTime(meeting.startAt),
+      await faDateTime(meeting.startAt),
       { meetingId: meeting.id },
     );
   },
@@ -219,7 +203,7 @@ export const notificationService = {
       people,
       "MEETING_EXTENDED",
       `جلسه «${meeting.title}» تمدید شد`,
-      `تا ${faDateTime(meeting.endAt)}`,
+      `تا ${await faDateTime(meeting.endAt)}`,
       { meetingId: meeting.id },
     );
   },

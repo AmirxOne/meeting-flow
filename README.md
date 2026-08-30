@@ -48,8 +48,8 @@ pnpm worker:dev                       # ترمینال ۲ — **الزامی ب�
 | `pnpm dev` | سرور توسعه (پورت ۳۱۰۰) |
 | `pnpm build` / `pnpm start` | پروداکشن |
 | `pnpm typecheck` | بررسی TypeScript |
-| `pnpm test` | تست‌های unit |
-| `pnpm vitest run tests/integration` | تست‌های integration (نیازمند dev server + seed) |
+| `pnpm test` | vitest — **242** تست (155 unit + 87 integration؛ integration نیازمند dev server `:3100` + seed) |
+| `pnpm vitest run tests/integration` | فقط integration (**87** تست) |
 | `pnpm db:migrate` / `pnpm db:seed` | migration / seed |
 | `pnpm worker` | worker یک‌بار (production) |
 | `pnpm worker:dev` | worker با hot-reload — **همراه dev لازم است** |
@@ -59,7 +59,7 @@ pnpm worker:dev                       # ترمینال ۲ — **الزامی ب�
 هر فیچر/فیکس قبل از کامیت باید این چرخه را طی کند (جزئیات کامل در `CLAUDE.md`):
 
 1. `pnpm run typecheck` → صفر خطا
-2. `pnpm run test` → همه سبز (۴۷ تست)
+2. `pnpm run test` → همه سبز (**242** تست: 155 unit + 87 integration)
 3. تست جدید مخصوص همان فیچر (unit یا E2E در `scripts/`)
 4. تست دستی با رول‌های مختلف: `admin` (ADMIN)، `ali` (EMPLOYEE)، `sara` (BRANCH_MANAGER) و برای فیچرهای دسترسی `superadmin` (SUPER_ADMIN) — پسوردها در seed
 5. کامیت + push به origin
@@ -105,71 +105,18 @@ src/
 ## تست‌ها
 
 ```bash
-pnpm test                            # 31 unit — state machine, conflicts, jalali
-pnpm vitest run tests/integration   # 16 integration — روی dev server واقعی
+pnpm run test        # 242 — 155 unit + 87 integration (vitest)
+pnpm run typecheck   # tsc --noEmit
+pnpm vitest run tests/integration   # فقط integration (87) — dev server :3100 + seed
 ```
 
-Integration شامل: لاگین اشتباه (401)، me، ساخت جلسه (auto-confirm)، **رد رزرو تداخلی (409)**، جلسه با مهمان → PENDING → تأیید اپراتور، employee نمی‌تواند تأیید کند (403)، reschedule + event history، تغییر اتاق، افزودن مشارکت‌کننده، لغو با دلیل، آزادشدن اسلات، availability، RBAC گزارش‌ها و audit.
+**Unit (155)** — state machine، conflicts، jalali، providers، lifecycle، RBAC helpers، …
 
-## Environment Variables
+**Integration (87)** — لاگین، lifecycle جلسه، start/end/no-show، availability، floors، room exclusions، user admin، RSVP، policies، organization، guest check-in، role management (SUPER_ADMIN)، profile self-service، …
 
-همه در `.env.example` با توضیح — مهم‌ترین‌ها: `DATABASE_URL`، `SESSION_SECRET`، `SESSION_TTL_HOURS`، `REMINDER_CHANNELS`، `NOTIFICATION_SMS_PROVIDER`، `WORKER_POLL_INTERVAL_MS`.
-
-## قابلیت‌های آماده برای آینده
-
-- **SMS/Email واقعی**: فقط Provider جدید implement کنید (`SmsProvider` interface) — کال‌سایت‌ها تغییر نمی‌کنند. یادآورها با `REMINDER_CHANNELS=IN_APP,SMS,EMAIL` در `MeetingReminder` schedule می‌شوند و worker ارسال می‌کند.
-- **Google/Outlook Calendar sync**: معماری event-based است؛ `MeetingEvent` + provider interface آماده اتصال.
-- **QR Check-in مهمان‌ها**: فیلد `checkinCode` در `MeetingGuest` از روز اول هست.
-
-## قاعده‌ی تست — بعد از هر فیچر
-
-هر فیچر/فیکس قبل از کامیت باید این چرخه را طی کند (جزئیات کامل در `CLAUDE.md`):
-
-1. `pnpm run typecheck` → صفر خطا
-2. `pnpm run test` → همه سبز (۴۷ تست)
-3. تست جدید مخصوص همان فیچر (unit یا E2E در `scripts/`)
-4. تست دستی با رول‌های مختلف: `admin` (ADMIN)، `ali` (EMPLOYEE)، `sara` (BRANCH_MANAGER) و برای فیچرهای دسترسی `superadmin` (SUPER_ADMIN) — پسوردها در seed
-5. کامیت + push به origin
-
-## معماری
-
-```
-src/
-├── app/                    # Next.js App Router
-│   ├── (app)/              # صفحات احراز‌هویت‌شده (RTL shell)
-│   │   ├── dashboard/      # داشبورد + نمودارها
-│   │   ├── calendar/       # تقویم شمسی/میلادی (ماه/هفته/روز)
-│   │   ├── meetings/       # لیست، ویزارد ساخت، جزئیات + اکشن‌ها
-│   │   ├── rooms/ people/  # اتاق‌ها، دایرکتوری افراد (جدول صفحه‌بندی‌دار)
-│   │   ├── availability/   # یافتن زمان مشترک افراد
-│   │   └── admin/          # کاربران، اتاق‌ها، سیاست‌ها، لاگ ممیزی
-│   └── api/                # Route Handlers (Zod + RBAC + audit)
-├── server/                 # لایه سرویس (modular monolith)
-│   ├── auth/               # session + permissions (RBAC)
-│   └── services/           # meeting, conflict, availability,
-│                           # notification, reminder, report
-├── components/ui/          # Select, Modal/BottomSheet, DatePicker شمسی،
-│                           # PeoplePicker, FilterBar, Toast, Motion
-├── lib/                    # jalali (ICU-based), fa (اعداد فارسی), validations
-└── worker/                 # job runner: یادآورها + lifecycle جلسات
-```
-
-## نکات فنی مهم
-
-- **ضد رزرو همزمان (Double-booking)**: سه لایه — سرویس، تراکنش SERIALIZABLE، و
-  `EXCLUSION constraint` دیتابیسی (`prisma/sql/room-exclusion.sql`). اگر دیتابیس
-  ریست شود، این SQL را دوباره اجرا کنید.
-- **تقویم شمسی**: بر پایه‌ی ICU رسمی Node (`Intl` با `ca-persian`) — الگوریتم
-  دستی در سال‌های کبیسه خطا دارد؛ از `src/lib/jalali.ts` استفاده کنید.
-- **اعداد فارسی**: فقط لایه‌ی نمایش (`faNum/faStr`) — ذخیره‌سازی همیشه UTC/لاتین.
-- **Timezone**: همه‌ی زمان‌ها UTC ذخیره و با offset تهران (+03:30) نمایش داده می‌شوند.
-
-## تست
+**E2E** (نیازمند dev server روی `:3100` + Chrome سیستمی؛ از `scripts/e2e-lib.cjs`):
 
 ```bash
-pnpm run test        # unit + integration (vitest)
-pnpm run typecheck   # tsc --noEmit
-# E2E (نیازمند dev server روی :3100 + Chrome سیستمی):
 node scripts/e2e-smoke.cjs
 node scripts/e2e-calendar.cjs
 node scripts/e2e-modal-forms.cjs
@@ -184,14 +131,28 @@ node scripts/e2e-reports.cjs
 node scripts/e2e-availability.cjs
 node scripts/e2e-branches.cjs
 node scripts/e2e-admin-policies.cjs
+node scripts/e2e-audit-logs.cjs
+node scripts/e2e-checkin.cjs
+node scripts/e2e-missing-pages.cjs   # admin/settings, meetings/new wizard, rooms/[id], /users
+node scripts/e2e-org-branding.cjs
+node scripts/e2e-room-exclusions.cjs
 ```
+
+## Environment Variables
+
+همه در `.env.example` با توضیح — مهم‌ترین‌ها: `DATABASE_URL`، `SESSION_SECRET`، `SESSION_TTL_HOURS`، `REMINDER_CHANNELS`، `NOTIFICATION_SMS_PROVIDER`، `WORKER_POLL_INTERVAL_MS`.
+
+## قابلیت‌های آماده برای آینده
+
+- **SMS/Email واقعی**: فقط Provider جدید implement کنید (`SmsProvider` interface) — کال‌سایت‌ها تغییر نمی‌کنند. یادآورها با `REMINDER_CHANNELS=IN_APP,SMS,EMAIL` در `MeetingReminder` schedule می‌شوند و worker ارسال می‌کند.
+- **Google/Outlook Calendar sync**: معماری event-based است؛ `MeetingEvent` + provider interface آماده اتصال.
 
 ## نقشه‌ی ادامه‌ی توسعه (Roadmap)
 
 - [ ] اتصال SMS واقعی (Kavenegar) — provider ports آماده در `notification.service`
 - [ ] ایمیل SMTP — همان interface
 - [ ] Sync تقویم Google / Outlook — معماری CalendarProvider آماده است
-- [ ] QR Check-in مهمان‌ها — مدل MeetingGuest فیلدهایش را دارد
+- [x] QR Check-in مهمان‌ها — `/checkin/[code]` + QR canvas + self check-in + E2E (`e2e-checkin.cjs`)
 - [ ] SSO / LDAP / Active Directory
 
 ## لایسنس

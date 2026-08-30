@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { organizationUpdateSchema } from "@/lib/validations";
+import { clearOrgTimezoneCache } from "@/server/services/org-timezone.service";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,10 @@ export async function PATCH(req: NextRequest) {
       },
       ip: req.headers.get("x-forwarded-for"),
     });
+
+    if (input.timezone !== undefined) {
+      clearOrgTimezoneCache();
+    }
 
     return ok({ organization: updated });
   } catch (e) {
