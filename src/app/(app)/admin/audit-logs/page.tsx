@@ -39,6 +39,7 @@ const ENTITY_FA: Record<string, string> = {
   User: "کاربر",
   MeetingRoom: "اتاق",
   MeetingPolicy: "سیاست",
+  Organization: "سازمان",
 };
 
 export default function AuditLogsPage() {

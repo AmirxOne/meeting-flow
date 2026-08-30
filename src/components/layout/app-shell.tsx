@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  LayoutDashboard, CalendarDays, Users, UserRound, DoorOpen, Building2, Bell,
+  LayoutDashboard, CalendarDays, Users, UsersRound, UserRound, DoorOpen, Building2, Bell,
   LifeBuoy,
   BarChart3, Settings, Search, LogOut, Menu, X, Plus, ChevronDown,
 } from "lucide-react";
@@ -22,6 +22,7 @@ const NAV = [
   { href: "/meetings", label: "جلسات", icon: Users, perm: null },
   { href: "/availability", label: "زمان مناسب", icon: Search, perm: null },
   { href: "/people", label: "افراد", icon: UserRound, perm: null },
+  { href: "/users", label: "کاربران", icon: UsersRound, perm: null },
   { href: "/rooms", label: "اتاق‌ها", icon: DoorOpen, perm: null },
   { href: "/branches", label: "شعب", icon: Building2, perm: null },
   { href: "/notifications", label: "اعلان‌ها", icon: Bell, perm: null },

@@ -8,8 +8,14 @@ import {
   type PolicyValues,
 } from "./state-machine";
 import { findRoomConflicts, findUserConflicts } from "./conflict.service";
+import { assertRoomNotExcludedOutsideTx, assertRoomNotExcluded } from "./room-exclusion.service";
 import { notificationService } from "./notification.service";
 import { scheduleReminders } from "./reminder.service";
+import {
+  canRespondToMeeting,
+  isParticipantResponse,
+} from "./participant-response.service";
+import { generateCheckinCode } from "./guest-checkin.service";
 
 export interface CreateMeetingInput {
   title: string;
@@ -60,6 +66,7 @@ async function assertRoomFree(
       "ROOM_CONFLICT",
     );
   }
+  await assertRoomNotExcludedOutsideTx(roomId, start, end);
 }
 
 /**
@@ -138,12 +145,15 @@ export async function createMeeting(input: CreateMeetingInput): Promise<Meeting>
       for (const uid of new Set(input.participantIds ?? [])) {
         if (uid === input.organizerId) continue;
         await tx.meetingParticipant.create({
-          data: { meetingId: meeting.id, userId: uid },
+          data: { meetingId: meeting.id, userId: uid, responseStatus: "PENDING" },
         });
       }
 
       for (const g of input.guests ?? []) {
-        await tx.meetingGuest.create({ data: { meetingId: meeting.id, ...g } });
+        const checkinCode = await generateCheckinCode();
+        await tx.meetingGuest.create({
+          data: { meetingId: meeting.id, ...g, checkinCode },
+        });
       }
 
       await tx.meetingEvent.create({
@@ -202,6 +212,7 @@ async function assertRoomFreeTx(
   if (rows > 0) {
     throw new HttpError(409, "اتاق در این بازه آزاد نیست", "ROOM_CONFLICT");
   }
+  await assertRoomNotExcluded(tx, roomId, start, end);
 }
 
 export interface TransitionContext {
@@ -502,7 +513,7 @@ export async function addParticipant(
   if (existing) throw new HttpError(409, "این فرد قبلاً اضافه شده است", "DUPLICATE");
 
   const p = await prisma.meetingParticipant.create({
-    data: { meetingId, userId, required: opts.required ?? true },
+    data: { meetingId, userId, required: opts.required ?? true, responseStatus: "PENDING" },
   });
   await prisma.meetingEvent.create({
     data: { meetingId, type: "PARTICIPANT_ADDED", actorId: ctx.actorId, data: { userId } },
@@ -526,6 +537,76 @@ export async function removeParticipant(
     data: { meetingId, type: "PARTICIPANT_REMOVED", actorId: ctx.actorId, data: { userId } },
   });
   return { removed: true };
+}
+
+export async function respondToMeeting(
+  meetingId: string,
+  responseStatus: "ACCEPTED" | "DECLINED" | "TENTATIVE",
+  ctx: TransitionContext,
+  targetUserId?: string,
+) {
+  if (!isParticipantResponse(responseStatus)) {
+    throw new HttpError(400, "وضعیت پاسخ نامعتبر است", "VALIDATION_ERROR");
+  }
+
+  const meeting = await prisma.meeting.findUnique({
+    where: { id: meetingId },
+    include: { organizer: { select: { fullName: true } } },
+  });
+  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  if (!canRespondToMeeting(meeting.status)) {
+    throw new HttpError(400, "به این جلسه دیگر نمی‌توان پاسخ داد", "BAD_STATE");
+  }
+
+  const userId = targetUserId ?? ctx.actorId;
+  const isOrganizer = meeting.organizerId === ctx.actorId;
+  const isSelf = userId === ctx.actorId;
+
+  if (!isSelf && !isOrganizer) {
+    throw new HttpError(403, "دسترسی لازم را ندارید", "FORBIDDEN");
+  }
+
+  const participant = await prisma.meetingParticipant.findUnique({
+    where: { meetingId_userId: { meetingId, userId } },
+    include: { user: { select: { fullName: true } } },
+  });
+  if (!participant) {
+    throw new HttpError(
+      isOrganizer && !isSelf ? 404 : 403,
+      isOrganizer && !isSelf ? "مشارکت‌کننده یافت نشد" : "شما در این جلسه دعوت نشده‌اید",
+      isOrganizer && !isSelf ? "NOT_FOUND" : "FORBIDDEN",
+    );
+  }
+  if (participant.role === "ORGANIZER") {
+    throw new HttpError(400, "برگزارکننده نیازی به پاسخ ندارد", "BAD_REQUEST");
+  }
+
+  const updated = await prisma.meetingParticipant.update({
+    where: { id: participant.id },
+    data: {
+      responseStatus,
+      ...(responseStatus === "ACCEPTED" ? {} : { joinedAt: null }),
+    },
+  });
+
+  await prisma.meetingEvent.create({
+    data: {
+      meetingId,
+      type: "PARTICIPANT_RESPONDED",
+      actorId: ctx.actorId,
+      data: { userId, responseStatus, forUserId: userId },
+    },
+  });
+
+  await notificationService.participantResponded(
+    meeting,
+    userId,
+    ctx.actorId,
+    responseStatus,
+    participant.user.fullName,
+  );
+
+  return updated;
 }
 
 /** Conflict pre-check for UI (warnings, does not throw). */

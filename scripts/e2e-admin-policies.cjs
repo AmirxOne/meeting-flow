@@ -1,0 +1,49 @@
+// E2E: admin policies — toggle a boolean policy
+const { BASE, login, dismissTour, gotoApp, launchBrowser, finish } = require("./e2e-lib.cjs");
+
+(async () => {
+  const browser = await launchBrowser();
+  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const results = [];
+  const check = (n, c) => results.push([n, !!c]);
+  const POLICY_KEY = "autoApproveInternal";
+  const POLICY_LABEL = "جلسه داخلی خودکار تأیید شود";
+
+  const { userId } = await login(page, "admin@example.com");
+
+  const beforeRes = await page.request.get(`${BASE}/api/admin/policies`);
+  const beforePolicies = (await beforeRes.json())?.data?.policies ?? [];
+  const before = beforePolicies.find((p) => p.key === POLICY_KEY)?.value;
+  check(`setup: read policy (${beforeRes.status()}, value=${before})`, beforeRes.status() === 200 && typeof before === "boolean");
+
+  await gotoApp(page, "/admin/policies", userId);
+  await page.locator("text=سیاست‌های جلسه").first().waitFor({ timeout: 30000 });
+  check("policies heading visible", (await page.locator("h1:has-text('سیاست‌های جلسه')").count()) === 1);
+
+  const row = page.locator("div.flex.items-center.justify-between", { hasText: POLICY_LABEL }).first();
+  await row.waitFor({ timeout: 15000 });
+  const toggle = row.locator('button[aria-label="تغییر"]');
+  check("bool policy toggle present", (await toggle.count()) === 1);
+
+  await dismissTour(page);
+  await toggle.click();
+  await page.waitForTimeout(1500);
+  const toast = await page.locator("text=سیاست ذخیره شد").count();
+  check("save toast after toggle", toast >= 1);
+
+  const afterRes = await page.request.get(`${BASE}/api/admin/policies`);
+  const afterPolicies = (await afterRes.json())?.data?.policies ?? [];
+  const after = afterPolicies.find((p) => p.key === POLICY_KEY)?.value;
+  check(`policy flipped via API (${before} → ${after})`, after === !before);
+
+  // restore seed default (autoApproveInternal: true)
+  await page.request.patch(`${BASE}/api/admin/policies`, {
+    headers: { "Content-Type": "application/json" },
+    data: { key: POLICY_KEY, value: true },
+  });
+  const restoredRes = await page.request.get(`${BASE}/api/admin/policies`);
+  const restored = ((await restoredRes.json())?.data?.policies ?? []).find((p) => p.key === POLICY_KEY)?.value;
+  check(`policy restored to seed (${restored})`, restored === true);
+
+  await finish(results, browser);
+})();

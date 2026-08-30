@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, MapPin, Phone, User, Plus, Pencil, Trash2, Power } from "lucide-react";
+import { Building2, MapPin, Phone, User, Plus, Pencil, Trash2, Power, Layers } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
 import { Card, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,10 @@ export default function BranchesPage() {
   const [editing, setEditing] = useState<Branch | null>(null);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ name: "", address: "", phone: "", managerId: "" });
+  const [floorBranch, setFloorBranch] = useState<Branch | null>(null);
+  const [floorEditing, setFloorEditing] = useState<{ id: string; name: string; number: number } | null>(null);
+  const [floorForm, setFloorForm] = useState({ name: "", number: "" });
+  const [floorBusy, setFloorBusy] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["branches"],
@@ -118,6 +122,74 @@ export default function BranchesPage() {
     }
   }
 
+  function openFloors(b: Branch) {
+    setFloorBranch(b);
+    setFloorEditing(null);
+    setFloorForm({ name: "", number: "" });
+  }
+
+  function openFloorEdit(f: { id: string; name: string; number: number }) {
+    setFloorEditing(f);
+    setFloorForm({ name: f.name, number: String(f.number) });
+  }
+
+  async function saveFloor() {
+    if (!floorBranch) return;
+    const number = Number(floorForm.number);
+    if (!floorForm.name.trim() || !Number.isInteger(number)) {
+      push("نام و شماره طبقه را وارد کنید", "error");
+      return;
+    }
+    setFloorBusy(true);
+    try {
+      const payload = { name: floorForm.name.trim(), number };
+      if (floorEditing) {
+        await api(`/api/branches/${floorBranch.id}/floors/${floorEditing.id}`, {
+          method: "PATCH",
+          json: payload,
+        });
+        push("طبقه ویرایش شد", "success");
+      } else {
+        await api(`/api/branches/${floorBranch.id}/floors`, { method: "POST", json: payload });
+        push("طبقه اضافه شد", "success");
+      }
+      setFloorEditing(null);
+      setFloorForm({ name: "", number: "" });
+      qc.invalidateQueries({ queryKey: ["branches"] });
+      const refreshed = await api<{ branches: Branch[] }>("/api/branches");
+      const next = refreshed.branches.find((x) => x.id === floorBranch.id);
+      if (next) setFloorBranch(next);
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setFloorBusy(false);
+    }
+  }
+
+  async function removeFloor(f: { id: string; name: string }) {
+    if (!floorBranch) return;
+    if (!confirm(`حذف «${f.name}»؟`)) return;
+    setFloorBusy(true);
+    try {
+      await api(`/api/branches/${floorBranch.id}/floors/${f.id}`, { method: "DELETE" });
+      push("طبقه حذف شد", "success");
+      setFloorEditing(null);
+      setFloorForm({ name: "", number: "" });
+      qc.invalidateQueries({ queryKey: ["branches"] });
+      const refreshed = await api<{ branches: Branch[] }>("/api/branches");
+      const next = refreshed.branches.find((x) => x.id === floorBranch.id);
+      if (next) setFloorBranch(next);
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setFloorBusy(false);
+    }
+  }
+
+  const floorList = floorBranch
+    ? (branches.find((b) => b.id === floorBranch.id)?.floors ?? floorBranch.floors)
+    : [];
+
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div className="flex items-center justify-between">
@@ -179,6 +251,87 @@ export default function BranchesPage() {
           </div>
         )}
         
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!floorBranch}
+        onClose={() => setFloorBranch(null)}
+        title={floorBranch ? `طبقات ${floorBranch.name}` : "طبقات"}
+        subtitle="هر طبقه می‌تواند چند اتاق داشته باشد"
+        wide
+        footer={
+          <Button variant="ghost" onClick={() => setFloorBranch(null)}>
+            بستن
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <input
+              placeholder="نام طبقه *"
+              value={floorForm.name}
+              onChange={(e) => setFloorForm({ ...floorForm, name: e.target.value })}
+              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+            />
+            <input
+              type="number"
+              dir="ltr"
+              placeholder="شماره طبقه *"
+              value={floorForm.number}
+              onChange={(e) => setFloorForm({ ...floorForm, number: e.target.value })}
+              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+            />
+            <div className="flex gap-2">
+              <Button onClick={saveFloor} loading={floorBusy} disabled={floorForm.name.trim().length < 1 || floorForm.number === ""}>
+                {floorEditing ? "ذخیره" : "افزودن طبقه"}
+              </Button>
+              {floorEditing && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setFloorEditing(null);
+                    setFloorForm({ name: "", number: "" });
+                  }}
+                >
+                  انصراف
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {floorList.length === 0 ? (
+            <p className="text-center text-[12px] text-ink-faint py-4">هنوز طبقه‌ای ثبت نشده</p>
+          ) : (
+            <div className="divide-y divide-line rounded-md border border-line">
+              {floorList.map((f) => (
+                <div key={f.id} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <div>
+                    <p className="text-[13px] font-medium">{f.name}</p>
+                    <p className="text-[11px] text-ink-soft">شماره {faNum(f.number)}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => openFloorEdit(f)}
+                      className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
+                      aria-label="ویرایش طبقه"
+                      title="ویرایش"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => removeFloor(f)}
+                      className="rounded-md p-2 text-ink-faint hover:bg-red-50 hover:text-red-600"
+                      aria-label="حذف طبقه"
+                      title="حذف"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Modal>
 
@@ -265,6 +418,14 @@ export default function BranchesPage() {
                 </div>
                 {canManage && (
                   <div className="flex shrink-0 flex-col gap-1">
+                    <button
+                      onClick={() => openFloors(b)}
+                      className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
+                      aria-label="مدیریت طبقات"
+                      title="مدیریت طبقات"
+                    >
+                      <Layers className="h-4 w-4" />
+                    </button>
                     <button
                       onClick={() => openEdit(b)}
                       className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   Users, Contact, DoorOpen, Settings, ScrollText, Building2,
-  CalendarDays, Hourglass, UserX, ShieldCheck, ArrowLeft, Activity,
+  CalendarDays, Hourglass, UserX, ShieldCheck, ArrowLeft, Activity, SlidersHorizontal,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardHeader, SkeletonBlock } from "@/components/ui/card";
@@ -48,6 +48,7 @@ const ENTITY_FA: Record<string, string> = {
   Meeting: "جلسه",
   PersonDirectory: "فرد",
   MeetingPolicy: "سیاست",
+  Organization: "سازمان",
 };
 
 export default function AdminPage() {
@@ -67,6 +68,7 @@ export default function AdminPage() {
     { href: "/admin/people", label: "افراد", desc: "دایرکتوری اعضا و ارتباط‌های خارجی", icon: Contact },
     { href: "/admin/rooms", label: "اتاق‌ها", desc: "ساخت، ویرایش و مدیریت اتاق‌ها", icon: DoorOpen },
     { href: "/admin/policies", label: "سیاست‌ها", desc: "قواعد تأیید و محدودیت‌های جلسات", icon: Settings },
+    { href: "/admin/settings", label: "تنظیمات سازمان", desc: "نام، منطقه زمانی و لوگوی سازمان", icon: SlidersHorizontal },
     { href: "/admin/audit-logs", label: "لاگ ممیزی", desc: "تاریخچه کامل عملیات سیستم", icon: ScrollText },
   ];
 

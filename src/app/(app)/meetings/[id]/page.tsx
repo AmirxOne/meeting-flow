@@ -18,6 +18,7 @@ import { cn, faNum, faStr, formatJalali, CANCEL_REASON_FA, RESPONSE_FA } from "@
 import { Select } from "@/components/ui/select";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
+import { GuestCheckinPanel } from "@/components/checkin/guest-checkin-panel";
 import { CANCEL_REASONS } from "@/lib";
 
 interface MeetingDetail {
@@ -43,7 +44,15 @@ interface MeetingDetail {
     joinedAt: string | null;
     user: { id: string; fullName: string; jobTitle: string | null; department: string | null };
   }[];
-  guests: { id: string; name: string; company: string | null; phone: string | null; email: string | null }[];
+  guests: {
+    id: string;
+    name: string;
+    company: string | null;
+    phone: string | null;
+    email: string | null;
+    checkinCode: string | null;
+    arrivedAt: string | null;
+  }[];
   approvals: {
     id: string;
     action: string;
@@ -72,6 +81,8 @@ const EVENT_FA: Record<string, string> = {
   EXTENDED: "تمدید شد",
   PARTICIPANT_ADDED: "افزودن مشارکت‌کننده",
   PARTICIPANT_REMOVED: "حذف مشارکت‌کننده",
+  PARTICIPANT_RESPONDED: "پاسخ به دعوت",
+  GUEST_CHECKED_IN: "ثبت حضور مهمان",
   IN_PROGRESS: "در حال برگزاری",
   COMPLETED: "تکمیل شد",
 };
@@ -105,6 +116,22 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
     queryFn: () => api<{ rooms: { id: string; name: string; capacity: number }[] }>("/api/rooms"),
     enabled: showReschedule || data?.meeting.status === "CONFIRMED",
   });
+
+  async function respond(status: "ACCEPTED" | "DECLINED" | "TENTATIVE") {
+    setBusy(`rsvp-${status}`);
+    try {
+      await api(`/api/meetings/${id}/participants/respond`, {
+        method: "POST",
+        json: { responseStatus: status },
+      });
+      push("پاسخ شما ثبت شد", "success");
+      qc.invalidateQueries({ queryKey: ["meeting", id] });
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function act(
     key: string,
@@ -211,11 +238,31 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
     setRsTime(ltStart.toISOString().slice(11, 16));
   }
   const isOrganizer = me?.id === m.organizer.id;
+  const myParticipation = m.participants.find(
+    (p) => p.userId === me?.id && p.role !== "ORGANIZER",
+  );
+  const canRespond =
+    !!myParticipation && !["COMPLETED", "CANCELLED", "REJECTED", "NO_SHOW"].includes(m.status);
   const now = new Date();
   const isLive = m.status === "IN_PROGRESS";
   const canApprove = m.status === "PENDING_APPROVAL" && can("meeting:approve");
   const canReject = m.status === "PENDING_APPROVAL" && can("meeting:reject");
   const durationMin = Math.round((new Date(m.endAt).getTime() - new Date(m.startAt).getTime()) / 60000);
+  const canManageGuests =
+    isOrganizer || can("meeting:manage-guests") || can("meeting:add-participant");
+
+  async function manualGuestCheckin(guestId: string) {
+    setBusy(`checkin-${guestId}`);
+    try {
+      await api(`/api/meetings/${id}/guests/${guestId}/checkin`, { method: "POST", json: {} });
+      push("حضور مهمان ثبت شد", "success");
+      qc.invalidateQueries({ queryKey: ["meeting", id] });
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-4 lg:p-6">
@@ -479,6 +526,46 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
             </CardBody>
           </Card>
 
+          {canRespond && (
+            <Card>
+              <CardHeader
+                title="پاسخ شما به دعوت"
+                subtitle={`وضعیت فعلی: ${RESPONSE_FA[myParticipation!.responseStatus] ?? myParticipation!.responseStatus}`}
+              />
+              <CardBody>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant={myParticipation!.responseStatus === "ACCEPTED" ? "primary" : "secondary"}
+                    loading={busy === "rsvp-ACCEPTED"}
+                    onClick={() => respond("ACCEPTED")}
+                  >
+                    <Check className="h-4 w-4" />
+                    می‌آیم
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={myParticipation!.responseStatus === "DECLINED" ? "primary" : "secondary"}
+                    loading={busy === "rsvp-DECLINED"}
+                    onClick={() => respond("DECLINED")}
+                  >
+                    <X className="h-4 w-4" />
+                    نمی‌آیم
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={myParticipation!.responseStatus === "TENTATIVE" ? "primary" : "secondary"}
+                    loading={busy === "rsvp-TENTATIVE"}
+                    onClick={() => respond("TENTATIVE")}
+                  >
+                    <Clock className="h-4 w-4" />
+                    شاید
+                  </Button>
+                </div>
+              </CardBody>
+            </Card>
+          )}
+
           {/* Participants */}
           <Card>
             <CardHeader
@@ -542,8 +629,8 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               ))}
               {m.guests.map((g) => (
-                <div key={g.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-[11px] font-bold text-amber-700">
+                <div key={g.id} className="flex items-start gap-3 px-5 py-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[11px] font-bold text-amber-700">
                     خ
                   </div>
                   <div className="min-w-0 flex-1">
@@ -551,9 +638,21 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
                     <p className="text-[11px] text-ink-faint">
                       مهمان خارجی{g.company ? ` · ${g.company}` : ""}
                       {g.phone ? ` · ${faStr(g.phone)}` : ""}
+                      {g.arrivedAt
+                        ? ` · حاضر ${formatJalali(new Date(g.arrivedAt), { withTime: true }).split("—")[1]?.trim() ?? ""}`
+                        : ""}
                     </p>
                   </div>
-                  <span className="badge badge-amber">مهمان</span>
+                  {canManageGuests ? (
+                    <GuestCheckinPanel
+                      checkinCode={g.checkinCode}
+                      arrivedAt={g.arrivedAt}
+                      busy={busy === `checkin-${g.id}`}
+                      onManualCheckin={() => manualGuestCheckin(g.id)}
+                    />
+                  ) : (
+                    <span className="badge badge-amber">مهمان</span>
+                  )}
                 </div>
               ))}
             </div>

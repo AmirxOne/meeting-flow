@@ -41,8 +41,11 @@ docker compose up -d postgres redis
 pnpm install
 cp .env.example .env   # مقادیر را پر کن
 pnpm exec prisma migrate dev && pnpm db:seed
-pnpm dev               # → http://localhost:3100
+pnpm dev               # ترمینال ۱ → http://localhost:3100
+pnpm worker:dev        # ترمینال ۲ — الزامی برای یادآورها
 ```
+
+**یادآورها:** `scheduleReminders` ردیف می‌سازد؛ ارسال فقط با worker (`pnpm worker:dev`) یا cron روی `POST /api/internal/worker-tick` (اگر `WORKER_TICK_SECRET` ست باشد). کانال‌ها: `REMINDER_CHANNELS=IN_APP,SMS,EMAIL`.
 
 ## معماری
 
@@ -66,4 +69,4 @@ src/
 
 - `pnpm run test` — vitest (unit + integration)
 - `pnpm run typecheck`
-- E2E: `node scripts/e2e-*.cjs` — smoke(14), calendar(12), people-pagination(11), people-page(6), notification-click(7), private-meetings(7), modal-forms(11), guided-tours(6), datepicker-people
+- E2E: `node scripts/e2e-*.cjs` — smoke, calendar, people-pagination, people-page, notification-click, private-meetings, modal-forms, guided-tours, datepicker-people, room-branch-crud, reports, availability, branches, admin-policies

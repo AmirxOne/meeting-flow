@@ -2,14 +2,28 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Power } from "lucide-react";
+import { Plus, Pencil, Trash2, Power, Wrench } from "lucide-react";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, EmptyState, SkeletonBlock, SkeletonTable } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/modal";
-import { cn, faNum, EQUIPMENT_FA, EQUIPMENT_LIST } from "@/lib";
+import { cn, faNum, formatJalali, EQUIPMENT_FA, EQUIPMENT_LIST } from "@/lib";
+import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
+
+interface BranchOption {
+  id: string;
+  name: string;
+  floors: { id: string; name: string; number: number }[];
+}
+
+interface RoomExclusion {
+  id: string;
+  reason: string;
+  startAt: string;
+  endAt: string;
+}
 
 interface AdminRoom {
   id: string;
@@ -20,10 +34,16 @@ interface AdminRoom {
   branchId: string;
   branch: { id: string; name: string };
   floor: { id: string; name: string } | null;
+  manager: { id: string; fullName: string } | null;
   equipment: { equipment: string }[];
   openTime: string | null;
   closeTime: string | null;
   description: string | null;
+}
+
+interface ManagerOption {
+  id: string;
+  fullName: string;
 }
 
 export default function AdminRoomsPage() {
@@ -34,6 +54,7 @@ export default function AdminRoomsPage() {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     branchId: "",
+    floorId: "",
     name: "",
     capacity: "8",
     isVip: false,
@@ -41,20 +62,60 @@ export default function AdminRoomsPage() {
     openTime: "08:00",
     closeTime: "20:00",
     description: "",
+    managerId: "",
   });
+  const [exclusionRoom, setExclusionRoom] = useState<AdminRoom | null>(null);
+  const [exForm, setExForm] = useState({
+    reason: "",
+    startDate: "",
+    startTime: "09:00",
+    endDate: "",
+    endTime: "12:00",
+  });
+  const [exBusy, setExBusy] = useState(false);
 
   const { data: branchesData } = useQuery({
     queryKey: ["branches"],
-    queryFn: () => api<{ branches: { id: string; name: string }[] }>("/api/branches"),
+    queryFn: () => api<{ branches: BranchOption[] }>("/api/branches"),
   });
   const { data, isLoading } = useQuery({
     queryKey: ["rooms", "admin"],
     queryFn: () => api<{ rooms: AdminRoom[] }>("/api/rooms?all=1"),
   });
 
+  const { data: managersData } = useQuery({
+    queryKey: ["users", "managers"],
+    queryFn: () => api<{ users: ManagerOption[] }>("/api/users"),
+  });
+
+  const { data: exclusionsData, refetch: refetchExclusions } = useQuery({
+    queryKey: ["room-exclusions", exclusionRoom?.id],
+    queryFn: () => api<{ exclusions: RoomExclusion[] }>(`/api/rooms/${exclusionRoom!.id}/exclusions`),
+    enabled: !!exclusionRoom,
+  });
+
+  const branches = branchesData?.branches ?? [];
+  const activeBranchId = editing?.branchId ?? form.branchId;
+  const floorOptions = branches.find((b) => b.id === activeBranchId)?.floors ?? [];
+  const managerOptions = (managersData?.users ?? []).map((u) => ({
+    value: u.id,
+    label: u.fullName,
+  }));
+
   function openCreate() {
     setEditing(null);
-    setForm({ branchId: "", name: "", capacity: "8", isVip: false, equipment: [], openTime: "08:00", closeTime: "20:00", description: "" });
+    setForm({
+      branchId: "",
+      floorId: "",
+      name: "",
+      capacity: "8",
+      isVip: false,
+      equipment: [],
+      openTime: "08:00",
+      closeTime: "20:00",
+      description: "",
+      managerId: "",
+    });
     setShowForm(true);
   }
 
@@ -62,6 +123,7 @@ export default function AdminRoomsPage() {
     setEditing(r);
     setForm({
       branchId: r.branchId,
+      floorId: r.floor?.id ?? "",
       name: r.name,
       capacity: String(r.capacity),
       isVip: r.isVip,
@@ -69,8 +131,68 @@ export default function AdminRoomsPage() {
       openTime: r.openTime ?? "",
       closeTime: r.closeTime ?? "",
       description: r.description ?? "",
+      managerId: r.manager?.id ?? "",
     });
     setShowForm(true);
+  }
+
+  function onBranchChange(branchId: string) {
+    setForm({ ...form, branchId, floorId: "" });
+  }
+
+  function isoToday(): string {
+    const t = new Date(Date.now() + 210 * 60000);
+    return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, "0")}-${String(t.getUTCDate()).padStart(2, "0")}`;
+  }
+
+  function openExclusions(r: AdminRoom) {
+    setExclusionRoom(r);
+    setExForm({
+      reason: "",
+      startDate: isoToday(),
+      startTime: "09:00",
+      endDate: isoToday(),
+      endTime: "12:00",
+    });
+  }
+
+  async function addExclusion() {
+    if (!exclusionRoom) return;
+    if (!exForm.reason.trim() || !exForm.startDate || !exForm.endDate || !exForm.startTime || !exForm.endTime) {
+      push("همه فیلدها را پر کنید", "error");
+      return;
+    }
+    setExBusy(true);
+    try {
+      const startAt = tehranInstant(exForm.startDate, exForm.startTime);
+      const endAt = tehranInstant(exForm.endDate, exForm.endTime);
+      await api(`/api/rooms/${exclusionRoom.id}/exclusions`, {
+        method: "POST",
+        json: { reason: exForm.reason.trim(), startAt: startAt.toISOString(), endAt: endAt.toISOString() },
+      });
+      push("غیرفعال‌سازی ثبت شد", "success");
+      setExForm({ reason: "", startDate: isoToday(), startTime: "09:00", endDate: isoToday(), endTime: "12:00" });
+      refetchExclusions();
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setExBusy(false);
+    }
+  }
+
+  async function removeExclusion(ex: RoomExclusion) {
+    if (!exclusionRoom) return;
+    if (!confirm(`حذف «${ex.reason}»؟`)) return;
+    setExBusy(true);
+    try {
+      await api(`/api/rooms/${exclusionRoom.id}/exclusions/${ex.id}`, { method: "DELETE" });
+      push("غیرفعال‌سازی حذف شد", "success");
+      refetchExclusions();
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setExBusy(false);
+    }
   }
 
   async function save() {
@@ -78,6 +200,7 @@ export default function AdminRoomsPage() {
     try {
       const payload = {
         ...(editing ? {} : { branchId: form.branchId }),
+        floorId: form.floorId || null,
         name: form.name.trim(),
         capacity: Number(form.capacity),
         isVip: form.isVip,
@@ -85,6 +208,7 @@ export default function AdminRoomsPage() {
         openTime: form.openTime || undefined,
         closeTime: form.closeTime || undefined,
         description: form.description.trim() || undefined,
+        managerId: form.managerId || null,
       };
       if (editing) {
         await api(`/api/rooms/${editing.id}/manage`, { method: "PATCH", json: payload });
@@ -169,12 +293,34 @@ export default function AdminRoomsPage() {
             <label className="mb-1 block text-[11px] text-ink-soft">شعبه *</label>
             <Select
               value={form.branchId}
-              onChange={(v) => setForm({ ...form, branchId: v })}
+              onChange={onBranchChange}
               placeholder="انتخاب شعبه…"
-              options={(branchesData?.branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
+              options={branches.map((b) => ({ value: b.id, label: b.name }))}
             />
           </div>
         )}
+        <div>
+          <label className="mb-1 block text-[11px] text-ink-soft">طبقه</label>
+          <Select
+            value={form.floorId}
+            onChange={(v) => setForm({ ...form, floorId: v })}
+            placeholder={activeBranchId ? "انتخاب طبقه…" : "ابتدا شعبه را انتخاب کنید"}
+            disabled={!activeBranchId}
+            options={floorOptions.map((f) => ({
+              value: f.id,
+              label: `${f.name} (${faNum(f.number)})`,
+            }))}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[11px] text-ink-soft">مدیر اتاق</label>
+          <Select
+            value={form.managerId}
+            onChange={(v) => setForm({ ...form, managerId: v })}
+            placeholder="بدون مدیر"
+            options={managerOptions}
+          />
+        </div>
         <input
           placeholder="نام اتاق *"
           value={form.name}
@@ -242,6 +388,97 @@ export default function AdminRoomsPage() {
         </div>
       </Modal>
 
+      <Modal
+        open={!!exclusionRoom}
+        onClose={() => setExclusionRoom(null)}
+        title={exclusionRoom ? `تعمیر / غیرفعال — ${exclusionRoom.name}` : "غیرفعال‌سازی موقت"}
+        subtitle="در بازه‌های ثبت‌شده رزرو جدید ممکن نیست"
+        wide
+        footer={
+          <Button variant="ghost" onClick={() => setExclusionRoom(null)}>
+            بستن
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-[11px] text-ink-soft">دلیل *</label>
+              <input
+                placeholder="مثلاً تعمیرات، رزرو VIP، …"
+                value={exForm.reason}
+                onChange={(e) => setExForm({ ...exForm, reason: e.target.value })}
+                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">شروع — تاریخ</label>
+              <JalaliDatePicker
+                value={exForm.startDate}
+                onChange={(v) => setExForm({ ...exForm, startDate: v })}
+                min={isoToday()}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">شروع — ساعت</label>
+              <TimePicker
+                value={exForm.startTime}
+                onChange={(v) => setExForm({ ...exForm, startTime: v })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">پایان — تاریخ</label>
+              <JalaliDatePicker
+                value={exForm.endDate}
+                onChange={(v) => setExForm({ ...exForm, endDate: v })}
+                min={exForm.startDate || isoToday()}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] text-ink-soft">پایان — ساعت</label>
+              <TimePicker
+                value={exForm.endTime}
+                onChange={(v) => setExForm({ ...exForm, endTime: v })}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Button
+                onClick={addExclusion}
+                loading={exBusy}
+                disabled={!exForm.reason.trim() || !exForm.startDate || !exForm.endDate}
+              >
+                ثبت غیرفعال‌سازی
+              </Button>
+            </div>
+          </div>
+
+          {(exclusionsData?.exclusions ?? []).length === 0 ? (
+            <p className="text-center text-[12px] text-ink-faint py-4">غیرفعال‌سازی آینده‌ای ثبت نشده</p>
+          ) : (
+            <div className="divide-y divide-line rounded-md border border-line">
+              {(exclusionsData?.exclusions ?? []).map((ex) => (
+                <div key={ex.id} className="flex items-start justify-between gap-3 px-4 py-3">
+                  <div>
+                    <p className="text-[13px] font-medium">{ex.reason}</p>
+                    <p className="mt-0.5 text-[11px] text-ink-soft">
+                      {formatJalali(new Date(ex.startAt), { withTime: true })} — {formatJalali(new Date(ex.endAt), { withTime: true })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => removeExclusion(ex)}
+                    className="rounded-md p-2 text-ink-faint hover:bg-red-50 hover:text-red-600"
+                    aria-label="حذف"
+                    title="حذف"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+
       {isLoading ? (
         <Card className="overflow-hidden">
           <div className="border-b border-line px-5 py-4">
@@ -266,6 +503,8 @@ export default function AdminRoomsPage() {
                 <tr>
                   <th className="px-4 py-2.5 font-medium">نام</th>
                   <th className="px-4 py-2.5 font-medium">شعبه</th>
+                  <th className="hidden px-4 py-2.5 font-medium sm:table-cell">طبقه</th>
+                  <th className="hidden px-4 py-2.5 font-medium lg:table-cell">مدیر</th>
                   <th className="px-4 py-2.5 font-medium">ظرفیت</th>
                   <th className="hidden px-4 py-2.5 font-medium md:table-cell">تجهیزات</th>
                   <th className="hidden px-4 py-2.5 font-medium md:table-cell">ساعات</th>
@@ -281,6 +520,8 @@ export default function AdminRoomsPage() {
                       {r.isVip && <span className="badge badge-black mr-1.5">VIP</span>}
                     </td>
                     <td className="px-4 py-3 text-ink-soft">{r.branch.name}</td>
+                    <td className="hidden px-4 py-3 text-ink-soft sm:table-cell">{r.floor?.name ?? "—"}</td>
+                    <td className="hidden px-4 py-3 text-ink-soft lg:table-cell">{r.manager?.fullName ?? "—"}</td>
                     <td className="px-4 py-3">{faNum(r.capacity)} نفر</td>
                     <td className="hidden px-4 py-3 md:table-cell">
                       <div className="flex flex-wrap gap-1">
@@ -299,6 +540,14 @@ export default function AdminRoomsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => openExclusions(r)}
+                          className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
+                          title="تعمیر / غیرفعال موقت"
+                          aria-label="غیرفعال‌سازی موقت"
+                        >
+                          <Wrench className="h-3.5 w-3.5" />
+                        </button>
                         <button
                           onClick={() => openEdit(r)}
                           className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
@@ -338,4 +587,10 @@ export default function AdminRoomsPage() {
 
 function faStr2(s: string): string {
   return s.replace(/[0-9]/g, (ch) => "۰۱۲۳۴۵۶۷۸۹"[Number(ch)]);
+}
+
+function tehranInstant(isoDate: string, time: string): Date {
+  const [y, mo, d] = isoDate.split("-").map(Number);
+  const [h, mi] = time.split(":").map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, h, mi) - 210 * 60000);
 }

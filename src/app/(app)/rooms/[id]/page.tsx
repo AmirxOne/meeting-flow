@@ -214,6 +214,7 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
           <CardHeader title="مشخصات اتاق" />
           <CardBody className="space-y-3 text-[12px]">
             <Row label="ظرفیت" value={`${faNum(room.capacity)} نفر`} />
+            <Row label="مدیر اتاق" value={room.manager?.fullName ?? "—"} />
             <Row label="اتاق VIP" value={room.isVip ? "بله" : "خیر"} />
             <Row label="حداقل مدت رزرو" value={`${faNum(room.minDurationMin)} دقیقه`} />
             <Row label="حداکثر مدت رزرو" value={`${faNum(room.maxDurationMin)} دقیقه`} />

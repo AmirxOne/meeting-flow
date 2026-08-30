@@ -79,14 +79,15 @@ export default function NotificationsPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4 p-4 lg:p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="flex items-center gap-2 text-lg font-bold">
-          اعلان‌ها
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold">اعلان‌ها</h1>
           {data && data.unreadCount > 0 && (
-            <span className="rounded-full bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white">
-              {faNum(data.unreadCount)}
-            </span>
+            <p className="mt-0.5 flex items-center gap-1.5 text-[12px] text-ink-soft">
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" aria-hidden />
+              {faNum(data.unreadCount)} اعلان خوانده‌نشده
+            </p>
           )}
-        </h1>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setOnlyUnread((v) => !v)}
