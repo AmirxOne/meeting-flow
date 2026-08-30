@@ -1,5 +1,10 @@
 import { prisma } from "@/server/db";
 import {
+  startOfDayUtcInTz,
+  addLocalDaysUtc,
+} from "@/lib/timezone";
+import { getOrgTimezone } from "./org-timezone.service";
+import {
   BLOCKING_STATUSES,
   subtractBusy,
   candidateSlots,
@@ -31,21 +36,6 @@ function parseHHMM(s: string | null | undefined, fallback: number): number {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
-/** minutes-of-day for an instant in org timezone (fixed +03:30, no DST). */
-function minutesOfDayTehran(d: Date): number {
-  const t = new Date(d.getTime() + 210 * 60000); // +03:30
-  return t.getUTCHours() * 60 + t.getUTCMinutes();
-}
-
-function startOfLocalDay(d: Date): Date {
-  const t = new Date(d.getTime() + 210 * 60000);
-  return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()) - 210 * 60000);
-}
-
-function addLocalDays(d: Date, days: number): Date {
-  return new Date(d.getTime() + days * 86400000);
-}
-
 export interface FindSlotsInput {
   branchId: string;
   participantIds: string[];
@@ -74,6 +64,7 @@ export async function findAvailableSlots(
   } = input;
 
   const peopleIds = [...new Set([organizerId, ...input.participantIds])];
+  const tz = await getOrgTimezone();
 
   // 1) rooms in branch with capacity & equipment
   const rooms = await prisma.meetingRoom.findMany({
@@ -138,14 +129,14 @@ export async function findAvailableSlots(
   });
   for (const o of orgs) peopleBusy.push({ start: o.startAt, end: o.endAt });
 
-  // 4) walk day-by-day, per room opening hours
+  // 4) walk day-by-day, per room opening hours (org timezone)
   const suggestions: SlotSuggestion[] = [];
-  let day = startOfLocalDay(from);
+  let day = startOfDayUtcInTz(from, tz);
   const lastDay = to;
 
   while (day < lastDay && suggestions.length < maxSlots) {
     const dayStart = day;
-    const dayEnd = addLocalDays(day, 1);
+    const dayEnd = addLocalDaysUtc(day, 1, tz);
 
     // people free intervals this day
     const peopleFree = subtractBusy(dayStart, dayEnd, peopleBusy);
@@ -190,7 +181,7 @@ export async function findAvailableSlots(
       }
       if (suggestions.length >= maxSlots) break;
     }
-    day = addLocalDays(day, 1);
+    day = addLocalDaysUtc(day, 1, tz);
   }
 
   // merge rooms per identical slot start

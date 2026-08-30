@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/modal";
 import { cn, faNum, formatJalali, EQUIPMENT_FA, EQUIPMENT_LIST } from "@/lib";
+import { useAuth } from "@/lib/auth-store";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 
 interface BranchOption {
@@ -47,6 +48,7 @@ interface ManagerOption {
 }
 
 export default function AdminRoomsPage() {
+  const { can } = useAuth();
   const qc = useQueryClient();
   const { push } = useToast();
   const [showForm, setShowForm] = useState(false);
@@ -77,15 +79,18 @@ export default function AdminRoomsPage() {
   const { data: branchesData } = useQuery({
     queryKey: ["branches"],
     queryFn: () => api<{ branches: BranchOption[] }>("/api/branches"),
+    enabled: can("room:update"),
   });
   const { data, isLoading } = useQuery({
     queryKey: ["rooms", "admin"],
     queryFn: () => api<{ rooms: AdminRoom[] }>("/api/rooms?all=1"),
+    enabled: can("room:update"),
   });
 
   const { data: managersData } = useQuery({
     queryKey: ["users", "managers"],
     queryFn: () => api<{ users: ManagerOption[] }>("/api/users"),
+    enabled: can("room:update"),
   });
 
   const { data: exclusionsData, refetch: refetchExclusions } = useQuery({
@@ -258,6 +263,16 @@ export default function AdminRoomsPage() {
         push(err.message, "error");
       }
     }
+  }
+
+  if (!can("room:update")) {
+    return (
+      <div className="p-6">
+        <Card className="p-8 text-center text-[13px] text-ink-soft">
+          مدیریت اتاق‌ها نیازمند دسترسی room:update است.
+        </Card>
+      </div>
+    );
   }
 
   return (

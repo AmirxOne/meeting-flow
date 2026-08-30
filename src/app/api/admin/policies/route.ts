@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { validateReminderOffsets } from "@/lib/reminder-offsets";
 import { prisma } from "@/server/db";
 import { requirePermission } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
@@ -28,21 +29,32 @@ export async function PATCH(req: NextRequest) {
   try {
     const actor = await requirePermission("policy:manage");
     const input = updateSchema.parse(await req.json().catch(() => ({})));
+    let value: string | number | boolean | number[] = input.value;
+    if (input.key === "defaultReminderOffsets") {
+      const checked = validateReminderOffsets(input.value);
+      if (!checked.ok) {
+        return Response.json(
+          { ok: false, error: { message: checked.error, code: "VALIDATION" } },
+          { status: 400 },
+        );
+      }
+      value = checked.offsets;
+    }
     const org = await prisma.organization.findFirst();
     if (!org) return ok({ updated: false });
     const updated = await prisma.meetingPolicy.upsert({
       where: { orgId_key: { orgId: org.id, key: input.key } },
-      update: { value: input.value as object, updatedBy: actor.id },
+      update: { value: value as object, updatedBy: actor.id },
       create: {
         orgId: org.id,
         key: input.key,
-        value: input.value as object,
+        value: value as object,
         updatedBy: actor.id,
       },
     });
     await audit({
       actorId: actor.id, action: "POLICY_UPDATE", entity: "MeetingPolicy",
-      entityId: updated.id, newValue: { key: input.key, value: input.value },
+      entityId: updated.id, newValue: { key: input.key, value },
     });
     return ok({ policy: updated });
   } catch (e) {

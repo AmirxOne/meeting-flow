@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Users, Contact, DoorOpen, Settings, ScrollText, Building2,
-  CalendarDays, Hourglass, UserX, ShieldCheck, ArrowLeft, Activity, SlidersHorizontal,
+import { Users, Contact, DoorOpen, Settings, ScrollText, Building2,
+  CalendarDays, Hourglass, UserX, ShieldCheck, ArrowLeft, Activity, SlidersHorizontal, Shield,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { Card, CardHeader, SkeletonBlock } from "@/components/ui/card";
@@ -52,7 +51,7 @@ const ENTITY_FA: Record<string, string> = {
 };
 
 export default function AdminPage() {
-  const me = useAuth((s) => s.me);
+  const { me, can } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-stats"],
@@ -60,17 +59,30 @@ export default function AdminPage() {
       const r = await api<Stats>("/api/admin/stats");
       return r as unknown as Stats;
     },
-    enabled: !!me && me.roles.some((r) => ["SUPER_ADMIN", "ADMIN"].includes(r.key)),
+    enabled: !!me && can("user:update"),
   });
 
   const items = [
     { href: "/admin/users", label: "کاربران", desc: "کاربران سیستم، نقش‌ها و دسترسی‌ها", icon: Users },
+    ...(can("role:manage")
+      ? [{ href: "/admin/roles", label: "نقش‌ها", desc: "تعریف نقش و دسترسی‌های سفارشی", icon: Shield }]
+      : []),
     { href: "/admin/people", label: "افراد", desc: "دایرکتوری اعضا و ارتباط‌های خارجی", icon: Contact },
     { href: "/admin/rooms", label: "اتاق‌ها", desc: "ساخت، ویرایش و مدیریت اتاق‌ها", icon: DoorOpen },
     { href: "/admin/policies", label: "سیاست‌ها", desc: "قواعد تأیید و محدودیت‌های جلسات", icon: Settings },
     { href: "/admin/settings", label: "تنظیمات سازمان", desc: "نام، منطقه زمانی و لوگوی سازمان", icon: SlidersHorizontal },
     { href: "/admin/audit-logs", label: "لاگ ممیزی", desc: "تاریخچه کامل عملیات سیستم", icon: ScrollText },
   ];
+
+  if (!can("user:update")) {
+    return (
+      <div className="p-6">
+        <Card className="p-8 text-center text-[13px] text-ink-soft">
+          پنل مدیریت سیستم نیازمند دسترسی user:update است.
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4 p-4 lg:p-6">

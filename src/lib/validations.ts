@@ -171,6 +171,18 @@ export const userResetPasswordSchema = z.object({
   password: z.string().min(6, "رمز حداقل ۶ کاراکتر"),
 });
 
+export const profileSelfUpdateSchema = z.object({
+  fullName: z.string().trim().min(2, "نام حداقل ۲ کاراکتر").optional(),
+  phone: z.string().trim().max(20).optional().or(z.literal("")),
+  jobTitle: z.string().trim().max(100).optional(),
+  department: z.string().trim().max(100).optional(),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "رمز فعلی الزامی است"),
+  newPassword: z.string().min(6, "رمز جدید حداقل ۶ کاراکتر است"),
+});
+
 export const organizationUpdateSchema = z.object({
   name: z.string().trim().min(2, "نام سازمان حداقل ۲ کاراکتر").max(100).optional(),
   legalName: z.string().trim().max(200).optional().or(z.literal("")),
@@ -178,3 +190,19 @@ export const organizationUpdateSchema = z.object({
   logoUrl: z.string().url("آدرس لوگو نامعتبر است").optional().or(z.literal("")),
 });
 export type OrganizationUpdateInput = z.infer<typeof organizationUpdateSchema>;
+
+export const roleCreateSchema = z.object({
+  key: z
+    .string()
+    .trim()
+    .regex(/^[A-Z][A-Z0-9_]{1,48}$/, "کلید نقش باید حروف بزرگ لاتین و underscore باشد"),
+  name: z.string().trim().min(2, "نام نقش الزامی است").max(80),
+  description: z.string().trim().max(300).optional(),
+  permissionKeys: z.array(z.string()).min(1, "حداقل یک دسترسی انتخاب کنید"),
+});
+
+export const roleUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(80).optional(),
+  description: z.string().trim().max(300).optional().nullable(),
+  permissionKeys: z.array(z.string()).min(1).optional(),
+});

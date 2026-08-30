@@ -70,6 +70,7 @@ export default function AdminSettingsPage() {
       });
       push("اطلاعات سازمان ذخیره شد", "success");
       qc.invalidateQueries({ queryKey: ["organization"] });
+      qc.invalidateQueries({ queryKey: ["organization-branding"] });
     } catch (e) {
       push((e as ApiError).message, "error");
     } finally {

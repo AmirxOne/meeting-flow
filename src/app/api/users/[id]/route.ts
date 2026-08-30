@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
-import { requirePermission, HttpError } from "@/server/auth/session";
+import { requirePermission, HttpError, can } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { userUpdateSchema } from "@/lib/validations";
 
@@ -15,13 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // privilege escalation guard: only role:manage holders may change roles
     if (input.roleKeys) {
-      const actorPerms = await prisma.userRole.findFirst({
-        where: {
-          userId: actor.id,
-          role: { key: { in: ["SUPER_ADMIN", "ADMIN"] } },
-        },
-      });
-      if (!actorPerms && !actor.isSuperAdmin) {
+      if (!can(actor, "role:manage")) {
         throw new HttpError(403, "تغییر نقش مجاز نیست", "FORBIDDEN");
       }
       const roles = await prisma.role.findMany({ where: { key: { in: input.roleKeys } } });

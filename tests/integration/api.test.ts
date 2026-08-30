@@ -11,6 +11,7 @@ let adminCookie = "";
 let employeeCookie = "";
 let operatorCookie = "";
 let roomManagerCookie = "";
+let branchManagerCookie = "";
 
 interface Meeting {
   id: string;
@@ -68,6 +69,13 @@ function tehran(dayOffset: number, hour: number, minute = 0): string {
   return new Date(base + dayOffset * 86400000 + hour * 3600000 + (minute + JITTER) * 60000).toISOString();
 }
 
+/** Slot that already started but has not ended — for start/end integration tests. */
+function liveSlot(offsetMin = 0, durationMin = 60): { startAt: string; endAt: string } {
+  const startAt = new Date(Date.now() - 30 * 60000 - JITTER * 60000 + offsetMin * 60000).toISOString();
+  const endAt = new Date(Date.now() + durationMin * 60000 + JITTER * 60000 + offsetMin * 60000).toISOString();
+  return { startAt, endAt };
+}
+
 const TEST_TITLES = [
   "تست یکپارچه — جلسه داخلی",
   "جلسه با مهمان خارجی — نیاز به تأیید",
@@ -80,6 +88,7 @@ beforeAll(async () => {
   employeeCookie = await login("ali@example.com");
   operatorCookie = await login("operator@example.com");
   roomManagerCookie = await login("room@example.com");
+  branchManagerCookie = await login("sara@example.com");
 
   // idempotency: wipe leftovers from previous runs
   for (const t of TEST_TITLES) {
@@ -266,6 +275,115 @@ describe("meeting lifecycle", () => {
   });
 });
 
+/** Short live window (60 min) — stays under requireApprovalLongerThanMin (120). */
+function liveSlotShort(offsetMin = 0): { startAt: string; endAt: string } {
+  const startAt = new Date(Date.now() - 20 * 60000 + offsetMin * 60000).toISOString();
+  const endAt = new Date(Date.now() + 40 * 60000 + offsetMin * 60000).toISOString();
+  return { startAt, endAt };
+}
+
+describe("meeting start / end / no-show", () => {
+  const branchId = "branch-niavaran";
+  const LIVE_TITLES = ["تست پایان — تکمیل", "تست پایان — غیبت"] as const;
+
+  beforeAll(async () => {
+    for (const title of LIVE_TITLES) {
+      const list = await api(
+        `/api/meetings?scope=all&limit=50&q=${encodeURIComponent(title)}`,
+        { cookie: adminCookie },
+      );
+      for (const m of list.body?.data?.meetings ?? []) {
+        if (m.title === title && !["CANCELLED", "COMPLETED", "NO_SHOW", "REJECTED"].includes(m.status)) {
+          await api(`/api/meetings/${m.id}/cancel`, {
+            method: "POST",
+            cookie: adminCookie,
+            json: { reason: "DUPLICATE_MEETING" },
+          }).catch(() => {});
+        }
+      }
+    }
+  });
+
+  it("start → end completes as COMPLETED", async () => {
+    const slot = liveSlotShort((RUN % 30) + 1);
+    const created = await api("/api/meetings", {
+      method: "POST",
+      cookie: employeeCookie,
+      json: {
+        title: LIVE_TITLES[0],
+        branchId,
+        ...slot,
+        meetingType: "INTERNAL",
+        participantIds: [],
+      },
+    });
+    expect(created.status).toBe(201);
+    const id = created.body.data.meeting.id as string;
+
+    const started = await api(`/api/meetings/${id}/start`, {
+      method: "POST",
+      cookie: employeeCookie,
+    });
+    expect(started.status).toBe(200);
+    expect(started.body.data.meeting.status).toBe("IN_PROGRESS");
+
+    const ended = await api(`/api/meetings/${id}/end`, {
+      method: "POST",
+      cookie: employeeCookie,
+      json: { noShow: false },
+    });
+    expect(ended.status).toBe(200);
+    expect(ended.body.data.meeting.status).toBe("COMPLETED");
+
+    const detail = await api(`/api/meetings/${id}`, { cookie: employeeCookie });
+    const events = detail.body.data.meeting.events as { type: string }[];
+    expect(events.some((e) => e.type === "STARTED")).toBe(true);
+    expect(events.some((e) => e.type === "ENDED")).toBe(true);
+  });
+
+  it("start → end with noShow marks NO_SHOW", async () => {
+    const slot = liveSlotShort((RUN % 30) + 15);
+    const created = await api("/api/meetings", {
+      method: "POST",
+      cookie: employeeCookie,
+      json: {
+        title: LIVE_TITLES[1],
+        branchId,
+        ...slot,
+        meetingType: "INTERNAL",
+        participantIds: [],
+      },
+    });
+    expect(created.status).toBe(201);
+    const id = created.body.data.meeting.id as string;
+
+    const started = await api(`/api/meetings/${id}/start`, {
+      method: "POST",
+      cookie: employeeCookie,
+    });
+    expect(started.status).toBe(200);
+
+    const ended = await api(`/api/meetings/${id}/end`, {
+      method: "POST",
+      cookie: employeeCookie,
+      json: { noShow: true },
+    });
+    expect(ended.status).toBe(200);
+    expect(ended.body.data.meeting.status).toBe("NO_SHOW");
+
+    const detail = await api(`/api/meetings/${id}`, { cookie: employeeCookie });
+    const events = detail.body.data.meeting.events as { type: string }[];
+    expect(events.some((e) => e.type === "NO_SHOW")).toBe(true);
+  });
+
+  it("reports noShowRate includes NO_SHOW meetings", async () => {
+    const { status, body } = await api("/api/reports", { cookie: adminCookie });
+    expect(status).toBe(200);
+    expect(body.data.summary).toHaveProperty("noShowRate");
+    expect(typeof body.data.summary.noShowRate).toBe("number");
+  });
+});
+
 describe("availability & permissions", () => {
   it("finds common free slots", async () => {
     const { status, body } = await api("/api/availability", {
@@ -296,6 +414,16 @@ describe("availability & permissions", () => {
     expect(body.data.summary).toHaveProperty("roomUtilization");
   });
 
+  it("admin can filter reports by branchId", async () => {
+    const all = await api("/api/reports", { cookie: adminCookie });
+    const filtered = await api("/api/reports?branchId=branch-niavaran", { cookie: adminCookie });
+    expect(filtered.status).toBe(200);
+    expect(filtered.body.data.summary).toHaveProperty("totalMeetings");
+    expect(filtered.body.data.summary.totalMeetings).toBeLessThanOrEqual(
+      all.body.data.summary.totalMeetings,
+    );
+  });
+
   it("audit log records the actions", async () => {
     const { status, body } = await api("/api/admin/audit-logs", { cookie: adminCookie });
     expect(status).toBe(200);
@@ -305,6 +433,51 @@ describe("availability & permissions", () => {
   it("employee cannot read audit logs (403)", async () => {
     const { status } = await api("/api/admin/audit-logs", { cookie: employeeCookie });
     expect(status).toBe(403);
+  });
+
+  it("branch manager can read audit logs (200)", async () => {
+    const { status, body } = await api("/api/admin/audit-logs", { cookie: branchManagerCookie });
+    expect(status).toBe(200);
+    expect(body.data).toHaveProperty("total");
+  });
+
+  it("branch manager cannot read policies (403)", async () => {
+    const { status } = await api("/api/admin/policies", { cookie: branchManagerCookie });
+    expect(status).toBe(403);
+  });
+
+  it("employee cannot read policies (403)", async () => {
+    const { status } = await api("/api/admin/policies", { cookie: employeeCookie });
+    expect(status).toBe(403);
+  });
+
+  it("branch manager cannot access admin stats (403)", async () => {
+    const { status } = await api("/api/admin/stats", { cookie: branchManagerCookie });
+    expect(status).toBe(403);
+  });
+
+  it("admin can filter audit logs by entity and action", async () => {
+    const { status, body } = await api("/api/admin/audit-logs?entity=Meeting&action=CREATE", {
+      cookie: adminCookie,
+    });
+    expect(status).toBe(200);
+    expect(Array.isArray(body.data.logs)).toBe(true);
+    for (const log of body.data.logs) {
+      expect(log.entity).toBe("Meeting");
+      expect(log.action).toBe("CREATE");
+    }
+  });
+
+  it("admin can filter audit logs by actorId", async () => {
+    const me = await api("/api/auth/me", { cookie: adminCookie });
+    const actorId = me.body.data.user.id;
+    const { status, body } = await api(`/api/admin/audit-logs?actorId=${actorId}`, {
+      cookie: adminCookie,
+    });
+    expect(status).toBe(200);
+    for (const log of body.data.logs) {
+      expect(log.actor?.id).toBe(actorId);
+    }
   });
 });
 
@@ -553,6 +726,11 @@ describe("user admin", () => {
   const testEmail = `patch-test-${RUN}@example.com`;
   let testUserId = "";
   let aliId = "";
+  let superadminCookie = "";
+
+  beforeAll(async () => {
+    superadminCookie = await login("superadmin@example.com");
+  });
 
   it("operator cannot update users (403)", async () => {
     const users = await api("/api/users?q=علی", { cookie: adminCookie });
@@ -585,10 +763,19 @@ describe("user admin", () => {
     expect(ali.branch?.id).toBe("branch-vanak");
   });
 
-  it("admin changes user roles", async () => {
+  it("admin cannot change user roles (403)", async () => {
     const { status } = await api(`/api/users/${aliId}`, {
       method: "PATCH",
       cookie: adminCookie,
+      json: { roleKeys: ["EMPLOYEE", "ROOM_MANAGER"] },
+    });
+    expect(status).toBe(403);
+  });
+
+  it("superadmin changes user roles", async () => {
+    const { status } = await api(`/api/users/${aliId}`, {
+      method: "PATCH",
+      cookie: superadminCookie,
       json: { roleKeys: ["EMPLOYEE", "ROOM_MANAGER"] },
     });
     expect(status).toBe(200);
@@ -604,10 +791,17 @@ describe("user admin", () => {
   it("reverts ali roles to employee only", async () => {
     const { status } = await api(`/api/users/${aliId}`, {
       method: "PATCH",
-      cookie: adminCookie,
-      json: { roleKeys: ["EMPLOYEE"], branchId: "branch-niavaran", department: "فروش" },
+      cookie: superadminCookie,
+      json: { roleKeys: ["EMPLOYEE"] },
     });
     expect(status).toBe(200);
+
+    const profile = await api(`/api/users/${aliId}`, {
+      method: "PATCH",
+      cookie: adminCookie,
+      json: { branchId: "branch-niavaran", department: "فروش" },
+    });
+    expect(profile.status).toBe(200);
   });
 
   it("creates temp user for password reset test", async () => {
@@ -756,6 +950,43 @@ describe("participant rsvp", () => {
   });
 });
 
+describe("meeting policies", () => {
+  const POLICY_KEY = "defaultReminderOffsets";
+
+  it("admin can update defaultReminderOffsets (sorted desc)", async () => {
+    const before = await api("/api/admin/policies", { cookie: adminCookie });
+    const orig = before.body.data.policies.find((p: { key: string }) => p.key === POLICY_KEY)?.value;
+
+    const patch = await api("/api/admin/policies", {
+      method: "PATCH",
+      cookie: adminCookie,
+      json: { key: POLICY_KEY, value: [5, 45, 15] },
+    });
+    expect(patch.status).toBe(200);
+    expect(patch.body.data.policy.value).toEqual([45, 15, 5]);
+
+    const after = await api("/api/admin/policies", { cookie: adminCookie });
+    expect(after.body.data.policies.find((p: { key: string }) => p.key === POLICY_KEY).value).toEqual([
+      45, 15, 5,
+    ]);
+
+    await api("/api/admin/policies", {
+      method: "PATCH",
+      cookie: adminCookie,
+      json: { key: POLICY_KEY, value: orig ?? [30, 10] },
+    });
+  });
+
+  it("rejects invalid defaultReminderOffsets", async () => {
+    const { status } = await api("/api/admin/policies", {
+      method: "PATCH",
+      cookie: adminCookie,
+      json: { key: POLICY_KEY, value: [0, 10] },
+    });
+    expect(status).toBe(400);
+  });
+});
+
 describe("organization settings", () => {
   const originalName = "شرکت نمونه";
 
@@ -801,6 +1032,46 @@ describe("organization settings", () => {
       json: { name: "هک" },
     });
     expect(status).toBe(403);
+  });
+});
+
+describe("organization branding", () => {
+  const testLogo = "http://localhost:3100/logo-white.png";
+
+  it("unauthenticated cannot read branding (401)", async () => {
+    const { status } = await api("/api/organization/branding");
+    expect(status).toBe(401);
+  });
+
+  it("employee can read branding (read-only)", async () => {
+    const { status, body } = await api("/api/organization/branding", { cookie: employeeCookie });
+    expect(status).toBe(200);
+    expect(body.data.branding.name).toBeTruthy();
+    expect(body.data.branding).toHaveProperty("logoUrl");
+    expect(body.data.branding.timezone).toBe("Asia/Tehran");
+  });
+
+  it("admin sets logoUrl and branding API reflects it", async () => {
+    const before = await api("/api/admin/organization", { cookie: adminCookie });
+    const originalLogo = before.body.data.organization.logoUrl;
+
+    const patch = await api("/api/admin/organization", {
+      method: "PATCH",
+      cookie: adminCookie,
+      json: { logoUrl: testLogo },
+    });
+    expect(patch.status).toBe(200);
+    expect(patch.body.data.organization.logoUrl).toBe(testLogo);
+
+    const branding = await api("/api/organization/branding", { cookie: employeeCookie });
+    expect(branding.status).toBe(200);
+    expect(branding.body.data.branding.logoUrl).toBe(testLogo);
+
+    await api("/api/admin/organization", {
+      method: "PATCH",
+      cookie: adminCookie,
+      json: { logoUrl: originalLogo ?? "" },
+    });
   });
 });
 
@@ -930,5 +1201,189 @@ describe("room manager RBAC", () => {
       json: { description: "ویرایش توسط ادمین" },
     });
     expect(status).toBe(200);
+  });
+});
+
+describe("self-service profile", () => {
+  const SEED_PASS = "Pass1234";
+  const TEMP_PASS = "Pass5678";
+
+  it("anonymous cannot change password (401)", async () => {
+    const { status } = await api("/api/auth/change-password", {
+      method: "POST",
+      json: { currentPassword: SEED_PASS, newPassword: TEMP_PASS },
+    });
+    expect(status).toBe(401);
+  });
+
+  it("employee updates own profile fields", async () => {
+    const me = await api("/api/auth/me", { cookie: employeeCookie });
+    const originalTitle = me.body.data.user.jobTitle;
+
+    const { status, body } = await api("/api/auth/profile", {
+      method: "PATCH",
+      cookie: employeeCookie,
+      json: { jobTitle: "تست پروفایل یکپارچه", department: "QA" },
+    });
+    expect(status).toBe(200);
+    expect(body.data.user.jobTitle).toBe("تست پروفایل یکپارچه");
+
+    await api("/api/auth/profile", {
+      method: "PATCH",
+      cookie: employeeCookie,
+      json: { jobTitle: originalTitle ?? "", department: me.body.data.user.department ?? "" },
+    });
+  });
+
+  it("rejects change-password with wrong current (401)", async () => {
+    const { status, body } = await api("/api/auth/change-password", {
+      method: "POST",
+      cookie: employeeCookie,
+      json: { currentPassword: "wrong-pass", newPassword: TEMP_PASS },
+    });
+    expect(status).toBe(401);
+    expect(body.error.code).toBe("BAD_CREDENTIALS");
+  });
+
+  it("change-password then login with new password; restore seed", async () => {
+    const changed = await api("/api/auth/change-password", {
+      method: "POST",
+      cookie: employeeCookie,
+      json: { currentPassword: SEED_PASS, newPassword: TEMP_PASS },
+    });
+    expect(changed.status).toBe(200);
+
+    const oldSession = await api("/api/auth/me", { cookie: employeeCookie });
+    expect(oldSession.status).toBe(200);
+    expect(oldSession.body.data.user).toBeNull();
+
+    const newLogin = await api("/api/auth/login", {
+      method: "POST",
+      json: { email: "ali@example.com", password: TEMP_PASS },
+    });
+    expect(newLogin.status).toBe(200);
+
+    const users = await api("/api/users?q=ali", { cookie: adminCookie });
+    const ali = users.body.data.users.find((u: { email: string }) => u.email === "ali@example.com");
+    expect(ali).toBeTruthy();
+
+    const reset = await api(`/api/users/${ali.id}/reset-password`, {
+      method: "POST",
+      cookie: adminCookie,
+      json: { password: SEED_PASS },
+    });
+    expect(reset.status).toBe(200);
+
+    loginCache.delete("ali@example.com");
+    employeeCookie = await login("ali@example.com");
+  });
+});
+
+describe("role management (SUPER_ADMIN)", () => {
+  const roleKey = `TEST_REPORT_${RUN}`;
+  let roleId = "";
+  let aliId = "";
+  let superadminCookie = "";
+
+  beforeAll(async () => {
+    superadminCookie = await login("superadmin@example.com");
+  });
+
+  it("admin cannot manage roles (403)", async () => {
+    const list = await api("/api/admin/roles", { cookie: adminCookie });
+    expect(list.status).toBe(403);
+
+    const create = await api("/api/admin/roles", {
+      method: "POST",
+      cookie: adminCookie,
+      json: {
+        key: "SHOULD_FAIL",
+        name: "نقش نامعتبر",
+        permissionKeys: ["report:view"],
+      },
+    });
+    expect(create.status).toBe(403);
+  });
+
+  it("employee cannot view reports before custom role", async () => {
+    const { status } = await api("/api/reports", { cookie: employeeCookie });
+    expect(status).toBe(403);
+  });
+
+  it("superadmin creates custom role with report:view", async () => {
+    const { status, body } = await api("/api/admin/roles", {
+      method: "POST",
+      cookie: superadminCookie,
+      json: {
+        key: roleKey,
+        name: "نقش تست گزارش",
+        description: "یکپارچه‌سازی",
+        permissionKeys: ["report:view"],
+      },
+    });
+    expect(status).toBe(201);
+    roleId = body.data.role.id;
+    expect(body.data.role.key).toBe(roleKey);
+    expect(body.data.role.permissionKeys).toContain("report:view");
+    expect(body.data.role.isSystem).toBe(false);
+  });
+
+  it("superadmin assigns custom role to employee → reports allowed", async () => {
+    const users = await api("/api/users?q=ali", { cookie: adminCookie });
+    const ali = users.body.data.users.find((u: { email: string }) => u.email === "ali@example.com");
+    expect(ali).toBeTruthy();
+    aliId = ali.id;
+
+    const assign = await api(`/api/users/${aliId}`, {
+      method: "PATCH",
+      cookie: superadminCookie,
+      json: { roleKeys: [roleKey] },
+    });
+    expect(assign.status).toBe(200);
+
+    loginCache.delete("ali@example.com");
+    const aliWithRole = await login("ali@example.com");
+
+    const reports = await api("/api/reports", { cookie: aliWithRole });
+    expect(reports.status).toBe(200);
+  });
+
+  it("cannot delete role while assigned to user", async () => {
+    const del = await api(`/api/admin/roles/${roleId}`, {
+      method: "DELETE",
+      cookie: superadminCookie,
+    });
+    expect(del.status).toBe(409);
+  });
+
+  it("cannot edit system role", async () => {
+    const list = await api("/api/admin/roles", { cookie: superadminCookie });
+    const employeeRole = list.body.data.roles.find((r: { key: string }) => r.key === "EMPLOYEE");
+    expect(employeeRole).toBeTruthy();
+
+    const patch = await api(`/api/admin/roles/${employeeRole.id}`, {
+      method: "PATCH",
+      cookie: superadminCookie,
+      json: { name: "تغییر غیرمجاز" },
+    });
+    expect(patch.status).toBe(403);
+  });
+
+  it("cleanup: restore employee role and delete custom role", async () => {
+    const restore = await api(`/api/users/${aliId}`, {
+      method: "PATCH",
+      cookie: superadminCookie,
+      json: { roleKeys: ["EMPLOYEE"] },
+    });
+    expect(restore.status).toBe(200);
+
+    const del = await api(`/api/admin/roles/${roleId}`, {
+      method: "DELETE",
+      cookie: superadminCookie,
+    });
+    expect(del.status).toBe(200);
+
+    loginCache.delete("ali@example.com");
+    employeeCookie = await login("ali@example.com");
   });
 });

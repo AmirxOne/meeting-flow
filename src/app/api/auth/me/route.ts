@@ -16,6 +16,7 @@ export async function GET() {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
+      phone: user.phone ?? null,
       avatarUrl: user.avatarUrl,
       jobTitle: user.jobTitle,
       department: user.department,
