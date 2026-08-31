@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronDown } from "@/components/ui/icon";
+import { ChevronDown, Shield } from "@/components/ui/icon";
 import { Card } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn, faNum, faPad2, faStr, STATUS_FA } from "@/lib";
@@ -230,7 +230,14 @@ export function DayTimeline({
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className={cn("truncate text-[13px] font-medium leading-5", faded && "text-ink-faint line-through")}>
-                                {m.isMasked ? "🔒 جلسه محرمانه" : m.title}
+                                {m.isMasked ? (
+                                  <span className="inline-flex items-center gap-1">
+                                    <Shield className="h-3.5 w-3.5" />
+                                    جلسه محرمانه
+                                  </span>
+                                ) : (
+                                  m.title
+                                )}
                               </p>
                               <p className="truncate text-[11px] text-ink-soft">
                                 {m.room?.name ?? "بدون اتاق"}
