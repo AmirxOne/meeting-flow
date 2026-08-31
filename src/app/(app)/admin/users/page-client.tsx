@@ -11,7 +11,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { IconTipButton } from "@/components/ui/tooltip";
-import { cn, faNum } from "@/lib";
+import { cn, faNum, faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
 
 interface AdminUser {
@@ -275,18 +275,23 @@ export function AdminUsersPage() {
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <input
-            dir="ltr"
+            dir="rtl"
+            inputMode="email"
             placeholder="ایمیل *"
-            value={createForm.email}
-            onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+            value={createForm.email ? withRtlMark(faStr(createForm.email)) : ""}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, email: toEnDigits(stripBidiMarks(e.target.value)) })
+            }
+            className="h-10 rounded-md border border-line px-3 text-right text-[12px] outline-none focus:border-ink"
           />
           <input
-            dir="ltr"
+            dir="rtl"
             placeholder="رمز موقت *"
-            value={createForm.password}
-            onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+            value={createForm.password ? withRtlMark(createForm.password) : ""}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, password: stripBidiMarks(e.target.value) })
+            }
+            className="h-10 rounded-md border border-line px-3 text-right text-[12px] outline-none focus:border-ink"
           />
           <input
             placeholder="نام کامل *"
@@ -417,12 +422,12 @@ export function AdminUsersPage() {
         }
       >
         <input
-          dir="ltr"
+          dir="rtl"
           type="password"
           placeholder="رمز جدید (حداقل ۶ کاراکتر)"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          value={newPassword ? withRtlMark(newPassword) : ""}
+          onChange={(e) => setNewPassword(stripBidiMarks(e.target.value))}
+          className="h-10 w-full rounded-md border border-line px-3 text-right text-[12px] outline-none focus:border-ink"
         />
       </Modal>
 
