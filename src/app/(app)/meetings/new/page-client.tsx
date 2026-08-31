@@ -8,7 +8,7 @@ import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { cn, faNum, formatJalali, isoDateInTz, EQUIPMENT_FA, TYPE_FA, TYPE_HINT_FA, isSoloMeetingType } from "@/lib";
+import { cn, faNum, faStr, formatJalali, isoDateInTz, EQUIPMENT_FA, TYPE_FA, TYPE_HINT_FA, isSoloMeetingType } from "@/lib";
 import { formatClockInTz, DEFAULT_ORG_TIMEZONE } from "@/lib/timezone";
 import { Select } from "@/components/ui/select";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
@@ -49,6 +49,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
   const [submitting, setSubmitting] = useState(false);
   const [searching, setSearching] = useState(false);
   const [fromAvailabilityHandoff, setFromAvailabilityHandoff] = useState(false);
+  const [fromCalendarHint, setFromCalendarHint] = useState<string | null>(null);
   const soloType = isSoloMeetingType(meetingType);
 
   const { data: branchesData } = useQuery({
@@ -116,6 +117,22 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
       document.getElementById("meeting-step-room")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [orgTz, searchParams]);
+
+  useEffect(() => {
+    if (queryParam(searchParams, "from") !== "calendar") return;
+    const date = queryParam(searchParams, "date");
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+    setDateIso(date);
+    const hourRaw = queryParam(searchParams, "hour");
+    const hour = hourRaw != null ? Number(hourRaw) : NaN;
+    setFromCalendarHint(
+      faStr(
+        Number.isFinite(hour)
+          ? `تاریخ و ساعت از تقویم پر شد — ${formatJalali(new Date(`${date}T12:00:00`), { monthName: true })}، ساعت ${String(hour).padStart(2, "0")}:۰۰`
+          : `تاریخ از تقویم پر شد — ${formatJalali(new Date(`${date}T12:00:00`), { monthName: true })}`,
+      ),
+    );
+  }, [searchParams]);
 
   function isoToday(): string {
     const t = new Date(Date.now() + 210 * 60000);
@@ -326,6 +343,9 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
           }
         />
         <CardBody className="space-y-4">
+          {fromCalendarHint && (
+            <p className="rounded-md bg-paper-soft px-3 py-2 text-[12px] leading-6 text-ink-soft">{fromCalendarHint}</p>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">تاریخ (شمسی)</label>
@@ -345,10 +365,12 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
             </div>
           </div>
           {!fromAvailability && (
-            <Button onClick={findSlots} loading={searching} className="w-full sm:w-auto">
-              <Sparkles className="h-4 w-4" />
-              یافتن زمان‌های آزاد
-            </Button>
+            <div className="flex justify-end">
+              <Button onClick={findSlots} loading={searching} className="w-full sm:w-auto">
+                <Sparkles className="h-4 w-4" />
+                یافتن زمان‌های آزاد
+              </Button>
+            </div>
           )}
         </CardBody>
       </Card>

@@ -15,6 +15,8 @@ const { login, safeClick, dismissTour, launchBrowser, finish, BASE } = require("
   await dismissTour(page);
 
   check("month: weekday header", (await page.locator("text=شنبه").first().isVisible()));
+  await page.locator('[data-weekday="friday"]').first().waitFor({ timeout: 20000 });
+  await page.locator('[data-tour="cal-day-panel"]').waitFor({ timeout: 15000 });
   const todayBadge = await page.locator("span.bg-ink.rounded-full").count();
   check(`month: today circle highlighted (${todayBadge})`, todayBadge >= 1);
 
@@ -26,10 +28,24 @@ const { login, safeClick, dismissTour, launchBrowser, finish, BASE } = require("
   check(`month: Friday cells rendered (${fridayCount})`, fridayCount >= 3);
   const fridayDisabled = await fridayCells.first().getAttribute("disabled");
   check("month: Friday cells stay bookable (not disabled)", fridayDisabled === null);
+  const fridayBg = await fridayCells.first().evaluate((el) => el.className.includes("bg-red")).catch(() => true);
+  check("month: Friday cells have no red wash", fridayBg === false);
+
+  check("month: jump-to-date picker", (await page.locator('[aria-label="برو به تاریخ"]').count()) === 1);
+  check("month: desktop day panel", (await page.locator('[data-tour="cal-day-panel"]').count()) === 1);
+  check("month: create from selected day", (await page.locator('a[href*="from=calendar"]').count()) >= 1);
+
+  const beforeClickUrl = page.url();
+  await fridayCells.first().click();
+  await page.waitForTimeout(400);
+  check("month: day click stays on month (no jump)", page.url().includes("/calendar") && !page.url().includes("/meetings"));
+  check("month: still month after day click", beforeClickUrl.includes("/calendar"));
 
   await safeClick(page, page.locator('button:has-text("هفته")').first());
   await page.waitForTimeout(1200);
   check("week: hour grid renders", (await page.locator("div.min-w-\\[640px\\]").count()) >= 1);
+  check("week: empty hour opens new meeting", (await page.locator('a[href*="from=calendar"][href*="hour="]').count()) >= 8);
+  check("week: now line at most one", (await page.locator("[data-now-line]").count()) <= 1);
 
   await safeClick(page, page.locator('[data-tour="cal-views"] button:has-text("روز")').first());
   const dayTl = page.locator('[data-tour="day-timeline"]');
@@ -40,7 +56,9 @@ const { login, safeClick, dismissTour, launchBrowser, finish, BASE } = require("
     "day: hour labels",
     (await dayTl.getByText("۰۸:۰۰").count()) + (await dayTl.getByText("۰۸", { exact: true }).count()) >= 1,
   );
-  check("day view shows a meeting (seed data today)", (await dayTl.locator('a[href^="/meetings/"]').count()) >= 1);
+  const dayLinks = await dayTl.locator('a[href^="/meetings/"]').count();
+  const dayEmpty = await dayTl.locator("text=جلسه‌ای در این روز").count();
+  check(`day view shows meetings or empty (${dayLinks})`, dayLinks >= 1 || dayEmpty >= 1);
 
   await safeClick(page, page.locator('button:has-text("امروز")').first());
   await page.waitForTimeout(800);

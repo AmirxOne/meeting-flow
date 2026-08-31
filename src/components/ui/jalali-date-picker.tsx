@@ -36,6 +36,7 @@ export function JalaliDatePicker({
   max, // ISO
   disabled,
   className = "",
+  variant = "field",
 }: {
   value: string; // "" | "YYYY-MM-DD"
   onChange: (iso: string) => void;
@@ -44,6 +45,8 @@ export function JalaliDatePicker({
   max?: string;
   disabled?: boolean;
   className?: string;
+  /** `icon` — compact jump control for the calendar toolbar. */
+  variant?: "field" | "icon";
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -105,19 +108,26 @@ export function JalaliDatePicker({
         onClick={() => !disabled && setOpen((v) => !v)}
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-label={variant === "icon" ? "برو به تاریخ" : undefined}
         className={cn(
-          "flex h-11 w-full items-center justify-between gap-2 rounded-lg border bg-white px-3.5 text-[13px] text-right transition-colors",
-          disabled
-            ? "cursor-not-allowed border-[#ececf1] bg-paper-soft text-ink-faint"
-            : open
-              ? "border-ink shadow-[0_0_0_3px_rgba(13,13,13,0.08)]"
-              : "border-[#d9d9e0] hover:border-ink/50",
+          variant === "icon"
+            ? "inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+            : "flex h-11 w-full items-center justify-between gap-2 rounded-lg border bg-white px-3.5 text-[13px] text-right transition-colors",
+          variant === "field" &&
+            (disabled
+              ? "cursor-not-allowed border-[#ececf1] bg-paper-soft text-ink-faint"
+              : open
+                ? "border-ink shadow-[0_0_0_3px_rgba(13,13,13,0.08)]"
+                : "border-[#d9d9e0] hover:border-ink/50"),
+          variant === "icon" && open && "border-ink text-ink",
         )}
       >
-        <span className={cn("flex-1 truncate", selected ? "font-medium text-ink" : "text-ink-faint")}>
-          {label}
-        </span>
-        <CalendarDays className={cn("h-4 w-4 shrink-0", selected ? "text-ink" : "text-ink-faint")} />
+        {variant === "field" && (
+          <span className={cn("flex-1 truncate", selected ? "font-medium text-ink" : "text-ink-faint")}>
+            {label}
+          </span>
+        )}
+        <CalendarDays className={cn("h-4 w-4 shrink-0", variant === "field" && (selected ? "text-ink" : "text-ink-faint"))} />
       </button>
 
       {open && (

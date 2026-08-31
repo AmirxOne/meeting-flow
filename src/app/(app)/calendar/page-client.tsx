@@ -3,12 +3,15 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, ChevronLeft, Plus } from "@/components/ui/icon";
+import { ChevronRight, ChevronLeft, Plus, Shield } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, SkeletonBlock } from "@/components/ui/card";
 import { DayTimeline, DayTimelineSkeleton } from "@/components/calendar/day-timeline";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { cn, faNum, faStr, faPad2, formatJalali, toJalali, jMonthLen } from "@/lib";
 import { jMonthGrid, J_MONTHS, J_WEEKDAYS_LONG, toGregorian, isFridayIso } from "@/lib/jalali";
+import { calendarEventTone, newMeetingHref } from "@/lib/calendar-event";
+import { layoutDayBlocks, nowLineTop } from "@/lib/calendar-timeline";
 
 interface CalMeeting {
   id: string;
@@ -26,6 +29,11 @@ interface CalMeeting {
 
 type ViewMode = "month" | "week" | "day";
 type CalMode = "jalali" | "gregorian";
+
+const WEEK_START_HOUR = 8;
+const WEEK_HOURS = 13;
+const WEEK_PX = 48;
+const WEEK_END_HOUR = WEEK_START_HOUR + WEEK_HOURS;
 
 const tehran = (iso: string) => new Date(new Date(iso).getTime() + 210 * 60000);
 const timeOf = (iso: string) => {
@@ -55,13 +63,27 @@ function addDaysIso(iso: string, days: number): string {
 }
 
 function firstDayOfWeekIso(iso: string): string {
-  // Iranian week starts Saturday
   const d = new Date(iso + "T12:00:00Z");
-  const shift = (d.getUTCDay() + 1) % 7; // Sat=0
+  const shift = (d.getUTCDay() + 1) % 7;
   return addDaysIso(iso, -shift);
 }
 
+function minutesOf(iso: string): number {
+  const t = tehran(iso);
+  return t.getUTCHours() * 60 + t.getUTCMinutes();
+}
+
 const WEEKDAY_LONG = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+
+function EventLabel({ meeting, className }: { meeting: CalMeeting; className?: string }) {
+  if (!meeting.isMasked) return <span className={className}>{meeting.title}</span>;
+  return (
+    <span className={cn("inline-flex min-w-0 items-center gap-1", className)}>
+      <Shield className="h-3 w-3 shrink-0" />
+      <span className="truncate">جلسه محرمانه</span>
+    </span>
+  );
+}
 
 export function CalendarPage() {
   const [mode, setMode] = useState<CalMode>("jalali");
@@ -69,12 +91,17 @@ export function CalendarPage() {
   const [scope, setScope] = useState<"all" | "mine">("all");
   const today = todayIso();
   const [selectedIso, setSelectedIso] = useState(today);
-  // month navigation state (jalali anchor)
   const todayJ = toJalali(new Date());
   const [anchor, setAnchor] = useState({ jy: todayJ.jy, jm: todayJ.jm });
+  const [now, setNow] = useState(() => new Date());
 
-  // ── data window: month ± 1 week ──
-  const window = useMemo(() => {
+  useEffect(() => {
+    if (view !== "week") return;
+    const id = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(id);
+  }, [view]);
+
+  const range = useMemo(() => {
     const first = isoOfJalali(anchor.jy, anchor.jm, 1);
     return {
       from: new Date(new Date(first).getTime() - 7 * 86400000),
@@ -83,10 +110,10 @@ export function CalendarPage() {
   }, [anchor]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["calendar", window.from.toISOString(), window.to.toISOString(), scope],
+    queryKey: ["calendar", range.from.toISOString(), range.to.toISOString(), scope],
     queryFn: () =>
       api<{ meetings: CalMeeting[]; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean }>(
-        `/api/calendar?from=${window.from.toISOString()}&to=${window.to.toISOString()}&scope=${scope}`,
+        `/api/calendar?from=${range.from.toISOString()}&to=${range.to.toISOString()}&scope=${scope}`,
       ),
   });
 
@@ -105,7 +132,6 @@ export function CalendarPage() {
 
   const monthGrid = useMemo(() => jMonthGrid(anchor.jy, anchor.jm), [anchor]);
 
-  // week strip (7 days starting at week of selected day)
   const weekDays = useMemo(() => {
     const start = firstDayOfWeekIso(selectedIso);
     return Array.from({ length: 7 }, (_, i) => addDaysIso(start, i));
@@ -119,6 +145,18 @@ export function CalendarPage() {
     setAnchor({ jy, jm });
   }
 
+  function jumpToIso(iso: string) {
+    setSelectedIso(iso);
+    const j = jalaliOfIso(iso);
+    setAnchor({ jy: j.jy, jm: j.jm });
+  }
+
+  function goToday() {
+    const tj = toJalali(new Date());
+    setSelectedIso(today);
+    setAnchor({ jy: tj.jy, jm: tj.jm });
+  }
+
   const monthTitle =
     mode === "jalali"
       ? `${J_MONTHS[anchor.jm - 1]} ${faNum(anchor.jy)}`
@@ -130,7 +168,6 @@ export function CalendarPage() {
     return new Intl.DateTimeFormat("fa-IR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(d);
   };
 
-  // ── swipe support (mobile) ──
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -141,7 +178,6 @@ export function CalendarPage() {
       const dx = e.changedTouches[0].clientX - touchStart.current.x;
       const dy = e.changedTouches[0].clientY - touchStart.current.y;
       if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
-        // RTL: swipe right = next, swipe left = previous
         if (dx > 0) {
           if (view === "month") monthDelta(1);
           else if (view === "week") setSelectedIso((s) => addDaysIso(s, 7));
@@ -159,21 +195,37 @@ export function CalendarPage() {
 
   const selectedDayMeetings = byDate.get(selectedIso) ?? [];
 
+  function stepNav(dir: -1 | 1) {
+    if (view === "month") monthDelta(dir);
+    else if (view === "week") setSelectedIso((s) => addDaysIso(s, dir * 7));
+    else setSelectedIso((s) => addDaysIso(s, dir));
+  }
+
   return (
     <div className="space-y-4 p-3 sm:p-4 lg:p-6" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      {/* ── header: month title + nav + today ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-1.5">
-          <button onClick={() => { if (view === "month") monthDelta(-1); else if (view === "week") setSelectedIso((s) => addDaysIso(s, -7)); else setSelectedIso((s) => addDaysIso(s, -1)); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 hover:bg-paper-soft" aria-label="قبلی">
+          <button
+            onClick={() => stepNav(-1)}
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 hover:bg-paper-soft"
+            aria-label="قبلی"
+          >
             <ChevronRight className="h-4 w-4" />
           </button>
-          <h1 className={cn("min-w-36 text-center text-[15px] font-bold sm:min-w-44", view === "day" && isFridayIso(selectedIso) && "text-red-600")}>{view === "day" ? dayLabel(selectedIso) : monthTitle}</h1>
-          <button onClick={() => { if (view === "month") monthDelta(1); else if (view === "week") setSelectedIso((s) => addDaysIso(s, 7)); else setSelectedIso((s) => addDaysIso(s, 1)); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 hover:bg-paper-soft" aria-label="بعدی">
+          <h1 className={cn("min-w-36 text-center text-[18px] font-bold sm:min-w-48", view === "day" && isFridayIso(selectedIso) && "text-red-600")}>
+            {view === "day" ? dayLabel(selectedIso) : monthTitle}
+          </h1>
+          <button
+            onClick={() => stepNav(1)}
+            className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 hover:bg-paper-soft"
+            aria-label="بعدی"
+          >
             <ChevronLeft className="h-4 w-4" />
           </button>
+          <JalaliDatePicker variant="icon" value={selectedIso} onChange={jumpToIso} className="shrink-0" />
           <button
-            onClick={() => { setSelectedIso(today); const tj = toJalali(new Date()); setAnchor({ jy: tj.jy, jm: tj.jm }); }}
-            className="mr-1 rounded-md border border-line bg-white px-2.5 py-1.5 text-[11px] font-medium text-ink-soft hover:bg-paper-soft"
+            onClick={goToday}
+            className="rounded-md border border-line bg-white px-2.5 py-1.5 text-[11px] font-medium text-ink-soft hover:bg-paper-soft"
           >
             امروز
           </button>
@@ -210,95 +262,92 @@ export function CalendarPage() {
         )
       ) : view === "month" ? (
         <>
-          {/* ── MONTH: compact grid — desktop shows event chips, mobile dots only (Google Calendar pattern) ── */}
-          <Card className="overflow-hidden">
-            <div className="grid grid-cols-7 border-b border-line bg-paper-soft/50">
-              {J_WEEKDAYS_LONG.map((d, i) => (
-                <div key={d} className={cn("px-0.5 py-2 text-center text-[10px] font-medium leading-4 sm:text-[11px]", i === 6 ? "text-red-500" : "text-ink-soft")}>{d}</div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7">
-              {monthGrid.map((cell, i) => {
-                const fridayCol = i % 7 === 6;
-                if (!cell) return <div key={i} className={cn("h-14 border-b border-l border-line/40 sm:h-20 sm:min-h-20 lg:h-24", fridayCol ? "bg-red-50/60" : "bg-paper-soft/20")} />;
-                const iso = isoOfJalali(cell.jy, cell.jm, cell.jd);
-                const dayMeetings = byDate.get(iso) ?? [];
-                const occ = occupancyMap.get(iso);
-                const isToday = iso === today;
-                const isSelected = iso === selectedIso;
-                const isOtherMonth = cell.jm !== anchor.jm;
-                const isFriday = fridayCol || isFridayIso(iso);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    data-weekday={isFriday ? "friday" : undefined}
-                    onClick={() => { setSelectedIso(iso); setView("day"); }}
-                    className={cn(
-                      "relative h-14 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-20 sm:p-1.5 lg:h-24",
-                      isFriday
-                        ? isSelected ? "bg-red-100 hover:bg-red-100" : "bg-red-50 hover:bg-red-100/80"
-                        : isSelected ? "bg-paper-soft hover:bg-paper-soft" : "hover:bg-paper-soft",
-                      isOtherMonth && "opacity-40",
-                    )}
-                  >
-                    <span className={cn(
-                      "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6",
-                      isToday ? "bg-ink font-bold text-white" : isFriday ? "font-medium text-red-600" : "text-ink",
-                    )}>
-                      {mode === "jalali" ? faNum(cell.jd) : faNum(gregorianDayOf(iso))}
-                    </span>
-
-                    {/* desktop: event chips */}
-                    <div className="mt-0.5 hidden space-y-0.5 sm:block">
-                      {dayMeetings.slice(0, 2).map((m) => (
-                        <div key={m.id} className={cn(
-                          "truncate rounded px-1 py-0.5 text-[9px] leading-4",
-                          m.status === "IN_PROGRESS" ? "bg-red-100 text-red-700"
-                          : m.status === "CANCELLED" ? "bg-paper-deep text-ink-faint line-through"
-                          : "bg-paper-deep text-ink",
-                        )}>
-                          {timeOf(m.startAt)} {m.isMasked ? "🔒 جلسه محرمانه" : m.title}
-                        </div>
-                      ))}
-                      {dayMeetings.length > 2 && (
-                        <div className="pr-1 text-[9px] text-ink-faint">+{faNum(dayMeetings.length - 2)} جلسه دیگر</div>
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
+            <Card className="overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-line bg-paper-soft/50">
+                {J_WEEKDAYS_LONG.map((d, i) => (
+                  <div key={d} className={cn("px-0.5 py-2 text-center text-[10px] font-medium leading-4 sm:text-[11px]", i === 6 ? "text-red-500" : "text-ink-soft")}>{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7">
+                {monthGrid.map((cell, i) => {
+                  const fridayCol = i % 7 === 6;
+                  if (!cell) return <div key={i} className="h-16 border-b border-l border-line/40 bg-paper-soft/20 sm:h-24 lg:h-[7.25rem]" />;
+                  const iso = isoOfJalali(cell.jy, cell.jm, cell.jd);
+                  const dayMeetings = byDate.get(iso) ?? [];
+                  const occ = occupancyMap.get(iso);
+                  const isToday = iso === today;
+                  const isSelected = iso === selectedIso;
+                  const isOtherMonth = cell.jm !== anchor.jm;
+                  const isFriday = fridayCol || isFridayIso(iso);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      data-weekday={isFriday ? "friday" : undefined}
+                      onClick={() => setSelectedIso(iso)}
+                      className={cn(
+                        "relative h-16 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
+                        isSelected ? "bg-paper-soft" : "hover:bg-paper-soft/70",
+                        isOtherMonth && "opacity-40",
                       )}
-                    </div>
+                    >
+                      <span className={cn(
+                        "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6",
+                        isToday ? "bg-ink font-bold text-white" : isFriday ? "font-medium text-red-600" : "text-ink",
+                      )}>
+                        {mode === "jalali" ? faNum(cell.jd) : faNum(gregorianDayOf(iso))}
+                      </span>
 
-                    {/* mobile: colored dots only (Google Calendar mobile) */}
-                    <div className="absolute bottom-1.5 right-1.5 flex gap-0.5 sm:hidden">
-                      {dayMeetings.slice(0, 3).map((m) => (
-                        <span key={m.id} className={cn(
-                          "h-1.5 w-1.5 rounded-full",
-                          m.status === "IN_PROGRESS" ? "bg-red-500"
-                          : m.status === "CANCELLED" ? "bg-ink-faint"
-                          : "bg-ink",
-                        )} />
-                      ))}
-                      {dayMeetings.length > 3 && <span className="text-[8px] leading-none text-ink-faint">+</span>}
-                    </div>
-
-                    {occ && scope === "all" && dayMeetings.length === 0 && (
-                      <div className="absolute bottom-1.5 left-1.5 hidden h-1 w-8 rounded bg-paper-deep sm:block">
-                        <div className="h-1 rounded bg-ink" style={{ width: `${occ.occupancyPct}%` }} />
+                      <div className="mt-0.5 hidden space-y-0.5 sm:block">
+                        {dayMeetings.slice(0, 3).map((m) => (
+                          <Link
+                            key={m.id}
+                            href={`/meetings/${m.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className={cn("flex truncate rounded px-1 py-0.5 text-[10px] leading-4", calendarEventTone(m.status).chip)}
+                          >
+                            <span className="truncate">{timeOf(m.startAt)} {m.isMasked ? "جلسه محرمانه" : m.title}</span>
+                          </Link>
+                        ))}
+                        {dayMeetings.length > 3 && (
+                          <div className="pr-1 text-[10px] text-ink-faint">+{faNum(dayMeetings.length - 3)} جلسه دیگر</div>
+                        )}
                       </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </Card>
 
-          {/* mobile agenda under grid (Google Calendar pattern) */}
-          <MobileAgenda selectedIso={selectedIso} meetings={selectedDayMeetings} onPickDay={setSelectedIso} monthGrid={monthGrid} byDate={byDate} todayIso={today} mode={mode} />
+                      <div className="absolute bottom-1.5 right-1.5 flex gap-0.5 sm:hidden">
+                        {dayMeetings.slice(0, 3).map((m) => (
+                          <span key={m.id} className={cn("h-1.5 w-1.5 rounded-full", calendarEventTone(m.status).dot)} />
+                        ))}
+                        {dayMeetings.length > 3 && <span className="text-[8px] leading-none text-ink-faint">+</span>}
+                      </div>
+
+                      {occ && scope === "all" && dayMeetings.length === 0 && (
+                        <div className="absolute bottom-1.5 left-1.5 hidden h-1 w-8 rounded bg-paper-deep sm:block">
+                          <div className="h-1 rounded bg-ink" style={{ width: `${occ.occupancyPct}%` }} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <DayPanel
+              selectedIso={selectedIso}
+              todayIso={today}
+              meetings={selectedDayMeetings}
+              mode={mode}
+              className="hidden lg:block"
+            />
+          </div>
+
+          <MobileAgenda selectedIso={selectedIso} meetings={selectedDayMeetings} todayIso={today} />
         </>
       ) : view === "week" ? (
-        /* ── WEEK: 7 columns, hour slots — horizontal scroll on mobile ── */
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <div className="min-w-[640px]">
-              {/* weekday header row */}
               <div className="grid border-b border-line" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
                 <div />
                 {weekDays.map((iso) => {
@@ -313,9 +362,8 @@ export function CalendarPage() {
                       data-weekday={isFriday ? "friday" : undefined}
                       onClick={() => { setSelectedIso(iso); setView("day"); }}
                       className={cn(
-                        "border-l border-line/40 py-2 text-center transition-colors",
-                        isFriday ? "bg-red-50 hover:bg-red-100/70" : "hover:bg-paper-soft",
-                        isToday && !isFriday && "bg-paper-soft",
+                        "border-l border-line/40 py-2 text-center transition-colors hover:bg-paper-soft",
+                        isToday && "bg-paper-soft",
                       )}
                     >
                       <p className={cn("text-[10px]", isFriday ? "text-red-500" : "text-ink-soft")}>{WEEKDAY_LONG[(new Date(iso + "T12:00:00Z").getUTCDay() + 1) % 7]}</p>
@@ -327,45 +375,67 @@ export function CalendarPage() {
                   );
                 })}
               </div>
-              {/* hour grid */}
               <div className="grid" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
                 <div>
-                  {Array.from({ length: 13 }, (_, i) => 8 + i).map((h) => (
+                  {Array.from({ length: WEEK_HOURS }, (_, i) => WEEK_START_HOUR + i).map((h) => (
                     <div key={h} className="h-12 border-b border-line/30 pr-1.5 pt-0.5 text-left text-[9px] text-ink-faint">
                       {faPad2(h)}:۰۰
                     </div>
                   ))}
                 </div>
-                {weekDays.map((iso) => (
-                  <div key={iso} className={cn("relative border-l border-line/40", isFridayIso(iso) && "bg-red-50/50")}>
-                    {Array.from({ length: 13 }, (_, i) => (
-                      <div key={i} className="h-12 border-b border-line/30" />
-                    ))}
-                    {(byDate.get(iso) ?? []).map((m) => {
-                      const s = tehran(m.startAt);
-                      const e = tehran(m.endAt);
-                      const top = ((s.getUTCHours() * 60 + s.getUTCMinutes()) - 8 * 60) / 60 * 48;
-                      const height = Math.max(20, ((e.getUTCHours() * 60 + e.getUTCMinutes()) - (s.getUTCHours() * 60 + s.getUTCMinutes())) / 60 * 48 - 2);
-                      return (
+                {weekDays.map((iso) => {
+                  const dayMeetings = byDate.get(iso) ?? [];
+                  const intervals = dayMeetings.map((m) => ({
+                    id: m.id,
+                    startMin: minutesOf(m.startAt),
+                    endMin: minutesOf(m.endAt),
+                  }));
+                  const blocks = layoutDayBlocks(intervals, WEEK_START_HOUR, WEEK_PX);
+                  const nowMin = minutesOf(now.toISOString());
+                  const nowTop = iso === today ? nowLineTop(nowMin, WEEK_START_HOUR, WEEK_END_HOUR, WEEK_PX) : null;
+                  return (
+                    <div key={iso} className="relative border-l border-line/40">
+                      {Array.from({ length: WEEK_HOURS }, (_, i) => WEEK_START_HOUR + i).map((h) => (
                         <Link
-                          key={m.id}
-                          href={`/meetings/${m.id}`}
-                          className={cn(
-                            "absolute right-0.5 left-0.5 overflow-hidden rounded px-1.5 py-1 text-[10px] leading-tight transition-colors hover:opacity-90",
-                            m.status === "IN_PROGRESS" ? "bg-red-500 text-white"
-                            : m.status === "CANCELLED" ? "bg-paper-deep text-ink-faint line-through"
-                            : "bg-ink text-white",
-                          )}
-                          style={{ top, height }}
-                        >
-                          <p className="truncate font-medium">{m.isMasked ? "🔒 جلسه محرمانه" : m.title}</p>
-                          <p className="truncate opacity-80">{timeOf(m.startAt)}</p>
-                          {m.room && <p className="truncate opacity-70">{m.room.name}</p>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ))}
+                          key={h}
+                          href={newMeetingHref(iso, h)}
+                          aria-label={`جلسه جدید ${faPad2(h)}:۰۰`}
+                          className="block h-12 border-b border-line/30 transition-colors hover:bg-paper-soft/80"
+                        />
+                      ))}
+                      {nowTop != null && (
+                        <div className="pointer-events-none absolute right-0 left-0 z-20" style={{ top: nowTop }}>
+                          <div className="h-px bg-red-500" data-now-line />
+                          <span className="absolute -right-1 -top-1 size-1.5 rounded-full bg-red-500" />
+                        </div>
+                      )}
+                      {blocks.map((b) => {
+                        const m = dayMeetings.find((x) => x.id === b.id);
+                        if (!m) return null;
+                        return (
+                          <Link
+                            key={m.id}
+                            href={`/meetings/${m.id}`}
+                            className={cn(
+                              "absolute z-10 overflow-hidden rounded px-1.5 py-1 text-[10px] leading-tight transition-opacity hover:opacity-90",
+                              calendarEventTone(m.status).block,
+                            )}
+                            style={{
+                              top: b.top,
+                              height: b.height,
+                              right: `calc(${(b.col / b.cols) * 100}% + 2px)`,
+                              width: `calc(${100 / b.cols}% - 4px)`,
+                            }}
+                          >
+                            <p className="truncate font-medium"><EventLabel meeting={m} /></p>
+                            <p className="truncate opacity-80">{timeOf(m.startAt)}</p>
+                            {m.room && b.height > 36 && <p className="truncate opacity-70">{m.room.name}</p>}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -379,7 +449,6 @@ export function CalendarPage() {
         />
       )}
 
-      {/* FAB on mobile — Google Calendar style */}
       <Link
         href="/meetings/new"
         className="fixed bottom-24 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-white shadow-lg transition-transform active:scale-95 lg:hidden"
@@ -391,7 +460,76 @@ export function CalendarPage() {
   );
 }
 
-/** Month grid skeleton — mirrors month Card + mobile agenda. */
+function DayPanel({
+  selectedIso,
+  todayIso,
+  meetings,
+  mode,
+  className,
+}: {
+  selectedIso: string;
+  todayIso: string;
+  meetings: CalMeeting[];
+  mode: CalMode;
+  className?: string;
+}) {
+  const j = jalaliOfIso(selectedIso);
+  const weekday = WEEKDAY_LONG[(new Date(selectedIso + "T12:00:00Z").getUTCDay() + 1) % 7];
+  const friday = isFridayIso(selectedIso);
+  const dateText =
+    mode === "jalali"
+      ? `${weekday} ${faNum(j.jd)} ${J_MONTHS[j.jm - 1]}`
+      : new Intl.DateTimeFormat("fa-IR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
+          new Date(selectedIso + "T12:00:00Z"),
+        );
+
+  return (
+    <Card data-tour="cal-day-panel" className={cn("sticky top-4", className)}>
+      <div className="flex items-start justify-between gap-2 border-b border-line px-4 py-3">
+        <div>
+          <p className={cn("text-[14px] font-bold", friday && "text-red-600")}>
+            {dateText}
+            {selectedIso === todayIso ? " · امروز" : ""}
+          </p>
+          <p className="mt-0.5 text-[11px] text-ink-faint">
+            {meetings.length ? `${faNum(meetings.length)} جلسه` : "روز خالی"}
+          </p>
+        </div>
+      </div>
+      <div className="max-h-[28rem] divide-y divide-line overflow-y-auto">
+        {meetings.length === 0 && (
+          <p className="px-4 py-8 text-center text-[12px] text-ink-faint">جلسه‌ای در این روز نیست</p>
+        )}
+        {meetings.map((m) => {
+          const tone = calendarEventTone(m.status);
+          return (
+            <Link key={m.id} href={`/meetings/${m.id}`} className="flex items-start gap-3 px-4 py-3 hover:bg-paper-soft">
+              <div className="w-12 shrink-0 pt-0.5 text-left">
+                <p className="text-[11px] font-bold">{timeOf(m.startAt)}</p>
+              </div>
+              <div className={cn("mt-1 h-8 w-1 shrink-0 rounded-full", tone.rail)} />
+              <div className="min-w-0 flex-1">
+                <p className={cn("truncate text-[12.5px] font-medium", m.status === "CANCELLED" && "line-through opacity-60")}>
+                  <EventLabel meeting={m} />
+                </p>
+                <p className="mt-0.5 truncate text-[11px] text-ink-faint">{m.room?.name ?? m.organizer.fullName}</p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+      <div className="border-t border-line p-3">
+        <Link
+          href={newMeetingHref(selectedIso)}
+          className="flex h-10 items-center justify-center rounded-md bg-ink text-[12.5px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
+        >
+          ثبت جلسه در این روز
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
 function CalendarMonthSkeleton({
   monthGrid,
 }: {
@@ -399,48 +537,43 @@ function CalendarMonthSkeleton({
 }) {
   return (
     <>
-      <Card className="overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-line bg-paper-soft/50">
-          {J_WEEKDAYS_LONG.map((d, i) => (
-            <div key={d} className={cn("px-0.5 py-2 text-center text-[10px] font-medium leading-4 sm:text-[11px]", i === 6 ? "text-red-500" : "text-ink-soft")}>
-              {d}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7">
-          {monthGrid.map((cell, i) => {
-            const fridayCol = i % 7 === 6;
-            if (!cell) {
-              return (
-                <div
-                  key={i}
-                  className={cn("h-14 border-b border-l border-line/40 sm:h-20 sm:min-h-20 lg:h-24", fridayCol ? "bg-red-50/60" : "bg-paper-soft/20")}
-                />
-              );
-            }
-            return (
-              <div
-                key={i}
-                className={cn(
-                  "relative h-14 border-b border-l border-line/40 p-1 text-right sm:h-20 sm:p-1.5 lg:h-24",
-                  fridayCol && "bg-red-50",
-                )}
-              >
-                <SkeletonBlock className="inline-flex h-5 w-5 rounded-full sm:h-6 sm:w-6" />
-                <div className="mt-0.5 hidden space-y-0.5 sm:block">
-                  <SkeletonBlock className="h-4 w-full rounded" />
-                  <SkeletonBlock className="h-4 w-[85%] rounded" />
-                </div>
-                <div className="absolute bottom-1.5 right-1.5 flex gap-0.5 sm:hidden">
-                  <SkeletonBlock className="h-1.5 w-1.5 rounded-full" />
-                  <SkeletonBlock className="h-1.5 w-1.5 rounded-full" />
-                  <SkeletonBlock className="h-1.5 w-1.5 rounded-full" />
-                </div>
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
+        <Card className="overflow-hidden">
+          <div className="grid grid-cols-7 border-b border-line bg-paper-soft/50">
+            {J_WEEKDAYS_LONG.map((d, i) => (
+              <div key={d} className={cn("px-0.5 py-2 text-center text-[10px] font-medium leading-4 sm:text-[11px]", i === 6 ? "text-red-500" : "text-ink-soft")}>
+                {d}
               </div>
-            );
-          })}
-        </div>
-      </Card>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {monthGrid.map((cell, i) => {
+              if (!cell) {
+                return <div key={i} className="h-16 border-b border-l border-line/40 bg-paper-soft/20 sm:h-24 lg:h-[7.25rem]" />;
+              }
+              return (
+                <div key={i} className="relative h-16 border-b border-l border-line/40 p-1 text-right sm:h-24 sm:p-1.5 lg:h-[7.25rem]">
+                  <SkeletonBlock className="inline-flex h-5 w-5 rounded-full sm:h-6 sm:w-6" />
+                  <div className="mt-0.5 hidden space-y-0.5 sm:block">
+                    <SkeletonBlock className="h-4 w-full rounded" />
+                    <SkeletonBlock className="h-4 w-[85%] rounded" />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+        <Card className="hidden lg:block">
+          <div className="border-b border-line px-4 py-3">
+            <SkeletonBlock className="h-4 w-40" />
+          </div>
+          <div className="space-y-3 p-4">
+            <SkeletonBlock className="h-10 w-full" />
+            <SkeletonBlock className="h-10 w-full" />
+            <SkeletonBlock className="h-10 w-2/3" />
+          </div>
+        </Card>
+      </div>
       <Card className="lg:hidden">
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <SkeletonBlock className="h-4 w-36" />
@@ -463,7 +596,6 @@ function CalendarMonthSkeleton({
   );
 }
 
-/** Week hour-grid skeleton — mirrors week Card layout. */
 function CalendarWeekSkeleton({ weekDays }: { weekDays: string[] }) {
   return (
     <Card className="overflow-hidden">
@@ -472,31 +604,27 @@ function CalendarWeekSkeleton({ weekDays }: { weekDays: string[] }) {
           <div className="grid border-b border-line" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
             <div />
             {weekDays.map((iso) => (
-              <div key={iso} className={cn("border-l border-line/40 py-2 text-center", isFridayIso(iso) && "bg-red-50")}>
+              <div key={iso} className="border-l border-line/40 py-2 text-center">
                 <SkeletonBlock className="mx-auto h-3 w-12" />
                 <SkeletonBlock className="mx-auto mt-1 h-7 w-7 rounded-full" />
-                <SkeletonBlock className="mx-auto mt-1 h-2.5 w-10" />
               </div>
             ))}
           </div>
           <div className="grid" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
             <div>
-              {Array.from({ length: 13 }, (_, i) => 8 + i).map((h) => (
+              {Array.from({ length: WEEK_HOURS }, (_, i) => WEEK_START_HOUR + i).map((h) => (
                 <div key={h} className="h-12 border-b border-line/30 pr-1.5 pt-0.5 text-left text-[9px] text-ink-faint">
                   {faPad2(h)}:۰۰
                 </div>
               ))}
             </div>
             {weekDays.map((iso) => (
-              <div key={iso} className={cn("relative border-l border-line/40", isFridayIso(iso) && "bg-red-50/50")}>
-                {Array.from({ length: 13 }, (_, i) => (
+              <div key={iso} className="relative border-l border-line/40">
+                {Array.from({ length: WEEK_HOURS }, (_, i) => (
                   <div key={i} className="h-12 border-b border-line/30" />
                 ))}
                 {(iso === weekDays[2] || iso === weekDays[4]) && (
-                  <SkeletonBlock
-                    className="absolute right-0.5 left-0.5 rounded"
-                    style={{ top: 48, height: 64 }}
-                  />
+                  <SkeletonBlock className="absolute right-0.5 left-0.5 rounded" style={{ top: 48, height: 64 }} />
                 )}
               </div>
             ))}
@@ -507,29 +635,18 @@ function CalendarWeekSkeleton({ weekDays }: { weekDays: string[] }) {
   );
 }
 
-/** Mobile agenda list under month grid — shows selected day's meetings (Google Calendar mobile pattern). */
 function MobileAgenda({
   selectedIso,
   meetings,
-  onPickDay,
-  monthGrid,
-  byDate,
   todayIso,
-  mode,
 }: {
   selectedIso: string;
   meetings: CalMeeting[];
-  onPickDay: (iso: string) => void;
-  monthGrid: ({ jy: number; jm: number; jd: number } | null)[];
-  byDate: Map<string, CalMeeting[]>;
   todayIso: string;
-  mode: CalMode;
 }) {
-  const label = (() => {
-    const j = jalaliOfIso(selectedIso);
-    const weekday = WEEKDAY_LONG[(new Date(selectedIso + "T12:00:00Z").getUTCDay() + 1) % 7];
-    return `${weekday} ${faNum(j.jd)} ${J_MONTHS[j.jm - 1]}${selectedIso === todayIso ? " · امروز" : ""}`;
-  })();
+  const j = jalaliOfIso(selectedIso);
+  const weekday = WEEKDAY_LONG[(new Date(selectedIso + "T12:00:00Z").getUTCDay() + 1) % 7];
+  const label = `${weekday} ${faNum(j.jd)} ${J_MONTHS[j.jm - 1]}${selectedIso === todayIso ? " · امروز" : ""}`;
 
   return (
     <Card className="lg:hidden">
@@ -546,13 +663,23 @@ function MobileAgenda({
             <div className="w-12 shrink-0 text-left">
               <p className="text-[11px] font-bold">{timeOf(m.startAt)}</p>
             </div>
-            <div className={cn("h-8 w-1 shrink-0 rounded-full", m.status === "IN_PROGRESS" ? "bg-red-500" : m.status === "CANCELLED" ? "bg-ink-faint" : "bg-ink")} />
+            <div className={cn("h-8 w-1 shrink-0 rounded-full", calendarEventTone(m.status).rail)} />
             <div className="min-w-0 flex-1">
-              <p className={cn("truncate text-[12px] font-medium", m.status === "CANCELLED" && "line-through opacity-60")}>{m.isMasked ? "🔒 جلسه محرمانه" : m.title}</p>
+              <p className={cn("truncate text-[12px] font-medium", m.status === "CANCELLED" && "line-through opacity-60")}>
+                <EventLabel meeting={m} />
+              </p>
               <p className="truncate text-[10px] text-ink-faint">{m.room?.name ?? m.organizer.fullName}</p>
             </div>
           </Link>
         ))}
+      </div>
+      <div className="border-t border-line p-3">
+        <Link
+          href={newMeetingHref(selectedIso)}
+          className="flex h-10 items-center justify-center rounded-md border border-line text-[12px] font-medium text-ink hover:bg-paper-soft"
+        >
+          ثبت جلسه در این روز
+        </Link>
       </div>
     </Card>
   );
