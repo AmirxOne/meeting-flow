@@ -367,7 +367,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
   const fromAvailability = fromAvailabilityHandoff && !!slot;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-4 lg:p-6">
+    <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
       <h1 className="text-lg font-bold">جلسه جدید</h1>
 
       {/* Step 1: basics */}

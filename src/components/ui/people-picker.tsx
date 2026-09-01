@@ -125,6 +125,8 @@ export function PeoplePicker({
 
   const visible = showMore ? results : results.slice(0, PAGE);
   const totalPeople = data?.total ?? 0;
+  // first load while dropdown open — no data yet (not a re-fetch of a search)
+  const isLoadingFirst = open && !data && isFetching;
 
   const exactExists =
     results.some((r) => r.name === query.trim()) ||
@@ -303,12 +305,24 @@ export function PeoplePicker({
                 <span className="flex items-center gap-1">
                   <Search className="h-3 w-3" />
                   {debounced ? `نتایج «${debounced}»` : "همه"}
-                  {isFetching && " · در حال جستجو…"}
+                  {isFetching && !isLoadingFirst && " · در حال جستجو…"}
                 </span>
                 <span>{faNum(totalPeople)} نفر در دایرکتوری</span>
               </div>
 
-              {results.length === 0 && (
+              {isLoadingFirst ? (
+                <div className="space-y-1 p-2" data-testid="people-skeleton">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 px-1 py-1.5">
+                      <span className="size-8 animate-pulse rounded-full bg-paper-deep" />
+                      <span className="min-w-0 flex-1 space-y-1.5">
+                        <span className="block h-3 w-1/3 animate-pulse rounded bg-paper-deep" />
+                        <span className="block h-2.5 w-1/2 animate-pulse rounded bg-paper-deep" />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : results.length === 0 && (
                 <div className="p-4 text-center">
                   <p className="text-[12px] text-ink-faint">
                     {debounced ? "کسی با این مشخصات یافت نشد" : "دایرکتوری خالی است"}

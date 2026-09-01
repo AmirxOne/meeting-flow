@@ -158,7 +158,7 @@ export function AvailabilityPage() {
             <PeoplePicker value={people} onChange={setPeople} />
           </div>
 
-          <div className="flex items-center justify-end border-t border-line pt-4">
+          <div className="flex items-center justify-end pt-2">
             <Button onClick={search} loading={loading} className="w-full sm:w-auto">
               <Clock className="h-4 w-4" />
               جستجوی زمان‌های آزاد
