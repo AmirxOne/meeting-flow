@@ -2,6 +2,7 @@ import { prisma } from "@/server/db";
 import { fillHourlyHistogram } from "@/lib/report-histogram";
 
 export interface ReportFilters {
+  orgId: string;
   from?: Date;
   to?: Date;
   branchId?: string;
@@ -40,6 +41,7 @@ const ACTIVE = ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "RESCHEDULED", "IN_
 
 function meetingWhere(f: ReportFilters) {
   return {
+    orgId: f.orgId,
     startAt: { gte: f.from, lte: f.to },
     ...(f.branchId ? { branchId: f.branchId } : {}),
     ...(f.roomId ? { roomId: f.roomId } : {}),
@@ -62,12 +64,14 @@ export async function summaryReport(f: ReportFilters): Promise<SummaryReport> {
         select: { startAt: true, endAt: true, status: true, meetingType: true },
       }),
       prisma.meetingRoom.findMany({
+        where: { orgId: f.orgId },
         include: {
           branch: { select: { name: true } },
           meetings: { where },
         },
       }),
       prisma.branch.findMany({
+        where: { orgId: f.orgId },
         include: { meetings: { where } },
       }),
       prisma.meeting.groupBy({

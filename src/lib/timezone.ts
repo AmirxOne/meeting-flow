@@ -13,6 +13,20 @@ export function formatClockInTz(date: Date, tz: string): string {
   return faStr(`${h}:${m}`);
 }
 
+/** HH:mm:ss in org timezone with Persian digits — door displays. */
+export function formatClockWithSecondsInTz(date: Date, tz: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone: tz,
+  }).formatToParts(date);
+  const num = (type: string) =>
+    String(parts.find((p) => p.type === type)?.value ?? "0").padStart(2, "0");
+  return faStr(`${num("hour")}:${num("minute")}:${num("second")}`);
+}
+
 /** jD/jM in org timezone with Persian digits. */
 export function formatJalaliDayMonthInTz(instant: Date, tz: string): string {
   const j = jalaliPartsInTz(instant, tz);

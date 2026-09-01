@@ -12,7 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json().catch(() => ({}));
     const input = cancelSchema.parse(body);
 
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
 
     const isOwner = meeting.organizerId === user.id;
@@ -20,7 +20,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       throw new HttpError(403, "فقط برگزارکننده یا مدیر می‌تواند لغو کند", "FORBIDDEN");
     }
 
-    const cancelled = await cancelMeeting(id, input, { actorId: user.id });
+    const cancelled = await cancelMeeting(
+      id,
+      { reason: input.reason, note: input.note, scope: input.scope },
+      { actorId: user.id, orgId: user.orgId },
+    );
     await audit({
       actorId: user.id, action: "MEETING_CANCEL", entity: "Meeting", entityId: id,
       newValue: { status: "CANCELLED", reason: input.reason }, ip: req.headers.get("x-forwarded-for"),

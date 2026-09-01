@@ -21,6 +21,8 @@ export interface HardConflict {
   roomName: string;
   meetingId: string;
   meetingTitle: string;
+  isPrivate: boolean;
+  organizerId: string;
   startAt: Date;
   endAt: Date;
 }
@@ -31,6 +33,8 @@ export interface SoftConflict {
   userName: string;
   meetingId: string;
   meetingTitle: string;
+  isPrivate: boolean;
+  organizerId: string;
   startAt: Date;
   endAt: Date;
 }
@@ -45,11 +49,22 @@ export function intervalsOverlap(
   return aStart < bEnd && bStart < aEnd;
 }
 
+function excludeIdFilter(excludeMeetingId?: string | string[]) {
+  const ids = !excludeMeetingId
+    ? []
+    : Array.isArray(excludeMeetingId)
+      ? excludeMeetingId
+      : [excludeMeetingId];
+  if (ids.length === 0) return {};
+  if (ids.length === 1) return { id: { not: ids[0] } };
+  return { id: { notIn: ids } };
+}
+
 export async function findRoomConflicts(
   roomId: string,
   start: Date,
   end: Date,
-  excludeMeetingId?: string,
+  excludeMeetingId?: string | string[],
 ): Promise<HardConflict[]> {
   const meetings = await prisma.meeting.findMany({
     where: {
@@ -58,7 +73,9 @@ export async function findRoomConflicts(
       AND: [
         { startAt: { lt: end } },
         { endAt: { gt: start } },
-        ...(excludeMeetingId ? [{ id: { not: excludeMeetingId } }] : []),
+        ...(excludeMeetingId && (Array.isArray(excludeMeetingId) ? excludeMeetingId.length : true)
+          ? [excludeIdFilter(excludeMeetingId)]
+          : []),
       ],
     },
     include: { room: true },
@@ -69,6 +86,8 @@ export async function findRoomConflicts(
     roomName: m.room?.name ?? "",
     meetingId: m.id,
     meetingTitle: m.title,
+    isPrivate: m.isPrivate,
+    organizerId: m.organizerId,
     startAt: m.startAt,
     endAt: m.endAt,
   }));
@@ -78,9 +97,12 @@ export async function findUserConflicts(
   userIds: string[],
   start: Date,
   end: Date,
-  excludeMeetingId?: string,
+  excludeMeetingId?: string | string[],
+  orgId?: string,
 ): Promise<SoftConflict[]> {
   if (userIds.length === 0) return [];
+  const idFilter = excludeIdFilter(excludeMeetingId);
+  const orgClause = orgId ? { orgId } : {};
   const participations = await prisma.meetingParticipant.findMany({
     where: {
       userId: { in: userIds },
@@ -88,7 +110,8 @@ export async function findUserConflicts(
         status: { in: BLOCKING_STATUSES as unknown as string[] },
         startAt: { lt: end },
         endAt: { gt: start },
-        ...(excludeMeetingId ? { id: { not: excludeMeetingId } } : {}),
+        ...idFilter,
+        ...orgClause,
       },
     },
     include: { user: true, meeting: true },
@@ -100,7 +123,8 @@ export async function findUserConflicts(
       status: { in: BLOCKING_STATUSES as unknown as string[] },
       startAt: { lt: end },
       endAt: { gt: start },
-      ...(excludeMeetingId ? { id: { not: excludeMeetingId } } : {}),
+      ...idFilter,
+      ...orgClause,
     },
     include: { organizer: true },
   });
@@ -113,6 +137,8 @@ export async function findUserConflicts(
       userName: p.user.fullName,
       meetingId: p.meetingId,
       meetingTitle: p.meeting.title,
+      isPrivate: p.meeting.isPrivate,
+      organizerId: p.meeting.organizerId,
       startAt: p.meeting.startAt,
       endAt: p.meeting.endAt,
     });
@@ -125,6 +151,8 @@ export async function findUserConflicts(
         userName: m.organizer.fullName,
         meetingId: m.id,
         meetingTitle: m.title,
+        isPrivate: m.isPrivate,
+        organizerId: m.organizerId,
         startAt: m.startAt,
         endAt: m.endAt,
       });

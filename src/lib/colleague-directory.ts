@@ -1,6 +1,7 @@
 export type Colleague = {
   id: string;
   fullName: string;
+  avatarUrl?: string | null;
   jobTitle?: string | null;
   department?: string | null;
   branch: { id: string; name: string } | null;

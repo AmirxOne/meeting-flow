@@ -2,9 +2,10 @@ import { compare } from "bcryptjs";
 import { prisma } from "@/server/db";
 import { HttpError } from "@/server/auth/session";
 import { parseLoginIdentifier, type ParsedLoginIdentifier } from "@/lib/login-identifier";
-import { isLdapAuthEnabled, parseAuthMode } from "./auth-config";
+import { isLdapAuthEnabled, isPasswordLoginEnabled, parseAuthMode } from "./auth-config";
 import { createLdapClient, type LdapClient } from "./ldap-client";
 import { findOrProvisionLdapUser } from "./ldap-user.service";
+import { SAMPLE_ORG_ID } from "@/lib/org-slug";
 
 export interface AuthenticatedUser {
   id: string;
@@ -67,6 +68,7 @@ async function authenticateLocal(
 async function authenticateLdap(
   parsed: ParsedLoginIdentifier,
   password: string,
+  orgSlug?: string,
 ): Promise<AuthenticatedUser> {
   let email = parsed.kind === "email" ? parsed.value : null;
   if (parsed.kind === "phone") {
@@ -82,23 +84,82 @@ async function authenticateLdap(
     throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
   }
 
-  const user = await findOrProvisionLdapUser(profile);
+  const orgId = await resolveProvisionOrgId(orgSlug);
+  const user = await findOrProvisionLdapUser(profile, orgId);
   return toAuthUser(user);
 }
 
-/** Resolve credentials (email or Iranian mobile) according to AUTH_MODE. */
+async function resolveProvisionOrgId(orgSlug?: string): Promise<string> {
+  if (orgSlug) {
+    const org = await prisma.organization.findUnique({
+      where: { slug: orgSlug.toLowerCase() },
+      select: { id: true },
+    });
+    if (org) return org.id;
+  }
+  return SAMPLE_ORG_ID;
+}
+
+async function assertLoginTenant(userId: string, orgSlug?: string) {
+  if (!orgSlug) return;
+  const org = await prisma.organization.findUnique({
+    where: { slug: orgSlug.toLowerCase() },
+    select: { id: true },
+  });
+  if (!org) {
+    throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
+  }
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { orgId: true, isSuperAdmin: true },
+  });
+  if (!user) {
+    throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
+  }
+  if (user.isSuperAdmin) return;
+  if (user.orgId !== org.id) {
+    throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
+  }
+}
+
+/** Load a user after a successful 2FA challenge (password/LDAP already verified). */
+export async function getAuthenticatedUser(userId: string): Promise<AuthenticatedUser> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, fullName: true, jobTitle: true, isActive: true },
+  });
+  if (!user?.isActive) {
+    throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
+  }
+  return toAuthUser(user);
+}
+
+/**
+ * Resolve credentials (email or Iranian mobile) according to AUTH_MODE.
+ * LDAP: directory bind only. If the user later enabled Mehrsa TOTP, the login
+ * route still requires that authenticator code — LDAP MFA is not a substitute.
+ */
 export async function authenticateLogin(
   identifier: string,
   password: string,
+  orgSlug?: string,
 ): Promise<AuthenticatedUser> {
+  if (!isPasswordLoginEnabled()) {
+    throw new HttpError(
+      400,
+      "ورود با رمز برای این سازمان فعال نیست — از دکمهٔ حساب سازمانی استفاده کنید",
+      "SSO_ONLY",
+    );
+  }
   const parsed = parseLoginIdentifier(identifier);
   if (!parsed) {
     throw new HttpError(400, "ایمیل یا شماره موبایل نامعتبر است", "INVALID_IDENTIFIER");
   }
-  if (isLdapAuthEnabled()) {
-    return authenticateLdap(parsed, password);
-  }
-  return authenticateLocal(parsed, password);
+  const user = isLdapAuthEnabled()
+    ? await authenticateLdap(parsed, password, orgSlug)
+    : await authenticateLocal(parsed, password);
+  await assertLoginTenant(user.id, orgSlug);
+  return user;
 }
 
 export { parseAuthMode, isLdapAuthEnabled };

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const body = await req.json().catch(() => ({}));
     const input = rescheduleSchema.parse(body);
 
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
 
     const isOwner = meeting.organizerId === user.id;
@@ -27,8 +27,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         endAt: input.endAt ? new Date(input.endAt) : undefined,
         roomId: input.roomId,
         reason: input.reason,
+        scope: input.scope,
       },
-      { actorId: user.id },
+      { actorId: user.id, orgId: user.orgId },
     );
     await audit({
       actorId: user.id, action: "MEETING_RESCHEDULE", entity: "Meeting", entityId: id,

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ok, handleError } from "@/server/http";
-import { getGuestByCheckinCode, checkInGuest } from "@/server/services/guest-checkin.service";
+import { getGuestByCheckinCode, checkInGuest, wayfindingFromGuest } from "@/server/services/guest-checkin.service";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +29,7 @@ export async function GET(
         branchName: guest.meeting.branch.name,
         roomName: guest.meeting.room?.name ?? null,
       },
+      wayfinding: wayfindingFromGuest(guest),
     });
   } catch (e) {
     return handleError(e);

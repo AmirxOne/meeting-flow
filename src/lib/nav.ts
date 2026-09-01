@@ -12,6 +12,7 @@ import {
   BarChart3,
   Settings,
   ScrollText,
+  Plus,
 } from "@/components/ui/icon";
 
 export type NavGroupId = "main" | "org" | "system";
@@ -66,6 +67,25 @@ export function groupedVisibleNav(can: (perm: string) => boolean) {
     ...group,
     items: NAV.filter((item) => item.group === group.id && isNavItemVisible(item, can)),
   })).filter((group) => group.items.length > 0);
+}
+
+/** Bottom bar on compact viewports — PWA start is «جلسات من». */
+export const MOBILE_NAV: { href: string; label: string; icon: AppIcon }[] = [
+  { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard },
+  { href: "/meetings", label: "جلسات من", icon: Users },
+  { href: "/meetings/new", label: "جدید", icon: Plus },
+  { href: "/calendar", label: "تقویم", icon: CalendarDays },
+  { href: "/notifications", label: "اعلان‌ها", icon: Bell },
+];
+
+export function isMobileNavActive(pathname: string, href: string): boolean {
+  if (href === "/meetings") {
+    return (
+      pathname === "/meetings" ||
+      (pathname.startsWith("/meetings/") && !pathname.startsWith("/meetings/new"))
+    );
+  }
+  return pathname === href;
 }
 
 /** True when this href is the most specific visible match for the current path. */

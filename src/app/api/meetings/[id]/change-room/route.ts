@@ -13,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const input = schema.parse(await req.json().catch(() => ({})));
 
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
 
     const isOwner = meeting.organizerId === user.id;
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const oldRoomId = meeting.roomId;
-    const updated = await changeRoom(id, input.roomId, { actorId: user.id });
+    const updated = await changeRoom(id, input.roomId, { actorId: user.id, orgId: user.orgId });
     await audit({
       actorId: user.id, action: "MEETING_ROOM_CHANGE", entity: "Meeting", entityId: id,
       oldValue: { roomId: oldRoomId }, newValue: { roomId: input.roomId },

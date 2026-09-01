@@ -17,6 +17,7 @@ export interface AvailabilityBookingDraft {
   people: PickedPerson[];
   availableRooms: AvailabilityRoomOption[];
   roomId?: string;
+  organizerId?: string;
 }
 
 export function saveAvailabilityBooking(draft: AvailabilityBookingDraft): void {

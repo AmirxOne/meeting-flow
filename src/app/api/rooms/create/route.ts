@@ -16,9 +16,20 @@ export async function POST(req: NextRequest) {
     const actor = await requirePermission("room:create");
     const input = roomCreateSchema.parse(await req.json().catch(() => ({})));
     await assertFloorInBranch(input.branchId, input.floorId);
+    const branch = await prisma.branch.findFirst({
+      where: { id: input.branchId, orgId: actor.orgId },
+    });
+    if (!branch) throw new HttpError(404, "شعبه یافت نشد", "NOT_FOUND");
     await assertManagerExists(input.managerId);
+    if (input.managerId) {
+      const manager = await prisma.user.findFirst({
+        where: { id: input.managerId, orgId: actor.orgId },
+      });
+      if (!manager) throw new HttpError(404, "مدیر اتاق یافت نشد", "NOT_FOUND");
+    }
     const room = await prisma.meetingRoom.create({
       data: {
+        orgId: actor.orgId,
         branchId: input.branchId,
         floorId: input.floorId || null,
         managerId: input.managerId || null,

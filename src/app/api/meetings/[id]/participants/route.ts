@@ -8,8 +8,10 @@ import { addParticipant, removeParticipant } from "@/server/services/meeting.ser
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireUser();
+    const user = await requireUser();
     const { id } = await params;
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
+    if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
     const participants = await prisma.meetingParticipant.findMany({
       where: { meetingId: id },
       include: { user: { select: { id: true, fullName: true, avatarUrl: true, jobTitle: true } } },
@@ -27,13 +29,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const input = participantAddSchema.parse(await req.json().catch(() => ({})));
 
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
     if (meeting.organizerId !== user.id && !can(user, "meeting:add-participant")) {
       throw new HttpError(403, "دسترسی لازم را ندارید", "FORBIDDEN");
     }
 
-    const p = await addParticipant(id, input.userId, { actorId: user.id }, { required: input.required });
+    const p = await addParticipant(id, input.userId, { actorId: user.id, orgId: user.orgId }, { required: input.required });
     await audit({ actorId: user.id, action: "PARTICIPANT_ADD", entity: "Meeting", entityId: id, newValue: { userId: input.userId } });
     return ok({ participant: p }, 201);
   } catch (e) {
@@ -49,13 +51,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { id } = await params;
     const input = deleteSchema.parse(await req.json().catch(() => ({})));
 
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
     if (meeting.organizerId !== user.id && !can(user, "meeting:remove-participant")) {
       throw new HttpError(403, "دسترسی لازم را ندارید", "FORBIDDEN");
     }
 
-    await removeParticipant(id, input.userId, { actorId: user.id });
+    await removeParticipant(id, input.userId, { actorId: user.id, orgId: user.orgId });
     await audit({ actorId: user.id, action: "PARTICIPANT_REMOVE", entity: "Meeting", entityId: id, oldValue: { userId: input.userId } });
     return ok({ removed: true });
   } catch (e) {

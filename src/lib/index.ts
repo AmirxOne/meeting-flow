@@ -2,6 +2,8 @@ import { tzOffsetMinutes } from "./jalali";
 
 export * from "./fa";
 export * from "./jalali";
+export * from "./person-name";
+export * from "./video-link";
 export { tzOffsetMinutes } from "./jalali";
 
 export function cn(...parts: Array<string | false | null | undefined>): string {
@@ -55,6 +57,7 @@ export function intervalsOverlap(
 export const MEETING_STATUSES = [
   "DRAFT", "PENDING_APPROVAL", "APPROVED", "CONFIRMED", "REJECTED",
   "CANCELLED", "RESCHEDULED", "IN_PROGRESS", "COMPLETED", "NO_SHOW",
+  "WAITLISTED", "WAITLIST_OFFERED",
 ] as const;
 export type MeetingStatus = (typeof MEETING_STATUSES)[number];
 
@@ -105,6 +108,8 @@ export const STATUS_FA: Record<string, string> = {
   IN_PROGRESS: "در حال برگزاری",
   COMPLETED: "پایان یافته",
   NO_SHOW: "غیبت",
+  WAITLISTED: "لیست انتظار",
+  WAITLIST_OFFERED: "پیشنهاد اتاق",
 };
 
 export const TYPE_FA: Record<string, string> = {

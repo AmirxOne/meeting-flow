@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# Restore a pg_dump SQL backup into PostgreSQL via docker compose.
+#
+# Usage:
+#   bash scripts/restore [--create-db] [--db NAME] [--force] BACKUP.sql[.gz]
+#
+# Production compose:
+#   COMPOSE_FILE=docker-compose.prod.yml bash scripts/restore --force backups/....sql.gz
+#
+# Restoring into the live DB (meetinghub) requires --force.
+# For a one-off verification, use --db meetinghub_restore_test --create-db.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+POSTGRES_USER="${POSTGRES_USER:-meetinghub}"
+POSTGRES_DB="${POSTGRES_DB:-meetinghub}"
+POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres}"
+
+TARGET_DB="$POSTGRES_DB"
+CREATE_DB=0
+FORCE=0
+BACKUP=""
+
+usage() {
+  sed -n '2,8p' "$0"
+  exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --db)
+      [[ $# -ge 2 ]] || usage
+      TARGET_DB="$2"
+      shift 2
+      ;;
+    --create-db)
+      CREATE_DB=1
+      shift
+      ;;
+    --force)
+      FORCE=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      ;;
+    -*)
+      echo "[restore] unknown option: $1" >&2
+      usage
+      ;;
+    *)
+      BACKUP="$1"
+      shift
+      ;;
+  esac
+done
+
+[[ -n "$BACKUP" ]] || usage
+[[ -f "$BACKUP" ]] || { echo "[restore] file not found: $BACKUP" >&2; exit 1; }
+
+if ! docker compose ps "$POSTGRES_SERVICE" --status running -q 2>/dev/null | grep -q .; then
+  echo "[restore] postgres is not running — start: docker compose up -d postgres" >&2
+  exit 1
+fi
+
+if [[ "$TARGET_DB" == "$POSTGRES_DB" && "$FORCE" -ne 1 ]]; then
+  echo "[restore] refusing to overwrite live database '$POSTGRES_DB' without --force" >&2
+  echo "[restore] for a dry run use: --db meetinghub_restore_test --create-db" >&2
+  exit 1
+fi
+
+if [[ "$CREATE_DB" -eq 1 ]]; then
+  echo "[restore] ensuring database '$TARGET_DB' exists"
+  docker compose exec -T "$POSTGRES_SERVICE" psql -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 <<SQL
+SELECT pg_terminate_backend(pid)
+FROM pg_stat_activity
+WHERE datname = '${TARGET_DB}' AND pid <> pg_backend_pid();
+DROP DATABASE IF EXISTS "${TARGET_DB}";
+CREATE DATABASE "${TARGET_DB}";
+SQL
+fi
+
+echo "[restore] loading $BACKUP → $TARGET_DB"
+if [[ "$BACKUP" == *.gz ]]; then
+  gunzip -c "$BACKUP" | docker compose exec -T "$POSTGRES_SERVICE" psql \
+    -U "$POSTGRES_USER" \
+    -d "$TARGET_DB" \
+    -v ON_ERROR_STOP=1 \
+    -q
+else
+  docker compose exec -T "$POSTGRES_SERVICE" psql \
+    -U "$POSTGRES_USER" \
+    -d "$TARGET_DB" \
+    -v ON_ERROR_STOP=1 \
+    -q < "$BACKUP"
+fi
+
+echo "[restore] done — database '$TARGET_DB'"

@@ -1,7 +1,14 @@
 allowBuilds:
-  '@prisma/client': set this to true or false
-  '@prisma/engines': set this to true or false
-  esbuild: set this to true or false
-  prisma: set this to true or false
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@sentry/cli': false
+  esbuild: true
+  prisma: true
 fetchTimeout: 600000
-onlyBuiltDependencies: '@prisma/client'
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - prisma
+  - esbuild
+ignoredBuiltDependencies:
+  - '@sentry/cli'

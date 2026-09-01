@@ -5,7 +5,7 @@
 بعد از **هر** فیچر یا فیکس (قبل از کامیت):
 
 1. **typecheck** — `pnpm run typecheck` باید صفر خطا باشد
-2. **تست‌های موجود** — `pnpm run test` نباید هیچ‌کدام fail شوند (الان: **242** — 155 unit + 87 integration)
+2. **تست‌های موجود** — `pnpm run test` نباید هیچ‌کدام fail شوند (الان: **669** — 523 unit + 146 integration)
 3. **تست جدید برای خود فیچر** — unit (vitest) برای منطق، یا E2E در `scripts/e2e-*.cjs` برای رفتار UI
 4. **تست با رول‌های مختلف** — فیچر را با حداقل این کاربرها امتحان کن:
    - `admin@example.com` (ADMIN)
@@ -33,6 +33,7 @@
 - انیمیشن‌ها با framer-motion (`src/components/ui/motion.tsx`) — نرم، بدون bounce
 - راهنمای صفحات (tours) با nextstepjs — هر صفحه‌ی جدید تور خودش را در `src/components/guided-tours.tsx` بگیرد
 - جلسات محرمانه: ماسک در سطح API (`src/server/services/privacy.ts`) — فقط برگزارکننده/دعوت‌شده/SUPER_ADMIN عنوان را می‌بینند
+- Multi-tenancy: هر سازمان (`Organization.slug`) دادهٔ جدا دارد؛ فیلتر `orgId` در سرویس/API اجباری است. SUPER_ADMIN پلتفرم (`isSuperAdmin`، بدون org) از ADMIN سازمان جداست. لاگین: `?org=slug` یا ساب‌دامین (`beta.localhost`)
 
 ## اجرا
 
@@ -45,7 +46,7 @@ pnpm dev               # ترمینال ۱ → http://localhost:3100
 pnpm worker:dev        # ترمینال ۲ — الزامی برای یادآورها
 ```
 
-**یادآورها:** `scheduleReminders` ردیف می‌سازد؛ ارسال فقط با worker (`pnpm worker:dev`) یا cron روی `POST /api/internal/worker-tick` (اگر `WORKER_TICK_SECRET` ست باشد). کانال‌ها: `REMINDER_CHANNELS=IN_APP,SMS,EMAIL`.
+**یادآورها:** `scheduleReminders` ردیف می‌سازد؛ ارسال فقط با worker (`pnpm worker:dev`) یا cron روی `POST /api/internal/worker-tick` (اگر `WORKER_TICK_SECRET` ست باشد). کانال‌ها: `REMINDER_CHANNELS=IN_APP,SMS,EMAIL,PUSH`. پوش مرورگر اختیاری است (VAPID + opt-in از پروفایل).
 
 ## معماری
 
@@ -62,12 +63,12 @@ src/
 │   └── guided-tours.tsx    # راهنمای حفره‌دار (nextstepjs)
 ├── server/                 # services, auth (RBAC ۶ نقش), http helpers
 ├── lib/                    # jalali (ICU), api client, stores
-└── prisma/                 # schema (۲۲ مدل), migrations, seed
+└── prisma/                 # schema (۲۴ مدل), migrations, seed
 ```
 
 ## تست‌ها
 
-- `pnpm run test` — vitest **242** تست (155 unit در `tests/unit/` + 87 integration در `tests/integration/api.test.ts`)
-- `pnpm vitest run tests/integration` — فقط integration (87)؛ dev server `:3100` + seed
+- `pnpm run test` — vitest **669** تست (523 unit در `tests/unit/` + 146 integration در `tests/integration/api.test.ts`)
+- `pnpm vitest run tests/integration` — فقط integration (146)؛ dev server `:3100` + seed
 - `pnpm run typecheck`
-- E2E: `node scripts/e2e-*.cjs` — smoke, calendar, people-pagination, people-page, notification-click, private-meetings, modal-forms, guided-tours, datepicker-people, room-branch-crud, reports, availability, branches, admin-policies, audit-logs, checkin, **missing-pages** (admin/settings, meetings/new wizard, rooms/[id], colleagues /users), org-branding, room-exclusions
+- E2E: `node scripts/e2e-*.cjs` — smoke, calendar, people-pagination, people-page, notification-click, private-meetings, modal-forms, guided-tours, datepicker-people, room-branch-crud, reports, availability, branches, admin-policies, audit-logs, checkin, **missing-pages** (admin/settings, meetings/new wizard, rooms/[id], colleagues /users), org-branding, room-exclusions, **minutes**, **pwa** (manifest + SW + mobile جلسات من / RSVP), **delegates** (تفویض رزرو), **room-display** (تبلت کنار در + ماسک محرمانه)

@@ -14,6 +14,7 @@ import {
   Users,
 } from "@/components/ui/icon";
 import { FadeIn, StaggerItem, StaggerList } from "@/components/ui/motion";
+import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { faNum } from "@/lib/fa";
 
 const FEATURES = [
@@ -355,8 +356,13 @@ export function LandingPage() {
             <a href="#workflow" className="hover:text-ink">گردش‌کار</a>
             <a href="#trust" className="hover:text-ink">امنیت</a>
             <Link href="/login" className="hover:text-ink">ورود</Link>
+            <Link href="/privacy" className="hover:text-ink">حریم خصوصی</Link>
+            <Link href="/terms" className="hover:text-ink">شرایط</Link>
           </div>
-          <p className="text-[11px] text-ink-faint">مهرسا — سامانه مدیریت جلسات سازمانی</p>
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <LegalFooterLinks className="justify-start sm:justify-end" />
+            <p className="text-[11px] text-ink-faint">مهرسا — سامانه مدیریت جلسات سازمانی</p>
+          </div>
         </div>
       </footer>
     </div>

@@ -5,8 +5,8 @@ const CHROME_PATH = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const BASE = "http://localhost:3100";
 
 const ALL_TOURS = [
-  "dashboard", "calendar", "meetings-list", "admin", "people", "rooms",
-  "availability", "reports", "notifications", "branches", "users",
+  "dashboard", "calendar", "meetings-list", "meetings-new", "meeting-detail", "admin", "people", "rooms",
+  "availability", "reports", "notifications", "branches", "users", "profile",
 ];
 
 function markToursSeenScript({ uid, tours }) {

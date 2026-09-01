@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
 import { requireUser, can } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
+import { meetingAccessOr } from "@/server/services/privacy";
 
 export const dynamic = "force-dynamic";
 
@@ -12,31 +13,36 @@ export async function GET(req: NextRequest) {
     const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
     if (q.length < 2) return ok({ results: { meetings: [], users: [], rooms: [], guests: [], branches: [] } });
 
+    const orgId = user.orgId;
     const [meetings, users, rooms, branches] = await Promise.all([
       prisma.meeting.findMany({
         where: {
+          orgId,
           title: { contains: q },
           ...(can(user, "meeting:view-all")
             ? {}
-            : { OR: [{ organizerId: user.id }, { participants: { some: { userId: user.id } } }] }),
+            : meetingAccessOr(user.id)),
         },
         select: { id: true, title: true, startAt: true, status: true },
         take: 5,
       }),
       can(user, "user:update")
         ? prisma.user.findMany({
-            where: { OR: [{ fullName: { contains: q } }, { email: { contains: q } }] },
+            where: {
+              orgId,
+              OR: [{ fullName: { contains: q } }, { email: { contains: q } }],
+            },
             select: { id: true, fullName: true, email: true, jobTitle: true },
             take: 5,
           })
         : Promise.resolve([]),
       prisma.meetingRoom.findMany({
-        where: { name: { contains: q } },
+        where: { orgId, name: { contains: q } },
         select: { id: true, name: true, capacity: true, branch: { select: { name: true } } },
         take: 5,
       }),
       prisma.branch.findMany({
-        where: { name: { contains: q } },
+        where: { orgId, name: { contains: q } },
         select: { id: true, name: true },
         take: 5,
       }),
@@ -46,7 +52,10 @@ export async function GET(req: NextRequest) {
     const guests =
       can(user, "meeting:view-all") || can(user, "meeting:manage-guests")
         ? await prisma.meetingGuest.findMany({
-            where: { OR: [{ name: { contains: q } }, { company: { contains: q } }] },
+            where: {
+              meeting: { orgId },
+              OR: [{ name: { contains: q } }, { company: { contains: q } }],
+            },
             select: { id: true, name: true, company: true, meetingId: true },
             take: 5,
           })

@@ -21,6 +21,7 @@ describe("scheduleReminders channel rows", () => {
   it("parseReminderChannels reads comma-separated env value", () => {
     expect(parseReminderChannels("IN_APP,SMS,EMAIL")).toEqual(["IN_APP", "SMS", "EMAIL"]);
     expect(parseReminderChannels("sms, email")).toEqual(["SMS", "EMAIL"]);
+    expect(parseReminderChannels("IN_APP,PUSH")).toEqual(["IN_APP", "PUSH"]);
   });
 
   it("buildReminderRows creates IN_APP rows only by default channels", () => {
@@ -53,6 +54,21 @@ describe("scheduleReminders channel rows", () => {
     expect(byChannel("SMS").map((r) => r.userId).sort()).toEqual(["u1", "u3"]);
     expect(byChannel("EMAIL")).toHaveLength(3);
     expect(rows.find((r) => r.userId === "u2" && r.channel === "SMS")).toBeUndefined();
+  });
+
+  it("buildReminderRows creates PUSH rows without needing phone or email", () => {
+    const rows = buildReminderRows({
+      meetingId: "m1",
+      startAt,
+      offsets: [30],
+      userIds: ["u1", "u2"],
+      users,
+      channels: ["PUSH"],
+      now,
+    });
+    expect(rows).toHaveLength(2);
+    expect(rows.every((r) => r.channel === "PUSH")).toBe(true);
+    expect(rows.map((r) => r.userId).sort()).toEqual(["u1", "u2"]);
   });
 
   it("buildReminderRows skips offsets whose remindAt is in the past", () => {

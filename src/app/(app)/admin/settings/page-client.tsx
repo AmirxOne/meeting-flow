@@ -10,6 +10,9 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { formatJalali } from "@/lib";
+import { SsoSettingsCard } from "./sso-card";
+import { SmsPilotCard } from "./sms-pilot-card";
+import { WorkerStatusCard } from "./worker-status-card";
 
 interface Organization {
   id: string;
@@ -127,7 +130,7 @@ export function AdminSettingsPage() {
       <div>
         <h1 className="text-lg font-bold">تنظیمات سازمان</h1>
         <p className="mt-0.5 text-[12px] text-ink-soft">
-          نام، اطلاعات حقوقی و منطقه زمانی — آخرین به‌روزرسانی: {formatJalali(new Date(org.updatedAt))}
+          نام، منطقه زمانی، ورود سازمانی (SSO) و پایلوت پیامک — آخرین به‌روزرسانی: {formatJalali(new Date(org.updatedAt))}
         </p>
       </div>
 
@@ -181,6 +184,12 @@ export function AdminSettingsPage() {
           </div>
         </CardBody>
       </Card>
+
+      <WorkerStatusCard />
+
+      <SmsPilotCard />
+
+      <SsoSettingsCard />
     </div>
   );
 }

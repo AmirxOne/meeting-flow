@@ -11,7 +11,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const input = guestAddSchema.parse(await req.json().catch(() => ({})));
 
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
     if (meeting.organizerId !== user.id && !can(user, "meeting:add-participant")) {
       throw new HttpError(403, "دسترسی لازم را ندارید", "FORBIDDEN");
@@ -53,7 +53,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const body = (await req.json().catch(() => ({}))) as { guestId?: string };
     if (!body.guestId) throw new HttpError(400, "guestId الزامی است", "BAD_REQUEST");
 
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
     if (meeting.organizerId !== user.id && !can(user, "meeting:add-participant")) {
       throw new HttpError(403, "دسترسی لازم را ندارید", "FORBIDDEN");

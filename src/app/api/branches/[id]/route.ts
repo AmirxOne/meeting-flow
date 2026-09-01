@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const schema = branchCreateSchema.partial().extend({ isActive: z.boolean().optional() });
     const input = schema.parse(await req.json().catch(() => ({})));
 
-    const branch = await prisma.branch.findUnique({ where: { id } });
+    const branch = await prisma.branch.findFirst({ where: { id, orgId: actor.orgId } });
     if (!branch) throw new HttpError(404, "شعبه یافت نشد", "NOT_FOUND");
 
     const updated = await prisma.branch.update({
@@ -22,6 +22,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         ...(input.address !== undefined ? { address: input.address || null } : {}),
         ...(input.phone !== undefined ? { phone: input.phone || null } : {}),
         ...(input.managerId !== undefined ? { managerId: input.managerId || null } : {}),
+        ...(input.wayfindingText !== undefined
+          ? { wayfindingText: input.wayfindingText?.trim() || null }
+          : {}),
         ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
       },
     });
@@ -51,8 +54,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const actor = await requirePermission("branch:update");
     const { id } = await params;
 
-    const branch = await prisma.branch.findUnique({
-      where: { id },
+    const branch = await prisma.branch.findFirst({
+      where: { id, orgId: actor.orgId },
       include: {
         users: { where: { isActive: true } },
         _count: { select: { meetings: true } },

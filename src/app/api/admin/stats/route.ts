@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 /** GET /api/admin/stats — admin overview counters + recent activity. */
 export async function GET() {
   try {
-    await requirePermission("user:update");
+    const actor = await requirePermission("user:update");
+    const orgId = actor.orgId;
 
     const [
       activeUsers,
@@ -21,25 +22,27 @@ export async function GET() {
       auditToday,
       recentLogs,
     ] = await Promise.all([
-      prisma.user.count({ where: { isActive: true } }),
-      prisma.user.count({ where: { isActive: false } }),
-      prisma.meetingRoom.count(),
-      prisma.meetingRoom.count({ where: { isActive: true } }),
-      prisma.branch.count(),
-      prisma.meeting.count({ where: { status: "PENDING_APPROVAL" } }),
+      prisma.user.count({ where: { orgId, isActive: true } }),
+      prisma.user.count({ where: { orgId, isActive: false } }),
+      prisma.meetingRoom.count({ where: { orgId } }),
+      prisma.meetingRoom.count({ where: { orgId, isActive: true } }),
+      prisma.branch.count({ where: { orgId } }),
+      prisma.meeting.count({ where: { orgId, status: "PENDING_APPROVAL" } }),
       prisma.meeting.count({
         where: {
+          orgId,
           startAt: {
             gte: new Date(new Date().setHours(0, 0, 0, 0)),
             lt: new Date(new Date().setHours(23, 59, 59, 999)),
           },
         },
       }),
-      prisma.personDirectory.count(),
+      prisma.personDirectory.count({ where: { orgId } }),
       prisma.auditLog.count({
-        where: { createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } },
+        where: { orgId, createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } },
       }),
       prisma.auditLog.findMany({
+        where: { orgId },
         take: 6,
         orderBy: { createdAt: "desc" },
         include: { actor: { select: { fullName: true } } },
@@ -49,9 +52,9 @@ export async function GET() {
     const day = new Date(new Date().setHours(0, 0, 0, 0));
     const weekAgo = new Date(day.getTime() - 6 * 86400000);
     const [weekMeetings, weekCancelled] = await Promise.all([
-      prisma.meeting.count({ where: { startAt: { gte: weekAgo } } }),
+      prisma.meeting.count({ where: { orgId, startAt: { gte: weekAgo } } }),
       prisma.meeting.count({
-        where: { startAt: { gte: weekAgo }, status: "CANCELLED" },
+        where: { orgId, startAt: { gte: weekAgo }, status: "CANCELLED" },
       }),
     ]);
 

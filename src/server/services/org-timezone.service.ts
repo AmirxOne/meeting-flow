@@ -4,29 +4,39 @@ export const DEFAULT_ORG_TIMEZONE = "Asia/Tehran";
 
 const CACHE_TTL_MS = 60_000;
 
-let cached: { timezone: string; expiresAt: number } | null = null;
+const cached = new Map<string, { timezone: string; expiresAt: number }>();
 
 /** Organization timezone from DB with short in-memory cache. */
-export async function getOrgTimezone(): Promise<string> {
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.timezone;
+export async function getOrgTimezone(orgId?: string): Promise<string> {
+  const key = orgId ?? "_default";
+  const hit = cached.get(key);
+  if (hit && hit.expiresAt > Date.now()) {
+    return hit.timezone;
   }
 
-  const org = await prisma.organization.findFirst({
-    select: { timezone: true },
-  });
+  const org = orgId
+    ? await prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { timezone: true },
+      })
+    : await prisma.organization.findFirst({
+        select: { timezone: true },
+      });
 
   const timezone = org?.timezone?.trim() || DEFAULT_ORG_TIMEZONE;
-  cached = { timezone, expiresAt: Date.now() + CACHE_TTL_MS };
+  cached.set(key, { timezone, expiresAt: Date.now() + CACHE_TTL_MS });
   return timezone;
 }
 
 /** Invalidate cache after admin updates organization settings. */
 export function clearOrgTimezoneCache(): void {
-  cached = null;
+  cached.clear();
 }
 
 /** Sync read of last cached timezone — falls back to default. */
 export function getCachedOrgTimezone(): string {
-  return cached?.timezone ?? DEFAULT_ORG_TIMEZONE;
+  for (const v of cached.values()) {
+    if (v.expiresAt > Date.now()) return v.timezone;
+  }
+  return DEFAULT_ORG_TIMEZONE;
 }

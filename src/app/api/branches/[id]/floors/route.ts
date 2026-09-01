@@ -10,7 +10,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id: branchId } = await params;
     const input = floorCreateSchema.parse(await req.json().catch(() => ({})));
 
-    const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+    const branch = await prisma.branch.findFirst({ where: { id: branchId, orgId: actor.orgId } });
     if (!branch) throw new HttpError(404, "شعبه یافت نشد", "NOT_FOUND");
 
     const dup = await prisma.floor.findUnique({
@@ -24,7 +24,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const floor = await prisma.floor.create({
-      data: { branchId, name: input.name, number: input.number },
+      data: {
+        branchId,
+        name: input.name,
+        number: input.number,
+        wayfindingText: input.wayfindingText?.trim() || null,
+      },
     });
 
     await audit({

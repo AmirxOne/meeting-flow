@@ -10,7 +10,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
     const input = rejectSchema.parse(body);
-    const meeting = await rejectMeeting(id, { actorId: user.id, reason: input.reason });
+    const meeting = await rejectMeeting(id, { actorId: user.id, orgId: user.orgId, reason: input.reason });
     await audit({
       actorId: user.id, action: "MEETING_REJECT", entity: "Meeting", entityId: id,
       newValue: { status: meeting.status, reason: input.reason }, ip: req.headers.get("x-forwarded-for"),

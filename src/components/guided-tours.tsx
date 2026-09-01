@@ -384,6 +384,68 @@ const TOURS: Tour[] = [
     ],
   },
   {
+    tour: "meetings-new",
+    steps: [
+      {
+        title: "ویزارد جلسه جدید",
+        content:
+          "عنوان، نوع، شعبه و افراد را مشخص کنید. بعد تاریخ و مدت را بزنید تا سیستم زمان آزاد پیدا کند. اگر اتاق پر باشد می‌توانید اختیاری در لیست انتظار بمانید — تا قطعی کردن اتاق قفل نمی‌شود.",
+        ...TOUR_SPOT,
+        selector: "h1",
+        side: "bottom",
+      },
+      {
+        title: "جلسه تکراری",
+        content:
+          "اگر جلسه هر روز، هر هفته یا هر ماه تکرار می‌شود همین‌جا انتخاب کنید. هر نوبت جداگانه برای تداخل اتاق بررسی می‌شود.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="meeting-recurrence"]',
+        side: "bottom",
+      },
+      {
+        title: "لینک ویدئو",
+        content:
+          "اختیاری است. برای جلسه آنلاین گوگل میت، تیمز، زوم یا لینک سفارشی را بگذارید تا در دعوت‌نامه بیاید. جلسات حضوری را خالی بگذارید.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="meeting-video-link"]',
+        side: "bottom",
+      },
+    ],
+  },
+  {
+    tour: "meeting-detail",
+    steps: [
+      {
+        title: "جزئیات جلسه",
+        content: "وضعیت، اتاق، افراد و تاریخچه همین‌جا هستند. اگر برگزارکننده یا مدیر باشید می‌توانید زمان را عوض کنید یا جلسه را لغو کنید.",
+        ...TOUR_SPOT,
+        selector: "h1",
+        side: "bottom",
+      },
+      {
+        title: "دستور جلسه",
+        content: "برگزارکننده آیتم‌ها را با ترتیب، مدت تخمینی و مسئول می‌نویسد. دعوت‌شدگان فقط می‌بینند. همین فهرست در فایل تقویم (ICS) و ایمیل یادآوری هم می‌آید.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="meeting-agenda"]',
+        side: "top",
+      },
+      {
+        title: "صورتجلسه",
+        content: "پس از شروع یا پایان جلسه، برگزارکننده متن صورتجلسه و تصمیم‌ها (مسئول و مهلت) را می‌نویسد. دعوت‌شدگان فقط می‌خوانند. جلسهٔ محرمانه مثل عنوان فقط برای افراد مجاز دیده می‌شود.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="meeting-minutes"]',
+        side: "top",
+      },
+      {
+        title: "پیوست فایل",
+        content: "برگزارکننده یا مدیر می‌تواند PDF، تصویر یا فایل آفیس پیوست کند. دعوت‌شدگان همان فایل را دانلود می‌کنند. جلسهٔ محرمانه فقط برای افراد مجاز دیده می‌شود.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="meeting-attachments"]',
+        side: "top",
+      },
+    ],
+  },
+  {
     tour: "people",
     steps: [
       {
@@ -460,6 +522,13 @@ const TOURS: Tour[] = [
         selector: "h1",
         side: "bottom",
       },
+      {
+        title: "نقشه و راهنمای مهمان",
+        content: "در ویرایش شعبه، متن مسیر و تصویر نقشه را بگذارید تا بعد از چک‌این مهمان، اتاق و طبقه مشخص شود. آپلود نقشه از دسکتاپ است.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="branch-map"]',
+        side: "top",
+      },
     ],
   },
   {
@@ -494,13 +563,124 @@ const TOURS: Tour[] = [
       },
     ],
   },
+  {
+    tour: "admin-policies",
+    steps: [
+      {
+        title: "سیاست‌های جلسه",
+        content: "قواعد تأیید، حداقل/حداکثر مدت و یادآورها این‌جا هستند. تغییرها بلافاصله روی رزروهای جدید اعمال می‌شود.",
+        ...TOUR_SPOT,
+        selector: "h1",
+        side: "bottom",
+      },
+      {
+        title: "تعطیلات سازمانی",
+        content: "تاریخ‌های تعطیل را با تقویم شمسی ثبت کنید. سیاست رزرو را روی «ممنوع» یا «نیاز به تأیید» بگذارید. روز تعطیل در تقویم ماه مشخص می‌شود.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="org-holidays"]',
+        side: "top",
+      },
+    ],
+  },
+  {
+    tour: "admin-settings",
+    steps: [
+      {
+        title: "تنظیمات سازمان",
+        content: "نام، منطقه زمانی و لوگوی سازمان را از اینجا تغییر دهید. تغییرات در لاگ ممیزی ثبت می‌شود.",
+        ...TOUR_SPOT,
+        selector: "h1",
+        side: "bottom",
+      },
+      {
+        title: "پایلوت پیامک",
+        content:
+          "وضعیت کاوه‌نگار، آخرین ارسال موفق یا خطا، و تست با یک شماره اینجاست. برای ارسال واقعی SMS_API_KEY و NOTIFICATION_SMS_PROVIDER=kavenegar لازم است؛ در توسعه حالت شبیه‌سازی بماند.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="sms-pilot"]',
+        side: "top",
+      },
+    ],
+  },
+  {
+    tour: "profile",
+    steps: [
+      {
+        title: "پروفایل من",
+        content: "نام، تلفن، رمز عبور و تأیید دو مرحله‌ای را از این صفحه مدیریت کنید. ایمیل و نقش فقط توسط مدیر تغییر می‌کند.",
+        ...TOUR_SPOT,
+        selector: "h1",
+        side: "bottom",
+      },
+      {
+        title: "تصویر پروفایل",
+        content:
+          "یک عکس مربع انتخاب کنید، در صورت نیاز برش دهید و ذخیره کنید. تصویر در نوار کناری و فهرست همکاران دیده می‌شود. حداکثر ۲ مگابایت.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="profile-avatar"]',
+        side: "left",
+      },
+      {
+        title: "تأیید دو مرحله‌ای",
+        content:
+          "با اپ authenticator یک لایهٔ امنیتی اضافه کنید. بعد از رمز، کد ۶ رقمی خواسته می‌شود. کدهای بازیابی را در جای امن نگه دارید. ورود LDAP هم پس از bind همین کد مهرسا را می‌خواهد.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="two-factor"]',
+        side: "top",
+      },
+      {
+        title: "ترجیح اعلان",
+        content:
+          "برای دعوت، یادآور و تغییر زمان مشخص کنید اعلان درون‌سامانه، پیامک، ایمیل یا پوش برسد. پیش‌فرض از تنظیم سازمان است؛ هر کانال را می‌توانید خاموش کنید. بدون شماره یا ایمیل همان کانال غیرفعال است.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="notif-prefs"]',
+        side: "top",
+      },
+      {
+        title: "نماینده رزرو",
+        content:
+          "همکارانی را نماینده کنید تا به نام شما جلسه بسازند و زمان‌های مشغول تقویم شما را در یافتن زمان ببینند. عنوان جلسهٔ محرمانه برای آن‌ها مخفی می‌ماند و دسترسی نقششان عوض نمی‌شود.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="meeting-delegates"]',
+        side: "top",
+      },
+      {
+        title: "تقویم خارجی",
+        content:
+          "فایل ICS جلسات خودتان را دانلود کنید یا یک لینک شخصی بسازید تا Outlook و Google Calendar آن را subscribe کنند. لینک را هر وقت خواستید باطل کنید.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="calendar-feed"]',
+        side: "top",
+      },
+      {
+        title: "تقویم گوگل",
+        content:
+          "حساب گوگل خودتان را وصل کنید تا جلسات مهرسا در تقویم شما ساخته شوند. اگر وصل نباشید رزرو جلسه بدون مشکل کار می‌کند. جلسات محرمانه برای افراد غیرمرتبط همگام نمی‌شوند.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="google-calendar"]',
+        side: "top",
+      },
+      {
+        title: "تقویم Outlook",
+        content:
+          "حساب مایکروسافت خودتان را وصل کنید تا همان جلسات در Outlook همگام شوند. گوگل و Outlook جدا هستند؛ قطع یکی روی دیگری اثر ندارد.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="outlook-calendar"]',
+        side: "top",
+      },
+    ],
+  },
 ];
 
 /** Map pathname → tour name. */
 function tourForPath(pathname: string): string | null {
   if (pathname === "/" || pathname.startsWith("/dashboard")) return "dashboard";
   if (pathname.startsWith("/calendar")) return "calendar";
+  if (pathname.startsWith("/meetings/new")) return "meetings-new";
+  if (pathname.startsWith("/meetings/") && pathname !== "/meetings") return "meeting-detail";
   if (pathname === "/meetings") return "meetings-list";
+  if (pathname.startsWith("/admin/policies")) return "admin-policies";
+  if (pathname.startsWith("/admin/settings")) return "admin-settings";
   if (pathname.startsWith("/admin")) return "admin";
   if (pathname.startsWith("/people")) return "people";
   if (pathname.startsWith("/rooms")) return "rooms";
@@ -509,6 +689,7 @@ function tourForPath(pathname: string): string | null {
   if (pathname.startsWith("/notifications")) return "notifications";
   if (pathname.startsWith("/branches")) return "branches";
   if (pathname.startsWith("/users")) return "users";
+  if (pathname.startsWith("/profile")) return "profile";
   return "dashboard"; // fallback: every page gets at least the general tour
 }
 
@@ -536,6 +717,27 @@ export function GuidedTours() {
     }, 1200);
     return () => clearTimeout(t);
   }, [me, pathname, seen, isNextStepVisible, startNextStep, markSeen]);
+
+  // After org setup wizard, optionally show dashboard tour once.
+  useEffect(() => {
+    if (!me || isNextStepVisible) return;
+    let showSetupTour = false;
+    try {
+      showSetupTour = sessionStorage.getItem("mh-show-setup-tour") === "1";
+    } catch {
+      return;
+    }
+    if (!showSetupTour) return;
+    if (!pathname.startsWith("/dashboard")) return;
+    try {
+      sessionStorage.removeItem("mh-show-setup-tour");
+    } catch {}
+    const t = setTimeout(() => {
+      markSeen("dashboard");
+      startNextStep("dashboard");
+    }, 800);
+    return () => clearTimeout(t);
+  }, [me, pathname, isNextStepVisible, startNextStep, markSeen]);
 
   useEffect(() => {
     (window as unknown as { __resetTours?: () => void }).__resetTours = reset;

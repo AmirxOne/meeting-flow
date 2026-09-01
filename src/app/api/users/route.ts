@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
 
     const users = await prisma.user.findMany({
       where: {
+        orgId: actor.orgId,
         ...(manage ? {} : { isActive: true }),
         ...(q
           ? {
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest) {
             email: true,
             fullName: true,
             phone: true,
+            avatarUrl: true,
             jobTitle: true,
             department: true,
             isActive: true,
@@ -44,6 +46,7 @@ export async function GET(req: NextRequest) {
         : {
             id: true,
             fullName: true,
+            avatarUrl: true,
             jobTitle: true,
             department: true,
             branch: { select: { id: true, name: true } },
@@ -72,6 +75,12 @@ export async function POST(req: NextRequest) {
         );
       }
     }
+    if (roleKeys.includes("SUPER_ADMIN") && !actor.isPlatformAdmin) {
+      return Response.json(
+        { ok: false, error: { message: "تخصیص نقش مدیر پلتفرم مجاز نیست", code: "FORBIDDEN" } },
+        { status: 403 },
+      );
+    }
     const exists = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });
     if (exists) {
       return Response.json(
@@ -91,6 +100,7 @@ export async function POST(req: NextRequest) {
         jobTitle: input.jobTitle || null,
         department: input.department || null,
         branchId: input.branchId || null,
+        orgId: actor.orgId,
         roles: { create: roles.map((r) => ({ roleId: r.id })) },
       },
     });
@@ -104,6 +114,7 @@ export async function POST(req: NextRequest) {
       where: { userId: user.id },
       update: { name: user.fullName, email: user.email, jobTitle: user.jobTitle, kind: "INTERNAL" },
       create: {
+        orgId: actor.orgId,
         name: user.fullName,
         kind: "INTERNAL",
         email: user.email,

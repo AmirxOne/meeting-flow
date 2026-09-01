@@ -6,7 +6,7 @@ import Image from "next/image";
 import { api, type ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CheckinQrCode } from "@/components/checkin/checkin-qr-code";
-import { faStr, formatJalali } from "@/lib";
+import { faNum, faStr, formatJalali } from "@/lib";
 
 interface CheckinInfo {
   guest: {
@@ -24,6 +24,14 @@ interface CheckinInfo {
     status: string;
     branchName: string;
     roomName: string | null;
+  };
+  wayfinding: {
+    branchName: string;
+    roomName: string | null;
+    floorName: string | null;
+    floorNumber: number | null;
+    directions: string | null;
+    hasMap: boolean;
   };
 }
 
@@ -145,16 +153,19 @@ export function PublicCheckinPage() {
               </div>
 
               {checkedIn ? (
-                <div
-                  className="rounded-xl border border-green-200 bg-green-50 p-5 text-center"
-                  data-testid="checkin-success"
-                >
-                  <p className="text-[16px] font-bold text-green-800">حضور شما ثبت شد</p>
-                  {info.guest.arrivedAt && (
-                    <p className="mt-2 text-[12px] text-green-700">
-                      {formatJalali(new Date(info.guest.arrivedAt), { withTime: true })}
-                    </p>
-                  )}
+                <div className="space-y-3">
+                  <div
+                    className="rounded-xl border border-green-200 bg-green-50 p-5 text-center"
+                    data-testid="checkin-success"
+                  >
+                    <p className="text-[16px] font-bold text-green-800">حضور شما ثبت شد</p>
+                    {info.guest.arrivedAt && (
+                      <p className="mt-2 text-[12px] text-green-700">
+                        {formatJalali(new Date(info.guest.arrivedAt), { withTime: true })}
+                      </p>
+                    )}
+                  </div>
+                  <WayfindingCard code={code} wayfinding={info.wayfinding} />
                 </div>
               ) : (
                 <>
@@ -179,6 +190,63 @@ export function PublicCheckinPage() {
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+function WayfindingCard({
+  code,
+  wayfinding,
+}: {
+  code: string;
+  wayfinding: CheckinInfo["wayfinding"] | undefined;
+}) {
+  if (!wayfinding) return null;
+  const floorLabel =
+    wayfinding.floorName && wayfinding.floorNumber != null
+      ? `${wayfinding.floorName} · شماره ${faNum(wayfinding.floorNumber)}`
+      : wayfinding.floorName;
+
+  return (
+    <div
+      className="space-y-3 rounded-xl border border-line bg-paper-soft/60 p-4 text-right"
+      data-testid="checkin-wayfinding"
+    >
+      <p className="text-[13px] font-bold">چطور به جلسه برسید</p>
+      <dl className="space-y-2 text-[13px] leading-relaxed">
+        {wayfinding.roomName && (
+          <div>
+            <dt className="text-[11px] text-ink-soft">اتاق</dt>
+            <dd className="font-medium">{wayfinding.roomName}</dd>
+          </div>
+        )}
+        {floorLabel && (
+          <div>
+            <dt className="text-[11px] text-ink-soft">طبقه</dt>
+            <dd className="font-medium">{floorLabel}</dd>
+          </div>
+        )}
+        <div>
+          <dt className="text-[11px] text-ink-soft">شعبه</dt>
+          <dd className="font-medium">{wayfinding.branchName}</dd>
+        </div>
+        {wayfinding.directions && (
+          <div>
+            <dt className="text-[11px] text-ink-soft">راهنما</dt>
+            <dd className="whitespace-pre-wrap text-ink">{wayfinding.directions}</dd>
+          </div>
+        )}
+      </dl>
+      {wayfinding.hasMap && (
+        // Guest map is a public API stream — native img, not next/image.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={`/api/checkin/${encodeURIComponent(code)}/map`}
+          alt="نقشه مسیر شعبه"
+          data-testid="checkin-map"
+          className="mx-auto max-h-56 w-full rounded-lg border border-line bg-white object-contain"
+        />
+      )}
     </div>
   );
 }

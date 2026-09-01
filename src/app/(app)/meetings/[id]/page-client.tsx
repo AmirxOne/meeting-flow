@@ -16,10 +16,21 @@ import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum, faStr, formatJalali, CANCEL_REASON_FA, RESPONSE_FA } from "@/lib";
 import { Select } from "@/components/ui/select";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { GuestCheckinPanel } from "@/components/checkin/guest-checkin-panel";
+import { MeetingAttachments, type MeetingAttachmentRow } from "@/components/meetings/meeting-attachments";
+import { MeetingAgenda, type MeetingAgendaItemRow } from "@/components/meetings/meeting-agenda";
+import { MeetingMinutes, type MeetingMinutesData } from "@/components/meetings/meeting-minutes";
+import { MeetingVideoLink } from "@/components/meetings/meeting-video-link";
 import { CANCEL_REASONS } from "@/lib";
+import {
+  describeRecurrence,
+  SERIES_SCOPE_FA,
+  type RecurrenceFreq,
+  type SeriesEditScope,
+} from "@/lib/recurrence";
 
 interface MeetingDetail {
   id: string;
@@ -34,6 +45,7 @@ interface MeetingDetail {
   cancelReason: string | null;
   cancelNote: string | null;
   organizer: { id: string; fullName: string; jobTitle: string | null };
+  createdBy?: { id: string; fullName: string } | null;
   room: { id: string; name: string; capacity: number; floor: { name: string } | null } | null;
   branch: { id: string; name: string };
   participants: {
@@ -42,7 +54,13 @@ interface MeetingDetail {
     role: string;
     responseStatus: string;
     joinedAt: string | null;
-    user: { id: string; fullName: string; jobTitle: string | null; department: string | null };
+    user: {
+      id: string;
+      fullName: string;
+      avatarUrl?: string | null;
+      jobTitle: string | null;
+      department: string | null;
+    };
   }[];
   guests: {
     id: string;
@@ -67,7 +85,32 @@ interface MeetingDetail {
     createdAt: string;
     actor: { fullName: string } | null;
   }[];
+  seriesId?: string | null;
+  isException?: boolean;
+  series?: {
+    id: string;
+    freq: RecurrenceFreq;
+    interval: number;
+    byWeekday: number[];
+    until: string | null;
+    count: number | null;
+    dtstart: string;
+    title: string;
+    isPrivate: boolean;
+  } | null;
+  attachments?: MeetingAttachmentRow[];
+  agendaItems?: MeetingAgendaItemRow[];
+  minutes?: MeetingMinutesData | null;
+  videoProvider?: string | null;
+  videoUrl?: string | null;
 }
+
+type WaitlistInfo = {
+  position: number;
+  total: number;
+  offerExpiresAt: string | null;
+  offered: boolean;
+};
 
 const EVENT_FA: Record<string, string> = {
   CREATED: "ایجاد شد",
@@ -83,9 +126,16 @@ const EVENT_FA: Record<string, string> = {
   PARTICIPANT_REMOVED: "حذف مشارکت‌کننده",
   PARTICIPANT_RESPONDED: "پاسخ به دعوت",
   GUEST_CHECKED_IN: "ثبت حضور مهمان",
-  IN_PROGRESS: "در حال برگزاری",
+  ATTACHMENT_ADDED: "پیوست افزوده شد",
+  ATTACHMENT_REMOVED: "پیوست حذف شد",
+  AGENDA_UPDATED: "دستور جلسه به‌روز شد",
+  MINUTES_PUBLISHED: "صورتجلسه ثبت شد",
   COMPLETED: "تکمیل شد",
   NO_SHOW: "غیبت",
+  WAITLIST_OFFERED: "پیشنهاد اتاق از لیست انتظار",
+  WAITLIST_CLAIMED: "قطعی شدن از لیست انتظار",
+  WAITLIST_EXPIRED: "اتمام مهلت لیست انتظار",
+  WAITLIST_DECLINED: "رد پیشنهاد لیست انتظار",
 };
 
 export function MeetingDetailPage() {
@@ -106,10 +156,11 @@ export function MeetingDetailPage() {
   // defaults fill on first data load (only once)
   const defaultsFilled = useState(false);
   const [rsRoomId, setRsRoomId] = useState("");
+  const [seriesScope, setSeriesScope] = useState<SeriesEditScope>("THIS");
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", id],
-    queryFn: () => api<{ meeting: MeetingDetail }>(`/api/meetings/${id}`),
+    queryFn: () => api<{ meeting: MeetingDetail; waitlist: WaitlistInfo | null }>(`/api/meetings/${id}`),
   });
 
   const { data: roomsData } = useQuery({
@@ -243,14 +294,16 @@ export function MeetingDetailPage() {
     (p) => p.userId === me?.id && p.role !== "ORGANIZER",
   );
   const canRespond =
-    !!myParticipation && !["COMPLETED", "CANCELLED", "REJECTED", "NO_SHOW"].includes(m.status);
+    !!myParticipation &&
+    !["COMPLETED", "CANCELLED", "REJECTED", "NO_SHOW", "WAITLISTED", "WAITLIST_OFFERED"].includes(m.status);
   const now = new Date();
   const isLive = m.status === "IN_PROGRESS";
   const canApprove = m.status === "PENDING_APPROVAL" && can("meeting:approve");
   const canReject = m.status === "PENDING_APPROVAL" && can("meeting:reject");
   const durationMin = Math.round((new Date(m.endAt).getTime() - new Date(m.startAt).getTime()) / 60000);
-  const canManageGuests =
-    isOrganizer || can("meeting:manage-guests") || can("meeting:add-participant");
+  const canManageGuests = isOrganizer && !["CANCELLED", "COMPLETED", "NO_SHOW"].includes(m.status);
+  const isWaitlisted = m.status === "WAITLISTED" || m.status === "WAITLIST_OFFERED";
+  const waitlist = data.waitlist;
 
   async function manualGuestCheckin(guestId: string) {
     setBusy(`checkin-${guestId}`);
@@ -274,16 +327,79 @@ export function MeetingDetailPage() {
             <h1 className="text-lg font-bold">{m.title}</h1>
             <StatusBadge status={m.status} />
             <TypeBadge type={m.meetingType} />
+            {m.seriesId && <span className="badge badge-gray">تکراری</span>}
+            {m.isException && <span className="badge badge-gray">استثنا</span>}
           </div>
           <p className="mt-1.5 text-[12px] text-ink-soft">
             برگزارکننده: {m.organizer.fullName} · {m.branch.name}
             {m.room ? ` · ${m.room.name}` : ""}
+            {m.createdBy && m.createdBy.id !== m.organizer.id
+              ? ` · رزرو توسط ${m.createdBy.fullName}`
+              : ""}
           </p>
         </div>
         <Button variant="ghost" size="sm" onClick={() => router.push("/meetings")}>
           بازگشت به لیست
         </Button>
       </div>
+
+      {isWaitlisted && waitlist && (
+        <Card data-tour="meeting-waitlist" className="border-amber-200 bg-amber-50 p-4">
+          <p className="text-[13px] font-bold text-amber-950">
+            {m.status === "WAITLIST_OFFERED"
+              ? "نوبت شما رسیده — اتاق هنوز قفل نشده"
+              : "در لیست انتظار اتاق"}
+          </p>
+          <p className="mt-1 text-[12px] text-amber-800">
+            جایگاه {faNum(waitlist.position)} از {faNum(waitlist.total)}. تا وقتی قطعی نکنید اتاق برای
+            دیگران آزاد می‌ماند و تداخل دور زده نمی‌شود.
+            {waitlist.offerExpiresAt && (
+              <> مهلت قطعی کردن: {formatJalali(new Date(waitlist.offerExpiresAt), { withTime: true })}.</>
+            )}
+          </p>
+          {m.status === "WAITLIST_OFFERED" && (isOrganizer || me?.id === m.createdBy?.id) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                loading={busy === "waitlist-claim"}
+                onClick={async () => {
+                  setBusy("waitlist-claim");
+                  try {
+                    await api(`/api/meetings/${id}/waitlist/claim`, { method: "POST" });
+                    push("جلسه قطعی شد و اتاق قفل شد", "success");
+                    qc.invalidateQueries({ queryKey: ["meeting", id] });
+                  } catch (e) {
+                    push((e as ApiError).message, "error");
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                قطعی کردن
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={busy === "waitlist-decline"}
+                onClick={async () => {
+                  setBusy("waitlist-decline");
+                  try {
+                    await api(`/api/meetings/${id}/waitlist/decline`, { method: "POST" });
+                    push("پیشنهاد رد شد؛ نوبت به نفر بعد رسید", "success");
+                    qc.invalidateQueries({ queryKey: ["meeting", id] });
+                  } catch (e) {
+                    push((e as ApiError).message, "error");
+                  } finally {
+                    setBusy(null);
+                  }
+                }}
+              >
+                رد پیشنهاد
+              </Button>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Live banner */}
       {isLive && (
@@ -300,6 +416,16 @@ export function MeetingDetailPage() {
                 {formatJalali(new Date(m.endAt), { withTime: true }).split("—")[1]}
               </p>
             </div>
+            {m.videoUrl && (
+              <a
+                href={m.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-white px-3 text-[12px] font-medium text-ink"
+              >
+                پیوستن به ویدئو
+              </a>
+            )}
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
@@ -375,7 +501,7 @@ export function MeetingDetailPage() {
             شروع جلسه
           </Button>
         )}
-        {(isOrganizer || can("meeting:reschedule")) && !["COMPLETED", "NO_SHOW", "CANCELLED", "REJECTED"].includes(m.status) && (
+        {(isOrganizer || can("meeting:reschedule")) && !isWaitlisted && !["COMPLETED", "NO_SHOW", "CANCELLED", "REJECTED"].includes(m.status) && (
           <Button size="sm" variant="outline" onClick={() => setShowReschedule((v) => !v)}>
             <CalendarClock className="h-4 w-4" />
             زمان‌بندی مجدد
@@ -422,6 +548,19 @@ export function MeetingDetailPage() {
                 }))}
               />
             </div>
+            {m.seriesId && (
+              <div>
+                <label className="mb-1 block text-[11px] text-ink-soft">دامنهٔ تغییر</label>
+                <Select
+                  value={seriesScope}
+                  onChange={(v) => setSeriesScope(v as SeriesEditScope)}
+                  options={(Object.keys(SERIES_SCOPE_FA) as SeriesEditScope[]).map((value) => ({
+                    value,
+                    label: SERIES_SCOPE_FA[value],
+                  }))}
+                />
+              </div>
+            )}
             <div className="flex items-end">
               <Button
                 size="md"
@@ -442,6 +581,7 @@ export function MeetingDetailPage() {
                       endAt: end.toISOString(),
                       ...(rsRoomId ? { roomId: rsRoomId } : {}),
                       reason: "زمان‌بندی مجدد از پنل",
+                      ...(m.seriesId ? { scope: seriesScope } : {}),
                     },
                     "زمان جلسه تغییر کرد",
                   );
@@ -470,6 +610,19 @@ export function MeetingDetailPage() {
                 options={CANCEL_REASONS.map((r) => ({ value: r, label: CANCEL_REASON_FA[r] }))}
               />
             </div>
+            {m.seriesId && (
+              <div>
+                <label className="mb-1 block text-[11px] text-ink-soft">دامنهٔ لغو</label>
+                <Select
+                  value={seriesScope}
+                  onChange={(v) => setSeriesScope(v as SeriesEditScope)}
+                  options={(Object.keys(SERIES_SCOPE_FA) as SeriesEditScope[]).map((value) => ({
+                    value,
+                    label: SERIES_SCOPE_FA[value],
+                  }))}
+                />
+              </div>
+            )}
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">توضیح (اختیاری)</label>
               <input
@@ -484,7 +637,16 @@ export function MeetingDetailPage() {
                 className="w-full"
                 loading={busy === "cancel"}
                 onClick={() =>
-                  act("cancel", `/api/meetings/${id}/cancel`, { reason: cancelReason, note: cancelNote || undefined }, "جلسه لغو شد")
+                  act(
+                    "cancel",
+                    `/api/meetings/${id}/cancel`,
+                    {
+                      reason: cancelReason,
+                      note: cancelNote || undefined,
+                      ...(m.seriesId ? { scope: seriesScope } : {}),
+                    },
+                    "جلسه لغو شد",
+                  )
                 }
               >
                 تأیید لغو
@@ -520,6 +682,16 @@ export function MeetingDetailPage() {
                 <DetailRow label="اتاق" value={m.room ? `${m.room.name} (${faNum(m.room.capacity)} نفر)` : "—"} />
                 <DetailRow label="شعبه" value={m.branch.name} />
                 <DetailRow label="برگزارکننده" value={m.organizer.fullName} />
+                {m.series && (
+                  <DetailRow
+                    label="تکرار"
+                    value={`${describeRecurrence({
+                      freq: m.series.freq,
+                      interval: m.series.interval,
+                      byWeekday: m.series.byWeekday,
+                    })}${m.isException ? " · این نوبت استثنا است" : ""}`}
+                  />
+                )}
               </div>
               {m.description && (
                 <div>
@@ -527,6 +699,13 @@ export function MeetingDetailPage() {
                   <p className="whitespace-pre-wrap text-[13px] leading-6">{m.description}</p>
                 </div>
               )}
+              <MeetingVideoLink
+                meetingId={id}
+                meetingType={m.meetingType}
+                videoProvider={m.videoProvider ?? null}
+                videoUrl={m.videoUrl ?? null}
+                canEdit={isOrganizer && !["CANCELLED", "REJECTED"].includes(m.status)}
+              />
               {m.cancelReason && (
                 <div className="rounded-md bg-red-50 p-3">
                   <p className="text-[12px] font-medium text-red-600">
@@ -587,9 +766,7 @@ export function MeetingDetailPage() {
             <div className="divide-y divide-line">
               {m.participants.map((p) => (
                 <div key={p.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-paper-soft text-[11px] font-bold">
-                    {p.user.fullName.slice(0, 1)}
-                  </div>
+                  <UserAvatar name={p.user.fullName} src={p.user.avatarUrl} size="sm" variant="soft" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-medium">{p.user.fullName}</p>
                     <p className="text-[11px] text-ink-faint">
@@ -671,6 +848,36 @@ export function MeetingDetailPage() {
               ))}
             </div>
           </Card>
+
+          <MeetingAgenda
+            meetingId={id}
+            items={m.agendaItems ?? []}
+            canEdit={isOrganizer}
+            people={[
+              { id: m.organizer.id, fullName: m.organizer.fullName },
+              ...m.participants
+                .filter((p) => p.userId !== m.organizer.id)
+                .map((p) => ({ id: p.userId, fullName: p.user.fullName })),
+            ]}
+          />
+
+          <MeetingMinutes
+            meetingId={id}
+            minutes={m.minutes ?? null}
+            canEdit={isOrganizer && (m.status === "IN_PROGRESS" || m.status === "COMPLETED")}
+            people={[
+              { id: m.organizer.id, fullName: m.organizer.fullName },
+              ...m.participants
+                .filter((p) => p.userId !== m.organizer.id)
+                .map((p) => ({ id: p.userId, fullName: p.user.fullName })),
+            ]}
+          />
+
+          <MeetingAttachments
+            meetingId={id}
+            attachments={m.attachments ?? []}
+            canManage={isOrganizer || (can("meeting:update") && can("meeting:view-all"))}
+          />
 
           {/* History */}
           <Card>

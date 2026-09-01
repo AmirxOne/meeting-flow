@@ -21,6 +21,8 @@ describe("participant response rules", () => {
     expect(canRespondToMeeting("COMPLETED")).toBe(false);
     expect(canRespondToMeeting("CANCELLED")).toBe(false);
     expect(canRespondToMeeting("REJECTED")).toBe(false);
+    expect(canRespondToMeeting("WAITLISTED")).toBe(false);
+    expect(canRespondToMeeting("WAITLIST_OFFERED")).toBe(false);
   });
 
   it("allows self or organizer to set response", () => {

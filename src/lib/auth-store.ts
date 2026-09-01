@@ -13,6 +13,9 @@ export interface Me {
   department: string | null;
   branchId: string | null;
   isSuperAdmin: boolean;
+  isPlatformAdmin?: boolean;
+  orgId?: string;
+  orgSlug?: string;
   roles: { key: string; name: string }[];
   permissions: string[];
 }

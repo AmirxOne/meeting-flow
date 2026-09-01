@@ -3,7 +3,14 @@ import type { ResponseStatus } from "@/lib";
 export const PARTICIPANT_RESPONSES = ["ACCEPTED", "DECLINED", "TENTATIVE"] as const;
 export type ParticipantResponse = (typeof PARTICIPANT_RESPONSES)[number];
 
-const CLOSED_MEETING_STATUSES = new Set(["COMPLETED", "CANCELLED", "REJECTED", "NO_SHOW"]);
+const CLOSED_MEETING_STATUSES = new Set([
+  "COMPLETED",
+  "CANCELLED",
+  "REJECTED",
+  "NO_SHOW",
+  "WAITLISTED",
+  "WAITLIST_OFFERED",
+]);
 
 export function isParticipantResponse(value: string): value is ParticipantResponse {
   return (PARTICIPANT_RESPONSES as readonly string[]).includes(value);

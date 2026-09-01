@@ -38,6 +38,21 @@ const ACTION_FA: Record<string, string> = {
   END: "پایان",
   EXTEND: "تمدید",
   LOGIN: "ورود",
+  ATTACHMENT_UPLOAD: "آپلود پیوست",
+  ATTACHMENT_DELETE: "حذف پیوست",
+  AGENDA_UPDATE: "ویرایش دستور جلسه",
+  MINUTES_PUBLISH: "ثبت صورتجلسه",
+  VIDEO_LINK_UPDATE: "ویرایش لینک ویدئو",
+  WAITLIST_CLAIM: "قطعی کردن لیست انتظار",
+  WAITLIST_DECLINE: "رد پیشنهاد لیست انتظار",
+  HOLIDAY_CREATE: "ثبت تعطیلی",
+  HOLIDAY_DELETE: "حذف تعطیلی",
+  MAP_UPLOAD: "آپلود نقشه شعبه",
+  MAP_DELETE: "حذف نقشه شعبه",
+  AVATAR_UPLOAD: "آپلود تصویر پروفایل",
+  AVATAR_DELETE: "حذف تصویر پروفایل",
+  DISPLAY_TOKEN: "توکن نمایشگر اتاق",
+  DISPLAY_TOKEN_REVOKE: "باطل کردن نمایشگر اتاق",
 };
 
 const ENTITY_FA: Record<string, string> = {
@@ -47,7 +62,10 @@ const ENTITY_FA: Record<string, string> = {
   Meeting: "جلسه",
   PersonDirectory: "فرد",
   MeetingPolicy: "سیاست",
+  MeetingAttachment: "پیوست",
   Organization: "سازمان",
+  Delegate: "نماینده رزرو",
+  OrgHoliday: "تعطیلی سازمانی",
 };
 
 export function AdminPage() {
@@ -69,7 +87,7 @@ export function AdminPage() {
       : []),
     { href: "/admin/people", label: "افراد", desc: "دایرکتوری اعضا و ارتباط‌های خارجی", icon: Contact },
     { href: "/admin/rooms", label: "اتاق‌ها", desc: "ساخت، ویرایش و مدیریت اتاق‌ها", icon: DoorOpen },
-    { href: "/admin/policies", label: "سیاست‌ها", desc: "قواعد تأیید و محدودیت‌های جلسات", icon: Settings },
+    { href: "/admin/policies", label: "سیاست‌ها", desc: "قواعد تأیید، محدودیت‌ها و تعطیلات سازمانی", icon: Settings },
     { href: "/admin/settings", label: "تنظیمات سازمان", desc: "نام، منطقه زمانی و لوگوی سازمان", icon: SlidersHorizontal },
     { href: "/admin/audit-logs", label: "لاگ ممیزی", desc: "تاریخچه کامل عملیات سیستم", icon: ScrollText },
   ];

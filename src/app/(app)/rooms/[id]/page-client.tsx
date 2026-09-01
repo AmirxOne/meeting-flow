@@ -8,6 +8,7 @@ import { Card, CardHeader, CardBody, SkeletonBlock, EmptyState } from "@/compone
 import { StatusBadge } from "@/components/ui/badges";
 import { cn, faNum, faStr, formatJalali, EQUIPMENT_FA, pad2 } from "@/lib";
 import { Tooltip } from "@/components/ui/tooltip";
+import { RoomDisplaySetup } from "@/components/rooms/room-display-setup";
 
 interface RoomDetail {
   room: {
@@ -211,6 +212,7 @@ export function RoomDetailPage() {
           </CardBody>
         </Card>
 
+        <div className="space-y-4">
         <Card>
           <CardHeader title="مشخصات اتاق" />
           <CardBody className="space-y-3 text-[12px]">
@@ -241,6 +243,8 @@ export function RoomDetailPage() {
             )}
           </CardBody>
         </Card>
+        <RoomDisplaySetup roomId={room.id} />
+        </div>
       </div>
     </div>
   );

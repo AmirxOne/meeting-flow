@@ -3,6 +3,7 @@ name: meetinghub
 # Dev (local Next.js):  docker compose up -d postgres redis
 #                       pnpm dev  +  pnpm worker:dev  (worker جدا — یادآورها بدون آن ارسال نمی‌شوند)
 # Full stack (prod-like): docker compose up -d  → app + postgres + redis + worker
+# On-prem production:     cp .env.production.example .env && docker compose -f docker-compose.prod.yml up -d --build
 
 services:
   postgres:
@@ -52,6 +53,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3100/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
 
   worker:
     build:
@@ -65,7 +72,13 @@ services:
       ROLE: worker
       DATABASE_URL: postgresql://meetinghub:${POSTGRES_PASSWORD:-meetinghub}@postgres:5432/meetinghub?schema=public
       REDIS_URL: redis://redis:6379
-    command: ["node", "worker/index.js"]
+    command: ["/app/docker/entrypoint-worker.sh"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3101/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
     depends_on:
       postgres:
         condition: service_healthy

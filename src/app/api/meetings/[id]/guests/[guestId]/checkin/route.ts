@@ -17,8 +17,8 @@ export async function POST(
 
     let manual = false;
     if (user) {
-      const meeting = await prisma.meeting.findUnique({
-        where: { id },
+      const meeting = await prisma.meeting.findFirst({
+        where: { id, orgId: user.orgId },
         select: { organizerId: true },
       });
       if (

@@ -9,8 +9,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requirePermission("policy:manage");
-    const org = await prisma.organization.findFirst({
+    const actor = await requirePermission("policy:manage");
+    const org = await prisma.organization.findUnique({
+      where: { id: actor.orgId },
       include: { policies: { orderBy: { key: "asc" } } },
     });
     return ok({ org, policies: org?.policies ?? [] });
@@ -40,7 +41,15 @@ export async function PATCH(req: NextRequest) {
       }
       value = checked.offsets;
     }
-    const org = await prisma.organization.findFirst();
+    if (input.key === "holidayBooking") {
+      if (input.value !== "BLOCK" && input.value !== "REQUIRE_APPROVAL") {
+        return Response.json(
+          { ok: false, error: { message: "سیاست رزرو تعطیل نامعتبر است", code: "VALIDATION" } },
+          { status: 400 },
+        );
+      }
+    }
+    const org = await prisma.organization.findUnique({ where: { id: actor.orgId } });
     if (!org) return ok({ updated: false });
     const updated = await prisma.meetingPolicy.upsert({
       where: { orgId_key: { orgId: org.id, key: input.key } },

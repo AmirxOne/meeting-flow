@@ -1,0 +1,100 @@
+# Production / on-prem — reverse proxy (nginx/Caddy) terminates TLS in front of app.
+#
+#   cp .env.production.example .env
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Backup: COMPOSE_FILE=docker-compose.prod.yml bash scripts/backup
+
+name: meetinghub
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: meetinghub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: meetinghub
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meetinghub -d meetinghub"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://meetinghub:${POSTGRES_PASSWORD}@postgres:5432/meetinghub?schema=public
+      REDIS_URL: redis://redis:6379
+      RUN_MIGRATIONS: "true"
+      MEETING_ATTACHMENTS_DIR: /app/data/attachments
+    ports:
+      # Bind localhost only — expose via nginx/Caddy on the host.
+      - "127.0.0.1:${APP_PORT:-3100}:3100"
+    volumes:
+      - attachments:/app/data/attachments
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3100/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      ROLE: worker
+      DATABASE_URL: postgresql://meetinghub:${POSTGRES_PASSWORD}@postgres:5432/meetinghub?schema=public
+      REDIS_URL: redis://redis:6379
+      MEETING_ATTACHMENTS_DIR: /app/data/attachments
+    command: ["/app/docker/entrypoint-worker.sh"]
+    volumes:
+      - attachments:/app/data/attachments
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3101/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
+  attachments:

@@ -4,7 +4,7 @@
 export const PERMISSIONS = {
   "meeting:create": { name: "ایجاد جلسه", group: "جلسات" },
   "meeting:view": { name: "مشاهده جلسات", group: "جلسات" },
-  "meeting:view-all": { name: "مشاهده همه جلسات شرکت", group: "جلسات" },
+  "meeting:view-all": { name: "مشاهده همه جلسات سازمان", group: "جلسات" },
   "meeting:update": { name: "ویرایش جلسه", group: "جلسات" },
   "meeting:approve": { name: "تأیید جلسه", group: "جلسات" },
   "meeting:reject": { name: "رد جلسه", group: "جلسات" },
@@ -49,13 +49,13 @@ export const ROLE_DEFINITIONS: Record<
   { name: string; description: string; permissions: PermissionKey[] }
 > = {
   SUPER_ADMIN: {
-    name: "مدیر ارشد سیستم",
-    description: "دسترسی کامل به تمام بخش‌ها",
+    name: "مدیر پلتفرم",
+    description: "مدیر پلتفرم — همه سازمان‌ها (با انتخاب سازمان)",
     permissions: PERMISSION_KEYS,
   },
   ADMIN: {
-    name: "مدیر سیستم",
-    description: "مدیریت کامل به جز نقش‌ها",
+    name: "مدیر سازمان",
+    description: "مدیریت کامل سازمان به جز نقش‌های سیستم",
     permissions: [
       "meeting:view", "meeting:view-all", "meeting:create", "meeting:update",
       "meeting:approve", "meeting:reject", "meeting:cancel", "meeting:reschedule",

@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const actor = await requirePermission("branch:create");
     const input = branchCreateSchema.parse(await req.json().catch(() => ({})));
 
-    const dup = await prisma.branch.findFirst({ where: { name: input.name } });
+    const dup = await prisma.branch.findFirst({ where: { orgId: actor.orgId, name: input.name } });
     if (dup) {
       return Response.json(
         { ok: false, error: { message: "شعبه‌ای با این نام وجود دارد", code: "DUPLICATE" } },
@@ -25,15 +25,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const org = await prisma.organization.findFirst();
-    if (!org) throw new HttpError(500, "سازمان یافت نشد", "NO_ORG");
     const branch = await prisma.branch.create({
       data: {
-        orgId: org.id,
+        orgId: actor.orgId,
         name: input.name,
         address: input.address || null,
         phone: input.phone || null,
         managerId: input.managerId || null,
+        wayfindingText: input.wayfindingText?.trim() || null,
       },
     });
     await audit({
@@ -53,7 +52,8 @@ export async function POST(req: NextRequest) {
 /** GET /api/branches — list with manage details when permitted. */
 export async function GET(req: NextRequest) {
   try {
-    const { requirePermission: rp } = await import("@/server/auth/session");
+    const { requireUser, requirePermission: rp } = await import("@/server/auth/session");
+    const actor = await requireUser();
     const includeInactive = req.nextUrl.searchParams.get("all") === "1";
     let canManage = false;
     try {
@@ -63,15 +63,47 @@ export async function GET(req: NextRequest) {
       canManage = false;
     }
     const branches = await prisma.branch.findMany({
-      where: includeInactive && canManage ? {} : { isActive: true },
+      where: {
+        orgId: actor.orgId,
+        ...(includeInactive && canManage ? {} : { isActive: true }),
+      },
       include: {
         manager: { select: { id: true, fullName: true } },
-        floors: { orderBy: { number: "asc" } },
+        floors: {
+          orderBy: { number: "asc" },
+          select: {
+            id: true,
+            name: true,
+            number: true,
+            wayfindingText: true,
+            mapStorageKey: true,
+          },
+        },
         _count: { select: { rooms: true, users: true, meetings: true } },
       },
       orderBy: { name: "asc" },
     });
-    return ok({ branches, canManage });
+    return ok({
+      canManage,
+      branches: branches.map((b) => ({
+        id: b.id,
+        name: b.name,
+        address: b.address,
+        phone: b.phone,
+        isActive: b.isActive,
+        manager: b.manager,
+        wayfindingText: b.wayfindingText,
+        hasMap: !!b.mapStorageKey,
+        floors: b.floors.map((f) => ({
+          id: f.id,
+          name: f.name,
+          number: f.number,
+          wayfindingText: f.wayfindingText,
+          hasMap: !!f.mapStorageKey,
+        })),
+        _count: b._count,
+      })),
+    });
   } catch (e) {
     return handleError(e);
   }

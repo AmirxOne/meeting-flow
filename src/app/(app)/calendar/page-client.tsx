@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronRight, ChevronLeft, Plus, Shield } from "@/components/ui/icon";
+import { ChevronRight, ChevronLeft, Plus, Shield, Download } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, SkeletonBlock } from "@/components/ui/card";
 import { DayTimeline, DayTimelineSkeleton } from "@/components/calendar/day-timeline";
@@ -22,6 +22,7 @@ interface CalMeeting {
   meetingType: string;
   isPrivate?: boolean;
   isMasked?: boolean;
+  seriesId?: string | null;
   organizer: { fullName: string };
   room: { id: string; name: string } | null;
   _count: { participants: number };
@@ -76,7 +77,8 @@ function minutesOf(iso: string): number {
 const WEEKDAY_LONG = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
 
 function EventLabel({ meeting, className }: { meeting: CalMeeting; className?: string }) {
-  if (!meeting.isMasked) return <span className={className}>{meeting.title}</span>;
+  const repeat = meeting.seriesId ? " ↻" : "";
+  if (!meeting.isMasked) return <span className={className}>{meeting.title}{repeat}</span>;
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-1", className)}>
       <Shield className="h-3 w-3 shrink-0" />
@@ -116,6 +118,22 @@ export function CalendarPage() {
         `/api/calendar?from=${range.from.toISOString()}&to=${range.to.toISOString()}&scope=${scope}`,
       ),
   });
+
+  const holidayFrom = isoOfJalali(anchor.jy, anchor.jm, 1);
+  const holidayTo = addDaysIso(holidayFrom, jMonthLen(anchor.jy, anchor.jm) + 14);
+  const { data: holidayData } = useQuery({
+    queryKey: ["org-holidays", holidayFrom, holidayTo],
+    queryFn: () =>
+      api<{ holidays: { dateIso: string; name: string }[]; bookingMode: "BLOCK" | "REQUIRE_APPROVAL" }>(
+        `/api/holidays?from=${holidayFrom}&to=${holidayTo}`,
+      ),
+  });
+  const holidayByDate = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const h of holidayData?.holidays ?? []) map.set(h.dateIso, h.name);
+    return map;
+  }, [holidayData]);
+  const holidayMode = holidayData?.bookingMode ?? "BLOCK";
 
   const meetings = data?.meetings ?? [];
   const occupancyMap = new Map((data?.occupancy ?? []).map((o) => [o.date, o]));
@@ -249,6 +267,13 @@ export function CalendarPage() {
               <button key={k} onClick={() => setMode(k)} className={cn("px-3 py-1.5 text-[12px]", mode === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
             ))}
           </div>
+          <Link
+            href="/profile#calendar-feed"
+            className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white px-3 py-1.5 text-[12px] text-ink-soft hover:bg-paper-soft"
+          >
+            <Download className="h-3.5 w-3.5" />
+            خروجی ICS
+          </Link>
         </div>
       </div>
 
@@ -280,6 +305,7 @@ export function CalendarPage() {
                   const isSelected = iso === selectedIso;
                   const isOtherMonth = cell.jm !== anchor.jm;
                   const isFriday = fridayCol || isFridayIso(iso);
+                  const holidayName = holidayByDate.get(iso);
                   return (
                     <button
                       key={i}
@@ -288,16 +314,25 @@ export function CalendarPage() {
                       onClick={() => setSelectedIso(iso)}
                       className={cn(
                         "relative h-16 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
-                        isSelected ? "bg-paper-soft" : "hover:bg-paper-soft/70",
+                        holidayName
+                          ? "bg-amber-50"
+                          : isSelected
+                            ? "bg-paper-soft"
+                            : "hover:bg-paper-soft/70",
                         isOtherMonth && "opacity-40",
                       )}
                     >
                       <span className={cn(
                         "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6",
-                        isToday ? "bg-ink font-bold text-white" : isFriday ? "font-medium text-red-600" : "text-ink",
+                        isToday ? "bg-ink font-bold text-white" : isFriday || holidayName ? "font-medium text-red-600" : "text-ink",
                       )}>
                         {mode === "jalali" ? faNum(cell.jd) : faNum(gregorianDayOf(iso))}
                       </span>
+                      {holidayName && (
+                        <p className="mt-0.5 truncate text-[8px] font-medium text-amber-800 sm:text-[9px]">
+                          تعطیل
+                        </p>
+                      )}
 
                       <div className="mt-0.5 hidden space-y-0.5 sm:block">
                         {dayMeetings.slice(0, 3).map((m) => (
@@ -307,7 +342,7 @@ export function CalendarPage() {
                             onClick={(e) => e.stopPropagation()}
                             className={cn("flex truncate rounded px-1 py-0.5 text-[10px] leading-4", calendarEventTone(m.status).chip)}
                           >
-                            <span className="truncate">{timeOf(m.startAt)} {m.isMasked ? "جلسه محرمانه" : m.title}</span>
+                            <span className="truncate">{timeOf(m.startAt)} {m.isMasked ? "جلسه محرمانه" : m.title}{m.seriesId ? " ↻" : ""}</span>
                           </Link>
                         ))}
                         {dayMeetings.length > 3 && (
@@ -338,6 +373,8 @@ export function CalendarPage() {
               todayIso={today}
               meetings={selectedDayMeetings}
               mode={mode}
+              holidayName={holidayByDate.get(selectedIso) ?? null}
+              holidayMode={holidayMode}
               className="hidden lg:block"
             />
           </div>
@@ -465,12 +502,16 @@ function DayPanel({
   todayIso,
   meetings,
   mode,
+  holidayName,
+  holidayMode,
   className,
 }: {
   selectedIso: string;
   todayIso: string;
   meetings: CalMeeting[];
   mode: CalMode;
+  holidayName?: string | null;
+  holidayMode?: "BLOCK" | "REQUIRE_APPROVAL";
   className?: string;
 }) {
   const j = jalaliOfIso(selectedIso);
@@ -487,15 +528,26 @@ function DayPanel({
     <Card data-tour="cal-day-panel" className={cn("sticky top-4", className)}>
       <div className="flex items-start justify-between gap-2 border-b border-line px-4 py-3">
         <div>
-          <p className={cn("text-[14px] font-bold", friday && "text-red-600")}>
+          <p className={cn("text-[14px] font-bold", (friday || holidayName) && "text-red-600")}>
             {dateText}
             {selectedIso === todayIso ? " · امروز" : ""}
           </p>
           <p className="mt-0.5 text-[11px] text-ink-faint">
-            {meetings.length ? `${faNum(meetings.length)} جلسه` : "روز خالی"}
+            {holidayName
+              ? `تعطیل: ${holidayName}`
+              : meetings.length
+                ? `${faNum(meetings.length)} جلسه`
+                : "روز خالی"}
           </p>
         </div>
       </div>
+      {holidayName && (
+        <p className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-[11px] leading-5 text-amber-900">
+          {holidayMode === "REQUIRE_APPROVAL"
+            ? "روز تعطیل سازمانی — رزرو نیاز به تأیید دارد."
+            : "روز تعطیل سازمانی — رزرو اتاق پیش‌فرض ممنوع است."}
+        </p>
+      )}
       <div className="max-h-[28rem] divide-y divide-line overflow-y-auto">
         {meetings.length === 0 && (
           <p className="px-4 py-8 text-center text-[12px] text-ink-faint">جلسه‌ای در این روز نیست</p>

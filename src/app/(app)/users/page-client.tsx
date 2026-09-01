@@ -21,6 +21,7 @@ import {
   uniqueColleagueOptions,
   type Colleague,
 } from "@/lib/colleague-directory";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export function UsersPage() {
   const { me, can } = useAuth();
@@ -202,9 +203,7 @@ function ColleagueCard({ user, isSelf }: { user: Colleague; isSelf: boolean }) {
   return (
     <Card className="h-full p-4">
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-paper-soft text-[14px] font-bold">
-          {user.fullName.slice(0, 1)}
-        </div>
+        <UserAvatar name={user.fullName} src={user.avatarUrl} size="md" variant="soft" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="min-w-0 truncate text-[13px] font-bold">{user.fullName}</p>

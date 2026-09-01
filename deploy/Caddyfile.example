@@ -1,0 +1,19 @@
+# Caddy — automatic HTTPS for مهرسا (on-prem)
+# Install Caddy 2.x, copy to /etc/caddy/Caddyfile, then: sudo systemctl reload caddy
+# Replace meetings.example.com — Caddy obtains Let's Encrypt certs automatically.
+
+meetings.example.com {
+    encode gzip zstd
+
+    request_body {
+        max_size 12MB
+    }
+
+    reverse_proxy 127.0.0.1:3100 {
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+# Health probe (optional, same upstream):
+# curl -fsS https://meetings.example.com/api/health

@@ -1,6 +1,9 @@
 /** Auth mode and LDAP settings from environment. */
 
-export type AuthMode = "local" | "ldap";
+export type AuthMethod = "local" | "ldap" | "sso";
+export type AuthMode = AuthMethod;
+
+const AUTH_METHODS = new Set<AuthMethod>(["local", "ldap", "sso"]);
 
 export interface LdapConfig {
   url: string;
@@ -11,16 +14,48 @@ export interface LdapConfig {
   tlsRejectUnauthorized: boolean;
 }
 
-/** Parse AUTH_MODE. Defaults to local. */
-export function parseAuthMode(raw?: string): AuthMode {
+/** Parse AUTH_MODE as a set. Supports `local`, `ldap`, `sso`, and combinations like `local,sso` or `local+sso`. */
+export function parseAuthMethods(raw?: string): Set<AuthMethod> {
   const value = (raw ?? process.env.AUTH_MODE ?? "local").trim().toLowerCase();
-  if (value === "ldap") return "ldap";
+  if (!value) return new Set<AuthMethod>(["local"]);
+  const methods = new Set<AuthMethod>();
+  for (const part of value.split(/[,+\s|]+/)) {
+    const token = part.trim();
+    if (AUTH_METHODS.has(token as AuthMethod)) methods.add(token as AuthMethod);
+  }
+  if (methods.size === 0) methods.add("local");
+  return methods;
+}
+
+/**
+ * Primary password-path mode for callers that still expect a single value.
+ * `local,sso` → local; `ldap,sso` → ldap; `sso` → sso.
+ */
+export function parseAuthMode(raw?: string): AuthMode {
+  const methods = parseAuthMethods(raw);
+  if (methods.has("ldap")) return "ldap";
+  if (methods.has("local")) return "local";
+  if (methods.has("sso")) return "sso";
   return "local";
 }
 
-/** Whether LDAP login is enabled. */
-export function isLdapAuthEnabled(): boolean {
-  return parseAuthMode() === "ldap";
+export function isLdapAuthEnabled(raw?: string): boolean {
+  return parseAuthMethods(raw).has("ldap");
+}
+
+export function isLocalAuthEnabled(raw?: string): boolean {
+  return parseAuthMethods(raw).has("local");
+}
+
+/** AUTH_MODE includes sso — credentials/policy still required to show the button. */
+export function isSsoMethodEnabled(raw?: string): boolean {
+  return parseAuthMethods(raw).has("sso");
+}
+
+/** Password / LDAP bind form is available. */
+export function isPasswordLoginEnabled(raw?: string): boolean {
+  const methods = parseAuthMethods(raw);
+  return methods.has("local") || methods.has("ldap");
 }
 
 /** LDAP connection settings — throws if required vars missing when mode is ldap. */

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { api, type ApiError } from "@/lib/api";
 import { cn, faNum, faStr } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { useToast } from "@/components/ui/toast";
 
 export interface PickedPerson {
@@ -31,6 +32,7 @@ interface DirectoryPerson {
   company: string | null;
   jobTitle: string | null;
   userId?: string | null;
+  avatarUrl?: string | null;
 }
 
 const PAGE = 20;
@@ -331,14 +333,12 @@ export function PeoplePicker({
                     active === i ? "bg-paper-soft" : "bg-transparent",
                   )}
                 >
-                  <span
-                    className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-                      p.kind === "INTERNAL" ? "bg-ink text-white" : "bg-amber-50 text-amber-700",
-                    )}
-                  >
-                    {p.name.slice(0, 1)}
-                  </span>
+                  <UserAvatar
+                    name={p.name}
+                    src={p.avatarUrl}
+                    size="sm"
+                    variant={p.kind === "INTERNAL" ? "ink" : "amber"}
+                  />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
                       <span className="truncate text-[13px] font-medium">{p.name}</span>

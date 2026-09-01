@@ -1,4 +1,4 @@
-import { Prisma, type Meeting } from "@prisma/client";
+import { Prisma, type Meeting, type MeetingSeries } from "@prisma/client";
 import { prisma } from "@/server/db";
 import { HttpError } from "@/server/auth/session";
 import {
@@ -18,18 +18,43 @@ import {
 } from "./participant-response.service";
 import { generateCheckinCode } from "./guest-checkin.service";
 import { calendarSyncBestEffort } from "./calendar-sync.service";
+import { expandOccurrences, type RecurrenceRule, type SeriesEditScope } from "@/lib/recurrence";
+import {
+  filterSeriesTargets,
+  shiftOccurrence,
+  slotsOverlapSameRoom,
+} from "@/lib/series-edit";
+import { formatJalali } from "@/lib/jalali";
+import { maskPrivateConflictTitle, type PrivacyViewer } from "./privacy";
+import {
+  WAITLIST_OFFERED,
+  WAITLIST_WAITING,
+  bumpExpiredToBack,
+  isOfferExpired,
+  isWaitlistStatus,
+  offerWaitlistAfterVacate,
+  waitlistMeta,
+} from "./waitlist.service";
+import { assertHolidayBooking } from "./holiday.service";
+import { parseHolidayBookingMode } from "@/lib/holiday";
 
 export interface CreateMeetingInput {
   title: string;
   description?: string;
+  orgId: string;
   branchId: string;
   roomId?: string;
   organizerId: string;
+  createdById?: string | null;
+  waitlistIfBusy?: boolean;
+  waitlistQueuedAt?: Date;
   startAt: Date;
   endAt: Date;
   meetingType?: string;
   priority?: string;
   isPrivate?: boolean;
+  videoProvider?: string | null;
+  videoUrl?: string | null;
   participantIds?: string[];
   guests?: {
     name: string;
@@ -38,10 +63,17 @@ export interface CreateMeetingInput {
     email?: string;
     notes?: string;
   }[];
+  seriesId?: string;
+  originalStartAt?: Date;
 }
 
-export async function getOrgPolicies(): Promise<PolicyValues> {
-  const org = await prisma.organization.findFirst({
+export interface CreateSeriesInput extends CreateMeetingInput {
+  recurrence: RecurrenceRule;
+}
+
+export async function getOrgPolicies(orgId: string): Promise<PolicyValues> {
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
     include: { policies: true },
   });
   if (!org) return DEFAULT_POLICIES;
@@ -53,12 +85,40 @@ export async function getOrgPolicies(): Promise<PolicyValues> {
           p.value,
           DEFAULT_POLICIES.defaultReminderOffsets,
         );
+      } else if (p.key === "holidayBooking") {
+        merged.holidayBooking = parseHolidayBookingMode(p.value);
       } else {
         (merged as unknown as Record<string, unknown>)[p.key] = p.value;
       }
     }
   }
   return merged;
+}
+
+async function getMeetingInOrg(meetingId: string, orgId: string) {
+  const meeting = await prisma.meeting.findFirst({ where: { id: meetingId, orgId } });
+  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  return meeting;
+}
+
+async function assertCreateTenant(input: CreateMeetingInput) {
+  const branch = await prisma.branch.findFirst({
+    where: { id: input.branchId, orgId: input.orgId },
+  });
+  if (!branch) throw new HttpError(404, "شعبه یافت نشد", "NOT_FOUND");
+  if (input.roomId) {
+    const room = await prisma.meetingRoom.findFirst({
+      where: { id: input.roomId, orgId: input.orgId },
+    });
+    if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");
+  }
+  const people = [...new Set([input.organizerId, ...(input.participantIds ?? [])])];
+  const count = await prisma.user.count({
+    where: { id: { in: people }, orgId: input.orgId },
+  });
+  if (count !== people.length) {
+    throw new HttpError(400, "یکی از کاربران متعلق به این سازمان نیست", "CROSS_TENANT");
+  }
 }
 
 async function assertRoomFree(
@@ -89,7 +149,7 @@ export async function createMeeting(input: CreateMeetingInput): Promise<Meeting>
     throw new HttpError(400, "مدت جلسه کمتر از ۱۰ دقیقه است", "TOO_SHORT");
   }
 
-  const policies = await getOrgPolicies();
+  const policies = await getOrgPolicies(input.orgId);
   if (durationMin < policies.minDurationMin) {
     throw new HttpError(400, `حداقل مدت جلسه ${policies.minDurationMin} دقیقه است`, "TOO_SHORT");
   }
@@ -97,8 +157,10 @@ export async function createMeeting(input: CreateMeetingInput): Promise<Meeting>
     throw new HttpError(400, `حداکثر مدت جلسه ${policies.maxDurationMin} دقیقه است`, "TOO_LONG");
   }
 
+  await assertCreateTenant(input);
+  const holiday = await assertHolidayBooking(input.orgId, input.startAt, input.endAt);
   const room = input.roomId
-    ? await prisma.meetingRoom.findUnique({ where: { id: input.roomId } })
+    ? await prisma.meetingRoom.findFirst({ where: { id: input.roomId, orgId: input.orgId } })
     : null;
   if (input.roomId && !room) throw new HttpError(404, "اتاق یافت نشد", "ROOM_NOT_FOUND");
   if (room) {
@@ -115,79 +177,60 @@ export async function createMeeting(input: CreateMeetingInput): Promise<Meeting>
     isVipRoom: room?.isVip ?? false,
     durationMin,
     meetingType: input.meetingType ?? "INTERNAL",
+    isOrgHoliday: holiday.requiresApproval,
   });
 
   return prisma.$transaction(
     async (tx) => {
       if (room) {
-        // lock room row for the duration of the tx
         await tx.$executeRaw`SELECT id FROM "MeetingRoom" WHERE id = ${room.id} FOR UPDATE`;
-        await assertRoomFreeTx(tx, room.id, input.startAt, input.endAt);
+        try {
+          await assertRoomFreeTx(tx, room.id, input.startAt, input.endAt);
+        } catch (e) {
+          if (e instanceof HttpError && e.code === "ROOM_CONFLICT") {
+            if (input.waitlistIfBusy) {
+              const queuedAt = new Date();
+              return insertOccurrenceTx(
+                tx,
+                { ...input, waitlistQueuedAt: queuedAt },
+                { status: WAITLIST_WAITING, needsApproval: false },
+              );
+            }
+            const waitlistCount = await tx.meeting.count({
+              where: {
+                orgId: input.orgId,
+                roomId: room.id,
+                status: { in: [WAITLIST_WAITING, WAITLIST_OFFERED] },
+                startAt: { lt: input.endAt },
+                endAt: { gt: input.startAt },
+              },
+            });
+            throw new HttpError(409, e.message, "ROOM_CONFLICT", {
+              canWaitlist: true,
+              waitlistCount,
+            });
+          }
+          throw e;
+        }
       }
 
-      const meeting = await tx.meeting.create({
-        data: {
-          title: input.title,
-          description: input.description,
-          organizerId: input.organizerId,
-          branchId: input.branchId,
-          roomId: input.roomId,
-          startAt: input.startAt,
-          endAt: input.endAt,
-          meetingType: input.meetingType ?? "INTERNAL",
-          priority: input.priority ?? "NORMAL",
-          isPrivate: input.isPrivate ?? false,
-          status: needsApproval ? "PENDING_APPROVAL" : "CONFIRMED",
-        },
+      const meeting = await insertOccurrenceTx(tx, input, {
+        status: needsApproval ? "PENDING_APPROVAL" : "CONFIRMED",
+        needsApproval,
       });
-
-      // organizer as participant
-      await tx.meetingParticipant.create({
-        data: {
-          meetingId: meeting.id,
-          userId: input.organizerId,
-          role: "ORGANIZER",
-          responseStatus: "ACCEPTED",
-        },
-      });
-
-      for (const uid of new Set(input.participantIds ?? [])) {
-        if (uid === input.organizerId) continue;
-        await tx.meetingParticipant.create({
-          data: { meetingId: meeting.id, userId: uid, responseStatus: "PENDING" },
-        });
-      }
-
-      for (const g of input.guests ?? []) {
-        const checkinCode = await generateCheckinCode();
-        await tx.meetingGuest.create({
-          data: { meetingId: meeting.id, ...g, checkinCode },
-        });
-      }
-
-      await tx.meetingEvent.create({
-        data: {
-          meetingId: meeting.id,
-          type: "CREATED",
-          actorId: input.organizerId,
-          data: { needsApproval },
-        },
-      });
-
-      if (needsApproval) {
-        await tx.meetingApproval.create({
-          data: { meetingId: meeting.id, action: "REQUESTED", step: 1 },
-        });
-      }
 
       return meeting;
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   )
     .then(async (meeting) => {
-      // side effects (outside tx)
+      if (meeting.status === WAITLIST_WAITING) {
+        const meta = await waitlistMeta(meeting);
+        await notificationService.waitlistJoined(meeting, meta?.position ?? 1);
+        return meeting;
+      }
       await scheduleReminders(meeting);
-      await notificationService.meetingCreated(meeting, input.organizerId);
+      await notificationService.meetingCreated(meeting, input.createdById ?? input.organizerId);
       void calendarSyncBestEffort("create", meeting);
       return meeting;
     })
@@ -203,20 +246,248 @@ export async function createMeeting(input: CreateMeetingInput): Promise<Meeting>
     });
 }
 
+async function insertOccurrenceTx(
+  tx: Prisma.TransactionClient,
+  input: CreateMeetingInput,
+  opts: { status: string; needsApproval: boolean },
+): Promise<Meeting> {
+  const meeting = await tx.meeting.create({
+    data: {
+      orgId: input.orgId,
+      title: input.title,
+      description: input.description,
+      organizerId: input.organizerId,
+      createdById: input.createdById ?? null,
+      waitlistQueuedAt: input.waitlistQueuedAt ?? null,
+      branchId: input.branchId,
+      roomId: input.roomId,
+      startAt: input.startAt,
+      endAt: input.endAt,
+      meetingType: input.meetingType ?? "INTERNAL",
+      priority: input.priority ?? "NORMAL",
+      isPrivate: input.isPrivate ?? false,
+      videoProvider: input.videoProvider ?? null,
+      videoUrl: input.videoUrl ?? null,
+      status: opts.status,
+      seriesId: input.seriesId,
+      originalStartAt: input.originalStartAt ?? input.startAt,
+    },
+  });
+
+  await tx.meetingParticipant.create({
+    data: {
+      meetingId: meeting.id,
+      userId: input.organizerId,
+      role: "ORGANIZER",
+      responseStatus: "ACCEPTED",
+    },
+  });
+
+  for (const uid of new Set(input.participantIds ?? [])) {
+    if (uid === input.organizerId) continue;
+    await tx.meetingParticipant.create({
+      data: { meetingId: meeting.id, userId: uid, responseStatus: "PENDING" },
+    });
+  }
+
+  for (const g of input.guests ?? []) {
+    const checkinCode = await generateCheckinCode();
+    await tx.meetingGuest.create({
+      data: { meetingId: meeting.id, ...g, checkinCode },
+    });
+  }
+
+  await tx.meetingEvent.create({
+    data: {
+      meetingId: meeting.id,
+      type: "CREATED",
+      actorId: input.createdById ?? input.organizerId,
+      data: {
+        needsApproval: opts.needsApproval,
+        ...(opts.status === WAITLIST_WAITING ? { waitlist: true } : {}),
+        ...(input.createdById && input.createdById !== input.organizerId
+          ? { onBehalfOf: input.organizerId, createdById: input.createdById }
+          : {}),
+      },
+    },
+  });
+
+  if (opts.needsApproval) {
+    await tx.meetingApproval.create({
+      data: { meetingId: meeting.id, action: "REQUESTED", step: 1 },
+    });
+  }
+
+  return meeting;
+}
+
+function mapTxConflict(e: unknown): never {
+  if (e instanceof HttpError) throw e;
+  if (
+    e instanceof Prisma.PrismaClientKnownRequestError &&
+    (e.code === "P2034" || e.meta?.code === "40001")
+  ) {
+    throw new HttpError(409, "تداخل همزمانی در رزرو اتاق — دوباره تلاش کنید", "RETRY");
+  }
+  throw e;
+}
+
+export interface CreatedSeries {
+  meeting: Meeting;
+  series: MeetingSeries;
+  meetings: Meeting[];
+}
+
+/** Expand a recurrence rule and book every occurrence in one SERIALIZABLE tx. */
+export async function createMeetingSeries(input: CreateSeriesInput): Promise<CreatedSeries> {
+  if (input.waitlistIfBusy) {
+    throw new HttpError(400, "لیست انتظار برای جلسه تکراری پشتیبانی نمی‌شود", "WAITLIST_SERIES");
+  }
+  const durationMin = (input.endAt.getTime() - input.startAt.getTime()) / 60000;
+  if (durationMin < 10) {
+    throw new HttpError(400, "مدت جلسه کمتر از ۱۰ دقیقه است", "TOO_SHORT");
+  }
+
+  const policies = await getOrgPolicies(input.orgId);
+  if (durationMin < policies.minDurationMin) {
+    throw new HttpError(400, `حداقل مدت جلسه ${policies.minDurationMin} دقیقه است`, "TOO_SHORT");
+  }
+  if (durationMin > policies.maxDurationMin) {
+    throw new HttpError(400, `حداکثر مدت جلسه ${policies.maxDurationMin} دقیقه است`, "TOO_LONG");
+  }
+
+  await assertCreateTenant(input);
+  const room = input.roomId
+    ? await prisma.meetingRoom.findFirst({ where: { id: input.roomId, orgId: input.orgId } })
+    : null;
+  if (input.roomId && !room) throw new HttpError(404, "اتاق یافت نشد", "ROOM_NOT_FOUND");
+  if (room) {
+    if (durationMin < room.minDurationMin || durationMin > room.maxDurationMin) {
+      throw new HttpError(400, `مدت مجاز این اتاق بین ${room.minDurationMin} و ${room.maxDurationMin} دقیقه است`, "ROOM_DURATION");
+    }
+    if (room.capacity < (input.participantIds?.length ?? 0) + 1) {
+      throw new HttpError(400, "ظرفیت اتاق کافی نیست", "ROOM_CAPACITY");
+    }
+  }
+
+  const starts = expandOccurrences(input.startAt, input.recurrence);
+  if (starts.length === 0) {
+    throw new HttpError(400, "هیچ نوبتی از این تکرار ساخته نشد", "EMPTY_SERIES");
+  }
+  const durationMs = input.endAt.getTime() - input.startAt.getTime();
+  let holidayApproval = false;
+  for (const start of starts) {
+    const holiday = await assertHolidayBooking(
+      input.orgId,
+      start,
+      new Date(start.getTime() + durationMs),
+    );
+    if (holiday.requiresApproval) holidayApproval = true;
+  }
+
+  const needsApproval = evaluateApprovalNeed(policies, {
+    hasExternalGuest: (input.guests?.length ?? 0) > 0,
+    isVipRoom: room?.isVip ?? false,
+    durationMin,
+    meetingType: input.meetingType ?? "INTERNAL",
+    isOrgHoliday: holidayApproval,
+  });
+  const status = needsApproval ? "PENDING_APPROVAL" : "CONFIRMED";
+
+  return prisma.$transaction(
+    async (tx) => {
+      if (room) {
+        await tx.$executeRaw`SELECT id FROM "MeetingRoom" WHERE id = ${room.id} FOR UPDATE`;
+        for (const start of starts) {
+          const end = new Date(start.getTime() + durationMs);
+          try {
+            await assertRoomFreeTx(tx, room.id, start, end);
+          } catch (e) {
+            if (e instanceof HttpError && e.code === "ROOM_CONFLICT") {
+              throw new HttpError(
+                409,
+                `اتاق در ${formatJalali(start, { withTime: true, monthName: true })} آزاد نیست`,
+                "ROOM_CONFLICT",
+              );
+            }
+            throw e;
+          }
+        }
+      }
+
+      const series = await tx.meetingSeries.create({
+        data: {
+          orgId: input.orgId,
+          organizerId: input.organizerId,
+          branchId: input.branchId,
+          roomId: input.roomId,
+          title: input.title,
+          description: input.description,
+          meetingType: input.meetingType ?? "INTERNAL",
+          priority: input.priority ?? "NORMAL",
+          isPrivate: input.isPrivate ?? false,
+          videoProvider: input.videoProvider ?? null,
+          videoUrl: input.videoUrl ?? null,
+          freq: input.recurrence.freq,
+          interval: input.recurrence.interval,
+          byWeekday: input.recurrence.byWeekday ?? [],
+          until: input.recurrence.until,
+          count: input.recurrence.count,
+          durationMin: Math.round(durationMin),
+          dtstart: input.startAt,
+        },
+      });
+
+      const meetings: Meeting[] = [];
+      for (const start of starts) {
+        const end = new Date(start.getTime() + durationMs);
+        const meeting = await insertOccurrenceTx(
+          tx,
+          { ...input, startAt: start, endAt: end, seriesId: series.id, originalStartAt: start },
+          { status, needsApproval },
+        );
+        meetings.push(meeting);
+      }
+      return { series, meetings };
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  )
+    .then(async ({ series, meetings }) => {
+      for (const m of meetings) {
+        await scheduleReminders(m);
+        void calendarSyncBestEffort("create", m);
+      }
+      await notificationService.meetingCreated(meetings[0], input.createdById ?? input.organizerId, {
+        occurrenceCount: meetings.length,
+      });
+      return { meeting: meetings[0], series, meetings };
+    })
+    .catch(mapTxConflict);
+}
+
 async function assertRoomFreeTx(
   tx: Prisma.TransactionClient,
   roomId: string,
   start: Date,
   end: Date,
-  excludeMeetingId?: string,
+  excludeMeetingId?: string | string[],
 ) {
+  const excludeIds = !excludeMeetingId
+    ? []
+    : Array.isArray(excludeMeetingId)
+      ? excludeMeetingId
+      : [excludeMeetingId];
   const rows = await tx.meeting.count({
     where: {
       roomId,
       status: { in: ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "RESCHEDULED", "IN_PROGRESS"] },
       startAt: { lt: end },
       endAt: { gt: start },
-      ...(excludeMeetingId ? { id: { not: excludeMeetingId } } : {}),
+      ...(excludeIds.length === 1
+        ? { id: { not: excludeIds[0] } }
+        : excludeIds.length > 1
+          ? { id: { notIn: excludeIds } }
+          : {}),
     },
   });
   if (rows > 0) {
@@ -227,6 +498,7 @@ async function assertRoomFreeTx(
 
 export interface TransitionContext {
   actorId: string;
+  orgId: string;
   actorPermissions?: string[];
 }
 
@@ -265,8 +537,7 @@ export async function extendMeeting(
   if (![15, 30, 60].includes(minutes)) {
     throw new HttpError(400, "مدت تمدید مجاز نیست", "BAD_EXTEND");
   }
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
   if (!["IN_PROGRESS", "CONFIRMED"].includes(meeting.status)) {
     throw new HttpError(400, "فقط جلسه در حال برگزاری یا قطعی قابل تمدید است", "BAD_STATE");
   }
@@ -306,90 +577,181 @@ export async function rescheduleMeeting(
     endAt?: Date;
     roomId?: string;
     reason?: string;
+    scope?: SeriesEditScope;
   },
   ctx: TransitionContext,
 ): Promise<Meeting> {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
   if (["COMPLETED", "NO_SHOW", "CANCELLED", "REJECTED"].includes(meeting.status)) {
     throw new HttpError(400, "این جلسه قابل زمان‌بندی مجدد نیست", "BAD_STATE");
+  }
+  if (isWaitlistStatus(meeting.status)) {
+    throw new HttpError(400, "جلسهٔ لیست انتظار را نمی‌توان زمان‌بندی مجدد کرد", "WAITLIST");
   }
 
   const start = input.startAt ?? meeting.startAt;
   const end = input.endAt ?? new Date(start.getTime() + (meeting.endAt.getTime() - meeting.startAt.getTime()));
   const roomId = input.roomId ?? meeting.roomId;
-
+  const scope: SeriesEditScope = input.scope ?? "THIS";
   const old = { startAt: meeting.startAt, endAt: meeting.endAt, roomId: meeting.roomId };
+
+  const targets =
+    meeting.seriesId && scope !== "THIS"
+      ? await loadSeriesTargets(meeting, scope)
+      : [meeting];
+
+  if (targets.length === 0) {
+    throw new HttpError(400, "نوبت قابل ویرایشی در این سری یافت نشد", "BAD_STATE");
+  }
+
+  const deltaMs = start.getTime() - meeting.startAt.getTime();
+  const durationMs = end.getTime() - start.getTime();
+  const planned = targets.map((t) => {
+    const shifted = shiftOccurrence(t.startAt, t.endAt, deltaMs, durationMs);
+    return { meeting: t, ...shifted, roomId: input.roomId ?? t.roomId };
+  });
+  if (slotsOverlapSameRoom(planned)) {
+    throw new HttpError(409, "نوبت‌های این سری بعد از تغییر با هم تداخل دارند", "ROOM_CONFLICT");
+  }
+
+  for (const p of planned) {
+    await assertHolidayBooking(ctx.orgId, p.startAt, p.endAt);
+  }
+
+  const excludeIds = planned.map((p) => p.meeting.id);
 
   return prisma.$transaction(
     async (tx) => {
-      if (roomId) {
-        await tx.$executeRaw`SELECT id FROM "MeetingRoom" WHERE id = ${roomId} FOR UPDATE`;
-        await assertRoomFreeTx(tx, roomId, start, end, meeting.id);
+      const roomIds = [...new Set(planned.map((p) => p.roomId).filter((id): id is string => !!id))];
+      for (const rid of roomIds) {
+        await tx.$executeRaw`SELECT id FROM "MeetingRoom" WHERE id = ${rid} FOR UPDATE`;
       }
-      const updated = await tx.meeting.update({
-        where: { id: meetingId },
-        data: {
-          startAt: start,
-          endAt: end,
-          roomId,
-          status: meeting.status === "PENDING_APPROVAL" ? "PENDING_APPROVAL" : "RESCHEDULED",
-        },
-      });
-      await tx.meetingEvent.create({
-        data: {
-          meetingId,
-          type: "RESCHEDULED",
-          actorId: ctx.actorId,
+      for (const p of planned) {
+        if (p.roomId) {
+          try {
+            await assertRoomFreeTx(tx, p.roomId, p.startAt, p.endAt, excludeIds);
+          } catch (e) {
+            if (e instanceof HttpError && e.code === "ROOM_CONFLICT") {
+              throw new HttpError(
+                409,
+                `اتاق در ${formatJalali(p.startAt, { withTime: true, monthName: true })} آزاد نیست`,
+                "ROOM_CONFLICT",
+              );
+            }
+            throw e;
+          }
+        }
+        await tx.meeting.update({
+          where: { id: p.meeting.id },
           data: {
-            from: { startAt: old.startAt.toISOString(), endAt: old.endAt.toISOString(), roomId: old.roomId },
-            to: { startAt: start.toISOString(), endAt: end.toISOString(), roomId },
-            reason: input.reason,
+            startAt: p.startAt,
+            endAt: p.endAt,
+            roomId: p.roomId,
+            status: p.meeting.status === "PENDING_APPROVAL" ? "PENDING_APPROVAL" : "RESCHEDULED",
+            isException: scope === "THIS" && !!meeting.seriesId ? true : p.meeting.isException,
           },
-        },
-      });
-      return updated;
+        });
+        await tx.meetingEvent.create({
+          data: {
+            meetingId: p.meeting.id,
+            type: "RESCHEDULED",
+            actorId: ctx.actorId,
+            data: {
+              from: {
+                startAt: p.meeting.startAt.toISOString(),
+                endAt: p.meeting.endAt.toISOString(),
+                roomId: p.meeting.roomId,
+              },
+              to: { startAt: p.startAt.toISOString(), endAt: p.endAt.toISOString(), roomId: p.roomId },
+              reason: input.reason,
+              scope,
+            },
+          },
+        });
+      }
+      return tx.meeting.findUniqueOrThrow({ where: { id: meetingId } });
     },
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   ).then(async (m) => {
-    await scheduleReminders(m);
-    await notificationService.meetingRescheduled(m, ctx.actorId, old);
-    void calendarSyncBestEffort("update", m);
+    for (const p of planned) {
+      await scheduleReminders({ ...p.meeting, startAt: p.startAt, endAt: p.endAt, roomId: p.roomId });
+      void calendarSyncBestEffort("update", { ...p.meeting, startAt: p.startAt, endAt: p.endAt, roomId: p.roomId });
+    }
+    await notificationService.meetingRescheduled(m, ctx.actorId, old, { count: planned.length });
+    for (const p of planned) {
+      void offerWaitlistAfterVacate({
+        orgId: ctx.orgId,
+        roomId: p.meeting.roomId,
+        startAt: p.meeting.startAt,
+        endAt: p.meeting.endAt,
+      }).catch((err) => console.error("[waitlist]", err));
+    }
     return m;
+  }).catch(mapTxConflict);
+}
+
+async function loadSeriesTargets(meeting: Meeting, scope: SeriesEditScope): Promise<Meeting[]> {
+  if (!meeting.seriesId) return [meeting];
+  const siblings = await prisma.meeting.findMany({
+    where: { seriesId: meeting.seriesId, orgId: meeting.orgId },
   });
+  return filterSeriesTargets(siblings, scope, meeting);
 }
 
 export async function cancelMeeting(
   meetingId: string,
-  input: { reason: string; note?: string },
+  input: { reason: string; note?: string; scope?: SeriesEditScope },
   ctx: TransitionContext,
 ): Promise<Meeting> {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
-  assertTransition(meeting.status, "CANCELLED");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
 
-  const updated = await prisma.meeting.update({
-    where: { id: meetingId },
+  const scope: SeriesEditScope = input.scope ?? "THIS";
+  const targets =
+    meeting.seriesId && scope !== "THIS"
+      ? await loadSeriesTargets(meeting, scope)
+      : [meeting];
+
+  if (targets.length === 0) {
+    throw new HttpError(400, "نوبت قابل لغوی در این سری یافت نشد", "BAD_STATE");
+  }
+
+  for (const t of targets) {
+    assertTransition(t.status, "CANCELLED");
+  }
+
+  const ids = targets.map((t) => t.id);
+  await prisma.meeting.updateMany({
+    where: { id: { in: ids } },
     data: {
       status: "CANCELLED",
       cancelReason: input.reason,
       cancelNote: input.note,
     },
   });
-  await prisma.meetingEvent.create({
-    data: {
-      meetingId,
+  await prisma.meetingEvent.createMany({
+    data: ids.map((id) => ({
+      meetingId: id,
       type: "CANCELLED",
       actorId: ctx.actorId,
-      data: { reason: input.reason, note: input.note },
-    },
+      data: { reason: input.reason, note: input.note, scope },
+    })),
   });
   await prisma.meetingReminder.updateMany({
-    where: { meetingId, status: "PENDING" },
+    where: { meetingId: { in: ids }, status: "PENDING" },
     data: { status: "CANCELLED" },
   });
-  await notificationService.meetingCancelled(updated, ctx.actorId, input.reason);
-  void calendarSyncBestEffort("cancel", updated);
+
+  const updated = await prisma.meeting.findUniqueOrThrow({ where: { id: meetingId } });
+  await notificationService.meetingCancelled(updated, ctx.actorId, input.reason, { count: ids.length });
+  for (const t of targets) {
+    void calendarSyncBestEffort("cancel", { ...t, status: "CANCELLED" });
+    void offerWaitlistAfterVacate({
+      orgId: ctx.orgId,
+      roomId: t.roomId,
+      startAt: t.startAt,
+      endAt: t.endAt,
+    }).catch((err) => console.error("[waitlist]", err));
+  }
   return updated;
 }
 
@@ -398,13 +760,17 @@ export async function changeRoom(
   roomId: string,
   ctx: TransitionContext,
 ): Promise<Meeting> {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
   if (["COMPLETED", "NO_SHOW", "CANCELLED"].includes(meeting.status)) {
     throw new HttpError(400, "این جلسه قابل تغییر اتاق نیست", "BAD_STATE");
   }
-  const room = await prisma.meetingRoom.findUnique({ where: { id: roomId } });
-  if (!room || !room.isActive) throw new HttpError(404, "اتاق فعال یافت نشد", "ROOM_NOT_FOUND");
+  if (isWaitlistStatus(meeting.status)) {
+    throw new HttpError(400, "جلسهٔ لیست انتظار را نمی‌توان تغییر اتاق داد", "WAITLIST");
+  }
+  const room = await prisma.meetingRoom.findFirst({
+    where: { id: roomId, orgId: ctx.orgId, isActive: true },
+  });
+  if (!room) throw new HttpError(404, "اتاق فعال یافت نشد", "ROOM_NOT_FOUND");
 
   const oldRoomId = meeting.roomId;
 
@@ -429,6 +795,12 @@ export async function changeRoom(
     { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
   ).then(async (m) => {
     await notificationService.roomChanged(m, ctx.actorId, room.name);
+    void offerWaitlistAfterVacate({
+      orgId: ctx.orgId,
+      roomId: oldRoomId,
+      startAt: meeting.startAt,
+      endAt: meeting.endAt,
+    }).catch((err) => console.error("[waitlist]", err));
     return m;
   });
 }
@@ -439,8 +811,7 @@ async function transition(
   ctx: TransitionContext,
   extra?: (tx: Prisma.TransactionClient, m: Meeting) => Promise<void>,
 ): Promise<Meeting> {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
   assertTransition(meeting.status, to);
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -459,8 +830,7 @@ async function transition(
 }
 
 export async function approveMeeting(meetingId: string, ctx: TransitionContext & { reason?: string }) {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
   if (meeting.status !== "PENDING_APPROVAL") {
     throw new HttpError(400, "این جلسه در انتظار تأیید نیست", "BAD_STATE");
   }
@@ -485,8 +855,7 @@ export async function approveMeeting(meetingId: string, ctx: TransitionContext &
 }
 
 export async function rejectMeeting(meetingId: string, ctx: TransitionContext & { reason: string }) {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
   if (meeting.status !== "PENDING_APPROVAL") {
     throw new HttpError(400, "این جلسه در انتظار تأیید نیست", "BAD_STATE");
   }
@@ -514,11 +883,12 @@ export async function addParticipant(
   ctx: TransitionContext,
   opts: { required?: boolean } = {},
 ) {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
   if (["COMPLETED", "NO_SHOW", "CANCELLED", "REJECTED"].includes(meeting.status)) {
     throw new HttpError(400, "نمی‌توان به این جلسه فرد اضافه کرد", "BAD_STATE");
   }
+  const member = await prisma.user.findFirst({ where: { id: userId, orgId: ctx.orgId } });
+  if (!member) throw new HttpError(404, "کاربر یافت نشد", "NOT_FOUND");
   const existing = await prisma.meetingParticipant.findUnique({
     where: { meetingId_userId: { meetingId, userId } },
   });
@@ -539,8 +909,7 @@ export async function removeParticipant(
   userId: string,
   ctx: TransitionContext,
 ) {
-  const meeting = await prisma.meeting.findUnique({ where: { id: meetingId } });
-  if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
   if (meeting.organizerId === userId) {
     throw new HttpError(400, "برگزارکننده قابل حذف نیست", "BAD_REQUEST");
   }
@@ -561,8 +930,8 @@ export async function respondToMeeting(
     throw new HttpError(400, "وضعیت پاسخ نامعتبر است", "VALIDATION_ERROR");
   }
 
-  const meeting = await prisma.meeting.findUnique({
-    where: { id: meetingId },
+  const meeting = await prisma.meeting.findFirst({
+    where: { id: meetingId, orgId: ctx.orgId },
     include: { organizer: { select: { fullName: true } } },
   });
   if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
@@ -629,6 +998,8 @@ export async function checkConflicts(input: {
   startAt: Date;
   endAt: Date;
   excludeMeetingId?: string;
+  orgId?: string;
+  viewer?: PrivacyViewer;
 }) {
   const roomConflicts = input.roomId
     ? await findRoomConflicts(input.roomId, input.startAt, input.endAt, input.excludeMeetingId)
@@ -638,6 +1009,124 @@ export async function checkConflicts(input: {
     input.startAt,
     input.endAt,
     input.excludeMeetingId,
+    input.orgId,
   );
-  return { hard: roomConflicts, soft: userConflicts };
+  const viewer = input.viewer ?? { id: input.organizerId };
+  const mask = (title: string, isPrivate: boolean, organizerId: string) =>
+    maskPrivateConflictTitle(title, isPrivate, organizerId, viewer);
+  return {
+    hard: roomConflicts.map((c) => ({
+      ...c,
+      meetingTitle: mask(c.meetingTitle, c.isPrivate, c.organizerId),
+    })),
+    soft: userConflicts.map((c) => ({
+      ...c,
+      meetingTitle: mask(c.meetingTitle, c.isPrivate, c.organizerId),
+    })),
+  };
+}
+
+export async function claimWaitlistMeeting(
+  meetingId: string,
+  ctx: TransitionContext,
+): Promise<Meeting> {
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
+  if (meeting.organizerId !== ctx.actorId && meeting.createdById !== ctx.actorId) {
+    throw new HttpError(403, "فقط برگزارکننده می‌تواند نوبت را قطعی کند", "FORBIDDEN");
+  }
+  if (meeting.status !== WAITLIST_OFFERED) {
+    throw new HttpError(400, "این جلسه پیشنهاد فعال لیست انتظار ندارد", "BAD_STATE");
+  }
+  if (isOfferExpired(meeting.waitlistOfferExpiresAt, new Date())) {
+    throw new HttpError(400, "مهلت قطعی کردن تمام شده است", "OFFER_EXPIRED");
+  }
+  if (!meeting.roomId) {
+    throw new HttpError(400, "اتاق مشخص نیست", "NO_ROOM");
+  }
+
+  const durationMin = (meeting.endAt.getTime() - meeting.startAt.getTime()) / 60000;
+  const policies = await getOrgPolicies(meeting.orgId);
+  const room = await prisma.meetingRoom.findFirst({
+    where: { id: meeting.roomId, orgId: ctx.orgId },
+  });
+  if (!room) throw new HttpError(404, "اتاق یافت نشد", "ROOM_NOT_FOUND");
+  const guestCount = await prisma.meetingGuest.count({ where: { meetingId } });
+  const holiday = await assertHolidayBooking(meeting.orgId, meeting.startAt, meeting.endAt);
+  const needsApproval = evaluateApprovalNeed(policies, {
+    hasExternalGuest: guestCount > 0,
+    isVipRoom: room.isVip,
+    durationMin,
+    meetingType: meeting.meetingType,
+    isOrgHoliday: holiday.requiresApproval,
+  });
+  const nextStatus = needsApproval ? "PENDING_APPROVAL" : "CONFIRMED";
+  assertTransition(meeting.status, nextStatus);
+
+  const updated = await prisma.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT id FROM "MeetingRoom" WHERE id = ${room.id} FOR UPDATE`;
+      await assertRoomFreeTx(tx, room.id, meeting.startAt, meeting.endAt, meeting.id);
+      const row = await tx.meeting.update({
+        where: { id: meetingId },
+        data: {
+          status: nextStatus,
+          waitlistOfferedAt: null,
+          waitlistOfferExpiresAt: null,
+        },
+      });
+      await tx.meetingEvent.create({
+        data: {
+          meetingId,
+          type: "WAITLIST_CLAIMED",
+          actorId: ctx.actorId,
+          data: { status: nextStatus },
+        },
+      });
+        if (needsApproval) {
+          await tx.meetingApproval.create({
+            data: { meetingId, action: "REQUESTED", step: 1 },
+          });
+        }
+        return row;
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+  ).catch(mapTxConflict);
+
+  await scheduleReminders(updated);
+  await notificationService.meetingCreated(updated, ctx.actorId);
+  void calendarSyncBestEffort("create", updated);
+  return updated;
+}
+
+export async function declineWaitlistOffer(
+  meetingId: string,
+  ctx: TransitionContext,
+): Promise<Meeting> {
+  const meeting = await getMeetingInOrg(meetingId, ctx.orgId);
+  if (meeting.organizerId !== ctx.actorId && meeting.createdById !== ctx.actorId) {
+    throw new HttpError(403, "فقط برگزارکننده می‌تواند پیشنهاد را رد کند", "FORBIDDEN");
+  }
+  if (meeting.status !== WAITLIST_OFFERED) {
+    throw new HttpError(400, "پیشنهاد فعالی نیست", "BAD_STATE");
+  }
+  const now = new Date();
+  const updated = await prisma.meeting.update({
+    where: { id: meetingId },
+    data: {
+      status: WAITLIST_WAITING,
+      waitlistQueuedAt: bumpExpiredToBack(meeting.waitlistQueuedAt ?? now, now),
+      waitlistOfferedAt: null,
+      waitlistOfferExpiresAt: null,
+    },
+  });
+  await prisma.meetingEvent.create({
+    data: { meetingId, type: "WAITLIST_DECLINED", actorId: ctx.actorId },
+  });
+  void offerWaitlistAfterVacate({
+    orgId: ctx.orgId,
+    roomId: meeting.roomId,
+    startAt: meeting.startAt,
+    endAt: meeting.endAt,
+  }).catch((err) => console.error("[waitlist]", err));
+  return updated;
 }

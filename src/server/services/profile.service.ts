@@ -26,22 +26,26 @@ export async function updateSelfProfile(userId: string, input: ProfileSelfUpdate
     },
   });
 
-  await prisma.personDirectory.upsert({
-    where: { userId },
-    update: {
-      ...(input.fullName ? { name: input.fullName } : {}),
-      ...(input.jobTitle !== undefined ? { jobTitle: input.jobTitle || null } : {}),
-      ...(phone !== undefined ? { phone } : {}),
-    },
-    create: {
-      name: updated.fullName,
-      kind: "INTERNAL",
-      email: updated.email,
-      phone: updated.phone,
-      jobTitle: updated.jobTitle,
-      userId,
-    },
-  }).catch(() => {});
+  const tenantId = updated.orgId;
+  if (tenantId) {
+    await prisma.personDirectory.upsert({
+      where: { userId },
+      update: {
+        ...(input.fullName ? { name: input.fullName } : {}),
+        ...(input.jobTitle !== undefined ? { jobTitle: input.jobTitle || null } : {}),
+        ...(phone !== undefined ? { phone } : {}),
+      },
+      create: {
+        orgId: tenantId,
+        name: updated.fullName,
+        kind: "INTERNAL",
+        email: updated.email,
+        phone: updated.phone,
+        jobTitle: updated.jobTitle,
+        userId,
+      },
+    }).catch(() => {});
+  }
 
   return updated;
 }

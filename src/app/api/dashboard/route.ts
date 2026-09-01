@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
-import { maskPrivateMeeting } from "@/server/services/privacy";
+import { maskPrivateMeeting, meetingAccessOr } from "@/server/services/privacy";
 import { requireUser, can } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
 
@@ -19,9 +19,13 @@ export async function GET(_req: NextRequest) {
 
     const seeAll = user.permissions.has("meeting:view-all");
 
-    const scope: Record<string, unknown> = seeAll
-      ? {}
-      : { OR: [{ organizerId: user.id }, { participants: { some: { userId: user.id } } }] };
+    const orgId = user.orgId;
+    const scope: Record<string, unknown> = {
+      orgId,
+      ...(seeAll
+        ? {}
+        : meetingAccessOr(user.id)),
+    };
 
     const [todayCount, activeNow, pendingApprovals, availableRooms, occupiedRooms, cancelledThisWeek, weekMeetings, upcomingMine] =
       await Promise.all([
@@ -30,11 +34,11 @@ export async function GET(_req: NextRequest) {
         }),
         prisma.meeting.count({ where: { ...scope, status: "IN_PROGRESS" } }),
         prisma.meeting.count({
-          where: { status: "PENDING_APPROVAL", ...(seeAll ? {} : { organizerId: user.id }) },
+          where: { orgId, status: "PENDING_APPROVAL", ...(seeAll ? {} : { organizerId: user.id }) },
         }),
-        prisma.meetingRoom.count({ where: { isActive: true } }),
-        prisma.meeting.findMany({ where: { status: "IN_PROGRESS" }, select: { roomId: true }, distinct: ["roomId"] }).then((rows) => rows.length),
-        prisma.meeting.count({ where: { status: "CANCELLED", startAt: { gte: todayStart, lt: weekEnd } } }),
+        prisma.meetingRoom.count({ where: { orgId, isActive: true } }),
+        prisma.meeting.findMany({ where: { orgId, status: "IN_PROGRESS" }, select: { roomId: true }, distinct: ["roomId"] }).then((rows) => rows.length),
+        prisma.meeting.count({ where: { orgId, status: "CANCELLED", startAt: { gte: todayStart, lt: weekEnd } } }),
         prisma.meeting.findMany({
           where: { ...scope, startAt: { gte: todayStart, lt: weekEnd }, status: { notIn: ["CANCELLED", "REJECTED", "DRAFT"] } },
           select: { startAt: true, endAt: true, status: true, branchId: true, meetingType: true },
