@@ -27,15 +27,13 @@ const { chromium } = require("playwright");
   const people = (await res.json()).data.people;
   const adminDir = people.find((p) => p.name === "علیرضا محمدی");
   check("resolved admin from directory", !!adminDir?.id);
-  const dirAll = await page.request.get("http://localhost:3100/api/people", { headers: { Cookie: aliCookie } });
-  const dirMap = new Map(((await dirAll.json()).data.people).map((p) => [p.id, p.userId]));
-  const adminUserId = dirMap.get(adminDir.id);
+  const adminUserId = adminDir?.userId;
   check("admin has userId link", !!adminUserId);
 
   // create meeting with admin as participant (unique far slot to avoid conflicts)
   const t = new Date(Date.now() + 210 * 60000);
   const base = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()) - 210 * 60000;
-  const start = new Date(base + 12 * 86400000 + (Date.now() % 40) * 60000);
+  const start = new Date(base + 12 * 86400000 + (Date.now() % 55) * 60000 + (Date.now() % 7) * 3600000);
   const end = new Date(start.getTime() + 30 * 60000);
   res = await page.request.post("http://localhost:3100/api/meetings", {
     headers: { Cookie: aliCookie, "Content-Type": "application/json" },
@@ -49,7 +47,17 @@ const { chromium } = require("playwright");
       participantIds: [adminUserId],
     },
   });
-  const meetingId = (await res.json()).data.meeting.id;
+  let mj = await res.json();
+  if (res.status() !== 201) {
+    // retry once with a fresh slot (conflicts from previous runs)
+    const s2 = new Date(start.getTime() + 5400000);
+    res = await page.request.post("http://localhost:3100/api/meetings", {
+      headers: { Cookie: aliCookie, "Content-Type": "application/json" },
+      data: { title: "جلسه تست اعلان کلیک‌شو", branchId: "branch-niavaran", roomId: "room-b", startAt: s2.toISOString(), endAt: new Date(s2.getTime() + 30 * 60000).toISOString(), meetingType: "INTERNAL", participantIds: [adminUserId] },
+    });
+    mj = await res.json();
+  }
+  const meetingId = mj.data.meeting.id;
   check(`meeting created (${res.status()}) with admin participant`, res.status() === 201);
 
   // ── admin opens notifications ──
@@ -61,11 +69,15 @@ const { chromium } = require("playwright");
   await page.context().addCookies([{ name: n.trim(), value: v.trim(), domain: "localhost", path: "/" }]);
 
   await page.goto("http://localhost:3100/notifications", { waitUntil: "domcontentloaded" });
+  // dismiss any auto-started guided tour (blocks clicks)
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent("mehrsa:close-tour")));
+  await page.locator('[aria-label="بستن"]').first().click().catch(() => {});
+  await page.waitForTimeout(900);
   await page.locator("text=جلسه تست اعلان کلیک‌شو").first().waitFor({ timeout: 30000 });
   await page.waitForTimeout(800);
 
   // it should be unread (bold + red dot)
-  const row = page.locator("button", { hasText: "جلسه تست اعلان کلیک‌شو" }).first();
+  const row = page.locator("[role=button]", { hasText: "جلسه تست اعلان کلیک‌شو" }).first();
   const hadUnreadDot = await row.locator("span.rounded-full.bg-red-500").count();
   check("notification is unread (red dot)", hadUnreadDot >= 1);
 
@@ -80,9 +92,13 @@ const { chromium } = require("playwright");
 
   // go back to notifications — the item must now be read
   await page.goto("http://localhost:3100/notifications", { waitUntil: "domcontentloaded" });
+  // dismiss any auto-started guided tour (blocks clicks)
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent("mehrsa:close-tour")));
+  await page.locator('[aria-label="بستن"]').first().click().catch(() => {});
+  await page.waitForTimeout(900);
   await page.locator("text=جلسه تست اعلان کلیک‌شو").first().waitFor({ timeout: 30000 });
   await page.waitForTimeout(1200);
-  const rowAfter = page.locator("button", { hasText: "جلسه تست اعلان کلیک‌شو" }).first();
+  const rowAfter = page.locator("[role=button]", { hasText: "جلسه تست اعلان کلیک‌شو" }).first();
   const dotAfter = await rowAfter.locator("span.rounded-full.bg-red-500").count();
   check("notification marked as read after click (no red dot)", dotAfter === 0);
 
@@ -91,7 +107,7 @@ const { chromium } = require("playwright");
   await page.waitForTimeout(600);
   // the INVITATION notification must be hidden when read; the cancel-notification
   // (created seconds ago) may legitimately still show
-  const inviteRow = page.locator('button', { hasText: 'دعوت شدید' }).filter({ hasText: 'جلسه تست اعلان کلیک‌شو' });
+  const inviteRow = page.locator('[role=button]', { hasText: 'دعوت شدید' }).filter({ hasText: 'جلسه تست اعلان کلیک‌شو' });
   const hiddenInUnread = await inviteRow.count();
   check("read invite hidden in 'فقط خوانده‌نشده' filter", hiddenInUnread === 0);
 
