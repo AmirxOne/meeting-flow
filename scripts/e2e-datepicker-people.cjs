@@ -1,5 +1,6 @@
 // E2E: Jalali DatePicker + PeoplePicker + people directory
 const { chromium } = require("playwright");
+const { login, dismissTour, safeClick } = require("./e2e-lib.cjs");
 
 (async () => {
   const browser = await chromium.launch({
@@ -10,42 +11,38 @@ const { chromium } = require("playwright");
   const results = [];
   const check = (n, c) => results.push([n, !!c]);
 
-  await page.goto("http://localhost:3100/login", { waitUntil: "domcontentloaded" });
-  const res = await page.request.post("http://localhost:3100/api/auth/login", {
-    data: { email: "admin@example.com", password: "Pass1234" },
-  });
-  if (res.status() !== 200) throw new Error("login failed " + res.status());
-  const sc = (await res.headersArray()).find((h) => h.name === "set-cookie");
-  const [name, val] = sc.value.split(";")[0].split("=");
-  await page.context().addCookies([{ name: name.trim(), value: val.trim(), domain: "localhost", path: "/" }]);
+  await login(page, "admin@example.com");
 
   // ── 1. admin/people page: directory listed ──
   await page.goto("http://localhost:3100/admin/people", { waitUntil: "domcontentloaded" });
+  await dismissTour(page);
   await page.locator("tbody tr").first().waitFor({ state: "visible", timeout: 30000 });
   const dirRows = await page.locator("tbody tr").count();
   check(`people directory shows ${dirRows} rows (11 seeded)`, dirRows >= 11);
 
   // ── 2. add new external person via form ──
-  await page.click('button:has-text("فرد جدید")');
-  await page.waitForTimeout(300);
+  await safeClick(page, page.locator('button:has-text("فرد جدید")'));
+  await page.waitForTimeout(500);
   await page.fill('input[placeholder*="نام و نام خانوادگی"]', "آقای آزمون دیتای جدید");
-  await page.fill('input[placeholder*="شرکت"]', "شرکت تستی پیکر");
-  await page.click('button:has-text("ثبت فرد")');
-  await page.waitForTimeout(1200);
+  await page.fill('input[placeholder="شرکت / سازمان"]', "شرکت تستی پیکر");
+  await safeClick(page, page.locator('button:has-text("افزودن")'));
+  await page.waitForTimeout(1500);
   const addedVisible = await page.locator('td:has-text("آقای آزمون دیتای جدید")').count();
   check("new person added and listed", addedVisible >= 1);
 
   // ── 3. meetings/new: NO native date input, Jalali picker present ──
   await page.goto("http://localhost:3100/meetings/new", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(1500);
+  await dismissTour(page);
   const nativeDateInputs = await page.locator('input[type="date"]').count();
   check("no native date input", nativeDateInputs === 0);
+  const pickerBtn = page.locator('button[aria-haspopup="dialog"]').first();
+  await pickerBtn.waitFor({ state: "visible", timeout: 30000 });
   const anyDialogBtn = await page.locator('button[aria-haspopup="dialog"]').count();
   check(`jalali date picker trigger present (${anyDialogBtn})`, anyDialogBtn >= 1);
-  const pickerBtn = page.locator('button[aria-haspopup="dialog"]').first();
 
   // open picker, verify Persian month header + today quick button
-  await pickerBtn.click();
+  await safeClick(page, pickerBtn);
   await page.waitForTimeout(500);
   const monthHeader = await page.locator("div >> text=/فروردین|اردیبهشت|خرداد|تیر|مرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند/").first().isVisible().catch(() => false);
   check("picker opens with Jalali month header", monthHeader);
@@ -59,10 +56,11 @@ const { chromium } = require("playwright");
   await page.screenshot({ path: "D:/meetinghub/e2e-datepicker.png" });
 
   // ── 4. PeoplePicker: search, pick internal + type new external ──
+  await dismissTour(page);
   const peopleInput = page.locator('input[placeholder*="جستجو و انتخاب"]').first();
-  await peopleInput.click();
-  await page.waitForTimeout(2000);
-  // directory dropdown with badges
+  await safeClick(page, peopleInput);
+  // directory dropdown with badges (wait until list rows render, not the skeleton)
+  await page.locator("[data-idx]").first().waitFor({ state: "visible", timeout: 15000 });
   const memberBadge = await page.locator('span:has-text("عضو شرکت")').count();
   check(`directory dropdown shows عضو شرکت badges (${memberBadge})`, memberBadge >= 1);
   // pick an internal member (امیر) — full list is open, no need to type
@@ -89,12 +87,14 @@ const { chromium } = require("playwright");
 
   // ── 5. availability page PeoplePicker renders ──
   await page.goto("http://localhost:3100/availability", { waitUntil: "domcontentloaded" });
+  await dismissTour(page);
   await page.locator('input[placeholder*="جستجو و انتخاب"]').first().waitFor({ state: "visible", timeout: 30000 });
   const availPicker = await page.locator('input[placeholder*="جستجو و انتخاب"]').count();
   check("availability has PeoplePicker", availPicker === 1);
 
   // ── 6. meeting detail: jalali picker in reschedule ──
   await page.goto("http://localhost:3100/meetings/seed-meeting-1", { waitUntil: "domcontentloaded" });
+  await dismissTour(page);
   await page.locator('button:has-text("زمان‌بندی مجدد")').waitFor({ state: "visible", timeout: 30000 });
   await page.click('button:has-text("زمان‌بندی مجدد")');
   await page.waitForTimeout(1500);
