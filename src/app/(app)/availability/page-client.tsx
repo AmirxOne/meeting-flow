@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, CheckCircle2 } from "@/components/ui/icon";
+import { Clock, CheckCircle2, CalendarClock } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,11 +88,21 @@ export function AvailabilityPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-4 lg:p-6">
-      <h1 className="text-lg font-bold">یافتن زمان مناسب</h1>
-      <p className="text-[12px] text-ink-soft">
-        افراد را انتخاب کنید تا سیستم زمان‌های آزاد مشترک همه را با اتاق موجود پیدا کند.
-      </p>
+    <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-lg font-bold">
+            <CalendarClock className="h-5 w-5" />
+            یافتن زمان مناسب
+          </h1>
+          <p className="mt-1 text-[12px] leading-5 text-ink-soft">
+            افراد را انتخاب کنید تا سیستم زمان‌های آزاد مشترک همه را با اتاق موجود پیدا کند.
+          </p>
+        </div>
+        <p className="hidden text-[11px] leading-5 text-ink-faint sm:block">
+          امروز {formatJalaliDayMonthInTz(new Date(), orgTz)} · به وقت {orgTz === DEFAULT_ORG_TIMEZONE ? "تهران" : orgTz}
+        </p>
+      </div>
 
       <Card>
         <CardBody className="space-y-4">
@@ -148,10 +158,12 @@ export function AvailabilityPage() {
             <PeoplePicker value={people} onChange={setPeople} />
           </div>
 
-          <Button onClick={search} loading={loading} className="w-full sm:w-auto">
-            <Clock className="h-4 w-4" />
-            جستجوی زمان‌های آزاد
-          </Button>
+          <div className="flex items-center justify-end border-t border-line pt-4">
+            <Button onClick={search} loading={loading} className="w-full sm:w-auto">
+              <Clock className="h-4 w-4" />
+              جستجوی زمان‌های آزاد
+            </Button>
+          </div>
         </CardBody>
       </Card>
 

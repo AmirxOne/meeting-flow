@@ -190,8 +190,8 @@ export function LoginPage() {
         }}
       />
 
-      <FadeIn className="relative w-full max-w-[880px]">
-        <div className="grid overflow-hidden rounded-2xl border border-line bg-white shadow-[0_24px_80px_-28px_rgba(13,13,13,0.28)] md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+      <FadeIn className="relative flex w-full max-w-[880px] flex-1 items-center">
+        <div className="grid w-full overflow-hidden rounded-2xl border border-line bg-white shadow-[0_24px_80px_-28px_rgba(13,13,13,0.28)] md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
           <aside className="relative flex flex-col justify-between bg-ink px-8 py-9 text-white md:min-h-[560px]">
             <div>
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
@@ -431,7 +431,7 @@ export function LoginPage() {
             )}
 
             {authConfig.passwordResetEnabled && !needs2fa && (
-              <p className="mt-3 text-center">
+              <p className="mt-3 text-end">
                 <a
                   href="/forgot-password"
                   data-testid="forgot-password-link"
@@ -471,7 +471,7 @@ export function LoginPage() {
           </div>
         </div>
       </FadeIn>
-      <LegalFooterLinks className="relative z-10 mt-auto pt-6" />
+      <LegalFooterLinks className="relative z-10 flex-none pt-6" />
     </div>
   );
 }

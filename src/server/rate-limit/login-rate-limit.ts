@@ -1,6 +1,7 @@
 /** Login rate limit — sliding window 10 attempts / 15 min per IP. */
 
 import Redis from "ioredis";
+import { reportError } from "@/server/report-error";
 
 export const LOGIN_RATE_WINDOW_MS = 15 * 60 * 1000;
 export const LOGIN_RATE_MAX_ATTEMPTS = 10;
@@ -70,7 +71,14 @@ export class RedisLoginRateLimiter implements LoginRateLimiter {
     multi.zadd(redisKey, now, member);
     multi.zcard(redisKey);
     multi.pexpire(redisKey, this.windowMs);
-    const results = await multi.exec();
+    let results: Array<[Error | null, unknown]> | null;
+    try {
+      results = await multi.exec();
+    } catch (err) {
+      // Redis unavailable — fail open (allow login) rather than 500 on auth.
+      reportError(err as Error);
+      return false;
+    }
     const count = Number(results?.[2]?.[1] ?? 0);
     return count > this.maxAttempts;
   }
@@ -84,7 +92,8 @@ export function createLoginRateLimiter(redisUrl?: string): LoginRateLimiter {
     const client = new Redis(url, {
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
-      lazyConnect: true,
+      // Auto-connect: ioredis connects immediately when `lazyConnect` is not set.
+      // If Redis drops briefly, commands reject fast instead of queueing forever.
     }) as unknown as RedisLike;
     return new RedisLoginRateLimiter(client);
   }
