@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: process.env.DOCKER_BUILD === "1" ? "standalone" : undefined,
   serverExternalPackages: ["@prisma/client", "bcryptjs", "ioredis", "exceljs", "web-push"],
   eslint: { ignoreDuringBuilds: true },
   typedRoutes: false,

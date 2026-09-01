@@ -179,7 +179,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-paper-soft px-4 py-10">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-paper-soft px-4 py-10">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-[0.45]"
@@ -471,7 +471,7 @@ export function LoginPage() {
           </div>
         </div>
       </FadeIn>
-      <LegalFooterLinks className="relative z-10 mt-8" />
+      <LegalFooterLinks className="relative z-10 mt-auto pt-6" />
     </div>
   );
 }
