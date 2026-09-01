@@ -14,8 +14,14 @@ describe("scheduleReminders channel rows", () => {
   ];
 
   it("parseReminderChannels defaults to IN_APP when unset", () => {
-    expect(parseReminderChannels("")).toEqual(["IN_APP"]);
-    expect(parseReminderChannels(undefined)).toEqual(["IN_APP"]);
+    const prev = process.env.REMINDER_CHANNELS;
+    delete process.env.REMINDER_CHANNELS;
+    try {
+      expect(parseReminderChannels("")).toEqual(["IN_APP"]);
+      expect(parseReminderChannels(undefined)).toEqual(["IN_APP"]);
+    } finally {
+      if (prev !== undefined) process.env.REMINDER_CHANNELS = prev;
+    }
   });
 
   it("parseReminderChannels reads comma-separated env value", () => {
