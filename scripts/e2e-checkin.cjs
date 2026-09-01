@@ -84,6 +84,10 @@ async function api(path, init = {}) {
     await submit.click();
     await page.waitForSelector('[data-testid="checkin-success"]', { timeout: 20000 });
     check("self check-in success UI", (await page.locator('[data-testid="checkin-success"]').count()) > 0);
+    check(
+      "wayfinding after check-in shows branch",
+      (await page.locator('[data-testid="checkin-wayfinding"]').filter({ hasText: "شعبه نیاوران" }).count()) > 0,
+    );
 
     const postCheckin = await api(`/api/checkin/${checkinCode}`, { method: "POST" });
     check("POST checkin idempotent", postCheckin.status === 200);

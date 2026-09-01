@@ -3,7 +3,9 @@ import {
   startOfDayUtcInTz,
   addLocalDaysUtc,
 } from "@/lib/timezone";
+import { isoDateInTz } from "@/lib";
 import { getOrgTimezone } from "./org-timezone.service";
+import { getHolidayBookingMode, listHolidays } from "./holiday.service";
 import {
   BLOCKING_STATUSES,
   subtractBusy,
@@ -37,6 +39,7 @@ function parseHHMM(s: string | null | undefined, fallback: number): number {
 }
 
 export interface FindSlotsInput {
+  orgId: string;
   branchId: string;
   participantIds: string[];
   organizerId: string;
@@ -64,11 +67,19 @@ export async function findAvailableSlots(
   } = input;
 
   const peopleIds = [...new Set([organizerId, ...input.participantIds])];
-  const tz = await getOrgTimezone();
+  const tz = await getOrgTimezone(input.orgId);
+  const [holidayMode, holidays] = await Promise.all([
+    getHolidayBookingMode(input.orgId),
+    listHolidays(input.orgId),
+  ]);
+  const blockedHolidayDays = new Set(
+    holidayMode === "BLOCK" ? holidays.map((h) => h.dateIso) : [],
+  );
 
   // 1) rooms in branch with capacity & equipment
   const rooms = await prisma.meetingRoom.findMany({
     where: {
+      orgId: input.orgId,
       branchId,
       isActive: true,
       capacity: { gte: Math.max(1, minCapacity) },
@@ -108,6 +119,7 @@ export async function findAvailableSlots(
     where: {
       userId: { in: peopleIds },
       meeting: {
+        orgId: input.orgId,
         status: { in: BLOCKING_STATUSES as unknown as string[] },
         startAt: { lt: to },
         endAt: { gt: from },
@@ -119,6 +131,7 @@ export async function findAvailableSlots(
   for (const p of parts) peopleBusy.push({ start: p.meeting.startAt, end: p.meeting.endAt });
   const orgs = await prisma.meeting.findMany({
     where: {
+      orgId: input.orgId,
       organizerId: { in: peopleIds },
       status: { in: BLOCKING_STATUSES as unknown as string[] },
       startAt: { lt: to },
@@ -137,6 +150,10 @@ export async function findAvailableSlots(
   while (day < lastDay && suggestions.length < maxSlots) {
     const dayStart = day;
     const dayEnd = addLocalDaysUtc(day, 1, tz);
+    if (blockedHolidayDays.has(isoDateInTz(dayStart, tz))) {
+      day = dayEnd;
+      continue;
+    }
 
     // people free intervals this day
     const peopleFree = subtractBusy(dayStart, dayEnd, peopleBusy);

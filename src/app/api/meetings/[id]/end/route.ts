@@ -12,12 +12,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const user = await requireUser();
     const { id } = await params;
     const input = schema.parse(await req.json().catch(() => ({})));
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
     if (meeting.organizerId !== user.id && !can(user, "meeting:end")) {
       throw new HttpError(403, "دسترسی لازم را ندارید", "FORBIDDEN");
     }
-    const updated = await endMeeting(id, { actorId: user.id }, { noShow: input.noShow });
+    const updated = await endMeeting(id, { actorId: user.id, orgId: user.orgId }, { noShow: input.noShow });
     await audit({ actorId: user.id, action: "MEETING_END", entity: "Meeting", entityId: id, newValue: { status: updated.status } });
     return ok({ meeting: updated });
   } catch (e) {

@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const actor = await requirePermission("room:update");
     const { id: roomId } = await params;
 
-    const room = await prisma.meetingRoom.findUnique({ where: { id: roomId } });
+    const room = await prisma.meetingRoom.findFirst({ where: { id: roomId, orgId: actor.orgId } });
     if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");
     assertRoomManageAccess(actor, room);
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id: roomId } = await params;
     const raw = roomExclusionCreateSchema.parse(await req.json().catch(() => ({})));
 
-    const room = await prisma.meetingRoom.findUnique({ where: { id: roomId } });
+    const room = await prisma.meetingRoom.findFirst({ where: { id: roomId, orgId: actor.orgId } });
     if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");
     assertRoomManageAccess(actor, room);
 

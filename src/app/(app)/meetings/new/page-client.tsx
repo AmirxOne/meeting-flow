@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Sparkles } from "@/components/ui/icon";
@@ -8,8 +8,15 @@ import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { cn, faNum, faStr, formatJalali, isoDateInTz, EQUIPMENT_FA, TYPE_FA, TYPE_HINT_FA, isSoloMeetingType } from "@/lib";
+import { cn, faNum, faStr, formatJalali, isoDateInTz, EQUIPMENT_FA, TYPE_FA, TYPE_HINT_FA, isSoloMeetingType, VIDEO_PROVIDER_FA, isVideoProvider } from "@/lib";
 import { formatClockInTz, DEFAULT_ORG_TIMEZONE } from "@/lib/timezone";
+import { J_WEEKDAYS_LONG, iranianWeekdayIndex, zonedTimeToUtc } from "@/lib/jalali";
+import {
+  describeRecurrence,
+  expandOccurrences,
+  RECURRENCE_FREQ_FA,
+  type RecurrenceFreq,
+} from "@/lib/recurrence";
 import { Select } from "@/components/ui/select";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
@@ -21,6 +28,9 @@ import {
   suggestRoomId,
 } from "@/lib/availability-booking";
 import { queryParam, type NextSearchParams } from "@/lib/next-page-props";
+import { VideoLinkFields } from "@/components/meetings/video-link-fields";
+import { useAuth } from "@/lib/auth-store";
+import { Modal } from "@/components/ui/modal";
 
 interface Slot {
   start: string;
@@ -32,6 +42,7 @@ interface Slot {
 export function NewMeetingPageContent({ searchParams }: { searchParams: NextSearchParams }) {
   const router = useRouter();
   const { push } = useToast();
+  const { me } = useAuth();
   const prefilledFromAvailability = useRef(false);
 
   // form state
@@ -50,12 +61,31 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
   const [searching, setSearching] = useState(false);
   const [fromAvailabilityHandoff, setFromAvailabilityHandoff] = useState(false);
   const [fromCalendarHint, setFromCalendarHint] = useState<string | null>(null);
+  const [recurrenceFreq, setRecurrenceFreq] = useState<"NONE" | RecurrenceFreq>("NONE");
+  const [recurrenceInterval, setRecurrenceInterval] = useState(1);
+  const [recurrenceWeekdays, setRecurrenceWeekdays] = useState<number[]>([]);
+  const [recurrenceUntilIso, setRecurrenceUntilIso] = useState("");
+  const [recurrenceCount, setRecurrenceCount] = useState("");
+  const [videoProvider, setVideoProvider] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [organizerId, setOrganizerId] = useState("");
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
+  const [waitlistCount, setWaitlistCount] = useState(0);
   const soloType = isSoloMeetingType(meetingType);
 
   const { data: branchesData } = useQuery({
     queryKey: ["branches"],
     queryFn: () => api<{ branches: { id: string; name: string }[] }>("/api/branches"),
   });
+
+  const { data: delegateData } = useQuery({
+    queryKey: ["delegates"],
+    queryFn: () =>
+      api<{
+        principals: { id: string; user: { id: string; fullName: string } }[];
+      }>("/api/delegates"),
+  });
+  const principals = delegateData?.principals ?? [];
 
   const branches = branchesData?.branches ?? [];
 
@@ -65,6 +95,21 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
       api<{ branding: { timezone: string } }>("/api/organization/branding"),
   });
   const orgTz = brandingData?.branding.timezone ?? DEFAULT_ORG_TIMEZONE;
+
+  const { data: holidayData } = useQuery({
+    queryKey: ["org-holidays", dateIso],
+    queryFn: () =>
+      api<{ holidays: { dateIso: string; name: string }[]; bookingMode: "BLOCK" | "REQUIRE_APPROVAL" }>(
+        dateIso ? `/api/holidays?from=${dateIso}&to=${dateIso}` : "/api/holidays",
+      ),
+    enabled: !!dateIso,
+  });
+  const dayHoliday = holidayData?.holidays.find((h) => h.dateIso === dateIso);
+  const holidayBlocked = !!dayHoliday && (holidayData?.bookingMode ?? "BLOCK") === "BLOCK";
+
+  useEffect(() => {
+    if (me?.id && !organizerId) setOrganizerId(me.id);
+  }, [me?.id, organizerId]);
 
   useEffect(() => {
     if (prefilledFromAvailability.current) return;
@@ -112,6 +157,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
       "";
     setRoomId(picked);
     setFromAvailabilityHandoff(true);
+    if (draft.organizerId) setOrganizerId(draft.organizerId);
 
     requestAnimationFrame(() => {
       document.getElementById("meeting-step-room")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -144,6 +190,10 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
       push("عنوان و شعبه را انتخاب کنید", "error");
       return;
     }
+    if (holidayBlocked && dayHoliday) {
+      push(`رزرو در روز تعطیل «${dayHoliday.name}» مجاز نیست`, "error");
+      return;
+    }
     setSearching(true);
     setSlot(null);
     setRoomId("");
@@ -168,6 +218,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
           from: from.toISOString(),
           to: to.toISOString(),
           minCapacity: soloType ? 1 : people.length + 1,
+          ...(organizerId && me?.id && organizerId !== me.id ? { organizerId } : {}),
         },
       });
       if (data.slots.length === 0) push("هیچ زمان آزادی برای این روز یافت نشد", "error");
@@ -192,7 +243,35 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
 
   const selectedRoom = slot?.availableRooms.find((r) => r.id === roomId);
 
-  async function submit() {
+  useEffect(() => {
+    if (recurrenceFreq !== "WEEKLY" || !dateIso) return;
+    if (recurrenceWeekdays.length > 0) return;
+    setRecurrenceWeekdays([iranianWeekdayIndex(dateIso)]);
+  }, [recurrenceFreq, dateIso, recurrenceWeekdays.length]);
+
+  const untilDate = useMemo(() => {
+    if (!recurrenceUntilIso) return undefined;
+    const [y, m, d] = recurrenceUntilIso.split("-").map(Number);
+    return zonedTimeToUtc(y, m, d, 23, 59, 0, orgTz);
+  }, [recurrenceUntilIso, orgTz]);
+
+  const recurrencePreview = useMemo(() => {
+    if (recurrenceFreq === "NONE" || !slot) return [];
+    const count = recurrenceCount ? Number(recurrenceCount) : undefined;
+    return expandOccurrences(
+      new Date(slot.start),
+      {
+        freq: recurrenceFreq,
+        interval: recurrenceInterval,
+        byWeekday: recurrenceFreq === "WEEKLY" ? recurrenceWeekdays : undefined,
+        until: untilDate,
+        count,
+      },
+      orgTz,
+    );
+  }, [recurrenceFreq, slot, recurrenceInterval, recurrenceWeekdays, untilDate, recurrenceCount, orgTz]);
+
+  async function submit(opts?: { waitlistIfBusy?: boolean }) {
     if (!slot || !roomId) {
       push("ابتدا زمان و اتاق را انتخاب کنید", "error");
       return;
@@ -208,7 +287,17 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
             .map((p) => userIdByDir.get(p.ref.slice(4)))
             .filter((x): x is string => !!x);
       const guestPeople = soloType ? [] : people.filter((p) => p.kind === "EXTERNAL");
-      const data = await api<{ meeting: { id: string } }>("/api/meetings", {
+      const recurrence =
+        recurrenceFreq === "NONE"
+          ? undefined
+          : {
+              freq: recurrenceFreq,
+              interval: recurrenceInterval,
+              byWeekday: recurrenceFreq === "WEEKLY" ? recurrenceWeekdays : undefined,
+              until: untilDate?.toISOString(),
+              count: recurrenceCount ? Number(recurrenceCount) : undefined,
+            };
+      const data = await api<{ meeting: { id: string; status?: string }; occurrenceCount?: number }>("/api/meetings", {
         method: "POST",
         json: {
           title: title.trim(),
@@ -219,6 +308,10 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
           startAt: new Date(slot.start).toISOString(),
           endAt: new Date(slot.end).toISOString(),
           meetingType,
+          ...(organizerId && me?.id && organizerId !== me.id ? { organizerId } : {}),
+          ...(videoUrl.trim()
+            ? { videoProvider: videoProvider || "CUSTOM", videoUrl: videoUrl.trim() }
+            : {}),
           participantIds,
           guests: [
             ...guests
@@ -237,12 +330,34 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               notes: p.ref.startsWith("new:") ? "افزودهشده دستی هنگام ساخت جلسه" : undefined,
             })),
           ],
+          ...(recurrence ? { recurrence } : {}),
+          ...(opts?.waitlistIfBusy ? { waitlistIfBusy: true } : {}),
         },
       });
-      push("جلسه ایجاد شد", "success");
+      setWaitlistOpen(false);
+      push(
+        data.meeting.status === "WAITLISTED"
+          ? "در لیست انتظار ثبت شدید — اتاق هنوز قفل نشده است"
+          : data.occurrenceCount && data.occurrenceCount > 1
+          ? `سری جلسه با ${faNum(data.occurrenceCount)} نوبت ایجاد شد`
+          : "جلسه ایجاد شد",
+        "success",
+      );
       router.push(`/meetings/${data.meeting.id}`);
     } catch (e) {
       const err = e as ApiError;
+      const extra = err.extra as { canWaitlist?: boolean; waitlistCount?: number } | undefined;
+      if (
+        err.status === 409 &&
+        err.code === "ROOM_CONFLICT" &&
+        extra?.canWaitlist &&
+        recurrenceFreq === "NONE" &&
+        !opts?.waitlistIfBusy
+      ) {
+        setWaitlistCount(extra.waitlistCount ?? 0);
+        setWaitlistOpen(true);
+        return;
+      }
       push(err.message, "error");
     } finally {
       setSubmitting(false);
@@ -272,6 +387,27 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
             <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="h-4 w-4 accent-black" />
             <span className="text-[12px]">جلسه محرمانه — عنوان و جزئیات فقط برای برگزارکننده و دعوت‌شدگان دیده می‌شود</span>
           </label>
+          {principals.length > 0 && me && (
+            <div data-tour="meeting-delegate" data-testid="meeting-organizer">
+              <label className="mb-1.5 block text-[12px] font-medium">برگزارکننده</label>
+              <Select
+                value={organizerId || me.id}
+                onChange={setOrganizerId}
+                options={[
+                  { value: me.id, label: `خودم (${me.fullName})` },
+                  ...principals.map((p) => ({
+                    value: p.user.id,
+                    label: `برگزارکننده = ${p.user.fullName}`,
+                  })),
+                ]}
+              />
+              {organizerId && organizerId !== me.id && (
+                <p className="mt-1.5 text-[11px] leading-5 text-ink-soft">
+                  جلسه به نام این فرد ساخته می‌شود و تقویم مشغول او در جستجوی زمان لحاظ می‌شود. عنوان جلسه‌های محرمانه‌اش دیده نمی‌شود.
+                </p>
+              )}
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">نوع جلسه</label>
@@ -327,6 +463,13 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               className="w-full rounded-md border border-[#d9d9e0] px-3.5 py-2.5 text-[13px] outline-none focus:border-ink"
             />
           </div>
+          <VideoLinkFields
+            provider={videoProvider}
+            url={videoUrl}
+            onProvider={setVideoProvider}
+            onUrl={setVideoUrl}
+            highlighted={meetingType === "ONLINE"}
+          />
         </CardBody>
       </Card>
 
@@ -354,6 +497,16 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                 onChange={setDateIso}
                 min={isoToday()}
               />
+              {dayHoliday && (
+                <p className={cn(
+                  "mt-1.5 text-[11px] leading-5",
+                  holidayBlocked ? "text-red-600" : "text-amber-700",
+                )}>
+                  {holidayBlocked
+                    ? `تعطیل سازمانی «${dayHoliday.name}» — رزرو اتاق در این روز ممنوع است.`
+                    : `تعطیل سازمانی «${dayHoliday.name}» — رزرو نیاز به تأیید دارد.`}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">مدت (دقیقه)</label>
@@ -364,9 +517,129 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               />
             </div>
           </div>
+          <div data-tour="meeting-recurrence" className="space-y-3 rounded-md border border-line bg-paper-soft/60 p-3.5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-[12px] font-medium">تکرار جلسه</label>
+                <Select
+                  value={recurrenceFreq}
+                  onChange={(v) => {
+                    const next = v as "NONE" | RecurrenceFreq;
+                    setRecurrenceFreq(next);
+                    if (next === "WEEKLY" && dateIso && recurrenceWeekdays.length === 0) {
+                      setRecurrenceWeekdays([iranianWeekdayIndex(dateIso)]);
+                    }
+                  }}
+                  options={[
+                    { value: "NONE", label: "تکرار ندارد" },
+                    { value: "DAILY", label: RECURRENCE_FREQ_FA.DAILY },
+                    { value: "WEEKLY", label: RECURRENCE_FREQ_FA.WEEKLY },
+                    { value: "MONTHLY", label: RECURRENCE_FREQ_FA.MONTHLY },
+                  ]}
+                />
+              </div>
+              {recurrenceFreq !== "NONE" && (
+                <div>
+                  <label className="mb-1.5 block text-[12px] font-medium">فاصله تکرار</label>
+                  <Select
+                    value={String(recurrenceInterval)}
+                    onChange={(v) => setRecurrenceInterval(Number(v))}
+                    options={[1, 2, 3, 4, 6, 8, 12].map((n) => ({
+                      value: String(n),
+                      label:
+                        recurrenceFreq === "DAILY"
+                          ? n === 1 ? "هر روز" : `هر ${faNum(n)} روز`
+                          : recurrenceFreq === "WEEKLY"
+                            ? n === 1 ? "هر هفته" : `هر ${faNum(n)} هفته`
+                            : n === 1 ? "هر ماه" : `هر ${faNum(n)} ماه`,
+                    }))}
+                  />
+                </div>
+              )}
+            </div>
+            {recurrenceFreq === "WEEKLY" && (
+              <div>
+                <p className="mb-1.5 text-[12px] font-medium">روزهای هفته</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {J_WEEKDAYS_LONG.map((label, i) => {
+                    const on = recurrenceWeekdays.includes(i);
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => {
+                          setRecurrenceWeekdays((prev) => {
+                            if (prev.includes(i)) {
+                              const next = prev.filter((d) => d !== i);
+                              return next.length ? next : prev;
+                            }
+                            return [...prev, i].sort((a, b) => a - b);
+                          });
+                        }}
+                        className={cn(
+                          "rounded-md border px-2.5 py-1.5 text-[12px] transition-colors",
+                          on ? "border-ink bg-ink text-white" : "border-line bg-white hover:border-ink-faint",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {recurrenceFreq !== "NONE" && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-[12px] font-medium">تا تاریخ (اختیاری)</label>
+                  <JalaliDatePicker
+                    value={recurrenceUntilIso}
+                    onChange={setRecurrenceUntilIso}
+                    min={dateIso || isoToday()}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[12px] font-medium">تعداد نوبت (اختیاری)</label>
+                  <Select
+                    value={recurrenceCount}
+                    onChange={setRecurrenceCount}
+                    placeholder="خودکار تا سقف مجاز"
+                    options={[
+                      { value: "", label: "خودکار تا سقف مجاز" },
+                      ...[2, 3, 4, 5, 8, 10, 12, 20, 30, 52].map((n) => ({
+                        value: String(n),
+                        label: `${faNum(n)} نوبت`,
+                      })),
+                    ]}
+                  />
+                </div>
+              </div>
+            )}
+            {recurrenceFreq !== "NONE" && (
+              <p className="text-[11px] leading-5 text-ink-soft">
+                {describeRecurrence({
+                  freq: recurrenceFreq,
+                  interval: recurrenceInterval,
+                  byWeekday: recurrenceFreq === "WEEKLY" ? recurrenceWeekdays : undefined,
+                })}
+                {recurrencePreview.length > 0 &&
+                  ` · ${faNum(recurrencePreview.length)} نوبت ساخته می‌شود`}
+                {slot && recurrencePreview.length > 0 && (
+                  <>
+                    {" "}
+                    (اولین: {formatJalali(recurrencePreview[0], { withTime: true, monthName: true })}
+                    {recurrencePreview.length > 1
+                      ? `، آخرین: ${formatJalali(recurrencePreview[recurrencePreview.length - 1], { monthName: true })}`
+                      : ""}
+                    )
+                  </>
+                )}
+              </p>
+            )}
+          </div>
           {!fromAvailability && (
             <div className="flex justify-end">
-              <Button onClick={findSlots} loading={searching} className="w-full sm:w-auto">
+              <Button onClick={findSlots} loading={searching} disabled={holidayBlocked} className="w-full sm:w-auto">
                 <Sparkles className="h-4 w-4" />
                 یافتن زمان‌های آزاد
               </Button>
@@ -449,7 +722,25 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               <p>عنوان: {title}</p>
               <p>زمان: {formatJalali(new Date(slot.start), { withTime: true, monthName: true })} تا {formatClockInTz(new Date(slot.end), orgTz)}</p>
               <p>اتاق: {selectedRoom?.name} ({faNum(selectedRoom?.capacity ?? 0)} نفر)</p>
+              {recurrenceFreq !== "NONE" && (
+                <p>
+                  تکرار: {describeRecurrence({
+                    freq: recurrenceFreq,
+                    interval: recurrenceInterval,
+                    byWeekday: recurrenceFreq === "WEEKLY" ? recurrenceWeekdays : undefined,
+                  })}
+                  {recurrencePreview.length > 0 ? ` · ${faNum(recurrencePreview.length)} نوبت` : ""}
+                </p>
+              )}
               <p>نوع: {TYPE_FA[meetingType] ?? meetingType}</p>
+              {videoUrl.trim() && (
+                <p>
+                  لینک ویدئو:{" "}
+                  {isVideoProvider(videoProvider) ? VIDEO_PROVIDER_FA[videoProvider] : VIDEO_PROVIDER_FA.CUSTOM}
+                  {" · "}
+                  <span dir="ltr">{videoUrl.trim()}</span>
+                </p>
+              )}
               <p>
                 افراد:{" "}
                 {soloType
@@ -461,13 +752,38 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               )}
             </div>
 
-            <Button onClick={submit} loading={submitting} size="lg" className="w-full">
+            <Button onClick={() => submit()} loading={submitting} size="lg" className="w-full">
               ارسال درخواست جلسه
             </Button>
           </CardBody>
         </Card>
         </div>
       )}
+
+      <Modal
+        open={waitlistOpen}
+        onClose={() => setWaitlistOpen(false)}
+        title="اتاق در این بازه پر است"
+        subtitle="می‌توانید در لیست انتظار بمانید؛ تا قطعی کردن، اتاق قفل نمی‌شود"
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={() => submit({ waitlistIfBusy: true })} loading={submitting}>
+              پیوستن به لیست انتظار
+            </Button>
+            <Button variant="ghost" onClick={() => setWaitlistOpen(false)}>
+              انصراف
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-[13px] leading-6 text-ink-soft">
+          اگر جلسهٔ فعلی لغو یا جابه‌جا شود، نفر اول صف اعلان می‌گیرد و{" "}
+          {faNum(15)} دقیقه مهلت دارد رزرو را قطعی کند.
+          {waitlistCount > 0
+            ? ` الان ${faNum(waitlistCount)} نفر در همین بازه منتظرند.`
+            : " شما نفر اول این بازه خواهید بود."}
+        </p>
+      </Modal>
     </div>
   );
 }

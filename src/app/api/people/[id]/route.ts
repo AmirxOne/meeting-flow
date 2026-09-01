@@ -21,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const input = updateSchema.parse(await req.json().catch(() => ({})));
 
-    const person = await prisma.personDirectory.findUnique({ where: { id } });
+    const person = await prisma.personDirectory.findFirst({ where: { id, orgId: actor.orgId } });
     if (!person) throw new HttpError(404, "فرد یافت نشد", "NOT_FOUND");
 
     const updated = await prisma.personDirectory.update({
@@ -57,7 +57,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const actor = await requireUser();
     const { id } = await params;
 
-    const person = await prisma.personDirectory.findUnique({ where: { id } });
+    const person = await prisma.personDirectory.findFirst({ where: { id, orgId: actor.orgId } });
     if (!person) throw new HttpError(404, "فرد یافت نشد", "NOT_FOUND");
 
     // directory entry deletion is history-safe: meeting guests/participants

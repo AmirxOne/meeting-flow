@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ok, fail, handleError } from "@/server/http";
-import { runWorkerTick } from "@/server/services/worker-tick.service";
+import { runWorkerTickWithHeartbeat } from "@/server/services/worker-tick.service";
 import { isWorkerTickEnabled, verifyWorkerTickSecret } from "@/server/worker-tick-auth";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
     if (!verifyWorkerTickSecret(req)) {
       return fail(401, "دسترسی مجاز نیست", "UNAUTHORIZED");
     }
-    const result = await runWorkerTick();
+    const result = await runWorkerTickWithHeartbeat("cron");
     return ok(result);
   } catch (e) {
-    return handleError(e);
+    return handleError(e, { source: "worker-tick" });
   }
 }

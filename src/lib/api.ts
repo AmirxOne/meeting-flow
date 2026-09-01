@@ -5,6 +5,7 @@
 export interface ApiError extends Error {
   status: number;
   code?: string;
+  extra?: unknown;
 }
 
 export async function api<T>(
@@ -21,8 +22,11 @@ export async function api<T>(
     body: json !== undefined ? JSON.stringify(json) : rest.body,
     credentials: "same-origin",
   });
-  let payload: { ok: boolean; data?: T; error?: { message: string; code?: string } } | null =
-    null;
+  let payload: {
+    ok: boolean;
+    data?: T;
+    error?: { message: string; code?: string; extra?: unknown };
+  } | null = null;
   try {
     payload = await res.json();
   } catch {
@@ -34,6 +38,7 @@ export async function api<T>(
     ) as ApiError;
     err.status = res.status;
     err.code = payload?.error?.code;
+    err.extra = payload?.error?.extra;
     throw err;
   }
   return payload.data as T;

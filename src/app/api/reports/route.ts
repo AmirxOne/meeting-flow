@@ -8,9 +8,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await requirePermission("report:view");
+    const actor = await requirePermission("report:view");
     const sp = req.nextUrl.searchParams;
     const filters = {
+      orgId: actor.orgId,
       from: sp.get("from") ? startOfDayUtcFromIso(sp.get("from")!) : undefined,
       to: sp.get("to") ? endOfDayUtcFromIso(sp.get("to")!) : undefined,
       branchId: sp.get("branchId") ?? undefined,

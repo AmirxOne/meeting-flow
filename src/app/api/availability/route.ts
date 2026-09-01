@@ -3,6 +3,7 @@ import { requireUser } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
 import { slotsSchema } from "@/lib/validations";
 import { findAvailableSlots, findQuickSlot } from "@/server/services/availability.service";
+import { resolveOrganizerId } from "@/server/services/delegate.service";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
     const input = slotsSchema.parse(await req.json().catch(() => ({})));
+    const organizerId = await resolveOrganizerId(user.orgId, user.id, input.organizerId);
 
     const from = input.from
       ? new Date(input.from)
@@ -19,8 +21,9 @@ export async function POST(req: NextRequest) {
       : new Date(from.getTime() + 7 * 86400000);
 
     const slots = await findAvailableSlots({
+      orgId: user.orgId,
       branchId: input.branchId,
-      organizerId: user.id,
+      organizerId,
       participantIds: input.participantIds,
       durationMin: input.durationMin,
       from,
@@ -41,12 +44,14 @@ export async function GET(req: NextRequest) {
     const branchId = sp.get("branchId");
     const durationMin = Number(sp.get("durationMin") ?? 30);
     const participantIds = (sp.get("participants") ?? "").split(",").filter(Boolean);
+    const organizerId = await resolveOrganizerId(user.orgId, user.id, sp.get("organizerId"));
     if (!branchId) {
       return ok({ slot: null });
     }
     const slot = await findQuickSlot({
+      orgId: user.orgId,
       branchId,
-      organizerId: user.id,
+      organizerId,
       participantIds,
       durationMin,
     });

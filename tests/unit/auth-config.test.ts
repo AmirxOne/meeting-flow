@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   parseAuthMode,
+  parseAuthMethods,
+  isLdapAuthEnabled,
+  isLocalAuthEnabled,
+  isSsoMethodEnabled,
+  isPasswordLoginEnabled,
   escapeLdapFilter,
   buildLdapUserFilter,
   resolveLdapConfig,
@@ -15,6 +20,39 @@ describe("parseAuthMode", () => {
   it("recognizes ldap", () => {
     expect(parseAuthMode("ldap")).toBe("ldap");
     expect(parseAuthMode("LDAP")).toBe("ldap");
+  });
+
+  it("recognizes sso and combinations", () => {
+    expect(parseAuthMode("sso")).toBe("sso");
+    expect(parseAuthMode("local,sso")).toBe("local");
+    expect(parseAuthMode("ldap+sso")).toBe("ldap");
+    expect(parseAuthMode("SSO")).toBe("sso");
+  });
+});
+
+describe("parseAuthMethods", () => {
+  it("splits comma and plus", () => {
+    expect([...parseAuthMethods("local,sso")].sort()).toEqual(["local", "sso"]);
+    expect(parseAuthMethods("ldap+sso").has("ldap")).toBe(true);
+    expect(parseAuthMethods("ldap+sso").has("sso")).toBe(true);
+  });
+
+  it("ignores unknown tokens", () => {
+    expect([...parseAuthMethods("local,oauth")]).toEqual(["local"]);
+  });
+});
+
+describe("auth method flags", () => {
+  it("allows password+sso together", () => {
+    expect(isLocalAuthEnabled("local,sso")).toBe(true);
+    expect(isSsoMethodEnabled("local,sso")).toBe(true);
+    expect(isLdapAuthEnabled("local,sso")).toBe(false);
+    expect(isPasswordLoginEnabled("local,sso")).toBe(true);
+  });
+
+  it("sso-only disables password login", () => {
+    expect(isPasswordLoginEnabled("sso")).toBe(false);
+    expect(isSsoMethodEnabled("sso")).toBe(true);
   });
 });
 

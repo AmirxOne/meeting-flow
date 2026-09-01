@@ -11,9 +11,16 @@ next-env.d.ts
 .env
 .env.local
 .env.production
+.env.sentry-build-plugin
 
 prisma/*.db
 .DS_Store
 *.log
 .idea/
 .vscode/
+
+# Local meeting attachment blobs (never commit)
+/data/attachments/
+
+# PostgreSQL dumps (scripts/backup)
+/backups/

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
-import { maskPrivateMeeting } from "@/server/services/privacy";
+import { maskPrivateMeeting, meetingAccessOr } from "@/server/services/privacy";
 import { requireUser, can } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
 
@@ -19,21 +19,24 @@ export async function GET(req: NextRequest) {
 
     const meetings = await prisma.meeting.findMany({
       where: {
+        orgId: user.orgId,
         ...(seeAll
           ? {}
-          : { OR: [{ organizerId: user.id }, { participants: { some: { userId: user.id } } }] }),
+          : meetingAccessOr(user.id)),
         startAt: { gte: from, lte: to },
-        status: { notIn: ["DRAFT", "CANCELLED", "REJECTED"] },
+        status: { notIn: ["DRAFT", "CANCELLED", "REJECTED", "WAITLISTED", "WAITLIST_OFFERED"] },
         ...(branchId ? { branchId } : {}),
       },
       select: {
         id: true, title: true, startAt: true, endAt: true, status: true,
         meetingType: true, priority: true,
         organizerId: true,
+        createdById: true,
         organizer: { select: { id: true, fullName: true } },
         room: { select: { id: true, name: true } },
         branch: { select: { id: true, name: true } },
         isPrivate: true,
+        seriesId: true,
         participants: { select: { userId: true } },
         _count: { select: { participants: true } },
       },
@@ -51,7 +54,7 @@ export async function GET(req: NextRequest) {
       dayMap.set(key, cur);
     }
     // rough occupancy: busy hours / (rooms × 12h open window)
-    const roomCount = await prisma.meetingRoom.count({ where: { isActive: true } });
+    const roomCount = await prisma.meetingRoom.count({ where: { orgId: user.orgId, isActive: true } });
     const occupancy = [...dayMap.entries()].map(([date, v]) => ({
       date,
       count: v.count,

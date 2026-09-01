@@ -11,6 +11,19 @@ describe("public static assets", () => {
     expect(statSync(logo).size).toBeGreaterThan(100);
   });
 
+  it("includes PWA shell files", () => {
+    for (const rel of ["sw.js", "offline.html", "apple-touch-icon.png"]) {
+      const path = join(publicDir, rel);
+      expect(existsSync(path), rel).toBe(true);
+      expect(statSync(path).size).toBeGreaterThan(100);
+    }
+    for (const icon of ["icon-192.png", "icon-512.png", "icon-maskable-192.png", "icon-maskable-512.png"]) {
+      const path = join(publicDir, "icons", icon);
+      expect(existsSync(path), icon).toBe(true);
+      expect(statSync(path).size).toBeGreaterThan(100);
+    }
+  });
+
   for (const file of [
     "Alibaba-Regular.woff2",
     "Alibaba-Bold.woff2",

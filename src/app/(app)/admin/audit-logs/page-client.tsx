@@ -36,6 +36,23 @@ const ACTION_FA: Record<string, string> = {
   PARTICIPANT_ADD: "افزودن فرد",
   PARTICIPANT_REMOVE: "حذف فرد",
   POLICY_UPDATE: "تغییر سیاست",
+  ATTACHMENT_UPLOAD: "آپلود پیوست",
+  ATTACHMENT_DELETE: "حذف پیوست",
+  AGENDA_UPDATE: "ویرایش دستور جلسه",
+  MINUTES_PUBLISH: "ثبت صورتجلسه",
+  VIDEO_LINK_UPDATE: "ویرایش لینک ویدئو",
+  SMS_TEST: "پیامک آزمایشی",
+  DELETE: "حذف",
+  WAITLIST_CLAIM: "قطعی کردن لیست انتظار",
+  WAITLIST_DECLINE: "رد پیشنهاد لیست انتظار",
+  HOLIDAY_CREATE: "ثبت تعطیلی",
+  HOLIDAY_DELETE: "حذف تعطیلی",
+  MAP_UPLOAD: "آپلود نقشه شعبه",
+  MAP_DELETE: "حذف نقشه شعبه",
+  AVATAR_UPLOAD: "آپلود تصویر پروفایل",
+  AVATAR_DELETE: "حذف تصویر پروفایل",
+  DISPLAY_TOKEN: "توکن نمایشگر اتاق",
+  DISPLAY_TOKEN_REVOKE: "باطل کردن نمایشگر اتاق",
 };
 
 const ENTITY_FA: Record<string, string> = {
@@ -43,9 +60,13 @@ const ENTITY_FA: Record<string, string> = {
   User: "کاربر",
   MeetingRoom: "اتاق",
   MeetingPolicy: "سیاست",
+  MeetingAttachment: "پیوست",
   Organization: "سازمان",
+  Sms: "پیامک",
   Branch: "شعبه",
   Floor: "طبقه",
+  Delegate: "نماینده رزرو",
+  OrgHoliday: "تعطیلی سازمانی",
 };
 
 const FIELD_FA: Record<string, string> = {

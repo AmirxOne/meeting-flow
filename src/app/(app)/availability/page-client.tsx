@@ -13,6 +13,7 @@ import { formatClockInTz, formatJalaliDayMonthInTz, DEFAULT_ORG_TIMEZONE } from 
 import { reserveMeetingHref, saveAvailabilityBooking, suggestRoomId } from "@/lib/availability-booking";
 import { Select } from "@/components/ui/select";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
+import { useAuth } from "@/lib/auth-store";
 
 interface Slot {
   start: string;
@@ -22,6 +23,7 @@ interface Slot {
 
 export function AvailabilityPage() {
   const { push } = useToast();
+  const { me } = useAuth();
   const { data: branchesData } = useQuery({
     queryKey: ["branches"],
     queryFn: () => api<{ branches: { id: string; name: string }[] }>("/api/branches"),
@@ -39,6 +41,15 @@ export function AvailabilityPage() {
   const [days, setDays] = useState(3);
   const [slots, setSlots] = useState<Slot[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [organizerId, setOrganizerId] = useState("");
+
+  const { data: delegateData } = useQuery({
+    queryKey: ["delegates"],
+    queryFn: () =>
+      api<{ principals: { id: string; user: { id: string; fullName: string } }[] }>("/api/delegates"),
+  });
+  const principals = delegateData?.principals ?? [];
+  const effectiveOrganizerId = organizerId || me?.id || "";
 
   async function search() {
     if (!branchId) {
@@ -62,6 +73,9 @@ export function AvailabilityPage() {
           durationMin,
           from: new Date().toISOString(),
           to: new Date(Date.now() + days * 86400000).toISOString(),
+          ...(effectiveOrganizerId && me?.id && effectiveOrganizerId !== me.id
+            ? { organizerId: effectiveOrganizerId }
+            : {}),
         },
       });
       setSlots(data.slots);
@@ -110,6 +124,23 @@ export function AvailabilityPage() {
             </div>
           </div>
 
+          {principals.length > 0 && me && (
+            <div data-testid="availability-organizer">
+              <label className="mb-1.5 block text-[12px] font-medium">برگزارکننده</label>
+              <Select
+                value={effectiveOrganizerId}
+                onChange={setOrganizerId}
+                options={[
+                  { value: me.id, label: `خودم (${me.fullName})` },
+                  ...principals.map((p) => ({
+                    value: p.user.id,
+                    label: `برگزارکننده = ${p.user.fullName}`,
+                  })),
+                ]}
+              />
+            </div>
+          )}
+
           <div>
             <label className="mb-1.5 block text-[12px] font-medium">
               افراد ({faNum(people.length)} نفر — عضو شرکت یا فرد خارجی)
@@ -146,6 +177,9 @@ export function AvailabilityPage() {
                 people,
                 availableRooms: s.availableRooms,
                 roomId: suggestRoomId(s.availableRooms, people.length + 1),
+                ...(effectiveOrganizerId && me?.id && effectiveOrganizerId !== me.id
+                  ? { organizerId: effectiveOrganizerId }
+                  : {}),
               };
               return (
               <div key={i} className="flex flex-wrap items-center gap-3 px-5 py-4">

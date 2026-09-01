@@ -39,5 +39,7 @@ describe("solo and online meeting types", () => {
     };
     expect(meetingCreateSchema.parse({ ...base, meetingType: "SOLO" }).meetingType).toBe("SOLO");
     expect(meetingCreateSchema.parse({ ...base, meetingType: "ONLINE" }).meetingType).toBe("ONLINE");
+    const inPerson = meetingCreateSchema.parse({ ...base, meetingType: "INTERNAL" });
+    expect(inPerson.videoUrl ?? null).toBeNull();
   });
 });

@@ -20,14 +20,20 @@ model User {
   department   String?
   isActive     Boolean   @default(true)
   isSuperAdmin Boolean   @default(false)
+  orgId        String?
   branchId     String?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  org             Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
   branch          Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
   roles           UserRole[]
   sessions        Session[]
-  organized       Meeting[]            @relation("organizer")
+  meetings           Meeting[]            @relation("organizer")
+  createdMeetings    Meeting[]            @relation("meetingCreatedBy")
+  organizedSeries    MeetingSeries[]      @relation("seriesOrganizer")
+  delegatesAppointed Delegate[]           @relation("DelegateManager")
+  delegateOf         Delegate[]           @relation("DelegateAssistant")
   participations  MeetingParticipant[]
   approvals       MeetingApproval[]
   auditLogs       AuditLog[]
@@ -35,8 +41,26 @@ model User {
   reminders       MeetingReminder[]
   managedBranches Branch[]             @relation("branchManager")
   managedRooms    MeetingRoom[]        @relation("roomManager")
+  calendarFeedTokenHash String?  @unique
+  calendarFeedCreatedAt DateTime?
+  calendarConnections   UserCalendarConnection[]
+  calendarSyncs         MeetingCalendarSync[]
+  passwordResetTokens   PasswordResetToken[]
+  totpChallenges        TwoFactorChallenge[]
+  totpSecretEnc         String?
+  totpEnabled           Boolean  @default(false)
+  totpEnabledAt         DateTime?
+  totpRecoveryHashes    String[] @default([])
+  /** Per-event channel opt-out. Null = org REMINDER_CHANNELS defaults (all on). */
+  notificationPrefs     Json?
+  uploadedAttachments   MeetingAttachment[]
+  agendaItemsOwned      MeetingAgendaItem[]
+  minutesPublished      MeetingMinutes[]     @relation("minutesPublished")
+  decisionsOwned        MeetingDecision[]    @relation("decisionsOwned")
+  pushSubscriptions     PushSubscription[]
 
   @@index([branchId])
+  @@index([orgId])
   @@index([isActive])
 }
 
@@ -88,11 +112,46 @@ model Session {
   id         String   @id @default(cuid())
   token      String   @unique
   userId     String
+  orgId      String?
   expiresAt  DateTime
   ip         String?
   userAgent  String?
   createdAt  DateTime @default(now())
   lastSeenAt DateTime @default(now())
+
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([expiresAt])
+}
+
+/// One-time, time-limited password reset (local AUTH_MODE only).
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([codeHash])
+}
+
+/// Short-lived login challenge after password/LDAP bind when 2FA is on.
+model TwoFactorChallenge {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -105,28 +164,75 @@ model Session {
 model Organization {
   id        String   @id @default(cuid())
   name      String
+  slug      String   @unique
   legalName String?
   timezone  String   @default("Asia/Tehran")
   logoUrl   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  branches Branch[]
-  policies MeetingPolicy[]
+  branches      Branch[]
+  policies      MeetingPolicy[]
+  holidays      OrgHoliday[]
+  users         User[]
+  rooms         MeetingRoom[]
+  meetings      Meeting[]
+  series        MeetingSeries[]
+  people        PersonDirectory[]
+  delegates     Delegate[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  sessions      Session[]
+}
+
+/// Org-wide closed / holiday calendar days (ISO YYYY-MM-DD in the org timezone).
+model OrgHoliday {
+  id        String   @id @default(cuid())
+  orgId     String
+  dateIso   String
+  name      String
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, dateIso])
+  @@index([orgId, dateIso])
+}
+
+/// Manager appoints a user who may create meetings in the manager's name
+/// and see the manager's busy times in availability (private titles stay masked).
+model Delegate {
+  id         String   @id @default(cuid())
+  orgId      String
+  managerId  String
+  delegateId String
+  createdAt  DateTime @default(now())
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  manager  User         @relation("DelegateManager", fields: [managerId], references: [id], onDelete: Cascade)
+  delegate User         @relation("DelegateAssistant", fields: [delegateId], references: [id], onDelete: Cascade)
+
+  @@unique([managerId, delegateId])
+  @@index([orgId])
+  @@index([delegateId])
 }
 
 model Branch {
-  id        String  @id @default(cuid())
-  orgId     String
-  name      String
-  address   String?
-  phone     String?
-  latitude  Float?
-  longitude Float?
-  isActive  Boolean @default(true)
-  managerId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String  @id @default(cuid())
+  orgId           String
+  name            String
+  address         String?
+  phone           String?
+  latitude        Float?
+  longitude       Float?
+  isActive        Boolean @default(true)
+  managerId       String?
+  wayfindingText  String?
+  mapStorageKey   String?
+  mapMimeType     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   org       Organization @relation(fields: [orgId], references: [id])
   manager   User?        @relation("branchManager", fields: [managerId], references: [id], onDelete: SetNull)
@@ -134,18 +240,22 @@ model Branch {
   floors    Floor[]
   rooms     MeetingRoom[]
   meetings  Meeting[]
+  series    MeetingSeries[]
 
   @@index([orgId])
   @@index([managerId])
 }
 
 model Floor {
-  id        String   @id @default(cuid())
-  branchId  String
-  name      String
-  number    Int
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  branchId       String
+  name           String
+  number         Int
+  wayfindingText String?
+  mapStorageKey  String?
+  mapMimeType    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   branch Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   rooms  MeetingRoom[]
@@ -156,6 +266,7 @@ model Floor {
 
 model MeetingRoom {
   id              String   @id @default(cuid())
+  orgId           String
   branchId        String
   name            String
   capacity        Int
@@ -163,6 +274,9 @@ model MeetingRoom {
   color           String?
   isActive        Boolean  @default(true)
   isVip           Boolean  @default(false)
+  displayTokenHash      String?   @unique
+  displayCode           String?   @unique
+  displayTokenCreatedAt DateTime?
   minDurationMin  Int      @default(15)
   maxDurationMin  Int      @default(480)
   minLeadTimeMin  Int      @default(0)
@@ -172,6 +286,7 @@ model MeetingRoom {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  org        Organization    @relation(fields: [orgId], references: [id], onDelete: Restrict)
   branch     Branch          @relation(fields: [branchId], references: [id])
   floorId    String?
   floor     Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
@@ -180,7 +295,9 @@ model MeetingRoom {
   meetings   Meeting[]
   equipment  RoomEquipment[]
   exclusions RoomExclusion[]
+  series     MeetingSeries[]
 
+  @@index([orgId])
   @@index([branchId])
   @@index([branchId, isActive])
   @@index([floorId])
@@ -214,6 +331,7 @@ model RoomExclusion {
 
 model Meeting {
   id           String   @id @default(cuid())
+  orgId        String
   title        String
   description  String?
   organizerId  String
@@ -228,10 +346,22 @@ model Meeting {
   cancelNote   String?
   meetingCode  String   @unique @default(cuid())
   isPrivate    Boolean  @default(false)
+  seriesId        String?
+  originalStartAt DateTime?
+  isException     Boolean  @default(false)
+  videoProvider   String?
+  videoUrl        String?
+  /** Real submitter when a delegate booked on behalf of organizerId. Null = organizer booked themselves. */
+  createdById     String?
+  waitlistQueuedAt DateTime?
+  waitlistOfferedAt DateTime?
+  waitlistOfferExpiresAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  org       Organization        @relation(fields: [orgId], references: [id], onDelete: Restrict)
   organizer User                @relation("organizer", fields: [organizerId], references: [id])
+  createdBy User?               @relation("meetingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   branch    Branch              @relation(fields: [branchId], references: [id])
   room      MeetingRoom?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
   participants MeetingParticipant[]
@@ -240,12 +370,55 @@ model Meeting {
   events       MeetingEvent[]
   reminders    MeetingReminder[]
   calendarSyncs MeetingCalendarSync[]
+  series        MeetingSeries?       @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  attachments   MeetingAttachment[]
+  agendaItems   MeetingAgendaItem[]
+  minutes       MeetingMinutes?
 
+  @@index([orgId])
+  @@index([orgId, startAt])
   @@index([roomId, startAt, endAt])
   @@index([branchId, startAt])
   @@index([organizerId, startAt])
+  @@index([createdById])
+  @@index([roomId, status, startAt])
   @@index([status])
   @@index([startAt])
+  @@index([seriesId, originalStartAt])
+}
+
+model MeetingSeries {
+  id            String   @id @default(cuid())
+  orgId         String
+  organizerId   String
+  branchId      String
+  roomId        String?
+  title         String
+  description   String?
+  meetingType   String   @default("INTERNAL")
+  priority      String   @default("NORMAL")
+  isPrivate     Boolean  @default(false)
+  videoProvider String?
+  videoUrl      String?
+  freq          String
+  interval      Int      @default(1)
+  byWeekday     Int[]    @default([])
+  until         DateTime?
+  count         Int?
+  durationMin   Int
+  dtstart       DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organizer User         @relation("seriesOrganizer", fields: [organizerId], references: [id])
+  branch    Branch       @relation(fields: [branchId], references: [id])
+  room      MeetingRoom? @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  meetings  Meeting[]
+
+  @@index([orgId])
+  @@index([organizerId])
+  @@index([branchId])
 }
 
 model MeetingParticipant {
@@ -273,6 +446,7 @@ model MeetingParticipant {
 // Used by participant pickers everywhere — pick from directory OR type new.
 model PersonDirectory {
   id        String   @id @default(cuid())
+  orgId     String
   name      String
   kind      String   @default("INTERNAL") // INTERNAL | EXTERNAL
   email     String?
@@ -285,9 +459,81 @@ model PersonDirectory {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([name, company])
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, name, company])
+  @@index([orgId])
   @@index([kind])
   @@index([name])
+}
+
+/// Minutes (صورتجلسه) recorded after the meeting is in progress or completed.
+model MeetingMinutes {
+  id            String   @id @default(cuid())
+  meetingId     String   @unique
+  body          String
+  publishedAt   DateTime @default(now())
+  publishedById String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  meeting     Meeting           @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  publishedBy User              @relation("minutesPublished", fields: [publishedById], references: [id], onDelete: Restrict)
+  decisions   MeetingDecision[]
+}
+
+/// A decision captured in meeting minutes (متن، مسئول، مهلت).
+model MeetingDecision {
+  id        String    @id @default(cuid())
+  minutesId String
+  sortOrder Int
+  text      String
+  ownerId   String?
+  dueAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  minutes MeetingMinutes @relation(fields: [minutesId], references: [id], onDelete: Cascade)
+  owner   User?          @relation("decisionsOwned", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([minutesId, sortOrder])
+  @@index([ownerId])
+}
+
+/// Ordered agenda (دستور جلسه) for a meeting.
+model MeetingAgendaItem {
+  id          String   @id @default(cuid())
+  meetingId   String
+  sortOrder   Int
+  title       String
+  durationMin Int?
+  ownerId     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([meetingId, sortOrder])
+  @@index([ownerId])
+}
+
+/// Files attached to a meeting. Bytes live on disk (MEETING_ATTACHMENTS_DIR); only metadata is in the DB.
+model MeetingAttachment {
+  id           String   @id @default(cuid())
+  meetingId    String
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String   @unique
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  meeting    Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation(fields: [uploadedById], references: [id], onDelete: Restrict)
+
+  @@index([meetingId])
+  @@index([uploadedById])
 }
 
 model MeetingGuest {
@@ -339,19 +585,55 @@ model MeetingEvent {
   @@index([meetingId, createdAt])
 }
 
-/// External calendar link (Google/Outlook) — separate from MeetingEvent audit log.
+/// External calendar link (Google) — one row per user who received the event.
 model MeetingCalendarSync {
   id              String   @id @default(cuid())
   meetingId       String
+  userId          String
   provider        String
   externalEventId String
   lastSyncedAt    DateTime @default(now())
   lastError       String?
 
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([meetingId, provider])
+  @@unique([meetingId, userId, provider])
   @@index([meetingId])
+  @@index([userId])
+}
+
+/// Per-user Google Calendar OAuth (refresh token encrypted at rest).
+model UserCalendarConnection {
+  id              String   @id @default(cuid())
+  userId          String
+  provider        String   @default("google")
+  refreshTokenEnc String
+  calendarId      String   @default("primary")
+  accountEmail    String?
+  connectedAt     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+/** Browser Web Push subscription (opt-in). Endpoint uniquely identifies a device. */
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model MeetingReminder {
@@ -376,6 +658,7 @@ model MeetingReminder {
 
 model Notification {
   id        String    @id @default(cuid())
+  orgId     String?
   userId    String
   type      String
   title     String
@@ -384,10 +667,12 @@ model Notification {
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org  Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
+  @@index([orgId])
 }
 
 model MeetingPolicy {
@@ -406,6 +691,7 @@ model MeetingPolicy {
 
 model AuditLog {
   id        String   @id @default(cuid())
+  orgId     String?
   actorId   String?
   action    String
   entity    String
@@ -416,9 +702,18 @@ model AuditLog {
   userAgent String?
   createdAt DateTime @default(now())
 
-  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actor User?         @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  org   Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
   @@index([entity, entityId])
   @@index([actorId, createdAt])
   @@index([createdAt])
+  @@index([orgId, createdAt])
+}
+
+// Platform singleton rows (e.g. worker heartbeat) — key/value JSON.
+model SystemMeta {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
 }

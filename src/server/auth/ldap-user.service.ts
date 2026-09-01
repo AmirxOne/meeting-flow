@@ -5,7 +5,7 @@ import { HttpError } from "@/server/auth/session";
 import type { LdapUserProfile } from "./ldap-client";
 
 /** Find existing user by email or auto-provision with EMPLOYEE role. */
-export async function findOrProvisionLdapUser(profile: LdapUserProfile) {
+export async function findOrProvisionLdapUser(profile: LdapUserProfile, orgId: string) {
   const email = profile.email.toLowerCase();
 
   const existing = await prisma.user.findUnique({
@@ -16,6 +16,9 @@ export async function findOrProvisionLdapUser(profile: LdapUserProfile) {
   if (existing) {
     if (!existing.isActive) {
       throw new HttpError(401, "حساب کاربری غیرفعال است", "ACCOUNT_DISABLED");
+    }
+    if (existing.orgId && existing.orgId !== orgId && !existing.isSuperAdmin) {
+      throw new HttpError(401, "ایمیل، شماره موبایل یا رمز عبور اشتباه است", "BAD_CREDENTIALS");
     }
 
     const needsUpdate =
@@ -52,6 +55,7 @@ export async function findOrProvisionLdapUser(profile: LdapUserProfile) {
       jobTitle: profile.jobTitle ?? null,
       department: profile.department ?? null,
       passwordHash,
+      orgId,
       roles: { create: [{ roleId: employeeRole.id }] },
     },
     include: { roles: { include: { role: true } } },
@@ -65,8 +69,10 @@ export async function findOrProvisionLdapUser(profile: LdapUserProfile) {
         email: user.email,
         jobTitle: user.jobTitle,
         kind: "INTERNAL",
+        orgId,
       },
       create: {
+        orgId,
         name: user.fullName,
         kind: "INTERNAL",
         email: user.email,

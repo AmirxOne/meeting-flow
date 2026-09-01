@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/toast";
 import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum, faStr } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 interface Person {
   id: string;
@@ -22,6 +23,7 @@ interface Person {
   phone: string | null;
   company: string | null;
   jobTitle: string | null;
+  avatarUrl?: string | null;
 }
 
 const PAGE_SIZE = 20;
@@ -273,14 +275,12 @@ export function PeopleDirectoryPage({ variant = "default" }: PeopleDirectoryPage
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        <span
-                          className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
-                            p.kind === "INTERNAL" ? "bg-ink text-white" : "bg-amber-50 text-amber-700",
-                          )}
-                        >
-                          {p.name.slice(0, 1)}
-                        </span>
+                        <UserAvatar
+                          name={p.name}
+                          src={p.avatarUrl}
+                          size="sm"
+                          variant={p.kind === "INTERNAL" ? "ink" : "amber"}
+                        />
                         <span className="font-medium">{p.name}</span>
                       </div>
                     </td>

@@ -13,12 +13,14 @@ import { useAuth } from "@/lib/auth-store";
 import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum, faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 interface AdminUser {
   id: string;
   email: string;
   fullName: string;
   phone: string | null;
+  avatarUrl?: string | null;
   jobTitle: string | null;
   department: string | null;
   isActive: boolean;
@@ -461,8 +463,13 @@ export function AdminUsersPage() {
                 {(data?.users ?? []).map((u) => (
                   <tr key={u.id} className={cn(!u.isActive && "opacity-50")}>
                     <td className="px-4 py-3">
-                      <p className="font-medium">{u.fullName}</p>
-                      <p className="text-[10px] text-ink-faint">{u.jobTitle ?? ""}</p>
+                      <div className="flex items-center gap-2.5">
+                        <UserAvatar name={u.fullName} src={u.avatarUrl} size="sm" variant="ink" />
+                        <div>
+                          <p className="font-medium">{u.fullName}</p>
+                          <p className="text-[10px] text-ink-faint">{u.jobTitle ?? ""}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3" dir="ltr">
                       <span className="text-ink-soft">{u.email}</span>

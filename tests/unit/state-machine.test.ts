@@ -38,6 +38,13 @@ describe("meeting state machine", () => {
   it("terminal states have no exits", () => {
     expect(canTransition("COMPLETED", "COMPLETED")).toBe(false);
     expect(canTransition("CANCELLED", "CANCELLED")).toBe(false);
+    expect(canTransition("CANCELLED", "CONFIRMED")).toBe(false);
+  });
+
+  it("waitlist cannot occupy the room until offered then claimed", () => {
+    expect(canTransition("WAITLISTED", "WAITLIST_OFFERED")).toBe(true);
+    expect(canTransition("WAITLIST_OFFERED", "CONFIRMED")).toBe(true);
+    expect(canTransition("WAITLISTED", "CONFIRMED")).toBe(false);
   });
 
   it("assertTransition throws TransitionError on invalid", () => {

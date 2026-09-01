@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /** Room live status + timeline for a date. */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireUser();
+    const user = await requireUser();
     const { id } = await params;
     const dateIso = req.nextUrl.searchParams.get("date");
     const dayStart = dateIso
@@ -23,8 +23,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         })();
     const dayEnd = new Date(dayStart.getTime() + 86400000);
 
-    const room = await prisma.meetingRoom.findUnique({
-      where: { id },
+    const room = await prisma.meetingRoom.findFirst({
+      where: { id, orgId: user.orgId },
       include: {
         branch: { select: { id: true, name: true } },
         floor: { select: { name: true, number: true } },
@@ -36,6 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const meetings = await prisma.meeting.findMany({
       where: {
+        orgId: user.orgId,
         roomId: id,
         status: { in: ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "RESCHEDULED", "IN_PROGRESS", "COMPLETED"] },
         startAt: { lt: dayEnd },

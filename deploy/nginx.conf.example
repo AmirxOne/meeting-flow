@@ -1,0 +1,49 @@
+# nginx — TLS reverse proxy for مهرسا (on-prem)
+# Install: apt install nginx certbot python3-certbot-nginx
+# Replace meetings.example.com, then:
+#   sudo certbot --nginx -d meetings.example.com
+#   sudo nginx -t && sudo systemctl reload nginx
+
+upstream meetinghub_app {
+    server 127.0.0.1:3100;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name meetings.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name meetings.example.com;
+
+    # certbot fills these paths after --nginx
+    ssl_certificate     /etc/letsencrypt/live/meetings.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/meetings.example.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    client_max_body_size 12m;
+
+    location / {
+        proxy_pass http://meetinghub_app;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 120s;
+    }
+
+    # Optional: external uptime monitor (does not require auth)
+    location = /api/health {
+        proxy_pass http://meetinghub_app;
+        access_log off;
+    }
+}

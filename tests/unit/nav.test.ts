@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { NAV, groupedVisibleNav, isNavActive } from "@/lib/nav";
+import { NAV, groupedVisibleNav, isNavActive, isMobileNavActive, MOBILE_NAV } from "@/lib/nav";
 
 const permsOf =
   (...keys: string[]) =>
@@ -68,5 +68,19 @@ describe("isNavActive", () => {
     expect(isNavActive("/admin/audit-logs", "/admin", siblings)).toBe(false);
     expect(isNavActive("/admin/audit-logs", "/admin/audit-logs", siblings)).toBe(true);
     expect(isNavActive("/admin/users", "/admin", siblings)).toBe(true);
+  });
+});
+
+describe("mobile bottom nav", () => {
+  it("includes جلسات من as a primary tab", () => {
+    expect(MOBILE_NAV.map((i) => i.href)).toContain("/meetings");
+    expect(MOBILE_NAV.find((i) => i.href === "/meetings")?.label).toBe("جلسات من");
+  });
+
+  it("highlights meetings list and detail, not the new-meeting wizard", () => {
+    expect(isMobileNavActive("/meetings", "/meetings")).toBe(true);
+    expect(isMobileNavActive("/meetings/abc", "/meetings")).toBe(true);
+    expect(isMobileNavActive("/meetings/new", "/meetings")).toBe(false);
+    expect(isMobileNavActive("/meetings/new", "/meetings/new")).toBe(true);
   });
 });

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
+
 /** Root-level fallback — renders when even the layout throws (no app shell). */
 export default function GlobalError({
   error,
@@ -8,6 +11,9 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    Sentry.captureException(error);
+  }, [error]);
   return (
     <html lang="fa" dir="rtl">
       <body

@@ -1,31 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  LayoutDashboard, CalendarDays, Bell,
+  Bell,
   MessageQuestion,
   Search, LogOut, Menu, X, Plus, ChevronDown, UserCircle,
 } from "@/components/ui/icon";
 import type { AppIcon } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
-import { groupedVisibleNav, isNavActive } from "@/lib/nav";
+import { groupedVisibleNav, isNavActive, isMobileNavActive, MOBILE_NAV } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { replayCurrentTour } from "@/components/guided-tours";
 import { OrgBrandMark, BrandLogoSkeleton } from "@/components/layout/org-brand-mark";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { easeOut } from "@/components/ui/motion";
 import { Tooltip } from "@/components/ui/tooltip";
-
-const MOBILE_NAV = [
-  { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard },
-  { href: "/calendar", label: "تقویم", icon: CalendarDays },
-  { href: "/meetings/new", label: "جلسه جدید", icon: Plus },
-  { href: "/notifications", label: "اعلان‌ها", icon: Bell },
-];
 
 function useUnreadCount() {
   const { data } = useQuery({
@@ -126,26 +120,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
         <nav data-tour="nav" className="flex-1 overflow-y-auto px-2.5 py-3">
-          <LayoutGroup id="desktop-nav">
-            {navGroups.map((group) => (
-              <div key={group.id} className="mb-4 last:mb-0">
-                <p className="mb-1 px-2 text-[10px] font-medium text-ink-faint">{group.label}</p>
-                <div className="space-y-0.5">
-                  {group.items.map((item) => (
-                    <SidebarNavLink
-                      key={item.href}
-                      href={item.href}
-                      label={item.label}
-                      icon={item.icon}
-                      active={isNavActive(pathname, item.href, siblingHrefs)}
-                      unread={item.href === "/notifications" ? unread : 0}
-                      layoutId="nav-active-rail"
-                    />
-                  ))}
-                </div>
+          {navGroups.map((group) => (
+            <div key={group.id} className="mb-4 last:mb-0">
+              <p className="mb-1 px-2 text-[10px] font-medium text-ink-faint">{group.label}</p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <SidebarNavLink
+                    key={item.href}
+                    href={item.href}
+                    label={item.label}
+                    icon={item.icon}
+                    active={isNavActive(pathname, item.href, siblingHrefs)}
+                    unread={item.href === "/notifications" ? unread : 0}
+                  />
+                ))}
               </div>
-            ))}
-          </LayoutGroup>
+            </div>
+          ))}
         </nav>
         <div className="border-t border-line p-2.5">
           <Link
@@ -187,9 +178,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setUserMenu((v) => !v)}
               className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-paper-soft"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-ink text-[12px] font-bold text-white">
-                {me.fullName.slice(0, 1)}
-              </div>
+              <UserAvatar name={me.fullName} src={me.avatarUrl} size="sm" variant="ink" />
               <div className="hidden text-right sm:block">
                 <p className="text-[13px] font-medium leading-4">{me.fullName}</p>
                 <p className="text-[10px] text-ink-faint">
@@ -294,20 +283,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 right-0 left-0 z-40 flex h-16 items-stretch border-t border-line bg-white lg:hidden">
+      <nav className="fixed bottom-0 right-0 left-0 z-40 flex h-16 items-stretch border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
         {MOBILE_NAV.map((item) => {
-          const active = pathname === item.href;
+          const active = isMobileNavActive(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "relative flex flex-1 flex-col items-center justify-center gap-1 text-[10px]",
+                "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 text-center text-[10px] leading-tight",
                 active ? "text-ink" : "text-ink-faint",
               )}
             >
-              <item.icon className="h-5 w-5" />
-              {item.label}
+              <item.icon className="h-5 w-5 shrink-0" />
+              <span className="max-w-full truncate">{item.label}</span>
               {item.href === "/notifications" && unread > 0 && (
                 <span className="absolute right-1/2 top-1.5 flex h-4 min-w-4 translate-x-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
                   {faNum(unread)}
@@ -327,33 +316,24 @@ function SidebarNavLink({
   icon: Icon,
   active,
   unread = 0,
-  layoutId,
 }: {
   href: string;
   label: string;
   icon: AppIcon;
   active: boolean;
   unread?: number;
-  layoutId?: string;
 }) {
   return (
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "group relative flex items-center gap-2.5 overflow-hidden rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors",
+        "group flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors",
         active
           ? "bg-white text-ink shadow-[0_1px_2px_rgba(13,13,13,0.06)]"
           : "text-ink-soft hover:bg-white/70 hover:text-ink",
       )}
     >
-      {active && layoutId && (
-        <motion.span
-          layoutId={layoutId}
-          className="absolute top-2 bottom-2 right-0 w-[3px] rounded-full bg-ink"
-          transition={easeOut}
-        />
-      )}
       <span
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",

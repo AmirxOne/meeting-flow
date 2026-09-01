@@ -22,10 +22,10 @@ async function assertManagerExists(managerId: string | null | undefined) {
 /** GET /api/rooms/:id — detail + today's timeline (existing live status). */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requireUser();
+    const user = await requireUser();
     const { id } = await params;
-    const room = await prisma.meetingRoom.findUnique({
-      where: { id },
+    const room = await prisma.meetingRoom.findFirst({
+      where: { id, orgId: user.orgId },
       include: {
         branch: { select: { id: true, name: true } },
         floor: { select: { name: true, number: true } },
@@ -47,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const input = updateSchema.parse(await req.json().catch(() => ({})));
 
-    const room = await prisma.meetingRoom.findUnique({ where: { id } });
+    const room = await prisma.meetingRoom.findFirst({ where: { id, orgId: actor.orgId } });
     if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");
     assertRoomManageAccess(actor, room);
 
@@ -108,8 +108,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const actor = await requirePermission("room:delete");
     const { id } = await params;
 
-    const room = await prisma.meetingRoom.findUnique({
-      where: { id },
+    const room = await prisma.meetingRoom.findFirst({
+      where: { id, orgId: actor.orgId },
       include: { meetings: { where: { status: { in: ["PENDING_APPROVAL", "APPROVED", "CONFIRMED", "RESCHEDULED", "IN_PROGRESS"] } } } },
     });
     if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");

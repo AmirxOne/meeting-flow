@@ -10,8 +10,9 @@ export const dynamic = "force-dynamic";
 /** GET /api/admin/organization — org profile (org:manage). */
 export async function GET() {
   try {
-    await requirePermission("org:manage");
-    const organization = await prisma.organization.findFirst({
+    const actor = await requirePermission("org:manage");
+    const organization = await prisma.organization.findUnique({
+      where: { id: actor.orgId },
       select: {
         id: true,
         name: true,
@@ -36,7 +37,7 @@ export async function PATCH(req: NextRequest) {
     const actor = await requirePermission("org:manage");
     const input = organizationUpdateSchema.parse(await req.json().catch(() => ({})));
 
-    const existing = await prisma.organization.findFirst();
+    const existing = await prisma.organization.findUnique({ where: { id: actor.orgId } });
     if (!existing) {
       return ok({ organization: null, updated: false });
     }

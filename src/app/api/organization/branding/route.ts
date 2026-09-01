@@ -13,9 +13,10 @@ const DEFAULT_BRANDING = {
 /** GET /api/organization/branding — read-only org name + logo + timezone for authenticated users. */
 export async function GET() {
   try {
-    await requireUser();
-    const organization = await prisma.organization.findFirst({
-      select: { name: true, logoUrl: true, timezone: true },
+    const user = await requireUser();
+    const organization = await prisma.organization.findUnique({
+      where: { id: user.orgId },
+      select: { name: true, logoUrl: true, timezone: true, slug: true },
     });
     if (!organization) {
       return ok({ branding: DEFAULT_BRANDING });
@@ -25,6 +26,7 @@ export async function GET() {
         name: organization.name,
         logoUrl: organization.logoUrl,
         timezone: organization.timezone?.trim() || DEFAULT_BRANDING.timezone,
+        slug: organization.slug,
       },
     });
   } catch (e) {

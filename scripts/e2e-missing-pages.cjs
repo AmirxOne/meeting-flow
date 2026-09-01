@@ -74,6 +74,7 @@ async function selectListboxOption(page, triggerLocator, textIncludes) {
     const tzBtn = page.locator('label:has-text("منطقه زمانی")').locator("..").locator('button[aria-haspopup="listbox"]');
     check("admin/settings timezone select", (await tzBtn.count()) >= 1);
     check("admin/settings save button", (await page.locator('button:has-text("ذخیره تغییرات")').count()) >= 1);
+    check("admin/settings sms card", (await page.locator('[data-testid="sms-pilot-card"]').count()) >= 1);
 
     // ── /users (colleagues) ─────────────────────────────────────────
     await gotoApp(page, "/users", admin.userId);

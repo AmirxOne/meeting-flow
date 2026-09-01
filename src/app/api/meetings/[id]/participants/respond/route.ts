@@ -14,13 +14,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const input = participantRespondSchema.parse(await req.json().catch(() => ({})));
 
-    const meeting = await prisma.meeting.findUnique({ where: { id } });
+    const meeting = await prisma.meeting.findFirst({ where: { id, orgId: user.orgId } });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
 
     const participant = await respondToMeeting(
       id,
       input.responseStatus,
-      { actorId: user.id },
+      { actorId: user.id, orgId: user.orgId },
       input.userId,
     );
 

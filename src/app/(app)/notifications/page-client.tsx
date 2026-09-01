@@ -18,6 +18,7 @@ import {
   MessageCircle,
   PlayCircle,
   Clock,
+  ScrollText,
   type AppIcon,
 } from "@/components/ui/icon";
 import { api } from "@/lib/api";
@@ -52,6 +53,10 @@ const NOTIFICATION_META: Record<
   MEETING_REMINDER: { label: "یادآور", icon: Bell, tone: "warn" },
   MEETING_STARTED: { label: "شروع جلسه", icon: PlayCircle, tone: "success" },
   MEETING_EXTENDED: { label: "تمدید جلسه", icon: Clock, tone: "info" },
+  MINUTES_PUBLISHED: { label: "صورتجلسه", icon: ScrollText, tone: "info" },
+  WAITLIST_JOINED: { label: "لیست انتظار", icon: Clock, tone: "info" },
+  WAITLIST_OFFERED: { label: "اتاق آزاد شد", icon: CheckCircle2, tone: "success" },
+  WAITLIST_EXPIRED: { label: "مهلت لیست انتظار", icon: Ban, tone: "warn" },
 };
 
 const TONE_CLASS = {

@@ -5,6 +5,13 @@ import {
   PERMISSION_KEYS,
   type PermissionKey,
 } from "@/server/auth/permissions";
+import {
+  ORG_COOKIE,
+  ORG_SLUG_HEADER,
+  SAMPLE_ORG_ID,
+  SAMPLE_ORG_SLUG,
+  requestedOrgSlug,
+} from "@/lib/org-slug";
 
 export const SESSION_COOKIE = "mh_session";
 
@@ -16,6 +23,11 @@ export interface AuthUser {
   avatarUrl: string | null;
   jobTitle: string | null;
   department: string | null;
+  /** Active tenant for data queries (resolved; platform admin may switch via slug). */
+  orgId: string;
+  orgSlug: string;
+  /** DB `isSuperAdmin` — platform operator, not an org ADMIN. */
+  isPlatformAdmin: boolean;
   isSuperAdmin: boolean;
   branchId: string | null;
   permissions: Set<string>;
@@ -32,7 +44,7 @@ export function newSessionToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-export async function createSession(userId: string): Promise<string> {
+export async function createSession(userId: string, orgId?: string | null): Promise<string> {
   const hdrs = await headers();
   const token = newSessionToken();
   const ttlHours = Number(process.env.SESSION_TTL_HOURS ?? 72);
@@ -41,6 +53,7 @@ export async function createSession(userId: string): Promise<string> {
     data: {
       token: hashToken(token),
       userId,
+      orgId: orgId ?? undefined,
       expiresAt,
       ip: hdrs.get("x-forwarded-for") ?? undefined,
       userAgent: hdrs.get("user-agent")?.slice(0, 250) ?? undefined,
@@ -53,6 +66,17 @@ export async function destroySession(token: string): Promise<void> {
   await prisma.session.deleteMany({ where: { token: hashToken(token) } });
 }
 
+/** Drop other devices' sessions. Used when 2FA is newly enabled. */
+export async function destroyOtherSessions(userId: string, keepRawToken?: string): Promise<void> {
+  if (keepRawToken) {
+    await prisma.session.deleteMany({
+      where: { userId, token: { not: hashToken(keepRawToken) } },
+    });
+    return;
+  }
+  await prisma.session.deleteMany({ where: { userId } });
+}
+
 export async function getSessionUser(): Promise<AuthUser | null> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
@@ -63,6 +87,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
     include: {
       user: {
         include: {
+          org: { select: { id: true, slug: true } },
           roles: {
             include: {
               role: {
@@ -96,7 +121,45 @@ export async function getSessionUser(): Promise<AuthUser | null> {
     }
   }
 
-  const isSuperAdmin = session.user.isSuperAdmin || roleKeys.includes("SUPER_ADMIN");
+  const isPlatformAdmin = session.user.isSuperAdmin;
+  const isSuperAdmin = isPlatformAdmin || roleKeys.includes("SUPER_ADMIN");
+
+  let orgId = session.user.orgId;
+  let orgSlug = session.user.org?.slug ?? null;
+
+  if (isPlatformAdmin) {
+    const hdrs = await headers();
+    const requested = requestedOrgSlug({
+      header: hdrs.get(ORG_SLUG_HEADER),
+      host: hdrs.get("host"),
+      cookie: store.get(ORG_COOKIE)?.value ?? null,
+    });
+    if (requested) {
+      const switched = await prisma.organization.findUnique({
+        where: { slug: requested },
+        select: { id: true, slug: true },
+      });
+      if (switched) {
+        orgId = switched.id;
+        orgSlug = switched.slug;
+      }
+    }
+    if (!orgId) {
+      const sample =
+        (await prisma.organization.findUnique({
+          where: { slug: SAMPLE_ORG_SLUG },
+          select: { id: true, slug: true },
+        })) ??
+        (await prisma.organization.findUnique({
+          where: { id: SAMPLE_ORG_ID },
+          select: { id: true, slug: true },
+        }));
+      orgId = sample?.id ?? SAMPLE_ORG_ID;
+      orgSlug = sample?.slug ?? SAMPLE_ORG_SLUG;
+    }
+  }
+
+  if (!orgId || !orgSlug) return null;
 
   return {
     id: session.user.id,
@@ -106,6 +169,9 @@ export async function getSessionUser(): Promise<AuthUser | null> {
     avatarUrl: session.user.avatarUrl,
     jobTitle: session.user.jobTitle,
     department: session.user.department,
+    orgId,
+    orgSlug,
+    isPlatformAdmin,
     isSuperAdmin,
     branchId: session.user.branchId,
     permissions: isSuperAdmin
@@ -130,6 +196,7 @@ export class HttpError extends Error {
     public status: number,
     message: string,
     public code?: string,
+    public extra?: unknown,
   ) {
     super(message);
   }

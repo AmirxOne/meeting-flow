@@ -8,9 +8,13 @@ import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/compone
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
-import { cn, faNum } from "@/lib";
+import { cn, faNum, formatJalali } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
 import { validateReminderOffsets } from "@/lib/reminder-offsets";
+import { Select } from "@/components/ui/select";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { Modal } from "@/components/ui/modal";
+import { DEFAULT_HOLIDAY_BOOKING, type HolidayBookingMode } from "@/lib/holiday";
 
 interface Policy {
   id: string;
@@ -29,6 +33,11 @@ const POLICY_FA: Record<string, { label: string; type: "bool" | "number" | "list
   maxDurationMin: { label: "حداکثر مدت جلسه", type: "number", unit: "دقیقه" },
   defaultReminderOffsets: { label: "یادآورها (دقیقه قبل از جلسه)", type: "list" },
 };
+
+const HOLIDAY_MODE_OPTIONS = [
+  { value: "BLOCK", label: "رزرو ممنوع", hint: "در روز تعطیل اتاق رزرو نمی‌شود" },
+  { value: "REQUIRE_APPROVAL", label: "نیاز به تأیید", hint: "رزرو ثبت می‌شود ولی باید تأیید شود" },
+];
 
 function ReminderOffsetsEditor({
   value,
@@ -152,6 +161,9 @@ export function AdminPoliciesPage() {
       await api("/api/admin/policies", { method: "PATCH", json: { key, value } });
       push("سیاست ذخیره شد", "success");
       qc.invalidateQueries({ queryKey: ["policies"] });
+      if (key === "holidayBooking") {
+        qc.invalidateQueries({ queryKey: ["org-holidays"] });
+      }
     } catch (e) {
       push((e as ApiError).message, "error");
     } finally {
@@ -206,7 +218,7 @@ export function AdminPoliciesPage() {
           {policies.length === 0 && (
             <EmptyState title="سیاستی ثبت نشده است" description="قواعد پیش‌فرض سیستم فعال است. با افزودن سیاست، رفتار تأیید جلسات قابل تنظیم می‌شود." />
           )}
-          {policies.map((p) => {
+          {policies.filter((p) => p.key !== "holidayBooking").map((p) => {
             const meta = POLICY_FA[p.key] ?? { label: p.key, type: "bool" as const };
             const isList = meta.type === "list";
             return (
@@ -250,6 +262,164 @@ export function AdminPoliciesPage() {
           })}
         </CardBody>
       </Card>
+
+      <HolidaysCard
+        bookingMode={
+          (policies.find((p) => p.key === "holidayBooking")?.value as HolidayBookingMode | undefined) ??
+          DEFAULT_HOLIDAY_BOOKING
+        }
+        onMode={(mode) => update("holidayBooking", mode)}
+        modeBusy={savingKey === "holidayBooking"}
+      />
     </div>
+  );
+}
+
+function HolidaysCard({
+  bookingMode,
+  onMode,
+  modeBusy,
+}: {
+  bookingMode: HolidayBookingMode;
+  onMode: (mode: HolidayBookingMode) => void;
+  modeBusy: boolean;
+}) {
+  const qc = useQueryClient();
+  const { push } = useToast();
+  const [open, setOpen] = useState(false);
+  const [dateIso, setDateIso] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["org-holidays"],
+    queryFn: () =>
+      api<{ holidays: { id: string; dateIso: string; name: string }[]; bookingMode: HolidayBookingMode }>(
+        "/api/holidays",
+      ),
+  });
+
+  const holidays = data?.holidays ?? [];
+
+  async function addHoliday() {
+    if (!dateIso || name.trim().length < 2) {
+      push("تاریخ و نام تعطیلی را وارد کنید", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api("/api/admin/holidays", { method: "POST", json: { dateIso, name: name.trim() } });
+      push("تعطیلی ثبت شد", "success");
+      setOpen(false);
+      setDateIso("");
+      setName("");
+      qc.invalidateQueries({ queryKey: ["org-holidays"] });
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeHoliday(id: string) {
+    setBusy(true);
+    try {
+      await api(`/api/admin/holidays/${id}`, { method: "DELETE" });
+      push("تعطیلی حذف شد", "success");
+      qc.invalidateQueries({ queryKey: ["org-holidays"] });
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card data-tour="org-holidays">
+      <CardHeader
+        title="تعطیلات و روزهای مسدود"
+        subtitle="تاریخ‌ها شمسی انتخاب می‌شوند؛ رزرو اتاق در این روزها طبق سیاست زیر است"
+      />
+      <CardBody className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[13px] font-medium">سیاست رزرو در تعطیل</p>
+          <Select
+            value={bookingMode}
+            disabled={modeBusy}
+            onChange={(v) => onMode(v as HolidayBookingMode)}
+            options={HOLIDAY_MODE_OPTIONS}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-[12px] text-ink-soft">{faNum(holidays.length)} روز ثبت‌شده</p>
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            افزودن تعطیلی
+          </Button>
+        </div>
+        {isLoading ? (
+          <SkeletonBlock className="h-16 w-full" />
+        ) : holidays.length === 0 ? (
+          <EmptyState
+            title="تعطیلی ثبت نشده"
+            description="نوروز، تعطیلات رسمی یا روز مسدود سازمان را با انتخابگر شمسی اضافه کنید."
+          />
+        ) : (
+          <ul className="divide-y divide-line rounded-md border border-line">
+            {holidays.map((h) => (
+              <li key={h.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                <div>
+                  <p className="text-[13px] font-medium">{h.name}</p>
+                  <p className="text-[11px] text-ink-faint">
+                    {formatJalali(new Date(`${h.dateIso}T12:00:00`), { monthName: true })}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  aria-label="حذف تعطیلی"
+                  onClick={() => removeHoliday(h.id)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-soft hover:bg-paper-soft disabled:opacity-40"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardBody>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="تعطیلی جدید"
+        subtitle="تاریخ را با تقویم شمسی انتخاب کنید"
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={addHoliday} loading={busy}>
+              ثبت
+            </Button>
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              انصراف
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium">تاریخ (شمسی)</label>
+            <JalaliDatePicker value={dateIso} onChange={setDateIso} />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium">نام</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="مثلاً نوروز"
+              className="h-11 w-full rounded-md border border-[#d9d9e0] px-3.5 text-[13px] outline-none focus:border-ink"
+            />
+          </div>
+        </div>
+      </Modal>
+    </Card>
   );
 }

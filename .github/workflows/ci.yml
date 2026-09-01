@@ -5,21 +5,125 @@ on:
     branches: [main]
   pull_request:
 
+env:
+  DATABASE_URL: postgresql://meetinghub:meetinghub@localhost:5432/meetinghub?schema=public
+  REDIS_URL: redis://localhost:6379
+  SESSION_SECRET: ci-session-secret-for-github-actions-tests
+  APP_URL: http://localhost:3100
+  NOTIFICATION_SMS_PROVIDER: mock
+  NOTIFICATION_EMAIL_PROVIDER: mock
+  REMINDER_CHANNELS: IN_APP
+  AUTH_MODE: local
+  MEETING_ATTACHMENTS_DIR: ./data/attachments
+
 jobs:
-  ci:
+  typecheck-unit:
+    name: Typecheck + unit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec prisma generate
       - run: pnpm run typecheck
-      - run: pnpm run test
+      - run: pnpm run test:unit
+
+  integration:
+    name: Integration (Postgres + app)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16-alpine
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+          POSTGRES_USER: meetinghub
+          POSTGRES_PASSWORD: meetinghub
+          POSTGRES_DB: meetinghub
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U meetinghub -d meetinghub"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
+
+      - name: Migrate database
+        run: pnpm exec prisma migrate deploy
+
+      - name: Apply room exclusion constraint
+        run: pnpm exec prisma db execute --file prisma/sql/room-exclusion.sql --schema prisma/schema.prisma
+
+      - name: Seed database
+        run: pnpm db:seed
+
+      - name: Prepare attachment storage
+        run: mkdir -p data/attachments
+
+      - name: Build application
+        run: pnpm build
+        env:
+          NODE_ENV: production
+
+      - name: Start application
+        run: |
+          pnpm start > /tmp/meetinghub-app.log 2>&1 &
+          echo $! > /tmp/meetinghub-app.pid
+
+      - name: Wait for application
+        run: |
+          for i in $(seq 1 90); do
+            if curl -sf "http://localhost:3100/api/auth/config" >/dev/null; then
+              echo "Application ready (attempt $i)"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Application failed to start"
+          tail -200 /tmp/meetinghub-app.log || true
+          exit 1
+
+      - name: Integration tests
+        run: pnpm run test:integration
+        env:
+          TEST_BASE: http://localhost:3100
+          NODE_ENV: production
+
+      - name: Stop application
+        if: always()
+        run: |
+          if [ -f /tmp/meetinghub-app.pid ]; then
+            kill "$(cat /tmp/meetinghub-app.pid)" 2>/dev/null || true
+          fi

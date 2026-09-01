@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await requirePermission("audit:view");
+    const actor = await requirePermission("audit:view");
     const sp = req.nextUrl.searchParams;
     const page = Math.max(1, Number(sp.get("page") ?? 1));
     const pageSize = Math.min(100, Number(sp.get("pageSize") ?? 50));
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     const actorId = sp.get("actorId");
 
     const where = {
+      orgId: actor.orgId,
       ...(entity ? { entity } : {}),
       ...(action ? { action } : {}),
       ...(actorId ? { actorId } : {}),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2, MapPin, Phone, User, Plus, Pencil, Trash2, Power, Layers } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
@@ -21,7 +21,9 @@ interface Branch {
   phone: string | null;
   isActive: boolean;
   manager: { id: string; fullName: string } | null;
-  floors: { id: string; name: string; number: number }[];
+  wayfindingText: string | null;
+  hasMap: boolean;
+  floors: { id: string; name: string; number: number; wayfindingText: string | null; hasMap: boolean }[];
   _count: { rooms: number; users: number; meetings: number };
 }
 
@@ -38,11 +40,19 @@ export function BranchesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Branch | null>(null);
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ name: "", address: "", phone: "", managerId: "" });
+  const [form, setForm] = useState({ name: "", address: "", phone: "", managerId: "", wayfindingText: "" });
   const [floorBranch, setFloorBranch] = useState<Branch | null>(null);
-  const [floorEditing, setFloorEditing] = useState<{ id: string; name: string; number: number } | null>(null);
-  const [floorForm, setFloorForm] = useState({ name: "", number: "" });
+  const [floorEditing, setFloorEditing] = useState<{
+    id: string;
+    name: string;
+    number: number;
+    wayfindingText: string | null;
+    hasMap: boolean;
+  } | null>(null);
+  const [floorForm, setFloorForm] = useState({ name: "", number: "", wayfindingText: "" });
   const [floorBusy, setFloorBusy] = useState(false);
+  const [mapBusy, setMapBusy] = useState(false);
+  const [mapRev, setMapRev] = useState(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["branches"],
@@ -60,7 +70,7 @@ export function BranchesPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ name: "", address: "", phone: "", managerId: "" });
+    setForm({ name: "", address: "", phone: "", managerId: "", wayfindingText: "" });
     setShowForm(true);
   }
 
@@ -71,6 +81,7 @@ export function BranchesPage() {
       address: b.address ?? "",
       phone: b.phone ?? "",
       managerId: b.manager?.id ?? "",
+      wayfindingText: b.wayfindingText ?? "",
     });
     setShowForm(true);
   }
@@ -83,6 +94,7 @@ export function BranchesPage() {
         address: form.address.trim() || undefined,
         phone: form.phone.trim() || undefined,
         managerId: form.managerId || null,
+        wayfindingText: form.wayfindingText.trim() || null,
       };
       if (editing) {
         await api(`/api/branches/${editing.id}`, { method: "PATCH", json: payload });
@@ -127,12 +139,12 @@ export function BranchesPage() {
   function openFloors(b: Branch) {
     setFloorBranch(b);
     setFloorEditing(null);
-    setFloorForm({ name: "", number: "" });
+    setFloorForm({ name: "", number: "", wayfindingText: "" });
   }
 
-  function openFloorEdit(f: { id: string; name: string; number: number }) {
+  function openFloorEdit(f: { id: string; name: string; number: number; wayfindingText: string | null; hasMap: boolean }) {
     setFloorEditing(f);
-    setFloorForm({ name: f.name, number: String(f.number) });
+    setFloorForm({ name: f.name, number: String(f.number), wayfindingText: f.wayfindingText ?? "" });
   }
 
   async function saveFloor() {
@@ -144,7 +156,11 @@ export function BranchesPage() {
     }
     setFloorBusy(true);
     try {
-      const payload = { name: floorForm.name.trim(), number };
+      const payload = {
+        name: floorForm.name.trim(),
+        number,
+        wayfindingText: floorForm.wayfindingText.trim() || null,
+      };
       if (floorEditing) {
         await api(`/api/branches/${floorBranch.id}/floors/${floorEditing.id}`, {
           method: "PATCH",
@@ -156,7 +172,7 @@ export function BranchesPage() {
         push("طبقه اضافه شد", "success");
       }
       setFloorEditing(null);
-      setFloorForm({ name: "", number: "" });
+      setFloorForm({ name: "", number: "", wayfindingText: "" });
       qc.invalidateQueries({ queryKey: ["branches"] });
       const refreshed = await api<{ branches: Branch[] }>("/api/branches");
       const next = refreshed.branches.find((x) => x.id === floorBranch.id);
@@ -176,7 +192,7 @@ export function BranchesPage() {
       await api(`/api/branches/${floorBranch.id}/floors/${f.id}`, { method: "DELETE" });
       push("طبقه حذف شد", "success");
       setFloorEditing(null);
-      setFloorForm({ name: "", number: "" });
+      setFloorForm({ name: "", number: "", wayfindingText: "" });
       qc.invalidateQueries({ queryKey: ["branches"] });
       const refreshed = await api<{ branches: Branch[] }>("/api/branches");
       const next = refreshed.branches.find((x) => x.id === floorBranch.id);
@@ -188,6 +204,47 @@ export function BranchesPage() {
     }
   }
 
+  async function refreshBranchState(branchId: string) {
+    qc.invalidateQueries({ queryKey: ["branches"] });
+    const refreshed = await api<{ branches: Branch[] }>("/api/branches");
+    const next = refreshed.branches.find((x) => x.id === branchId);
+    if (next) {
+      setFloorBranch((cur) => (cur?.id === branchId ? next : cur));
+      setEditing((cur) => (cur?.id === branchId ? next : cur));
+    }
+    setMapRev((n) => n + 1);
+  }
+
+  async function uploadMap(url: string, file: File | undefined) {
+    if (!file) return;
+    setMapBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      await api(url, { method: "POST", body: fd });
+      push("نقشه ذخیره شد", "success");
+      if (editing) await refreshBranchState(editing.id);
+      else if (floorBranch) await refreshBranchState(floorBranch.id);
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setMapBusy(false);
+    }
+  }
+
+  async function deleteMap(url: string, branchId: string) {
+    setMapBusy(true);
+    try {
+      await api(url, { method: "DELETE" });
+      push("نقشه حذف شد", "success");
+      await refreshBranchState(branchId);
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setMapBusy(false);
+    }
+  }
+
   // While the floors modal is open, trust floorBranch (refreshed after each mutation).
   // Using branches[] here caused stale React Query cache to override fresh floorBranch.floors.
   const floorList = floorBranch?.floors ?? [];
@@ -195,7 +252,12 @@ export function BranchesPage() {
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">شعب</h1>
+        <div>
+          <h1 className="text-lg font-bold">شعب</h1>
+          <p className="mt-1 text-[12px] text-ink-soft" data-tour="branch-map">
+            راهنمای متنی و نقشهٔ مهمان را از ویرایش شعبه (دسکتاپ) یا طبقات تنظیم کنید.
+          </p>
+        </div>
         {canManage && (
           <Button size="sm" onClick={openCreate}>
             <Plus className="h-4 w-4" />
@@ -251,6 +313,29 @@ export function BranchesPage() {
             />
           </div>
         )}
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-[11px] text-ink-soft">راهنمای متنی مهمان (مسیر رسیدن به اتاق‌ها)</label>
+          <textarea
+            value={form.wayfindingText}
+            onChange={(e) => setForm({ ...form, wayfindingText: e.target.value })}
+            rows={3}
+            maxLength={500}
+            placeholder="مثلاً از لابی آسانسور سمت راست…"
+            className="w-full rounded-md border border-line px-3 py-2 text-[12px] outline-none focus:border-ink"
+          />
+        </div>
+        {editing && (
+          <div className="sm:col-span-2">
+            <MapFileField
+              label="نقشه شعبه"
+              hasMap={editing.hasMap}
+              previewSrc={`/api/branches/${editing.id}/map?v=${mapRev}`}
+              busy={mapBusy}
+              onUpload={(file) => uploadMap(`/api/branches/${editing.id}/map`, file)}
+              onDelete={() => deleteMap(`/api/branches/${editing.id}/map`, editing.id)}
+            />
+          </div>
+        )}
         
         </div>
       </Modal>
@@ -282,7 +367,13 @@ export function BranchesPage() {
               value={floorForm.number}
               onChange={(number) => setFloorForm({ ...floorForm, number })}
             />
-            <div className="flex gap-2">
+            <input
+              placeholder="راهنمای این طبقه (اختیاری)"
+              value={floorForm.wayfindingText}
+              onChange={(e) => setFloorForm({ ...floorForm, wayfindingText: e.target.value })}
+              className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink sm:col-span-3"
+            />
+            <div className="flex gap-2 sm:col-span-3">
               <Button
                 data-testid="floor-save-btn"
                 onClick={saveFloor}
@@ -296,7 +387,7 @@ export function BranchesPage() {
                   variant="ghost"
                   onClick={() => {
                     setFloorEditing(null);
-                    setFloorForm({ name: "", number: "" });
+                    setFloorForm({ name: "", number: "", wayfindingText: "" });
                   }}
                 >
                   انصراف
@@ -318,9 +409,28 @@ export function BranchesPage() {
                 >
                   <div>
                     <p className="text-[13px] font-medium">{f.name}</p>
-                    <p className="text-[11px] text-ink-soft">شماره {faNum(f.number)}</p>
+                    <p className="text-[11px] text-ink-soft">
+                      شماره {faNum(f.number)}
+                      {f.hasMap ? " · نقشه دارد" : ""}
+                    </p>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex items-center gap-1">
+                    {floorBranch && (
+                      <div className="hidden md:block">
+                        <MapFileField
+                          compact
+                          hasMap={f.hasMap}
+                          previewSrc={`/api/branches/${floorBranch.id}/floors/${f.id}/map?v=${mapRev}`}
+                          busy={mapBusy}
+                          onUpload={(file) =>
+                            uploadMap(`/api/branches/${floorBranch.id}/floors/${f.id}/map`, file)
+                          }
+                          onDelete={() =>
+                            deleteMap(`/api/branches/${floorBranch.id}/floors/${f.id}/map`, floorBranch.id)
+                          }
+                        />
+                      </div>
+                    )}
                     <IconTipButton
                       tip="ویرایش"
                       onClick={() => openFloorEdit(f)}
@@ -461,6 +571,73 @@ export function BranchesPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function MapFileField({
+  label,
+  hasMap,
+  previewSrc,
+  busy,
+  compact,
+  onUpload,
+  onDelete,
+}: {
+  label?: string;
+  hasMap: boolean;
+  previewSrc: string;
+  busy: boolean;
+  compact?: boolean;
+  onUpload: (file: File | undefined) => void;
+  onDelete: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div className={cn("space-y-2", compact && "space-y-1")}>
+      {label && <p className="text-[11px] font-medium text-ink-soft">{label}</p>}
+      <p className="text-[11px] text-ink-faint md:hidden">آپلود نقشه فقط از رایانه رومیزی ممکن است.</p>
+      <div className="hidden md:block space-y-2">
+        {hasMap && !compact && (
+          // Admin preview of uploaded plan — API stream, not a static asset.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={previewSrc}
+            alt={label ?? "نقشه"}
+            className="max-h-40 w-full rounded-md border border-line bg-white object-contain"
+          />
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            loading={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            {hasMap ? "تعویض نقشه" : "آپلود نقشه"}
+          </Button>
+          {hasMap && (
+            <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={onDelete}>
+              حذف نقشه
+            </Button>
+          )}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            onUpload(file);
+          }}
+        />
+        {!compact && (
+          <p className="text-[11px] text-ink-faint">تصویر ساده پلان — JPG یا PNG، حداکثر ۲ مگابایت</p>
+        )}
+      </div>
     </div>
   );
 }

@@ -11,6 +11,8 @@ const STATUS_STYLE: Record<string, string> = {
   IN_PROGRESS: "badge-black",
   COMPLETED: "badge-gray",
   NO_SHOW: "badge-red",
+  WAITLISTED: "badge-gray",
+  WAITLIST_OFFERED: "badge-amber",
 };
 
 export function StatusBadge({ status }: { status: string }) {

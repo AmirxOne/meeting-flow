@@ -7,12 +7,13 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireUser();
+    const user = await requireUser();
     const includeInactive = req.nextUrl.searchParams.get("all") === "1";
     const branchId = req.nextUrl.searchParams.get("branchId");
 
     const rooms = await prisma.meetingRoom.findMany({
       where: {
+        orgId: user.orgId,
         ...(includeInactive ? {} : { isActive: true }),
         ...(branchId ? { branchId } : {}),
       },

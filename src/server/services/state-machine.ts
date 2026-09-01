@@ -13,6 +13,8 @@ export const STATUS_FLOW: Record<string, string[]> = {
   COMPLETED: [],
   NO_SHOW: [],
   CANCELLED: [],
+  WAITLISTED: ["WAITLIST_OFFERED", "CANCELLED"],
+  WAITLIST_OFFERED: ["CONFIRMED", "PENDING_APPROVAL", "WAITLISTED", "CANCELLED"],
 };
 
 /** Auto no-show / complete rules: see meeting-lifecycle.ts (worker processMeetingLifecycle). */
@@ -41,6 +43,7 @@ export interface PolicyValues {
   minDurationMin: number;
   maxDurationMin: number;
   defaultReminderOffsets: number[];
+  holidayBooking: "BLOCK" | "REQUIRE_APPROVAL";
 }
 
 export const DEFAULT_POLICIES: PolicyValues = {
@@ -51,12 +54,20 @@ export const DEFAULT_POLICIES: PolicyValues = {
   minDurationMin: 15,
   maxDurationMin: 480,
   defaultReminderOffsets: [30, 10],
+  holidayBooking: "BLOCK",
 };
 
 export function evaluateApprovalNeed(
   p: PolicyValues,
-  input: { hasExternalGuest: boolean; isVipRoom: boolean; durationMin: number; meetingType: string },
+  input: {
+    hasExternalGuest: boolean;
+    isVipRoom: boolean;
+    durationMin: number;
+    meetingType: string;
+    isOrgHoliday?: boolean;
+  },
 ): boolean {
+  if (input.isOrgHoliday && p.holidayBooking === "REQUIRE_APPROVAL") return true;
   if (input.hasExternalGuest && p.requireApprovalExternalGuest) return true;
   if (input.isVipRoom && p.requireApprovalVipRoom) return true;
   if (

@@ -10,7 +10,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
     const input = approveSchema.parse(body);
-    const meeting = await approveMeeting(id, { actorId: user.id, reason: input.reason });
+    const meeting = await approveMeeting(id, { actorId: user.id, orgId: user.orgId, reason: input.reason });
     await audit({
       actorId: user.id, action: "MEETING_APPROVE", entity: "Meeting", entityId: id,
       newValue: { status: meeting.status }, ip: req.headers.get("x-forwarded-for"),

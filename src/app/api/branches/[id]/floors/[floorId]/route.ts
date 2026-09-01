@@ -10,6 +10,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id: branchId, floorId } = await params;
     const input = floorUpdateSchema.parse(await req.json().catch(() => ({})));
 
+    const branch = await prisma.branch.findFirst({ where: { id: branchId, orgId: actor.orgId } });
+    if (!branch) throw new HttpError(404, "شعبه یافت نشد", "NOT_FOUND");
+
     const floor = await prisma.floor.findFirst({ where: { id: floorId, branchId } });
     if (!floor) throw new HttpError(404, "طبقه یافت نشد", "NOT_FOUND");
 
@@ -30,6 +33,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       data: {
         ...(input.name ? { name: input.name } : {}),
         ...(input.number !== undefined ? { number: input.number } : {}),
+        ...(input.wayfindingText !== undefined
+          ? { wayfindingText: input.wayfindingText?.trim() || null }
+          : {}),
       },
     });
 
@@ -53,6 +59,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const actor = await requirePermission("branch:update");
     const { id: branchId, floorId } = await params;
+
+    const branch = await prisma.branch.findFirst({ where: { id: branchId, orgId: actor.orgId } });
+    if (!branch) throw new HttpError(404, "شعبه یافت نشد", "NOT_FOUND");
 
     const floor = await prisma.floor.findFirst({
       where: { id: floorId, branchId },

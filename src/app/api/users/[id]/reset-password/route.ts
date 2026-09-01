@@ -14,7 +14,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const { id } = await params;
     const input = userResetPasswordSchema.parse(await req.json().catch(() => ({})));
 
-    const target = await prisma.user.findUnique({ where: { id } });
+    const target = await prisma.user.findFirst({ where: { id, orgId: actor.orgId } });
     if (!target) throw new HttpError(404, "کاربر یافت نشد", "NOT_FOUND");
 
     const passwordHash = await bcrypt.hash(input.password, 10);

@@ -11,13 +11,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const input = userUpdateSchema.parse(await req.json().catch(() => ({})));
 
-    const target = await prisma.user.findUnique({ where: { id } });
+    const target = await prisma.user.findFirst({ where: { id, orgId: actor.orgId } });
     if (!target) throw new HttpError(404, "کاربر یافت نشد", "NOT_FOUND");
 
     // privilege escalation guard: only role:manage holders may change roles
     if (input.roleKeys) {
       if (!can(actor, "role:manage")) {
         throw new HttpError(403, "تغییر نقش مجاز نیست", "FORBIDDEN");
+      }
+      if (input.roleKeys.includes("SUPER_ADMIN") && !actor.isPlatformAdmin) {
+        throw new HttpError(403, "تخصیص نقش مدیر پلتفرم مجاز نیست", "FORBIDDEN");
       }
       const roles = await prisma.role.findMany({ where: { key: { in: input.roleKeys } } });
       await prisma.userRole.deleteMany({ where: { userId: id } });
@@ -62,6 +65,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           ...(phone !== undefined ? { phone } : {}),
         },
         create: {
+          orgId: actor.orgId,
           name: updated.fullName,
           kind: "INTERNAL",
           email: updated.email,

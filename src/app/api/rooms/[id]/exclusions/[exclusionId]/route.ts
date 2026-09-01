@@ -18,7 +18,7 @@ export async function PATCH(
     const { id: roomId, exclusionId } = await params;
     const input = roomExclusionUpdateSchema.parse(await req.json().catch(() => ({})));
 
-    const room = await prisma.meetingRoom.findUnique({ where: { id: roomId } });
+    const room = await prisma.meetingRoom.findFirst({ where: { id: roomId, orgId: actor.orgId } });
     if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");
     assertRoomManageAccess(actor, room);
 
@@ -70,7 +70,7 @@ export async function DELETE(
     const actor = await requirePermission("room:update");
     const { id: roomId, exclusionId } = await params;
 
-    const room = await prisma.meetingRoom.findUnique({ where: { id: roomId } });
+    const room = await prisma.meetingRoom.findFirst({ where: { id: roomId, orgId: actor.orgId } });
     if (!room) throw new HttpError(404, "اتاق یافت نشد", "NOT_FOUND");
     assertRoomManageAccess(actor, room);
 

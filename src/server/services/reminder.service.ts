@@ -1,27 +1,28 @@
 import type { Meeting } from "@prisma/client";
 import { prisma } from "@/server/db";
-import { notificationService, smsProvider, emailProvider } from "./notification.service";
+import { notificationService } from "./notification.service";
+import { getSmsProvider, formatSmsError, type SmsSendMeta } from "./sms-provider";
+import { getEmailProvider, formatEmailError } from "./email-provider";
+import { loadAgendaPlain } from "./agenda.service";
+import { formatVideoInviteLine } from "@/lib/video-link";
+import { reminderEmailTemplate } from "@/lib/email-templates";
 import { getOrgPolicies } from "./meeting.service";
+import { reminderPushPayload, sendWebPushToUser } from "./web-push.service";
 import {
   MEETING_END_GRACE_MS,
   resolveStaleMeetingStatus,
   STALE_MEETING_STATUSES,
 } from "./meeting-lifecycle";
+import {
+  isNotifChannelEnabled,
+  parseOrgNotifChannels,
+  parseStoredNotifPrefs,
+  type NotifChannel,
+} from "@/lib/notification-prefs";
+import { reportError } from "@/server/report-error";
 
-export type ReminderChannel = "IN_APP" | "SMS" | "EMAIL";
-
-const VALID_CHANNELS: ReminderChannel[] = ["IN_APP", "SMS", "EMAIL"];
-
-/** Parse REMINDER_CHANNELS env (comma-separated). Default: IN_APP only. */
-export function parseReminderChannels(raw?: string): ReminderChannel[] {
-  const source = raw ?? process.env.REMINDER_CHANNELS;
-  if (!source?.trim()) return ["IN_APP"];
-  const parsed = source
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter((c): c is ReminderChannel => VALID_CHANNELS.includes(c as ReminderChannel));
-  return parsed.length ? [...new Set(parsed)] : ["IN_APP"];
-}
+export type ReminderChannel = NotifChannel;
+export const parseReminderChannels = parseOrgNotifChannels;
 
 export function buildReminderRows(input: {
   meetingId: string;
@@ -81,6 +82,15 @@ export function buildReminderRows(input: {
           channel: "EMAIL",
         });
       }
+      if (channelSet.has("PUSH")) {
+        rows.push({
+          meetingId: input.meetingId,
+          userId,
+          remindAt,
+          offsetMin: offset,
+          channel: "PUSH",
+        });
+      }
     }
   }
   return rows;
@@ -94,7 +104,7 @@ export async function scheduleReminders(meeting: Meeting) {
   });
   if (["CANCELLED", "REJECTED", "COMPLETED", "NO_SHOW"].includes(meeting.status)) return;
 
-  const policies = await getOrgPolicies();
+  const policies = await getOrgPolicies(meeting.orgId);
   const channels = parseReminderChannels();
   const people = await prisma.meetingParticipant.findMany({
     where: { meetingId: meeting.id },
@@ -125,32 +135,76 @@ export async function processDueReminders(): Promise<number> {
     include: { meeting: true, user: true },
     take: 100,
   });
+  const orgChannels = parseReminderChannels();
   let sent = 0;
   for (const r of due) {
     try {
+      const prefs = parseStoredNotifPrefs(r.user?.notificationPrefs);
+      if (
+        !isNotifChannelEnabled({
+          prefs,
+          event: "reminder",
+          channel: r.channel,
+          orgChannels,
+          hasPhone: !!r.user?.phone,
+          hasEmail: !!r.user?.email,
+        })
+      ) {
+        await prisma.meetingReminder.update({
+          where: { id: r.id },
+          data: { status: "SENT", sentAt: new Date(), lastError: null },
+        });
+        sent += 1;
+        continue;
+      }
       if (r.channel === "IN_APP" && r.userId) {
         await notificationService.meetingReminder(r.meeting, r.userId, r.offsetMin);
       }
       const phone = r.user?.phone;
       if (r.channel === "SMS" && phone) {
-        await smsProvider.send(
-          phone,
-          `یادآوری جلسه «${r.meeting.title}» — ${r.offsetMin} دقیقه دیگر`,
-        );
+        const text = `یادآوری جلسه «${r.meeting.title}» — ${r.offsetMin} دقیقه دیگر`;
+        const meta: SmsSendMeta = {
+          token: String(r.offsetMin),
+          token2: r.meeting.title.slice(0, 80),
+        };
+        await getSmsProvider().send(phone, text, meta);
       }
       const email = r.user?.email;
       if (r.channel === "EMAIL" && email) {
-        await emailProvider.send(email, `یادآوری جلسه: ${r.meeting.title}`, "یادآوری جلسه");
+        const agendaPlain = await loadAgendaPlain(r.meetingId);
+        const videoLine = r.meeting.videoUrl
+          ? formatVideoInviteLine(r.meeting.videoProvider, r.meeting.videoUrl)
+          : null;
+        const tpl = reminderEmailTemplate({
+          title: r.meeting.title,
+          agendaPlain,
+          offsetMin: r.offsetMin,
+          videoLine,
+          meetingId: r.meeting.id,
+        });
+        await getEmailProvider().send(email, tpl.subject, tpl.text, tpl.html);
+      }
+      if (r.channel === "PUSH") {
+        await sendWebPushToUser(
+          r.userId,
+          reminderPushPayload(r.meeting.title, r.offsetMin, r.meeting.id),
+        );
       }
       await prisma.meetingReminder.update({
         where: { id: r.id },
-        data: { status: "SENT", sentAt: new Date() },
+        data: { status: "SENT", sentAt: new Date(), lastError: null },
       });
       sent += 1;
     } catch (e) {
+      reportError(e, {
+        tags: { source: "reminder", channel: r.channel },
+        extra: { reminderId: r.id, meetingId: r.meetingId },
+      });
+      const lastError =
+        r.channel === "EMAIL" ? formatEmailError(e) : formatSmsError(e);
       await prisma.meetingReminder.update({
         where: { id: r.id },
-        data: { status: "PENDING", lastError: String(e).slice(0, 300) },
+        data: { status: "PENDING", lastError },
       });
     }
   }

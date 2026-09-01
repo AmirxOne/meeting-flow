@@ -21,8 +21,8 @@ const PERM = {
 
 const USER_ADMIN = ["user:create", "user:update", "user:disable", "user:reset-password"];
 const ROLES: { key: string; name: string; description: string; perms: string[] }[] = [
-  { key: "SUPER_ADMIN", name: "مدیر ارشد سیستم", description: "دسترسی کامل", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...PERM.USER, ...PERM.REPORT, ...PERM.SETTINGS] },
-  { key: "ADMIN", name: "مدیر سیستم", description: "مدیریت کامل به جز نقش‌ها", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...USER_ADMIN, ...PERM.REPORT, ...PERM.SETTINGS] },
+  { key: "SUPER_ADMIN", name: "مدیر پلتفرم", description: "مدیر پلتفرم — همه سازمان‌ها (با انتخاب سازمان)", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...PERM.USER, ...PERM.REPORT, ...PERM.SETTINGS] },
+  { key: "ADMIN", name: "مدیر سازمان", description: "مدیریت کامل سازمان به جز نقش‌های سیستم", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...USER_ADMIN, ...PERM.REPORT, ...PERM.SETTINGS] },
   { key: "MEETING_OPERATOR", name: "اپراتور جلسات", description: "تأیید درخواست‌های جلسه", perms: [...PERM.MEETING, "report:view"] },
   { key: "BRANCH_MANAGER", name: "مدیر شعبه", description: "مدیریت شعبه و اتاق‌ها", perms: ["meeting:view", "meeting:view-all", "meeting:create", "meeting:update", "meeting:cancel", "meeting:reschedule", "meeting:change-room", "meeting:add-participant", "meeting:remove-participant", "room:create", "room:update", "room:disable", "report:view", "audit:view"] },
   { key: "ROOM_MANAGER", name: "مدیر اتاق", description: "مدیریت اتاق‌ها", perms: ["meeting:view", "meeting:view-all", "room:update", "room:disable", "report:view"] },
@@ -77,14 +77,29 @@ async function main() {
   // org + branches
   const org = await prisma.organization.upsert({
     where: { id: "org-main" },
-    update: { name: "شرکت نمونه" },
-    create: { id: "org-main", name: "شرکت نمونه", legalName: "شرکت نمونه سهامی خاص", timezone: "Asia/Tehran" },
+    update: { name: "شرکت نمونه", slug: "sample" },
+    create: { id: "org-main", slug: "sample", name: "شرکت نمونه", legalName: "شرکت نمونه سهامی خاص", timezone: "Asia/Tehran" },
+  });
+
+  const orgBeta = await prisma.organization.upsert({
+    where: { id: "org-beta" },
+    update: { name: "شرکت بتا", slug: "beta" },
+    create: { id: "org-beta", slug: "beta", name: "شرکت بتا", legalName: "شرکت بتا", timezone: "Asia/Tehran" },
   });
 
   const branch1 = await prisma.branch.upsert({
     where: { id: "branch-niavaran" },
-    update: {},
-    create: { orgId: org.id, id: "branch-niavaran", name: "شعبه نیاوران", address: "تهران، نیاوران، خیابان باهنر", phone: "021-22223344" },
+    update: {
+      wayfindingText: "از لابی اصلی به آسانسور بروید؛ طبقه اول سمت راست، اتاق جلسه آریا کنار راهرو.",
+    },
+    create: {
+      orgId: org.id,
+      id: "branch-niavaran",
+      name: "شعبه نیاوران",
+      address: "تهران، نیاوران، خیابان باهنر",
+      phone: "021-22223344",
+      wayfindingText: "از لابی اصلی به آسانسور بروید؛ طبقه اول سمت راست، اتاق جلسه آریا کنار راهرو.",
+    },
   });
   const branch2 = await prisma.branch.upsert({
     where: { id: "branch-vanak" },
@@ -121,7 +136,7 @@ async function main() {
       where: { id: r.id },
       update: {},
       create: {
-        id: r.id, branchId: r.branchId, floorId: r.floorId, name: r.name,
+        id: r.id, orgId: org.id, branchId: r.branchId, floorId: r.floorId, name: r.name,
         capacity: r.capacity, isVip: r.isVip ?? false, openTime: r.openTime, closeTime: r.closeTime,
       },
     });
@@ -134,23 +149,31 @@ async function main() {
   // users
   const password = await bcrypt.hash("Pass1234", 10);
   const users = [
-    { email: "admin@example.com", phone: "09120001001", fullName: "علیرضا محمدی", jobTitle: "مدیر سیستم", roleKeys: ["ADMIN"], branchId: branch1.id },
-    { email: "superadmin@example.com", phone: "09120001002", fullName: "مدیر ارشد سیستم", jobTitle: "مدیر ارشد", roleKeys: ["SUPER_ADMIN"], branchId: branch1.id },
-    { email: "operator@example.com", phone: "09120001003", fullName: "مریم احمدی", jobTitle: "اپراتور جلسات", roleKeys: ["MEETING_OPERATOR"], branchId: branch1.id },
-    { email: "manager@example.com", phone: "09120001004", fullName: "حسین کریمی", jobTitle: "مدیر شعبه ونک", roleKeys: ["BRANCH_MANAGER"], branchId: branch2.id },
-    { email: "room@example.com", phone: "09120001005", fullName: "سارا موسوی", jobTitle: "مسئول اتاق‌ها", roleKeys: ["ROOM_MANAGER"], branchId: branch1.id },
-    { email: "ali@example.com", phone: "09120001006", fullName: "علی رضایی", jobTitle: "کارشناس فروش", department: "فروش", roleKeys: ["EMPLOYEE"], branchId: branch1.id },
-    { email: "amir@example.com", phone: "09120001007", fullName: "امیر حسینی", jobTitle: "کارشناس بازاریابی", department: "بازاریابی", roleKeys: ["EMPLOYEE"], branchId: branch1.id },
-    { email: "sara@example.com", phone: "09120001008", fullName: "سارا نجفی", jobTitle: "مدیر منابع انسانی", department: "منابع انسانی", roleKeys: ["EMPLOYEE", "BRANCH_MANAGER"], branchId: branch1.id },
+    { email: "admin@example.com", phone: "09120001001", fullName: "علیرضا محمدی", jobTitle: "مدیر سیستم", roleKeys: ["ADMIN"], branchId: branch1.id, orgId: org.id, isSuperAdmin: false },
+    { email: "superadmin@example.com", phone: "09120001002", fullName: "مدیر پلتفرم", jobTitle: "مدیر پلتفرم", roleKeys: ["SUPER_ADMIN"], branchId: null as string | null, orgId: null as string | null, isSuperAdmin: true },
+    { email: "operator@example.com", phone: "09120001003", fullName: "مریم احمدی", jobTitle: "اپراتور جلسات", roleKeys: ["MEETING_OPERATOR"], branchId: branch1.id, orgId: org.id, isSuperAdmin: false },
+    { email: "manager@example.com", phone: "09120001004", fullName: "حسین کریمی", jobTitle: "مدیر شعبه ونک", roleKeys: ["BRANCH_MANAGER"], branchId: branch2.id, orgId: org.id, isSuperAdmin: false },
+    { email: "room@example.com", phone: "09120001005", fullName: "سارا موسوی", jobTitle: "مسئول اتاق‌ها", roleKeys: ["ROOM_MANAGER"], branchId: branch1.id, orgId: org.id, isSuperAdmin: false },
+    { email: "ali@example.com", phone: "09120001006", fullName: "علی رضایی", jobTitle: "کارشناس فروش", department: "فروش", roleKeys: ["EMPLOYEE"], branchId: branch1.id, orgId: org.id, isSuperAdmin: false },
+    { email: "amir@example.com", phone: "09120001007", fullName: "امیر حسینی", jobTitle: "کارشناس بازاریابی", department: "بازاریابی", roleKeys: ["EMPLOYEE"], branchId: branch1.id, orgId: org.id, isSuperAdmin: false },
+    { email: "sara@example.com", phone: "09120001008", fullName: "سارا نجفی", jobTitle: "مدیر منابع انسانی", department: "منابع انسانی", roleKeys: ["EMPLOYEE", "BRANCH_MANAGER"], branchId: branch1.id, orgId: org.id, isSuperAdmin: false },
   ];
   const userIds: Record<string, string> = {};
   for (const u of users) {
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: { fullName: u.fullName, jobTitle: u.jobTitle, branchId: u.branchId, phone: u.phone },
+      update: {
+        fullName: u.fullName,
+        jobTitle: u.jobTitle,
+        branchId: u.branchId,
+        phone: u.phone,
+        orgId: u.orgId,
+        isSuperAdmin: u.isSuperAdmin,
+      },
       create: {
         email: u.email, fullName: u.fullName, passwordHash: password,
         phone: u.phone, jobTitle: u.jobTitle, department: u.department ?? null, branchId: u.branchId,
+        orgId: u.orgId, isSuperAdmin: u.isSuperAdmin,
       },
     });
     userIds[u.email] = user.id;
@@ -168,10 +191,15 @@ async function main() {
 
   // people directory — internal members mirrored from users + known externals
   await prisma.personDirectory.deleteMany({});
-  const allUsers = await prisma.user.findMany({ select: { id: true, fullName: true, email: true, phone: true, jobTitle: true } });
+  const allUsers = await prisma.user.findMany({
+    where: { orgId: { not: null } },
+    select: { id: true, fullName: true, email: true, phone: true, jobTitle: true, orgId: true },
+  });
   for (const u of allUsers) {
+    if (!u.orgId) continue;
     await prisma.personDirectory.create({
       data: {
+        orgId: u.orgId,
         name: u.fullName,
         kind: "INTERNAL",
         email: u.email,
@@ -188,7 +216,7 @@ async function main() {
     { name: "آقای شریفی", company: "مشاوران مالی سپهر", phone: "09351234567", jobTitle: "مشاور مالی" },
   ];
   for (const ext of externals) {
-    await prisma.personDirectory.create({ data: { ...ext, kind: "EXTERNAL" } }).catch(() => {});
+    await prisma.personDirectory.create({ data: { ...ext, kind: "EXTERNAL", orgId: org.id } }).catch(() => {});
   }
 
   // branch managers
@@ -210,6 +238,7 @@ async function main() {
     { key: "minDurationMin", value: 15, description: "حداقل مدت جلسه (دقیقه)" },
     { key: "maxDurationMin", value: 480, description: "حداکثر مدت جلسه (دقیقه)" },
     { key: "defaultReminderOffsets", value: [30, 10], description: "یادآورها (دقیقه قبل)" },
+    { key: "holidayBooking", value: "BLOCK", description: "رزرو در تعطیل سازمانی: ممنوع یا نیاز به تأیید" },
   ];
   for (const p of policies) {
     await prisma.meetingPolicy.upsert({
@@ -280,7 +309,7 @@ async function main() {
   for (const m of meetings) {
     const { participants, guests, ...data } = m;
     await prisma.meeting.create({
-      data: { ...data, startAt: m.startAt, endAt: m.endAt },
+      data: { ...data, orgId: org.id, startAt: m.startAt, endAt: m.endAt },
     });
     await prisma.meetingParticipant.create({
       data: { meetingId: m.id, userId: m.organizerId, role: "ORGANIZER", responseStatus: "ACCEPTED" },
@@ -299,8 +328,104 @@ async function main() {
     });
   }
 
+  // second tenant — isolation fixture (org A must not see this)
+  const branchBeta = await prisma.branch.upsert({
+    where: { id: "branch-beta" },
+    update: { orgId: orgBeta.id, name: "شعبه بتا" },
+    create: {
+      id: "branch-beta",
+      orgId: orgBeta.id,
+      name: "شعبه بتا",
+      address: "تهران، سازمان بتا",
+    },
+  });
+  const floorBeta = await prisma.floor.upsert({
+    where: { branchId_number: { branchId: branchBeta.id, number: 1 } },
+    update: {},
+    create: { branchId: branchBeta.id, name: "طبقه اول", number: 1 },
+  });
+  await prisma.meetingRoom.upsert({
+    where: { id: "room-beta" },
+    update: { orgId: orgBeta.id, name: "اتاق بتا" },
+    create: {
+      id: "room-beta",
+      orgId: orgBeta.id,
+      branchId: branchBeta.id,
+      floorId: floorBeta.id,
+      name: "اتاق بتا",
+      capacity: 8,
+      openTime: "08:00",
+      closeTime: "20:00",
+    },
+  });
+  const betaUser = await prisma.user.upsert({
+    where: { email: "beta@example.com" },
+    update: {
+      fullName: "کاربر سازمان بتا",
+      orgId: orgBeta.id,
+      branchId: branchBeta.id,
+      isSuperAdmin: false,
+      phone: "09120001999",
+    },
+    create: {
+      email: "beta@example.com",
+      fullName: "کاربر سازمان بتا",
+      passwordHash: password,
+      phone: "09120001999",
+      jobTitle: "کارشناس",
+      orgId: orgBeta.id,
+      branchId: branchBeta.id,
+      isSuperAdmin: false,
+    },
+  });
+  userIds["beta@example.com"] = betaUser.id;
+  const employeeRole = await prisma.role.findUnique({ where: { key: "EMPLOYEE" } });
+  if (employeeRole) {
+    await prisma.userRole.deleteMany({ where: { userId: betaUser.id } });
+    await prisma.userRole.create({ data: { userId: betaUser.id, roleId: employeeRole.id } });
+  }
+  await prisma.personDirectory.upsert({
+    where: { userId: betaUser.id },
+    update: { name: betaUser.fullName, orgId: orgBeta.id, kind: "INTERNAL" },
+    create: {
+      orgId: orgBeta.id,
+      name: betaUser.fullName,
+      kind: "INTERNAL",
+      email: betaUser.email,
+      phone: betaUser.phone,
+      jobTitle: betaUser.jobTitle,
+      userId: betaUser.id,
+    },
+  }).catch(() => {});
+  for (const p of policies) {
+    await prisma.meetingPolicy.upsert({
+      where: { orgId_key: { orgId: orgBeta.id, key: p.key } },
+      update: { value: p.value, description: p.description },
+      create: { orgId: orgBeta.id, key: p.key, value: p.value as object, description: p.description, updatedBy: betaUser.id },
+    });
+  }
+  await prisma.meeting.deleteMany({ where: { id: "seed-meeting-beta" } });
+  await prisma.meeting.create({
+    data: {
+      id: "seed-meeting-beta",
+      orgId: orgBeta.id,
+      title: "جلسه سازمان بتا — ایزوله",
+      organizerId: betaUser.id,
+      branchId: branchBeta.id,
+      roomId: "room-beta",
+      startAt: at(0, 11),
+      endAt: at(0, 12),
+      status: "CONFIRMED",
+      meetingType: "INTERNAL",
+    },
+  });
+  await prisma.meetingParticipant.create({
+    data: { meetingId: "seed-meeting-beta", userId: betaUser.id, role: "ORGANIZER", responseStatus: "ACCEPTED" },
+  });
+
   console.log("✅ Seed complete.");
   console.log("   Login: admin@example.com / Pass1234 (also operator/manager/room/ali/amir/sara @example.com)");
+  console.log("   Isolation: beta@example.com / Pass1234  (org slug=beta)");
 }
 
 main()
