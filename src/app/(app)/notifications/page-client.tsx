@@ -253,15 +253,24 @@ export function NotificationsPage() {
                     const unread = !n.readAt;
 
                     return (
-                      <button
+                      <div
                         key={n.id}
-                        type="button"
-                        onClick={() => open(n)}
-                        disabled={marking === n.id}
+                        role={clickable ? "button" : undefined}
+                        tabIndex={clickable ? 0 : undefined}
+                        aria-disabled={marking === n.id}
+                        onClick={() => clickable && open(n)}
+                        onKeyDown={(e) => {
+                          if (!clickable) return;
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            open(n);
+                          }
+                        }}
                         className={cn(
                           "group flex w-full gap-3 px-4 py-4 text-right transition-colors sm:px-5",
-                          clickable ? "cursor-pointer hover:bg-paper-soft" : "cursor-default",
+                          clickable ? "cursor-pointer hover:bg-paper-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink" : "cursor-default",
                           unread && "bg-paper-soft/50",
+                          marking === n.id && "opacity-60",
                         )}
                       >
                         <div
@@ -317,7 +326,7 @@ export function NotificationsPage() {
                             <ChevronLeft className="h-4 w-4 text-ink-faint opacity-0 transition-opacity group-hover:opacity-100" />
                           )}
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
