@@ -9,7 +9,7 @@ export function sessionCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.COOKIE_SECURE === "1" || (process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "0" && process.env.HTTPS !== "0"),
     path: "/",
     maxAge: Number(process.env.SESSION_TTL_HOURS ?? 72) * 3600,
   };
@@ -19,7 +19,7 @@ function orgCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.COOKIE_SECURE === "1" || (process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "0" && process.env.HTTPS !== "0"),
     path: "/",
     maxAge: 60 * 60 * 24 * 30,
   };
