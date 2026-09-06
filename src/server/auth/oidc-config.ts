@@ -84,7 +84,7 @@ export function ssoCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.COOKIE_SECURE === "1" || (process.env.NODE_ENV === "production" && process.env.COOKIE_SECURE !== "0" && process.env.HTTPS !== "0"),
     path: "/",
     maxAge: SSO_COOKIE_MAX_AGE,
   };
