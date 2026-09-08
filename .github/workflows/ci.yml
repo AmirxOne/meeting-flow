@@ -121,6 +121,10 @@ jobs:
           TEST_BASE: http://localhost:3100
           NODE_ENV: production
 
+      - name: Dump app log on failure
+        if: failure()
+        run: tail -300 /tmp/meetinghub-app.log || true
+
       - name: Stop application
         if: always()
         run: |
