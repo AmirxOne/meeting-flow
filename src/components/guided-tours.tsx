@@ -52,46 +52,14 @@ function useTourScrollLock(active: boolean) {
   useEffect(() => {
     if (!active) return;
 
-    const scrollY = window.scrollY;
-    const html = document.documentElement;
-    const body = document.body;
-    const prev = {
-      htmlOverflow: html.style.overflow,
-      bodyOverflow: body.style.overflow,
-      bodyPosition: body.style.position,
-      bodyTop: body.style.top,
-      bodyLeft: body.style.left,
-      bodyRight: body.style.right,
-      bodyWidth: body.style.width,
-    };
-
+    // block user wheel/touch only — programmatic scrolls (ours) still pass
     const blockUserScroll = (e: Event) => e.preventDefault();
-    const blockScroll = () => window.scrollTo(0, scrollY);
-
     window.addEventListener("wheel", blockUserScroll, { passive: false });
     window.addEventListener("touchmove", blockUserScroll, { passive: false });
-    window.addEventListener("scroll", blockScroll, true);
-
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
 
     return () => {
       window.removeEventListener("wheel", blockUserScroll);
       window.removeEventListener("touchmove", blockUserScroll);
-      window.removeEventListener("scroll", blockScroll, true);
-      html.style.overflow = prev.htmlOverflow;
-      body.style.overflow = prev.bodyOverflow;
-      body.style.position = prev.bodyPosition;
-      body.style.top = prev.bodyTop;
-      body.style.left = prev.bodyLeft;
-      body.style.right = prev.bodyRight;
-      body.style.width = prev.bodyWidth;
-      window.scrollTo(0, scrollY);
     };
   }, [active]);
 }
@@ -117,6 +85,13 @@ function MehrsaCard({
       (sel && document.querySelector(sel)) ||
       document.querySelector("[data-nextstep-highlight], .nextstep-highlight");
     if (el) {
+      // if the target is off-screen, scroll IT into view (user scroll is locked,
+      // so the system must bring the target to the user)
+      const pre = el.getBoundingClientRect();
+      const vh0 = window.innerHeight;
+      if (pre.top < 80 || pre.bottom > vh0 - 80) {
+        el.scrollIntoView({ behavior: "instant" as ScrollBehavior, block: "center" });
+      }
       const r = el.getBoundingClientRect();
       const cardW = Math.min(320, window.innerWidth - 24);
       const cardH = 230;
@@ -157,14 +132,24 @@ function MehrsaCard({
   useEffect(() => {
     locate();
     const t1 = setTimeout(locate, 350); // after nextstepjs scroll-into-view
-    const t2 = setTimeout(locate, 900); // after our smooth nudge settles
+    const t2 = setTimeout(locate, 900); // after our nudge settles
+    const t3 = setTimeout(locate, 1600); // final settle
+    // debounced reposition on scroll — heavy sync reposition mid-smooth-scroll
+    // cancels the native animation, so wait for it to finish first
+    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+    const onScroll = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(locate, 120);
+    };
     window.addEventListener("resize", locate);
-    window.addEventListener("scroll", locate, true);
+    window.addEventListener("scroll", onScroll, { passive: true, capture: true });
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(scrollTimer);
       window.removeEventListener("resize", locate);
-      window.removeEventListener("scroll", locate, true);
+      window.removeEventListener("scroll", onScroll, true);
     };
   }, [locate, currentStep]);
 
