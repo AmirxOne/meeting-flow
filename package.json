@@ -2,6 +2,7 @@
   "name": "meetinghub",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "next build",
