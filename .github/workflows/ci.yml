@@ -116,7 +116,9 @@ jobs:
           exit 1
 
       - name: Integration tests
-        run: pnpm run test:integration
+        run: |
+          set -o pipefail
+          pnpm run test:integration 2>&1 | tee /tmp/vitest-out.txt | tail -80
         env:
           TEST_BASE: http://localhost:3100
           NODE_ENV: production
