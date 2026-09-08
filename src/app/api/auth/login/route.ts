@@ -24,7 +24,12 @@ export async function POST(req: NextRequest) {
       input.identifier,
       input.password,
       "orgSlug" in input ? input.orgSlug : undefined,
-    );
+    ).catch(async (err) => {
+      await getLoginRateLimiter().recordFailure(ip);
+      throw err;
+    });
+    // successful login → reset that IP's counter (only failures persist)
+    await getLoginRateLimiter().clear(ip);
     if (await userHasTwoFactor(user.id)) {
       const challengeToken = await createTwoFactorChallenge(user.id);
       return ok({ requires2fa: true, challengeToken });

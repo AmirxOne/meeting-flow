@@ -452,7 +452,10 @@ export function LoginPage() {
                     <button
                       key={acc.email}
                       type="button"
-                      onClick={() => setIdentifier(acc.email)}
+                      onClick={() => {
+                          setIdentifier(acc.email);
+                          setPassword("Pass1234");
+                        }}
                       className="rounded-full border border-line bg-white px-2.5 py-1 text-[11px] text-ink transition hover:border-ink/30 hover:bg-paper-soft"
                       title={`${acc.email} · ${acc.phone}`}
                     >

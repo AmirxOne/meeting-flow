@@ -9,6 +9,10 @@ export const LOGIN_RATE_KEY_PREFIX = "ratelimit:login:";
 
 export interface LoginRateLimiter {
   isLimited(key: string): Promise<boolean>;
+  /** Record a FAILED attempt (successful logins don't consume the quota). */
+  recordFailure(key: string): Promise<void>;
+  /** Clear counters after a successful login (fresh start for that IP). */
+  clear(key: string): Promise<void>;
 }
 
 /** In-memory sliding window (dev / no Redis). */
@@ -17,6 +21,17 @@ export class MemoryLoginRateLimiter implements LoginRateLimiter {
 
   async isLimited(key: string): Promise<boolean> {
     return memorySlidingWindowLimited(this.attempts, key, Date.now());
+  }
+
+  async recordFailure(key: string): Promise<void> {
+    const now = Date.now();
+    const prev = this.attempts.get(key) ?? [];
+    prev.push(now);
+    this.attempts.set(key, prev);
+  }
+
+  async clear(key: string): Promise<void> {
+    this.attempts.delete(key);
   }
 }
 
@@ -54,6 +69,20 @@ export interface RedisLike {
 }
 
 export class RedisLoginRateLimiter implements LoginRateLimiter {
+  async recordFailure(key: string): Promise<void> {
+    /* zadd in isLimited already records the attempt */
+  }
+
+  async clear(key: string): Promise<void> {
+    try {
+      await (this.redis as unknown as { del(k: string): Promise<unknown> }).del(
+        `${this.keyPrefix}${key}`,
+      );
+    } catch (err) {
+      reportError(err as Error);
+    }
+  }
+
   constructor(
     private redis: RedisLike,
     private keyPrefix = LOGIN_RATE_KEY_PREFIX,
