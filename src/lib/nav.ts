@@ -17,6 +17,13 @@ import {
 
 export type NavGroupId = "main" | "org" | "system";
 
+export type NavChild = {
+  href: string;
+  label: string;
+  perm?: string | null;
+  excludeIfPerm?: string;
+};
+
 export type NavItemDef = {
   href: string;
   label: string;
@@ -24,6 +31,8 @@ export type NavItemDef = {
   perm: string | null;
   group: NavGroupId;
   excludeIfPerm?: string;
+  /** Optional quick-access sub-items (rendered as an expandable submenu). */
+  children?: NavChild[];
 };
 
 export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
@@ -35,12 +44,37 @@ export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
 export const NAV: NavItemDef[] = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard, perm: null, group: "main" },
   { href: "/calendar", label: "تقویم", icon: CalendarDays, perm: null, group: "main" },
-  { href: "/meetings", label: "جلسات", icon: Users, perm: null, group: "main" },
+  {
+    href: "/meetings",
+    label: "جلسات",
+    icon: Users,
+    perm: null,
+    group: "main",
+    children: [{ href: "/meetings/new", label: "جلسه جدید" }],
+  },
   { href: "/availability", label: "زمان مناسب", icon: Search, perm: null, group: "main" },
-  { href: "/people", label: "افراد", icon: UserRound, perm: null, group: "org" },
-  { href: "/users", label: "کاربران", icon: UsersRound, perm: null, group: "org" },
-  { href: "/rooms", label: "اتاق‌ها", icon: DoorOpen, perm: null, group: "org" },
-  { href: "/branches", label: "شعب", icon: Building2, perm: null, group: "org" },
+  {
+    href: "/people",
+    label: "افراد",
+    icon: UserRound,
+    perm: null,
+    group: "org",
+  },
+  {
+    href: "/users",
+    label: "کاربران",
+    icon: UsersRound,
+    perm: "user:update",
+    group: "org",
+  },
+  {
+    href: "/rooms",
+    label: "اتاق‌ها",
+    icon: DoorOpen,
+    perm: null,
+    group: "org",
+  },
+  { href: "/branches", label: "شعب", icon: Building2, perm: "report:view", group: "org" },
   { href: "/notifications", label: "اعلان‌ها", icon: Bell, perm: null, group: "system" },
   { href: "/reports", label: "گزارش‌ها", icon: BarChart3, perm: "report:view", group: "system" },
   {
@@ -51,7 +85,22 @@ export const NAV: NavItemDef[] = [
     excludeIfPerm: "user:update",
     group: "system",
   },
-  { href: "/admin", label: "مدیریت", icon: Settings, perm: "user:update", group: "system" },
+  {
+    href: "/admin",
+    label: "مدیریت",
+    icon: Settings,
+    perm: "user:update",
+    group: "system",
+    children: [
+      { href: "/admin/users", label: "کاربران" },
+      { href: "/admin/rooms", label: "اتاق‌ها" },
+      { href: "/admin/people", label: "افراد" },
+      { href: "/admin/policies", label: "سیاست‌ها" },
+      { href: "/admin/roles", label: "نقش‌ها" },
+      { href: "/admin/settings", label: "تنظیمات" },
+      { href: "/admin/audit-logs", label: "لاگ ممیزی" },
+    ],
+  },
 ];
 
 export function isNavItemVisible(
@@ -60,6 +109,17 @@ export function isNavItemVisible(
 ): boolean {
   if (item.excludeIfPerm && can(item.excludeIfPerm)) return false;
   return !item.perm || can(item.perm);
+}
+
+/** Visible children of an item (perm-filtered). */
+export function visibleChildren(
+  item: NavItemDef,
+  can: (perm: string) => boolean,
+): NavChild[] {
+  return (item.children ?? []).filter((c) => {
+    if (c.excludeIfPerm && can(c.excludeIfPerm)) return false;
+    return !c.perm || can(c.perm);
+  });
 }
 
 export function groupedVisibleNav(can: (perm: string) => boolean) {
@@ -98,4 +158,10 @@ export function isNavActive(pathname: string, href: string, siblings: string[] =
       other.length > href.length &&
       (pathname === other || pathname.startsWith(`${other}/`)),
   );
+}
+
+/** A parent nav item is "open/expanded" relevant when the current path is inside it. */
+export function isParentActive(pathname: string, parent: string, children: string[]): boolean {
+  if (pathname === parent || pathname.startsWith(`${parent}/`)) return true;
+  return children.some((c) => pathname === c || pathname.startsWith(`${c}/`));
 }
