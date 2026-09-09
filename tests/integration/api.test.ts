@@ -6,6 +6,13 @@
 import { describe, it, expect, beforeAll } from "vitest";
 
 const BASE = process.env.TEST_BASE ?? "http://localhost:3100";
+
+// Tehran-relative ISO date (seed creates meetings around "now")
+const tehranDayISO = (offsetDays: number): string => {
+  const d = new Date(Date.now() + 210 * 60000 + offsetDays * 86400000);
+  return d.toISOString().slice(0, 10);
+};
+
 const PNG_DOT = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
@@ -649,14 +656,14 @@ describe("availability & permissions", () => {
   });
 
   it("reports date range includes the full Tehran day", async () => {
-    const day = "2026-08-30";
+    const day = tehranDayISO(-1);
     const { status, body } = await api(`/api/reports?from=${day}&to=${day}`, { cookie: adminCookie });
     expect(status).toBe(200);
     expect(body.data.summary.totalMeetings).toBeGreaterThan(0);
   });
 
   it("reports CSV has BOM and real line breaks", async () => {
-    const res = await fetch(`${BASE}/api/reports?from=2026-08-01&to=2026-08-31&format=csv`, {
+    const res = await fetch(`${BASE}/api/reports?from=${tehranDayISO(-7)}&to=${tehranDayISO(1)}&format=csv`, {
       headers: { cookie: adminCookie },
     });
     expect(res.status).toBe(200);
