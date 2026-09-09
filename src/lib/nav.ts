@@ -96,7 +96,7 @@ export const NAV: NavItemDef[] = [
       { href: "/admin/rooms", label: "اتاق‌ها" },
       { href: "/admin/people", label: "افراد" },
       { href: "/admin/policies", label: "سیاست‌ها" },
-      { href: "/admin/roles", label: "نقش‌ها" },
+      { href: "/admin/roles", label: "نقش‌ها", perm: "role:manage" },
       { href: "/admin/settings", label: "تنظیمات" },
       { href: "/admin/audit-logs", label: "لاگ ممیزی" },
     ],

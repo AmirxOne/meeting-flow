@@ -64,6 +64,7 @@ export const ROLE_DEFINITIONS: Record<
       "room:create", "room:update", "room:disable", "room:delete",
       "branch:create", "branch:update",
       "user:create", "user:update", "user:disable", "user:reset-password",
+      "role:manage",
       "report:view", "audit:view", "policy:manage", "org:manage",
     ],
   },
