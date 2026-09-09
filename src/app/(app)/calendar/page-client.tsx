@@ -220,7 +220,7 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="space-y-4 p-3 sm:p-4 lg:p-6" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-1.5">
           <button

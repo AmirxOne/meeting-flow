@@ -173,7 +173,7 @@ export function AdminPoliciesPage() {
 
   if (!can("policy:manage")) {
     return (
-      <div className="p-6">
+      <div className="space-y-4 p-4 lg:p-6">
         <Card className="p-8 text-center text-[13px] text-ink-soft">
           مدیریت سیاست‌ها نیازمند دسترسی policy:manage است.
         </Card>

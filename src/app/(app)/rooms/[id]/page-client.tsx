@@ -58,7 +58,7 @@ export function RoomDetailPage() {
 
   if (isLoading || !data) {
     return (
-      <div className="mx-auto max-w-5xl space-y-4 p-4 lg:p-6">
+      <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1.5">
             <SkeletonBlock className="h-6 w-40" />
@@ -118,7 +118,7 @@ export function RoomDetailPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-4 p-4 lg:p-6">
+    <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold">{room.name}</h1>

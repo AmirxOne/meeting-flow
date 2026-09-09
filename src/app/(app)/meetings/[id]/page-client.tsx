@@ -209,7 +209,7 @@ export function MeetingDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-6xl space-y-4 p-4 lg:p-6">
+      <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
         {/* header — title + badges + back button */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -319,7 +319,7 @@ export function MeetingDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-4 p-4 lg:p-6">
+    <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

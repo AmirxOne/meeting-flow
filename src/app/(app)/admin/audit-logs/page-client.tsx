@@ -164,7 +164,7 @@ export function AuditLogsPage() {
 
   if (!can("audit:view")) {
     return (
-      <div className="p-6">
+      <div className="space-y-4 p-4 lg:p-6">
         <Card className="p-8 text-center text-[13px] text-ink-soft">
           مشاهده لاگ ممیزی نیازمند دسترسی audit:view است.
         </Card>
