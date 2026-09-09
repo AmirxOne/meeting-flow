@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/icon";
 import type { AppIcon } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
-import { groupedVisibleNav, isNavActive, isMobileNavActive, MOBILE_NAV } from "@/lib/nav";
+import { groupedVisibleNav, isNavActive, isMobileNavActive, MOBILE_NAV, visibleChildren, isParentActive } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -124,16 +124,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div key={group.id} className="mb-4 last:mb-0">
               <p className="mb-1 px-2 text-[10px] font-medium text-ink-faint">{group.label}</p>
               <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <SidebarNavLink
-                    key={item.href}
-                    href={item.href}
-                    label={item.label}
-                    icon={item.icon}
-                    active={isNavActive(pathname, item.href, siblingHrefs)}
-                    unread={item.href === "/notifications" ? unread : 0}
-                  />
-                ))}
+                {group.items.map((item) => {
+                  const kids = visibleChildren(item, can);
+                  if (kids.length > 0) {
+                    return (
+                      <SidebarNavParent
+                        key={item.href}
+                        href={item.href}
+                        label={item.label}
+                        icon={item.icon}
+                        active={isNavActive(pathname, item.href, siblingHrefs)}
+                        children={kids}
+                        pathname={pathname}
+                      />
+                    );
+                  }
+                  return (
+                    <SidebarNavLink
+                      key={item.href}
+                      href={item.href}
+                      label={item.label}
+                      icon={item.icon}
+                      active={isNavActive(pathname, item.href, siblingHrefs)}
+                      unread={item.href === "/notifications" ? unread : 0}
+                    />
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -255,16 +271,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div key={group.id} className="mb-4 last:mb-0">
                   <p className="mb-1 px-2 text-[10px] font-medium text-ink-faint">{group.label}</p>
                   <div className="space-y-0.5">
-                    {group.items.map((item) => (
-                      <SidebarNavLink
-                        key={item.href}
-                        href={item.href}
-                        label={item.label}
-                        icon={item.icon}
-                        active={isNavActive(pathname, item.href, siblingHrefs)}
-                        unread={item.href === "/notifications" ? unread : 0}
-                      />
-                    ))}
+                    {group.items.map((item) => {
+                      const kids = visibleChildren(item, can);
+                      if (kids.length > 0) {
+                        return (
+                          <SidebarNavParent
+                            key={item.href}
+                            href={item.href}
+                            label={item.label}
+                            icon={item.icon}
+                            active={isNavActive(pathname, item.href, siblingHrefs)}
+                            children={kids}
+                            pathname={pathname}
+                          />
+                        );
+                      }
+                      return (
+                        <SidebarNavLink
+                          key={item.href}
+                          href={item.href}
+                          label={item.label}
+                          icon={item.icon}
+                          active={isNavActive(pathname, item.href, siblingHrefs)}
+                          unread={item.href === "/notifications" ? unread : 0}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -306,6 +338,112 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           );
         })}
       </nav>
+    </div>
+  );
+}
+
+
+/** Nav item with an expandable, softly-animated submenu. */
+function SidebarNavParent({
+  href,
+  label,
+  icon: Icon,
+  active,
+  children,
+  pathname,
+}: {
+  href: string;
+  label: string;
+  icon: AppIcon;
+  active: boolean;
+  children: { href: string; label: string }[];
+  pathname: string;
+}) {
+  const childActive = (c: { href: string }) =>
+    pathname === c.href || pathname.startsWith(`${c.href}/`);
+  const anyChildActive = children.some(childActive);
+  const [open, setOpen] = useState(false);
+  // auto-expand when user is inside this section
+  useEffect(() => {
+    if (anyChildActive) setOpen(true);
+  }, [anyChildActive]);
+
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <Link
+          href={href}
+          aria-current={active ? "page" : undefined}
+          className={cn(
+            "group flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors",
+            active || anyChildActive
+              ? "bg-white text-ink shadow-[0_1px_2px_rgba(13,13,13,0.06)]"
+              : "text-ink-soft hover:bg-white/70 hover:text-ink",
+          )}
+        >
+          <span
+            className={cn(
+              "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
+              active || anyChildActive
+                ? "bg-ink text-white"
+                : "text-ink-faint group-hover:text-ink-soft",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </span>
+          <span className="min-w-0 truncate">{label}</span>
+        </Link>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? `بستن ${label}` : `باز کردن ${label}`}
+          aria-expanded={open}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-white/70 hover:text-ink"
+        >
+          <motion.span
+            animate={{ rotate: open ? 0 : -90 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className="flex"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </motion.span>
+        </button>
+      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="sub"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.22, 0.8, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="mt-0.5 mr-[22px] space-y-0.5 border-r border-line pr-2 pt-0.5">
+              {children.map((c) => (
+                <Link
+                  key={c.href}
+                  href={c.href}
+                  aria-current={childActive(c) ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2 rounded-md px-2 py-1.5 text-[12px] transition-colors",
+                    childActive(c)
+                      ? "bg-white font-medium text-ink shadow-[0_1px_2px_rgba(13,13,13,0.06)]"
+                      : "text-ink-soft hover:bg-white/70 hover:text-ink",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-1 w-1 shrink-0 rounded-full transition-colors",
+                      childActive(c) ? "bg-ink" : "bg-line",
+                    )}
+                  />
+                  <span className="min-w-0 truncate">{c.label}</span>
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
