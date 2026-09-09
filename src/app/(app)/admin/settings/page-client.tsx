@@ -83,7 +83,7 @@ export function AdminSettingsPage() {
 
   if (!can("org:manage")) {
     return (
-      <div className="p-6">
+      <div className="space-y-4 p-4 lg:p-6">
         <Card className="p-8 text-center text-[13px] text-ink-soft">
           تنظیمات سازمان نیازمند دسترسی org:manage است.
         </Card>

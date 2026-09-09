@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { NextStep, type Tour, type CardComponentProps } from "nextstepjs";
@@ -64,6 +65,40 @@ function useTourScrollLock(active: boolean) {
   }, [active]);
 }
 
+
+/** Find the DOM element a tour step targets. */
+function findTarget(step: { selector?: string }): HTMLElement | null {
+  return (
+    (step.selector && document.querySelector(step.selector)) ||
+    document.querySelector<HTMLElement>("[data-nextstep-highlight], .nextstep-highlight")
+  );
+}
+
+/** Pure geometry: where should the card sit for this target rect? */
+function placeCard(r: DOMRect): { top: number; left: number } {
+  const cardW = Math.min(320, window.innerWidth - 24);
+  const cardH = 230;
+  const margin = 16;
+  const vh = window.innerHeight;
+  const vw = window.innerWidth;
+  const fits = (t: number, l: number) =>
+    t >= 8 && l >= 8 && t + cardH <= vh - 8 && l + cardW <= vw - 8;
+  let baseLeft = Math.round(r.left + r.width / 2 - cardW / 2);
+  baseLeft = Math.max(8, Math.min(baseLeft, vw - cardW - 8));
+  const candidates: Array<{ top: number; left: number }> = [
+    { top: r.bottom + margin, left: baseLeft },
+    { top: r.top - cardH - margin, left: baseLeft },
+    { top: r.top + r.height / 2 - cardH / 2, left: r.right + margin },
+    { top: r.top + r.height / 2 - cardH / 2, left: r.left - cardW - margin },
+  ];
+  let chosen = candidates[0];
+  for (const c of candidates) if (fits(c.top, c.left)) { chosen = c; break; }
+  return {
+    top: Math.max(8, Math.min(chosen.top, vh - cardH - 8)),
+    left: Math.max(8, Math.min(chosen.left, vw - cardW - 8)),
+  };
+}
+
 function MehrsaCard({
   step,
   currentStep,
@@ -75,15 +110,22 @@ function MehrsaCard({
   const isLast = currentStep === totalSteps - 1;
   const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const scrollingRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
 
   // locate the currently-highlighted element (nextstepjs marks it)
+  // measure + position WITHOUT touching the page scroll (used during scrolling)
+  const positionCard = useCallback((el: HTMLElement) => {
+    setPos(placeCard(el.getBoundingClientRect()));
+  }, []);
+  const measureOnly = useCallback(() => {
+    const el = findTarget(step);
+    if (el) positionCard(el);
+  }, [step, positionCard]);
+
   const locate = useCallback(() => {
-    const sel = (step as { selector?: string }).selector;
-    const el =
-      (sel && document.querySelector(sel)) ||
-      document.querySelector("[data-nextstep-highlight], .nextstep-highlight");
+    const el = findTarget(step);
     if (el) {
       // if the target is off-screen, scroll IT into view (user scroll is locked,
       // so the system must bring the target to the user)
@@ -92,54 +134,33 @@ function MehrsaCard({
       if (pre.top < 80 || pre.bottom > vh0 - 80) {
         el.scrollIntoView({ behavior: "instant" as ScrollBehavior, block: "center" });
       }
-      const r = el.getBoundingClientRect();
-      const cardW = Math.min(320, window.innerWidth - 24);
-      const cardH = 230;
-      const margin = 16;
-
-      // ── smart placement: try BELOW first, then whichever side has room.
-      // The card must be FULLY inside the viewport — never clipped.
-      const vh = window.innerHeight;
-      const vw = window.innerWidth;
-      const fits = (t: number, l: number) =>
-        t >= 8 && l >= 8 && t + cardH <= vh - 8 && l + cardW <= vw - 8;
-
-      // horizontally centered on the target as the base
-      let baseLeft = Math.round(r.left + r.width / 2 - cardW / 2);
-      baseLeft = Math.max(8, Math.min(baseLeft, vw - cardW - 8));
-
-      const candidates: Array<{ top: number; left: number }> = [
-        { top: r.bottom + margin, left: baseLeft }, // below (preferred)
-        { top: r.top - cardH - margin, left: baseLeft }, // above
-        { top: r.top + r.height / 2 - cardH / 2, left: r.right + margin }, // right side
-        { top: r.top + r.height / 2 - cardH / 2, left: r.left - cardW - margin }, // left side
-      ];
-
-      let chosen = candidates[0];
-      for (const c of candidates) {
-        if (fits(c.top, c.left)) {
-          chosen = c;
-          break;
-        }
-      }
-      // nothing fits perfectly (tiny viewport) → clamp into view
-      const top = Math.max(8, Math.min(chosen.top, vh - cardH - 8));
-      const left = Math.max(8, Math.min(chosen.left, vw - cardW - 8));
-      setPos({ top, left });
+      positionCard(el as HTMLElement);
     }
-  }, [step]);
+  }, [step, positionCard]);
 
   useEffect(() => {
     locate();
     const t1 = setTimeout(locate, 350); // after nextstepjs scroll-into-view
     const t2 = setTimeout(locate, 900); // after our nudge settles
     const t3 = setTimeout(locate, 1600); // final settle
-    // debounced reposition on scroll — heavy sync reposition mid-smooth-scroll
-    // cancels the native animation, so wait for it to finish first
-    let scrollTimer: ReturnType<typeof setTimeout> | undefined;
+    // ── follow the scroll LIVE: while the page scrolls, the card tracks the
+    // target every frame (no debounce, no spring) so it never "teleports".
+    let raf = 0;
+    let settleTimer: ReturnType<typeof setTimeout> | undefined;
     const onScroll = () => {
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(locate, 120);
+      scrollingRef.current = true;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(followFrame);
+      clearTimeout(settleTimer);
+      settleTimer = setTimeout(() => {
+        scrollingRef.current = false; // scroll ended → spring allowed again
+        locate();
+      }, 180);
+    };
+    const followFrame = () => {
+      if (!scrollingRef.current) return;
+      measureOnly(); // position without triggering scrollIntoView
+      raf = requestAnimationFrame(followFrame);
     };
     window.addEventListener("resize", locate);
     window.addEventListener("scroll", onScroll, { passive: true, capture: true });
@@ -147,22 +168,34 @@ function MehrsaCard({
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
-      clearTimeout(scrollTimer);
+      clearTimeout(settleTimer);
+      cancelAnimationFrame(raf);
       window.removeEventListener("resize", locate);
       window.removeEventListener("scroll", onScroll, true);
     };
   }, [locate, currentStep]);
 
   const card = (
-    <div
+    <motion.div
       dir="rtl"
+      initial={false}
+      animate={
+        pos
+          ? { x: pos.left, y: pos.top, opacity: 1 }
+          : { opacity: 0 }
+      }
+      transition={
+        scrollingRef.current
+          ? { duration: 0 } // mid-scroll: track the target 1:1, zero lag
+          : { type: "spring", stiffness: 300, damping: 30 }
+      }
       style={{
         width: 320,
         position: "fixed",
-        top: pos?.top ?? -9999,
-        left: pos?.left ?? -9999,
+        top: 0,
+        left: 0,
         zIndex: 9999,
-        visibility: pos ? "visible" : "hidden",
+        pointerEvents: pos ? "auto" : "none",
       }}
       className="rounded-xl border border-line bg-white p-3 text-right shadow-2xl"
     >
@@ -200,7 +233,7 @@ function MehrsaCard({
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 
   return mounted ? createPortal(card, document.body) : null;

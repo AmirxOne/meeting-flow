@@ -269,7 +269,7 @@ export function AdminRoomsPage() {
 
   if (!can("room:update")) {
     return (
-      <div className="p-6">
+      <div className="space-y-4 p-4 lg:p-6">
         <Card className="p-8 text-center text-[13px] text-ink-soft">
           مدیریت اتاق‌ها نیازمند دسترسی room:update است.
         </Card>
