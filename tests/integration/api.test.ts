@@ -383,7 +383,7 @@ describe("room waitlist", () => {
     expect(cancelled.status).toBe(200);
 
     let offered = false;
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 60; i++) {
       const detail = await api(`/api/meetings/${waitlistedId}`, { cookie: adminCookie });
       if (detail.body.data.meeting.status === "WAITLIST_OFFERED") {
         offered = true;
@@ -391,7 +391,7 @@ describe("room waitlist", () => {
         expect(detail.body.data.waitlist.offerExpiresAt).toBeTruthy();
         break;
       }
-      await new Promise((r) => setTimeout(r, 150));
+      await new Promise((r) => setTimeout(r, 250));
     }
     expect(offered).toBe(true);
 

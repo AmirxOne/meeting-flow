@@ -118,10 +118,26 @@ jobs:
       - name: Integration tests
         run: |
           set -o pipefail
-          pnpm run test:integration 2>&1 | tee /tmp/vitest-out.txt | tail -80
+          pnpm run test:integration 2>&1 | tee /tmp/vitest-out.txt | tail -120
         env:
           TEST_BASE: http://localhost:3100
           NODE_ENV: production
+
+      - name: Upload test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-output
+          path: /tmp/vitest-out.txt
+          retention-days: 7
+
+      - name: Upload app log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-log
+          path: /tmp/meetinghub-app.log
+          retention-days: 7
 
       - name: Dump app log on failure
         if: failure()
