@@ -163,6 +163,28 @@ export function CalendarPage() {
     [dragId, meetings],
   );
 
+  // drop on the month arrows: same Jalali day in the next/previous month
+  const onDropToMonth = useCallback(
+    (delta: 1 | -1, idFromData?: string) => {
+      const id = idFromData ?? dragId;
+      setDragId(null);
+      setDragOverIso(null);
+      if (!id) return;
+      const m = (meetings ?? []).find((x) => x.id === id);
+      if (!m) return;
+      const j = jalaliOfIso(new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(0, 10));
+      let { jy, jm } = j;
+      jm += delta;
+      if (jm > 12) { jm = 1; jy += 1; }
+      if (jm < 1) { jm = 12; jy -= 1; }
+      const jd = Math.min(j.jd, jMonthLen(jy, jm)); // clamp for short months
+      const iso = isoOfJalali(jy, jm, jd);
+      // reuse the same computation as a day-drop
+      onDropToDay(iso, id);
+    },
+    [dragId, meetings, onDropToDay],
+  );
+
   // drop onto an HOUR slot in the day timeline — same confirm modal
   const onDropToHour = useCallback(
     (meetingId: string, hour: number) => {
@@ -311,8 +333,12 @@ export function CalendarPage() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => stepNav(-1)}
+            onDragOver={(e) => { if (view === "month" && dragId) { e.preventDefault(); (e.currentTarget as HTMLElement).classList.add("ring-2","ring-ink"); } }}
+            onDragLeave={(e) => (e.currentTarget as HTMLElement).classList.remove("ring-2","ring-ink")}
+            onDrop={(e) => { if (view === "month") { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("ring-2","ring-ink"); onDropToMonth(-1, e.dataTransfer.getData("text/plain") || undefined); } }}
             className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 hover:bg-paper-soft"
             aria-label="قبلی"
+            title="جابه‌جایی جلسه به ماه قبل — بکشید و این‌جا رها کنید"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -321,8 +347,12 @@ export function CalendarPage() {
           </h1>
           <button
             onClick={() => stepNav(1)}
+            onDragOver={(e) => { if (view === "month" && dragId) { e.preventDefault(); (e.currentTarget as HTMLElement).classList.add("ring-2","ring-ink"); } }}
+            onDragLeave={(e) => (e.currentTarget as HTMLElement).classList.remove("ring-2","ring-ink")}
+            onDrop={(e) => { if (view === "month") { e.preventDefault(); (e.currentTarget as HTMLElement).classList.remove("ring-2","ring-ink"); onDropToMonth(1, e.dataTransfer.getData("text/plain") || undefined); } }}
             className="inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 hover:bg-paper-soft"
             aria-label="بعدی"
+            title="جابه‌جایی جلسه به ماه بعد — بکشید و این‌جا رها کنید"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -417,7 +447,7 @@ export function CalendarPage() {
                           : isSelected
                             ? "bg-paper-soft"
                             : "hover:bg-paper-soft/70",
-                        isOtherMonth && "opacity-40",
+                        isOtherMonth && (dragId ? "opacity-100" : "opacity-40"),
                       )}
                     >
                       <span className={cn(
