@@ -9,6 +9,7 @@ import {
   Building2,
   Bell,
   Search,
+  CalendarPlus,
   BarChart3,
   Settings,
   ScrollText,
@@ -53,6 +54,7 @@ export const NAV: NavItemDef[] = [
     children: [{ href: "/meetings/new", label: "جلسه جدید" }],
   },
   { href: "/availability", label: "زمان مناسب", icon: Search, perm: null, group: "main" },
+  { href: "/meeting-requests", label: "درخواست جلسه", icon: CalendarPlus, perm: null, group: "main" },
   {
     href: "/people",
     label: "افراد",
@@ -92,6 +94,7 @@ export const NAV: NavItemDef[] = [
     perm: "user:update",
     group: "system",
     children: [
+      { href: "/meeting-requests/queue", label: "هماهنگی درخواست‌ها" },
       { href: "/admin/users", label: "کاربران" },
       { href: "/admin/rooms", label: "اتاق‌ها" },
       { href: "/admin/people", label: "افراد" },

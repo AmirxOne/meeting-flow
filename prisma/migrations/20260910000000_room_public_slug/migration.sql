@@ -1,0 +1,1 @@
+ALTER TABLE "MeetingRoom" ADD COLUMN "publicSlug" TEXT;

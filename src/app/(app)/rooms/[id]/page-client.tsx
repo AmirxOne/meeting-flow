@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, SkeletonBlock, EmptyState } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { StatusBadge } from "@/components/ui/badges";
 import { cn, faNum, faStr, formatJalali, EQUIPMENT_FA, pad2 } from "@/lib";
 import { Tooltip } from "@/components/ui/tooltip";
 import { RoomDisplaySetup } from "@/components/rooms/room-display-setup";
+import { QRCodeSVG } from "qrcode.react";
 
 interface RoomDetail {
   room: {
@@ -26,6 +28,7 @@ interface RoomDetail {
     floor: { name: string; number: number } | null;
     equipment: { equipment: string }[];
     manager: { fullName: string } | null;
+    publicSlug: string | null;
   };
   meetings: {
     id: string;
@@ -139,6 +142,7 @@ export function RoomDetailPage() {
         >
           {STATUS_LABEL[data.status]}
         </span>
+        <RoomQrPanel slug={room.publicSlug ?? null} name={room.name} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -256,5 +260,83 @@ function Row({ label, value }: { label: string; value: string }) {
       <span className="text-ink-soft">{label}</span>
       <span className="font-medium">{value}</span>
     </div>
+  );
+}
+
+
+/** QR panel — printable poster: scan to see this room's live agenda (no login). */
+function RoomQrPanel({ slug, name }: { slug: string | null; name: string }) {
+  const [open, setOpen] = useState(false);
+  if (!slug) return null;
+  const url = typeof window !== "undefined" ? `${window.location.origin}/r/${slug}` : `/r/${slug}`;
+
+  function downloadPng() {
+    const svg = document.querySelector("#room-qr-svg") as SVGElement | null;
+    if (!svg) return;
+    const xml = new XMLSerializer().serializeToString(svg);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1024;
+      canvas.height = 1024;
+      const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, 1024, 1024);
+      ctx.drawImage(img, 0, 0, 1024, 1024);
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `qr-${slug}.png`;
+      a.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(xml)));
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex h-9 items-center gap-1.5 rounded-md border border-line px-3 text-[12px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+      >
+        <QRCodeSVG value={url} size={14} level="M" />
+        QR اتاق
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            dir="rtl"
+            className="w-[340px] rounded-xl bg-white p-6 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-[14px] font-bold">{name}</p>
+            <p className="mt-1 text-[11px] text-ink-soft">
+              با اسکن این کد، برنامه‌ی اتاق بدون ورود به سامانه دیده می‌شود
+            </p>
+            <div className="mx-auto mt-4 w-fit rounded-xl border border-line p-3" id="room-qr-wrap">
+              <QRCodeSVG id="room-qr-svg" value={url} size={220} level="M" />
+            </div>
+            <p dir="ltr" className="mt-3 break-all text-[10px] text-ink-faint">
+              {url}
+            </p>
+            <div className="mt-4 flex justify-center gap-2">
+              <button
+                onClick={downloadPng}
+                className="h-9 rounded-md bg-ink px-4 text-[12px] font-medium text-white"
+              >
+                دانلود PNG
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="h-9 rounded-md border border-line px-4 text-[12px] text-ink-soft"
+              >
+                چاپ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -83,7 +83,7 @@ export const ROLE_DEFINITIONS: Record<
     name: "مدیر شعبه",
     description: "مدیریت شعبه، اتاق‌ها و گزارش‌ها",
     permissions: [
-      "meeting:view", "meeting:view-all", "meeting:create", "meeting:update",
+      "meeting:view", "meeting:view-all", "meeting:update",
       "meeting:cancel", "meeting:reschedule", "meeting:change-room",
       "meeting:add-participant", "meeting:remove-participant",
       "room:create", "room:update", "room:disable",
@@ -101,9 +101,9 @@ export const ROLE_DEFINITIONS: Record<
   },
   EMPLOYEE: {
     name: "کارمند",
-    description: "ایجاد جلسه و مشاهده تقویم خود",
+    description: "ثبت درخواست جلسه و مشاهده تقویم خود",
     permissions: [
-      "meeting:view", "meeting:create", "meeting:update",
+      "meeting:view", "meeting:update",
     ],
   },
 };

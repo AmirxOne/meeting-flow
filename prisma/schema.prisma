@@ -10,6 +10,7 @@ datasource db {
 // ============================ RBAC ============================
 
 model User {
+  sentRequests  MeetingRequest[] @relation("MeetingRequestRequester")
   id           String    @id @default(cuid())
   email        String    @unique
   phone        String?   @unique
@@ -297,6 +298,9 @@ model MeetingRoom {
   exclusions RoomExclusion[]
   series     MeetingSeries[]
 
+  /// public QR slug — /r/<slug> shows this room's agenda without login
+  publicSlug String? @unique
+
   @@index([orgId])
   @@index([branchId])
   @@index([branchId, isActive])
@@ -327,12 +331,46 @@ model RoomExclusion {
   @@index([roomId, startAt, endAt])
 }
 
+
+// ======================= Meeting Requests (employee asks, admin schedules) =======================
+
+model MeetingRequest {
+  id          String   @id @default(cuid())
+  orgId       String
+  requesterId String
+  title       String
+  description String?
+  /// ASAP or a preferred window
+  urgency     String   @default("NORMAL") // URGENT | NORMAL | FLEXIBLE
+  prefFrom    DateTime?
+  prefTo      DateTime?
+  /// requested participants (internal users)
+  participantIds String[] @default([])
+  /// requested external guests (name/company/phone)
+  guests      Json?
+  /// approximate duration in minutes the requester wants
+  durationMin Int      @default(60)
+  status      String   @default("OPEN") // OPEN | SCHEDULED | REJECTED | CANCELLED
+  /// the meeting created from this request (once admin fixes it)
+  meetingId   String?
+  adminNote   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester User     @relation("MeetingRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, status])
+  @@index([requesterId])
+}
+
 // ======================= Meetings =======================
 
 model Meeting {
   id           String   @id @default(cuid())
   orgId        String
   title        String
+  fromRequests MeetingRequest[]
   description  String?
   organizerId  String
   branchId     String
