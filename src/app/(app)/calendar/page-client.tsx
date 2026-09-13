@@ -2,9 +2,11 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, ChevronLeft, Plus, Shield, Download } from "@/components/ui/icon";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-store";
+import { useToast } from "@/components/ui/toast";
 import { Card, SkeletonBlock } from "@/components/ui/card";
 import { DayTimeline, DayTimelineSkeleton } from "@/components/calendar/day-timeline";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
@@ -117,7 +119,54 @@ export function CalendarPage() {
       api<{ meetings: CalMeeting[]; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean }>(
         `/api/calendar?from=${range.from.toISOString()}&to=${range.to.toISOString()}&scope=${scope}`,
       ),
-  });
+  });  const meetings = data?.meetings ?? [];
+  // ── drag & drop reschedule (month view) ──
+  const qc = useQueryClient();
+  const { push } = useToast();
+  const { can, me } = useAuth();
+  const canDnD = can("meeting:reschedule") || me?.id != null; // organizer check is server-side too
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverIso, setDragOverIso] = useState<string | null>(null);
+  const [dropping, setDropping] = useState(false);
+
+  const onDropToDay = useCallback(
+    async (iso: string) => {
+      const id = dragId;
+      setDragId(null);
+      setDragOverIso(null);
+      if (!id) return;
+      const m = (meetings ?? []).find((x) => x.id === id);
+      if (!m) return;
+      // same-day drop = no-op
+      const srcIso = new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(0, 10);
+      if (srcIso === iso) return;
+      // keep the same local time-of-day and duration, move to the target day
+      const startLocal = new Date(new Date(m.startAt).getTime() + 210 * 60000);
+      const durMin = (new Date(m.endAt).getTime() - new Date(m.startAt).getTime()) / 60000;
+      const [y, mo, d] = iso.split("-").map(Number);
+      const newStartLocal = new Date(Date.UTC(y, mo - 1, d, startLocal.getUTCHours(), startLocal.getUTCMinutes()));
+      const newStart = new Date(newStartLocal.getTime() - 210 * 60000);
+      const newEnd = new Date(newStart.getTime() + durMin * 60000);
+      const fmt = (dt: Date) => formatJalali(dt, { withTime: true });
+      if (!confirm(`جابه‌جایی «${m.isMasked ? "جلسه محرمانه" : m.title}» به ${faStr(iso)} (${fmt(newStart)})؟`)) return;
+      setDropping(true);
+      try {
+        await api(`/api/meetings/${id}/reschedule`, {
+          method: "POST",
+          json: { startAt: newStart.toISOString(), endAt: newEnd.toISOString(), reason: "CALENDAR_DRAG" },
+        });
+        push("جلسه جابه‌جا شد ✓", "success");
+        qc.invalidateQueries({ queryKey: ["calendar"] });
+        qc.invalidateQueries({ queryKey: ["meetings"] });
+      } catch (e) {
+        push((e as Error).message || "جابه‌جایی ناموفق بود", "error");
+      } finally {
+        setDropping(false);
+      }
+    },
+    [dragId, meetings, push, qc],
+  );
+
 
   const holidayFrom = isoOfJalali(anchor.jy, anchor.jm, 1);
   const holidayTo = addDaysIso(holidayFrom, jMonthLen(anchor.jy, anchor.jm) + 14);
@@ -135,7 +184,7 @@ export function CalendarPage() {
   }, [holidayData]);
   const holidayMode = holidayData?.bookingMode ?? "BLOCK";
 
-  const meetings = data?.meetings ?? [];
+
   const occupancyMap = new Map((data?.occupancy ?? []).map((o) => [o.date, o]));
 
   const byDate = useMemo(() => {
@@ -312,8 +361,19 @@ export function CalendarPage() {
                       type="button"
                       data-weekday={isFriday ? "friday" : undefined}
                       onClick={() => setSelectedIso(iso)}
+                      onDragOver={(e) => {
+                        if (!dragId) return;
+                        e.preventDefault();
+                        setDragOverIso(iso);
+                      }}
+                      onDragLeave={() => setDragOverIso((cur) => (cur === iso ? null : cur))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        onDropToDay(iso);
+                      }}
                       className={cn(
                         "relative h-16 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
+                        dragOverIso === iso && "ring-2 ring-inset ring-ink bg-paper-soft",
                         holidayName
                           ? "bg-amber-50"
                           : isSelected
@@ -340,7 +400,22 @@ export function CalendarPage() {
                             key={m.id}
                             href={`/meetings/${m.id}`}
                             onClick={(e) => e.stopPropagation()}
-                            className={cn("flex truncate rounded px-1 py-0.5 text-[10px] leading-4", calendarEventTone(m.status).chip)}
+                            draggable={canDnD && !m.isMasked ? true : undefined}
+                            onDragStart={(e) => {
+                              setDragId(m.id);
+                              e.dataTransfer.effectAllowed = "move";
+                              e.dataTransfer.setData("text/plain", m.id);
+                            }}
+                            onDragEnd={() => {
+                              setDragId(null);
+                              setDragOverIso(null);
+                            }}
+                            className={cn(
+                              "flex truncate rounded px-1 py-0.5 text-[10px] leading-4",
+                              calendarEventTone(m.status).chip,
+                              dragId === m.id && "opacity-40",
+                              canDnD && "cursor-grab active:cursor-grabbing",
+                            )}
                           >
                             <span className="truncate">{timeOf(m.startAt)} {m.isMasked ? "جلسه محرمانه" : m.title}{m.seriesId ? " ↻" : ""}</span>
                           </Link>
