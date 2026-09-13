@@ -337,8 +337,13 @@ model RoomExclusion {
 model MeetingRequest {
   id          String   @id @default(cuid())
   orgId       String
-  requesterId String
-  title       String
+  /// null = guest request (submitted via the public page, no login)
+  requesterId String?
+  /// guest contact info when requesterId is null
+  guestName    String?
+  guestPhone   String?
+  guestCompany String?
+  title        String
   description String?
   /// ASAP or a preferred window
   urgency     String   @default("NORMAL") // URGENT | NORMAL | FLEXIBLE
@@ -357,7 +362,7 @@ model MeetingRequest {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  requester User     @relation("MeetingRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  requester User?    @relation("MeetingRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
   meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
 
   @@index([orgId, status])

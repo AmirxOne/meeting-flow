@@ -471,6 +471,12 @@ export function LoginPage() {
                 با اولین ورود موفق سازمانی، حساب شما به‌صورت خودکار در مهرسا ساخته می‌شود.
               </p>
             )}
+            <p className='mt-5 text-center text-[12px] text-ink-soft'>
+              جلسه می‌خواهید ولی حساب ندارید؟{' '}
+              <a href='/request' className='font-medium text-ink underline underline-offset-4'>
+                درخواست جلسه بدون ورود
+              </a>
+            </p>
           </div>
         </div>
       </FadeIn>

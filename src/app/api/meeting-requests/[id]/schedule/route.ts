@@ -42,6 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!request) return fail(404, "درخواست یافت نشد", "NOT_FOUND");
     if (request.status !== "OPEN")
       return fail(409, "این درخواست قبلاً پردازش شده است", "ALREADY_HANDLED");
+    if (!request.requesterId)
+      return fail(400, "درخواست مهمان کاربر سامانه ندارد — جلسه را دستی بسازید و با او تماس بگیرید", "GUEST_REQUEST");
 
     const meeting = await createMeeting({
       title: request.title,

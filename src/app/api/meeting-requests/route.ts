@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     const where =
       scope === "all" && isQueueViewer
         ? { orgId: user.orgId }
-        : { requesterId: user.id };
+        : { requesterId: user.id }; // guests only appear in the admin queue
     const filter = {
       ...where,
       ...(status ? { status } : {}),
@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
         include: {
           requester: { select: { id: true, fullName: true, avatarUrl: true } },
           meeting: { select: { id: true, title: true, startAt: true, roomId: true } },
+          // guest fields are scalar on the model — returned automatically
         },
         orderBy: [{ status: "asc" }, { createdAt: "desc" }],
         take: 100,

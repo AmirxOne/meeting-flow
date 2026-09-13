@@ -28,7 +28,10 @@ type Req = {
   participantIds: string[];
   status: string;
   createdAt: string;
-  requester: { id: string; fullName: string };
+  requester: { id: string; fullName: string } | null;
+  guestName: string | null;
+  guestPhone: string | null;
+  guestCompany: string | null;
   meeting: { id: string; title: string; startAt: string } | null;
 };
 
@@ -84,7 +87,16 @@ export default function RequestQueuePage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-[14px] font-bold">{r.title}</p>
                       <p className="mt-1 text-[12px] text-ink-soft">
-                        درخواست‌کننده: {r.requester.fullName} ·{" "}
+                        درخواست‌کننده:{" "}
+                        {r.requester ? (
+                          r.requester.fullName
+                        ) : (
+                          <span className="font-medium text-amber-700">
+                            🌐 مهمان: {r.guestName}
+                            {r.guestCompany ? ` (${r.guestCompany})` : ""} · {r.guestPhone}
+                          </span>
+                        )}{" "}
+                        ·{" "}
                         <span className={r.urgency === "URGENT" ? "font-bold text-red-600" : ""}>
                           {URGENCY_FA[r.urgency] ?? r.urgency}
                         </span>{" "}
@@ -103,10 +115,12 @@ export default function RequestQueuePage() {
                       )}
                     </div>
                     <div className="flex shrink-0 gap-2">
-                      <Button onClick={() => setScheduling(r)}>
-                        <CalendarPlus className="h-4 w-4" />
-                        زمان‌بندی جلسه
-                      </Button>
+                      {r.requester && (
+                        <Button onClick={() => setScheduling(r)}>
+                          <CalendarPlus className="h-4 w-4" />
+                          زمان‌بندی جلسه
+                        </Button>
+                      )}
                       <Button variant="outline" onClick={() => reject(r)}>
                         <XCircle className="h-4 w-4" />
                         رد
@@ -140,7 +154,7 @@ export default function RequestQueuePage() {
                 <div className="min-w-0">
                   <p className="truncate text-[13px] font-medium">{r.title}</p>
                   <p className="mt-0.5 text-[11px] text-ink-faint">
-                    {r.requester.fullName}
+                    {r.requester ? r.requester.fullName : `مهمان: ${r.guestName ?? "—"}`}
                     {r.meeting && (
                       <>
                         {" · جلسه: "}
@@ -264,7 +278,7 @@ function ScheduleForm({ r, onDone, onCancel }: { r: Req; onDone: () => void; onC
         </div>
       </div>
       <p className="text-[11px] text-ink-faint">
-        مدت: {faNum(r.durationMin)} دقیقه · برگزارکننده: {r.requester.fullName} (درخواست‌دهنده) ·
+        مدت: {faNum(r.durationMin)} دقیقه · برگزارکننده: {r.requester?.fullName ?? "—"} (درخواست‌دهنده) ·
         شرکت‌کنندگان درخواست‌شده خودکار دعوت می‌شوند
       </p>
       <div className="flex gap-2">
