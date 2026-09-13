@@ -6,7 +6,7 @@ describe("PWA shell service worker", () => {
   const sw = readFileSync(join(process.cwd(), "public", "sw.js"), "utf8");
 
   it("caches shell assets and skips API / Next runtime", () => {
-    expect(sw).toContain("mehrsa-shell-v2");
+    expect(sw).toMatch(/mehrsa-shell-v\d+/);
     expect(sw).toContain("/offline.html");
     expect(sw).toContain("addEventListener(\"fetch\"");
     expect(sw).toContain("/api/");

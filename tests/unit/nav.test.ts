@@ -15,8 +15,9 @@ describe("nav visibility", () => {
       "/calendar",
       "/meetings",
       "/availability",
+      "/meeting-requests",
     ]);
-    expect(groups[2].items.map((i) => i.href)).toEqual(["/notifications"]);
+    expect(groups[2].items.map((i) => i.href)).toEqual(["/notifications", "/reports/me"]);
   });
 
   it("hides reports and admin from employees", () => {
@@ -45,6 +46,7 @@ describe("nav visibility", () => {
     const groups = groupedVisibleNav(() => false);
     expect(groups.find((g) => g.id === "system")?.items.map((i) => i.href)).toEqual([
       "/notifications",
+      "/reports/me",
     ]);
   });
 

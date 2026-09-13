@@ -34,6 +34,18 @@ export async function GET(
       assertCanViewSection(user, aclMeeting, "BODY").then(() => true).catch(() => false),
       assertCanViewSection(user, aclMeeting, "SUMMARY").then(() => true).catch(() => false),
     ]);
+    // fully uninvolved user gets a hard 403 — never a 200 with metadata
+    if (!canBody && !canSummary) {
+      const involved =
+        aclMeeting.organizerId === user.id ||
+        aclMeeting.participants.some((p) => p.userId === user.id);
+      if (!involved) {
+        return Response.json(
+          { ok: false, error: { message: "دسترسی لازم را ندارید", code: "FORBIDDEN" } },
+          { status: 403 },
+        );
+      }
+    }
 
     const minutes = await getMinutes(id);
     if (!minutes) return ok({ minutes: null, access: { body: canBody, summary: canSummary } });

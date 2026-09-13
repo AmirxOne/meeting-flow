@@ -39,6 +39,9 @@ export async function canViewSection(
   if (user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN")) return true;
   // meeting organizer always sees all sections of their meeting
   if (meeting.organizerId === user.id) return true;
+  // ANYONE ELSE must first be involved in the meeting — having a global
+  // view-all role does NOT grant access to section content
+  if (!meeting.participants.some((p) => p.userId === user.id)) return false;
 
   const acls = await loadAcls(meeting.id);
   const acl = acls.get(section);

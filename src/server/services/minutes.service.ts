@@ -57,12 +57,15 @@ export type PublicMinutes = {
 
 type MeetingForMinutes = Pick<Meeting, "id" | "organizerId" | "isPrivate" | "status" | "title"> & {
   participants: { userId: string }[];
+  secretaries?: { userId: string }[];
 };
 
 export function assertCanEditMinutes(user: AuthUser, meeting: MeetingForMinutes): void {
   assertCanViewMeeting(user, meeting);
-  if (meeting.organizerId !== user.id) {
-    throw new HttpError(403, "فقط برگزارکننده می‌تواند صورتجلسه را ثبت کند", "FORBIDDEN");
+  const isAdmin = user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || user.roleKeys.includes("ADMIN");
+  const isSecretary = (meeting.secretaries ?? []).some((s) => s.userId === user.id);
+  if (meeting.organizerId !== user.id && !isSecretary && !isAdmin) {
+    throw new HttpError(403, "فقط برگزارکننده یا دبیر جلسه می‌تواند صورتجلسه را ثبت کند", "FORBIDDEN");
   }
 }
 
@@ -98,6 +101,7 @@ export async function loadMeetingForMinutes(meetingId: string, orgId: string): P
       status: true,
       title: true,
       participants: { select: { userId: true } },
+      secretaries: { select: { userId: true } },
     },
   });
   if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
