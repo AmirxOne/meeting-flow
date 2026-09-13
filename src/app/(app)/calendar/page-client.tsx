@@ -7,6 +7,8 @@ import { ChevronRight, ChevronLeft, Plus, Shield, Download } from "@/components/
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
 import { useToast } from "@/components/ui/toast";
+import { Modal } from "@/components/ui/modal";
+import { Button } from "@/components/ui/button";
 import { Card, SkeletonBlock } from "@/components/ui/card";
 import { DayTimeline, DayTimelineSkeleton } from "@/components/calendar/day-timeline";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
@@ -128,10 +130,18 @@ export function CalendarPage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverIso, setDragOverIso] = useState<string | null>(null);
   const [dropping, setDropping] = useState(false);
+  // pending drop awaiting modal confirmation: { meeting, iso, newStart, newEnd }
+  const [pendingDrop, setPendingDrop] = useState<{
+    id: string;
+    title: string;
+    iso: string;
+    newStart: Date;
+    newEnd: Date;
+  } | null>(null);
 
   const onDropToDay = useCallback(
-    async (iso: string) => {
-      const id = dragId;
+    (iso: string, idFromData?: string) => {
+      const id = idFromData ?? dragId;
       setDragId(null);
       setDragOverIso(null);
       if (!id) return;
@@ -147,25 +157,34 @@ export function CalendarPage() {
       const newStartLocal = new Date(Date.UTC(y, mo - 1, d, startLocal.getUTCHours(), startLocal.getUTCMinutes()));
       const newStart = new Date(newStartLocal.getTime() - 210 * 60000);
       const newEnd = new Date(newStart.getTime() + durMin * 60000);
-      const fmt = (dt: Date) => formatJalali(dt, { withTime: true });
-      if (!confirm(`جابه‌جایی «${m.isMasked ? "جلسه محرمانه" : m.title}» به ${faStr(iso)} (${fmt(newStart)})؟`)) return;
-      setDropping(true);
-      try {
-        await api(`/api/meetings/${id}/reschedule`, {
-          method: "POST",
-          json: { startAt: newStart.toISOString(), endAt: newEnd.toISOString(), reason: "CALENDAR_DRAG" },
-        });
-        push("جلسه جابه‌جا شد ✓", "success");
-        qc.invalidateQueries({ queryKey: ["calendar"] });
-        qc.invalidateQueries({ queryKey: ["meetings"] });
-      } catch (e) {
-        push((e as Error).message || "جابه‌جایی ناموفق بود", "error");
-      } finally {
-        setDropping(false);
-      }
+      // show the confirmation MODAL instead of window.confirm
+      setPendingDrop({ id, title: m.isMasked ? "جلسه محرمانه" : m.title, iso, newStart, newEnd });
     },
-    [dragId, meetings, push, qc],
+    [dragId, meetings],
   );
+
+  const confirmDrop = useCallback(async () => {
+    if (!pendingDrop) return;
+    setDropping(true);
+    try {
+      await api(`/api/meetings/${pendingDrop.id}/reschedule`, {
+        method: "POST",
+        json: {
+          startAt: pendingDrop.newStart.toISOString(),
+          endAt: pendingDrop.newEnd.toISOString(),
+          reason: "CALENDAR_DRAG",
+        },
+      });
+      push("جلسه جابه‌جا شد ✓", "success");
+      qc.invalidateQueries({ queryKey: ["calendar"] });
+      qc.invalidateQueries({ queryKey: ["meetings"] });
+      setPendingDrop(null);
+    } catch (e) {
+      push((e as Error).message || "جابه‌جایی ناموفق بود", "error");
+    } finally {
+      setDropping(false);
+    }
+  }, [pendingDrop, push, qc]);
 
 
   const holidayFrom = isoOfJalali(anchor.jy, anchor.jm, 1);
@@ -369,7 +388,8 @@ export function CalendarPage() {
                       onDragLeave={() => setDragOverIso((cur) => (cur === iso ? null : cur))}
                       onDrop={(e) => {
                         e.preventDefault();
-                        onDropToDay(iso);
+                        const fromData = e.dataTransfer.getData("text/plain");
+                        onDropToDay(iso, fromData || undefined);
                       }}
                       className={cn(
                         "relative h-16 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
@@ -568,6 +588,47 @@ export function CalendarPage() {
       >
         <Plus className="h-6 w-6" />
       </Link>
+
+      {/* drag & drop confirmation — modal instead of window.confirm */}
+      <Modal
+        open={!!pendingDrop}
+        onClose={() => setPendingDrop(null)}
+        title="جابه‌جایی جلسه"
+        subtitle="زمان جدید با حفظ ساعت و مدت جلسه"
+        footer={
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setPendingDrop(null)}>
+              انصراف
+            </Button>
+            <Button onClick={confirmDrop} disabled={dropping}>
+              {dropping ? "در حال جابه‌جایی…" : "تأیید جابه‌جایی"}
+            </Button>
+          </div>
+        }
+      >
+        {pendingDrop && (
+          <div className="space-y-3 text-[13px]">
+            <p>
+              جلسه <span className="font-bold">«{pendingDrop.title}»</span> به{" "}
+              <span className="font-bold">{faStr(pendingDrop.iso)}</span> منتقل شود؟
+            </p>
+            <div className="rounded-md border border-line bg-paper-soft/60 p-3 text-[12px] leading-6">
+              <p>
+                شروع جدید:{" "}
+                <span className="font-medium">
+                  {formatJalali(pendingDrop.newStart, { withTime: true })}
+                </span>
+              </p>
+              <p>
+                پایان جدید:{" "}
+                <span className="font-medium">
+                  {formatJalali(pendingDrop.newEnd, { withTime: true })}
+                </span>
+              </p>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -719,6 +780,7 @@ function CalendarMonthSkeleton({
           ))}
         </div>
       </Card>
+
     </>
   );
 }
