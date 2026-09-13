@@ -659,7 +659,7 @@ export function CalendarPage() {
           <div className="space-y-3 text-[13px]">
             <p>
               جلسه <span className="font-bold">«{pendingDrop.title}»</span> به{" "}
-              <span className="font-bold">{faStr(pendingDrop.iso)}</span> منتقل شود؟
+              <span className="font-bold">{formatJalali(new Date(pendingDrop.iso + "T12:00:00Z"), { monthName: true })}</span> منتقل شود؟
             </p>
             <div className="rounded-md border border-line bg-paper-soft/60 p-3 text-[12px] leading-6">
               <p>
