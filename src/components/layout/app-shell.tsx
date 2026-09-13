@@ -400,7 +400,7 @@ function SidebarNavParent({
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-white/70 hover:text-ink"
         >
           <motion.span
-            animate={{ rotate: open ? 0 : -90 }}
+            animate={{ rotate: open ? 0 : 90 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
             className="flex"
           >
