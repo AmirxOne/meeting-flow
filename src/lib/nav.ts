@@ -78,7 +78,8 @@ export const NAV: NavItemDef[] = [
   },
   { href: "/branches", label: "شعب", icon: Building2, perm: "report:view", group: "org" },
   { href: "/notifications", label: "اعلان‌ها", icon: Bell, perm: null, group: "system" },
-  { href: "/reports", label: "گزارش‌ها", icon: BarChart3, perm: "report:view", group: "system" },
+  { href: "/reports/me", label: "گزارش من", icon: BarChart3, perm: null, group: "system" },
+  { href: "/reports", label: "گزارش‌های سازمان", icon: BarChart3, perm: "report:view", group: "system" },
   {
     href: "/admin/audit-logs",
     label: "لاگ ممیزی",
