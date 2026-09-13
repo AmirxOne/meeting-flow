@@ -156,37 +156,95 @@ export function RoomDetailPage() {
               <EmptyState title="امروز جلسه‌ای در این اتاق نیست" />
             ) : (
               <>
-                {/* timeline */}
-                <div className="relative mb-4 h-16" dir="rtl">
-                  <div className="absolute inset-x-0 top-7 h-2 rounded-full bg-paper-soft" />
-                  {meetings
-                    .filter((m) => !["CANCELLED", "REJECTED"].includes(m.status))
-                    .map((m) => {
-                      const s = minutesOf(m.startAt);
-                      const e = minutesOf(m.endAt);
-                      const right = ((Math.max(s, dayStartMin) - dayStartMin) / (dayEndMin - dayStartMin)) * 100;
-                      const width = ((Math.min(e, dayEndMin) - Math.max(s, dayStartMin)) / (dayEndMin - dayStartMin)) * 100;
+                {/* Outlook-style day bar — colored blocks with titles, now-marker */}
+                <div dir="rtl" className="mb-5">
+                  {/* hour header */}
+                  <div className="relative mb-1 h-4">
+                    {[8, 10, 12, 14, 16, 18, 20].map((h) => (
+                      <span
+                        key={h}
+                        className="absolute top-0 text-[9px] tabular-nums text-ink-faint"
+                        style={{
+                          right: `${((h * 60 - dayStartMin) / (dayEndMin - dayStartMin)) * 100}%`,
+                          transform: "translateX(50%)",
+                        }}
+                      >
+                        {faStr(pad2(h))}
+                      </span>
+                    ))}
+                  </div>
+                  {/* blocks lane */}
+                  <div className="relative h-14 rounded-lg border border-line bg-paper-soft/40">
+                    {/* hour gridlines */}
+                    {[9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19].map((h) => (
+                      <span
+                        key={h}
+                        className="absolute inset-y-0 w-px bg-line/60"
+                        style={{ right: `${((h * 60 - dayStartMin) / (dayEndMin - dayStartMin)) * 100}%` }}
+                      />
+                    ))}
+                    {meetings
+                      .filter((m) => !["CANCELLED", "REJECTED"].includes(m.status))
+                      .map((m) => {
+                        const s = minutesOf(m.startAt);
+                        const e = minutesOf(m.endAt);
+                        const right = ((Math.max(s, dayStartMin) - dayStartMin) / (dayEndMin - dayStartMin)) * 100;
+                        const width = Math.max(
+                          ((Math.min(e, dayEndMin) - Math.max(s, dayStartMin)) / (dayEndMin - dayStartMin)) * 100,
+                          2.5,
+                        );
+                        const live = m.status === "IN_PROGRESS";
+                        const pending = m.status === "PENDING_APPROVAL" || m.status === "WAITLISTED" || m.status === "WAITLIST_OFFERED";
+                        return (
+                          <Tooltip
+                            key={m.id}
+                            content={`${m.title} · ${faStr(new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(11, 16))}`}
+                          >
+                            <div
+                              className={cn(
+                                "absolute top-1.5 bottom-1.5 overflow-hidden rounded-md border px-1.5 py-1 text-right",
+                                live
+                                  ? "border-red-300 bg-red-500/90 text-white"
+                                  : pending
+                                    ? "border-dashed border-ink/40 bg-white text-ink-soft"
+                                    : "border-ink/20 bg-ink text-white",
+                              )}
+                              style={{ right: `${right}%`, width: `${width}%` }}
+                            >
+                              <p className="truncate text-[9px] font-bold leading-3">{m.title}</p>
+                              {width > 14 && (
+                                <p className="mt-0.5 truncate text-[8px] leading-3 opacity-80">
+                                  {faStr(new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(11, 16))}
+                                </p>
+                              )}
+                            </div>
+                          </Tooltip>
+                        );
+                      })}
+                    {/* now marker */}
+                    {(() => {
+                      const nowTeh = new Date(Date.now() + 210 * 60000);
+                      const nowMin = nowTeh.getUTCHours() * 60 + nowTeh.getUTCMinutes();
+                      if (nowMin < dayStartMin || nowMin > dayEndMin) return null;
+                      const right = ((nowMin - dayStartMin) / (dayEndMin - dayStartMin)) * 100;
                       return (
-                        <Tooltip key={m.id} content={m.title}>
-                        <div
-                          className={cn(
-                            "absolute top-7 h-2 rounded-full",
-                            m.status === "IN_PROGRESS" ? "bg-red-500" : "bg-ink",
-                          )}
-                          style={{ right: `${right}%`, width: `${width}%` }}
-                        />
-                        </Tooltip>
+                        <span
+                          className="absolute inset-y-0 z-10 w-0.5 bg-red-500"
+                          style={{ right: `${right}%` }}
+                          title="الان"
+                        >
+                          <span className="absolute -top-0.5 right-1/2 h-1.5 w-1.5 translate-x-1/2 rounded-full bg-red-500" />
+                        </span>
                       );
-                    })}
-                  {[8, 10, 12, 14, 16, 18, 20].map((h) => (
-                    <span
-                      key={h}
-                      className="absolute top-12 text-[9px] text-ink-faint"
-                      style={{ right: `${((h * 60 - dayStartMin) / (dayEndMin - dayStartMin)) * 100}%`, transform: "translateX(50%)" }}
-                    >
-                      {faStr(pad2(h))}
-                    </span>
-                  ))}
+                    })()}
+                  </div>
+                </div>
+
+                <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-ink-faint">
+                  <span className="flex items-center gap-1"><span className="h-2 w-3.5 rounded-sm bg-ink" />تأییدشده</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-3.5 rounded-sm bg-red-500" />در حال برگزاری</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-3.5 rounded-sm border border-dashed border-ink/50 bg-white" />در انتظار تأیید</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-3.5 rounded-sm bg-red-500" style={{ width: 2 }} />الان</span>
                 </div>
 
                 <div className="divide-y divide-line">
@@ -194,10 +252,13 @@ export function RoomDetailPage() {
                     <Link
                       key={m.id}
                       href={`/meetings/${m.id}`}
-                      className="flex items-center justify-between gap-2 px-1 py-3 hover:bg-paper-soft"
+                      className={cn(
+                        "flex items-center justify-between gap-2 px-1 py-3 hover:bg-paper-soft",
+                        ["CANCELLED", "REJECTED"].includes(m.status) && "opacity-50",
+                      )}
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-medium">{m.title}</p>
+                        <p className={cn("truncate text-[13px] font-medium", ["CANCELLED", "REJECTED"].includes(m.status) && "line-through")}>{m.title}</p>
                         <p className="mt-0.5 text-[11px] text-ink-soft">
                           {faStr(new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(11, 16))} —{" "}
                           {faStr(new Date(new Date(m.endAt).getTime() + 210 * 60000).toISOString().slice(11, 16))}
