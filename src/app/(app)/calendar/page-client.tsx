@@ -163,6 +163,24 @@ export function CalendarPage() {
     [dragId, meetings],
   );
 
+  // drop onto an HOUR slot in the day timeline — same confirm modal
+  const onDropToHour = useCallback(
+    (meetingId: string, hour: number) => {
+      const m = (meetings ?? []).find((x) => x.id === meetingId);
+      if (!m) return;
+      const src = new Date(new Date(m.startAt).getTime() + 210 * 60000);
+      const durMin = (new Date(m.endAt).getTime() - new Date(m.startAt).getTime()) / 60000;
+      const newStartLocal = new Date(
+        Date.UTC(src.getUTCFullYear(), src.getUTCMonth(), src.getUTCDate(), hour, 0),
+      );
+      const newStart = new Date(newStartLocal.getTime() - 210 * 60000);
+      const newEnd = new Date(newStart.getTime() + durMin * 60000);
+      const iso = new Date(newStartLocal.getTime()).toISOString().slice(0, 10);
+      setPendingDrop({ id: meetingId, title: m.isMasked ? "جلسه محرمانه" : m.title, iso, newStart, newEnd });
+    },
+    [meetings],
+  );
+
   const confirmDrop = useCallback(async () => {
     if (!pendingDrop) return;
     setDropping(true);
@@ -578,6 +596,7 @@ export function CalendarPage() {
           selectedIso={selectedIso}
           todayIso={today}
           friday={isFridayIso(selectedIso)}
+          onReschedule={onDropToHour}
         />
       )}
 

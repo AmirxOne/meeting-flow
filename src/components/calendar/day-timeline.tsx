@@ -81,14 +81,19 @@ export function DayTimeline({
   selectedIso,
   todayIso,
   friday = false,
+  onReschedule,
 }: {
   meetings: DayTimelineMeeting[];
   selectedIso: string;
   todayIso: string;
   friday?: boolean;
+  /** drag & drop: user dropped a meeting onto an hour slot of this day */
+  onReschedule?: (meetingId: string, startHour: number) => void;
 }) {
   const isToday = selectedIso === todayIso;
   const [now, setNow] = useState(() => new Date());
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverHour, setDragOverHour] = useState<number | null>(null);
   const [openHours, setOpenHours] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
@@ -196,8 +201,30 @@ export function DayTimeline({
                   {showPeriod && (
                     <p className="mb-3 mt-5 first:mt-0 text-[11px] font-medium text-ink-faint">{DAY_PERIOD_FA[period]}</p>
                   )}
-                  <div id={`day-hour-${group.hour}`} className="flex gap-3">
-                    <div className="flex w-12 shrink-0 flex-col items-center">
+                  <div
+                    id={`day-hour-${group.hour}`}
+                    className="flex gap-3"
+                    onDragOver={(e) => {
+                      if (!dragId || !onReschedule) return;
+                      e.preventDefault();
+                      setDragOverHour(group.hour);
+                    }}
+                    onDragLeave={() => setDragOverHour((h) => (h === group.hour ? null : h))}
+                    onDrop={(e) => {
+                      if (!onReschedule) return;
+                      e.preventDefault();
+                      const id = e.dataTransfer.getData("text/plain") || dragId;
+                      setDragId(null);
+                      setDragOverHour(null);
+                      if (id) onReschedule(id, group.hour);
+                    }}
+                  >
+                    <div
+                      className={cn(
+                        "flex w-12 shrink-0 flex-col items-center rounded-lg -mx-1 px-1 transition-colors",
+                        dragOverHour === group.hour && "bg-paper-soft ring-2 ring-inset ring-ink",
+                      )}
+                    >
                       <span className={cn("text-[12px] font-bold tabular-nums", isNowHour ? "text-red-600" : "text-ink")}>
                         {faPad2(group.hour)}:۰۰
                       </span>
@@ -218,9 +245,21 @@ export function DayTimeline({
                           <Link
                             key={m.id}
                             href={`/meetings/${m.id}`}
+                            draggable={onReschedule && !m.isMasked ? true : undefined}
+                            onDragStart={(e) => {
+                              setDragId(m.id);
+                              e.dataTransfer.effectAllowed = "move";
+                              e.dataTransfer.setData("text/plain", m.id);
+                            }}
+                            onDragEnd={() => {
+                              setDragId(null);
+                              setDragOverHour(null);
+                            }}
                             className={cn(
                               "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors",
                               tone.card,
+                              onReschedule && "cursor-grab active:cursor-grabbing",
+                              dragId === m.id && "opacity-40",
                             )}
                           >
                             <span className={cn("h-9 w-[3px] shrink-0 rounded-full", tone.rail)} />
