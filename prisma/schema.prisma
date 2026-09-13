@@ -57,6 +57,9 @@ model User {
   uploadedAttachments   MeetingAttachment[]
   agendaItemsOwned      MeetingAgendaItem[]
   minutesPublished      MeetingMinutes[]     @relation("minutesPublished")
+  minutesApproved       MeetingMinutes[]     @relation("minutesApproved")
+  meetingsSecretaried   MeetingSecretary[]   @relation("meetingsSecretaried")
+  topicsCreated         MeetingTopic[]       @relation("topicsCreated")
   decisionsOwned        MeetingDecision[]    @relation("decisionsOwned")
   pushSubscriptions     PushSubscription[]
 
@@ -416,6 +419,9 @@ model Meeting {
   series        MeetingSeries?       @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   attachments   MeetingAttachment[]
   agendaItems   MeetingAgendaItem[]
+  secretaries   MeetingSecretary[]
+  topics        MeetingTopic[]
+  contentAcls   MeetingContentAcl[]
   minutes       MeetingMinutes?
 
   @@index([orgId])
@@ -515,14 +521,83 @@ model MeetingMinutes {
   id            String   @id @default(cuid())
   meetingId     String   @unique
   body          String
+  /// خلاصه جلسه — independent field, editing it never touches body
+  summary       String?
+  /// DRAFT | PENDING_APPROVAL | FINAL
+  status        String   @default("DRAFT")
+  approverId    String?
+  approvedAt    DateTime?
+  finalizedAt   DateTime?
   publishedAt   DateTime @default(now())
   publishedById String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  meeting     Meeting           @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  publishedBy User              @relation("minutesPublished", fields: [publishedById], references: [id], onDelete: Restrict)
+  meeting     Meeting            @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  publishedBy User               @relation("minutesPublished", fields: [publishedById], references: [id], onDelete: Restrict)
+  approver    User?              @relation("minutesApproved", fields: [approverId], references: [id], onDelete: SetNull)
   decisions   MeetingDecision[]
+  topics      MeetingTopic[]
+}
+
+/// دبیران جلسه — secretary(ies) responsible for agenda & minutes
+model MeetingSecretary {
+  id        String   @id @default(cuid())
+  meetingId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation("meetingsSecretaried", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+}
+
+/// موضوعات مطرح‌شده در جلسه — recorded by the secretary, NOT inferred from agenda
+model MeetingTopic {
+  id          String   @id @default(cuid())
+  meetingId   String
+  /// null = raised in-session (not on the original agenda); set = linked agenda item
+  agendaItemId String?
+  title       String
+  /// COVERED | PARTIAL | SKIPPED
+  reviewStatus String  @default("COVERED")
+  notes       String?
+  /// تصمیمات اتخاذشده
+  decisions   String?
+  /// اقدامات موردنیاز
+  actions     String?
+  sortOrder   Int      @default(0)
+  /// OPEN = all participants; RESTRICTED = only allowedUserIds (+ section admins)
+  visibility  String   @default("OPEN")
+  allowedUserIds String[] @default([])
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  meeting  Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  createdBy User            @relation("topicsCreated", fields: [createdById], references: [id], onDelete: Restrict)
+  minutes  MeetingMinutes?  @relation(fields: [minutesId], references: [id], onDelete: SetNull)
+  minutesId String?
+
+  @@index([meetingId, sortOrder])
+}
+
+/// Section-level confidentiality: which parts of a meeting's content are open/restricted
+model MeetingContentAcl {
+  id        String   @id @default(cuid())
+  meetingId String
+  /// AGENDA | TOPICS | SUMMARY | BODY
+  section   String
+  /// ALL_PARTICIPANTS | RESTRICTED | ORGANIZER_ONLY
+  level     String   @default("ALL_PARTICIPANTS")
+  allowedUserIds String[] @default([])
+  updatedById String?
+  updatedAt DateTime @updatedAt
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, section])
 }
 
 /// A decision captured in meeting minutes (متن، مسئول، مهلت).

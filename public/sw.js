@@ -1,5 +1,5 @@
 /* مهرسا PWA shell — cache fonts/icons/offline; never intercept /api or /_next */
-const CACHE = "mehrsa-shell-v2";
+const CACHE = "mehrsa-shell-v3";
 const SHELL = [
   "/offline.html",
   "/fonts/Alibaba-Regular.woff2",
@@ -56,7 +56,15 @@ self.addEventListener("fetch", (event) => {
 
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req).catch(() => caches.match("/offline.html")),
+      fetch(req).catch(() => {
+        // remember WHERE the user wanted to go, so offline.html can return there
+        try {
+          self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+            for (const w of wins) w.postMessage({ type: "OFFLINE_NAV", url: url.pathname + url.search });
+          });
+        } catch (e) { /* best-effort */ }
+        return caches.match("/offline.html");
+      }),
     );
   }
 });

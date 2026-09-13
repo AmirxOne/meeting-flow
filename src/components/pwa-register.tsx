@@ -12,4 +12,16 @@ export function PwaRegister() {
     return () => window.clearTimeout(id);
   }, []);
   return null;
+
+  // remember the intended navigation when SW serves the offline page
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.serviceWorker) return;
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === "OFFLINE_NAV" && e.data.url) {
+        try { sessionStorage.setItem("mehrsa-offline-back", e.data.url); } catch {}
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+  }, []);
 }

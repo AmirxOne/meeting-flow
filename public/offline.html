@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>آفلاین — مهرسا</title>
     <style>
+      @font-face {
+        font-family: "alibaba";
+        src: url("/fonts/Alibaba-Regular.woff2") format("woff2");
+        font-weight: 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "alibaba";
+        src: url("/fonts/Alibaba-Bold.woff2") format("woff2");
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
       body {
         margin: 0;
         min-height: 100dvh;
@@ -12,30 +26,81 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        font-family: Tahoma, "Segoe UI", sans-serif;
+        font-family: alibaba, Tahoma, "Segoe UI", sans-serif;
         background: #fff;
         color: #0d0d0d;
         padding: 1.5rem;
         text-align: center;
       }
-      h1 { font-size: 1.15rem; margin: 0 0 0.5rem; }
-      p { font-size: 0.9rem; color: #52525b; margin: 0 0 1.25rem; }
-      a {
+      .logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 0.625rem;
+        background: #0d0d0d;
+        margin-bottom: 1.25rem;
+      }
+      .logo svg { width: 2rem; height: 2rem; }
+      h1 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.5rem; }
+      p { font-size: 0.85rem; color: #52525b; line-height: 1.8; margin: 0 0 1.25rem; max-width: 26rem; }
+      .retry {
         display: inline-flex;
         height: 2.5rem;
         align-items: center;
-        padding: 0 1rem;
+        gap: 0.5rem;
+        padding: 0 1.25rem;
         border-radius: 0.5rem;
+        border: none;
         background: #0d0d0d;
         color: #fff;
-        text-decoration: none;
+        font-family: inherit;
         font-size: 0.85rem;
+        cursor: pointer;
       }
+      .retry:hover { background: #2a2a2e; }
+      .hint { margin-top: 1.5rem; font-size: 0.7rem; color: #a1a1aa; }
     </style>
   </head>
   <body>
+    <div class="logo">
+      <!-- eslint-disable-next-line -->
+      <img src="/icons/icon-192.png" alt="مهرسا" style="width: 2rem; height: 2rem; border-radius: 0.375rem;" />
+    </div>
     <h1>اتصال برقرار نیست</h1>
-    <p>مهرسا برای جلسات من به اینترنت نیاز دارد. بعد از وصل شدن دوباره تلاش کنید.</p>
-    <a href="/meetings">تلاش دوباره</a>
+    <p>مهرسا برای جلسات شما به سرور نیاز دارد. اتصال اینترنت یا سرور را بررسی کنید و دوباره تلاش کنید.</p>
+    <button class="retry" onclick="location.replace('/', /* force reload */ '')">تلاش دوباره</button>
+    <p class="hint" id="auto">در حال تلاش مجدد خودکار…</p>
+
+    <script>
+      // auto-retry: poll the server; as soon as it answers, go back cleanly
+      (function () {
+        var attempts = 0;
+        function ping() {
+          attempts++;
+          fetch("/api/auth/config", { cache: "no-store" })
+            .then(function (r) {
+              if (r.ok) {
+                // server is back — reload the ORIGINAL target the user wanted
+                var back = sessionStorage.getItem("mehrsa-offline-back");
+                sessionStorage.removeItem("mehrsa-offline-back");
+                location.replace(back || "/");
+              } else {
+                schedule();
+              }
+            })
+            .catch(schedule);
+        }
+        function schedule() {
+          if (attempts > 120) {
+            document.getElementById("auto").textContent = "تلاش خودکار متوقف شد — دکمه‌ی «تلاش دوباره» را بزنید";
+            return;
+          }
+          setTimeout(ping, 3000);
+        }
+        ping();
+      })();
+    </script>
   </body>
 </html>

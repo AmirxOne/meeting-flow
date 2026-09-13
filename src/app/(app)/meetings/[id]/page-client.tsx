@@ -22,7 +22,7 @@ import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { GuestCheckinPanel } from "@/components/checkin/guest-checkin-panel";
 import { MeetingAttachments, type MeetingAttachmentRow } from "@/components/meetings/meeting-attachments";
 import { MeetingAgenda, type MeetingAgendaItemRow } from "@/components/meetings/meeting-agenda";
-import { MeetingMinutes, type MeetingMinutesData } from "@/components/meetings/meeting-minutes";
+import { MeetingMinutes } from "@/components/meetings/meeting-minutes";
 import { MeetingVideoLink } from "@/components/meetings/meeting-video-link";
 import { CANCEL_REASONS } from "@/lib";
 import {
@@ -100,7 +100,7 @@ interface MeetingDetail {
   } | null;
   attachments?: MeetingAttachmentRow[];
   agendaItems?: MeetingAgendaItemRow[];
-  minutes?: MeetingMinutesData | null;
+  minutes?: unknown | null;
   videoProvider?: string | null;
   videoUrl?: string | null;
 }
@@ -861,17 +861,7 @@ export function MeetingDetailPage() {
             ]}
           />
 
-          <MeetingMinutes
-            meetingId={id}
-            minutes={m.minutes ?? null}
-            canEdit={isOrganizer && (m.status === "IN_PROGRESS" || m.status === "COMPLETED")}
-            people={[
-              { id: m.organizer.id, fullName: m.organizer.fullName },
-              ...m.participants
-                .filter((p) => p.userId !== m.organizer.id)
-                .map((p) => ({ id: p.userId, fullName: p.user.fullName })),
-            ]}
-          />
+          <MeetingMinutes meetingId={id} />
 
           <MeetingAttachments
             meetingId={id}

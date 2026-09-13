@@ -415,6 +415,8 @@ export type HolidayCreateInput = z.infer<typeof holidayCreateSchema>;
 
 export const minutesUpsertSchema = z.object({
   body: z.string().trim().min(1, "متن صورتجلسه الزامی است").max(8000),
+  /// خلاصه جلسه — independent from body
+  summary: z.string().trim().max(2000).nullish(),
   decisions: z.array(minutesDecisionInputSchema).max(20, "حداکثر ۲۰ تصمیم").default([]),
 });
 export type MinutesUpsertInput = z.infer<typeof minutesUpsertSchema>;

@@ -13,6 +13,11 @@ const WRITABLE_STATUSES = new Set(["IN_PROGRESS", "COMPLETED"]);
 const MINUTES_PUBLIC = {
   id: true,
   body: true,
+  summary: true,
+  status: true,
+  approverId: true,
+  approvedAt: true,
+  finalizedAt: true,
   publishedAt: true,
   updatedAt: true,
   publishedBy: { select: { id: true, fullName: true } },
@@ -32,6 +37,11 @@ const MINUTES_PUBLIC = {
 export type PublicMinutes = {
   id: string;
   body: string;
+  summary: string | null;
+  status: string;
+  approverId: string | null;
+  approvedAt: Date | null;
+  finalizedAt: Date | null;
   publishedAt: Date;
   updatedAt: Date;
   publishedBy: { id: string; fullName: string };
@@ -109,6 +119,7 @@ export async function upsertMinutes(
   const meeting = await loadMeetingForMinutes(meetingId, user.orgId);
   assertCanEditMinutes(user, meeting);
   assertMinutesWritable(meeting.status);
+  const summary = (input as { summary?: string | null }).summary;
 
   const allowedOwners = new Set([
     meeting.organizerId,
@@ -139,6 +150,7 @@ export async function upsertMinutes(
           where: { meetingId },
           data: {
             body: input.body,
+            ...(summary !== undefined ? { summary } : {}),
             publishedAt: new Date(),
             publishedById: user.id,
           },
@@ -147,6 +159,7 @@ export async function upsertMinutes(
           data: {
             meetingId,
             body: input.body,
+            summary: summary ?? null,
             publishedById: user.id,
           },
         });
