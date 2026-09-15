@@ -142,6 +142,9 @@ export function CalendarPage() {
   const { can, me } = useAuth();
   const canDnD = can("meeting:reschedule") || me?.id != null; // organizer check is server-side too
   const [dragId, setDragId] = useState<string | null>(null);
+  // snapshot of the dragged meeting so drops work in ANY month (the calendar
+  // query only holds the CURRENT month's meetings)
+  const [dragInfo, setDragInfo] = useState<{ id: string; title: string; startAt: string; endAt: string; isMasked?: boolean } | null>(null);
   const [dragOverIso, setDragOverIso] = useState<string | null>(null);
   const [dropping, setDropping] = useState(false);
   // edge-dock month picker during drag: NEXT months (left edge) / PREV months (right edge)
@@ -203,7 +206,11 @@ export function CalendarPage() {
       setDragId(null);
       setDragOverIso(null);
       if (!id) return;
-      const m = (meetings ?? []).find((x) => x.id === id);
+      const m =
+        (meetings ?? []).find((x) => x.id === id) ??
+        (dragInfo && dragInfo.id === id
+          ? { ...dragInfo, title: dragInfo.isMasked ? "جلسه محرمانه" : dragInfo.title }
+          : undefined);
       if (!m) return;
       // same-day drop = no-op
       const srcIso = new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(0, 10);
@@ -218,12 +225,14 @@ export function CalendarPage() {
       // show the confirmation MODAL instead of window.confirm
       setPendingDrop({ id, title: m.isMasked ? "جلسه محرمانه" : m.title, iso, newStart, newEnd });
     },
-    [dragId, meetings],
+    [dragId, dragInfo, meetings],
   );
 
   // compute target iso: same Jalali day in an arbitrary month offset from the DRAGGED meeting's month
   const isoInMonthOffset = useCallback((meetingId: string, offset: number): string | null => {
-    const m = (meetings ?? []).find((x) => x.id === meetingId);
+    const m =
+      (meetings ?? []).find((x) => x.id === meetingId) ??
+      (dragInfo && dragInfo.id === meetingId ? dragInfo : undefined);
     if (!m) return null;
     const j = jalaliOfIso(new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(0, 10));
     let { jy, jm } = j;
@@ -232,7 +241,7 @@ export function CalendarPage() {
     while (jm < 1) { jm += 12; jy -= 1; }
     const jd = Math.min(j.jd, jMonthLen(jy, jm));
     return isoOfJalali(jy, jm, jd);
-  }, [meetings]);
+  }, [meetings, dragInfo]);
 
   // drop on the month arrows: same Jalali day in the next/previous month
   const onDropToMonth = useCallback(
@@ -241,7 +250,9 @@ export function CalendarPage() {
       setDragId(null);
       setDragOverIso(null);
       if (!id) return;
-      const m = (meetings ?? []).find((x) => x.id === id);
+      const m =
+        (meetings ?? []).find((x) => x.id === id) ??
+        (dragInfo && dragInfo.id === id ? dragInfo : undefined);
       if (!m) return;
       const j = jalaliOfIso(new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(0, 10));
       let { jy, jm } = j;
@@ -253,7 +264,7 @@ export function CalendarPage() {
       // reuse the same computation as a day-drop
       onDropToDay(iso, id);
     },
-    [dragId, meetings, onDropToDay],
+    [dragId, dragInfo, meetings, onDropToDay],
   );
 
   // drop onto an HOUR slot in the day timeline — same confirm modal
@@ -568,12 +579,14 @@ export function CalendarPage() {
                             draggable={canDnD && !m.isMasked ? true : undefined}
                             onDragStart={(e) => {
                               setDragId(m.id);
+                              setDragInfo({ id: m.id, title: m.title, startAt: m.startAt, endAt: m.endAt, isMasked: m.isMasked });
                               e.dataTransfer.effectAllowed = "move";
                               e.dataTransfer.setData("text/plain", m.id);
                             }}
                             onDragEnd={() => {
                               setDragId(null);
                               setDragOverIso(null);
+                              setDragInfo(null);
                               stopAutoAdvance();
                             }}
                             className={cn(
