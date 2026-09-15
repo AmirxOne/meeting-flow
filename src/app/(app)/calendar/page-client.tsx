@@ -133,6 +133,25 @@ export function CalendarPage() {
   const [dropping, setDropping] = useState(false);
   // edge-dock month picker during drag: NEXT months (left edge) / PREV months (right edge)
   const [monthDock, setMonthDock] = useState<"next" | "prev" | null>(null);
+  // auto-advance: hold the chip on an edge → calendar pages through months repeatedly
+  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const stopAutoAdvance = useCallback(() => {
+    if (autoTimerRef.current) { clearTimeout(autoTimerRef.current); autoTimerRef.current = null; }
+    if (autoIntervalRef.current) { clearInterval(autoIntervalRef.current); autoIntervalRef.current = null; }
+  }, []);
+  const startAutoAdvance = useCallback(
+    (dir: 1 | -1) => {
+      stopAutoAdvance();
+      // first flip after a short hold, then keep flipping while hovering
+      autoTimerRef.current = setTimeout(() => {
+        monthDelta(dir);
+        autoIntervalRef.current = setInterval(() => monthDelta(dir), 700);
+      }, 600);
+    },
+    [stopAutoAdvance, monthDelta],
+  );
+  useEffect(() => stopAutoAdvance, [stopAutoAdvance]); // cleanup on unmount
   // pending drop awaiting modal confirmation: { meeting, iso, newStart, newEnd }
   const [pendingDrop, setPendingDrop] = useState<{
     id: string;
@@ -506,6 +525,7 @@ export function CalendarPage() {
                             onDragEnd={() => {
                               setDragId(null);
                               setDragOverIso(null);
+                              stopAutoAdvance();
                             }}
                             className={cn(
                               "flex truncate rounded px-1 py-0.5 text-[10px] leading-4",
@@ -549,10 +569,10 @@ export function CalendarPage() {
                       exit={{ opacity: 0, x: 28 }}
                       transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
                       className="absolute -left-[2px] top-0 bottom-0 z-30 w-[72px]"
-                      onDragEnter={() => setMonthDock("next")}
+                      onDragEnter={() => { setMonthDock("next"); startAutoAdvance(1); }}
                       onDragOver={(e) => { e.preventDefault(); setMonthDock("next"); }}
-                      onDragLeave={() => setMonthDock((d) => (d === "next" ? null : d))}
-                      onDrop={(e) => { e.preventDefault(); setMonthDock(null); }}
+                      onDragLeave={() => { setMonthDock((d) => (d === "next" ? null : d)); stopAutoAdvance(); }}
+                      onDrop={(e) => { e.preventDefault(); setMonthDock(null); stopAutoAdvance(); }}
                       title="ماه‌های بعد"
                     >
                       <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-ink/40 bg-paper-soft/90 shadow-sm">
@@ -568,10 +588,10 @@ export function CalendarPage() {
                       exit={{ opacity: 0, x: -28 }}
                       transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
                       className="absolute -right-[2px] top-0 bottom-0 z-30 w-[72px]"
-                      onDragEnter={() => setMonthDock("prev")}
+                      onDragEnter={() => { setMonthDock("prev"); startAutoAdvance(-1); }}
                       onDragOver={(e) => { e.preventDefault(); setMonthDock("prev"); }}
-                      onDragLeave={() => setMonthDock((d) => (d === "prev" ? null : d))}
-                      onDrop={(e) => { e.preventDefault(); setMonthDock(null); }}
+                      onDragLeave={() => { setMonthDock((d) => (d === "prev" ? null : d)); stopAutoAdvance(); }}
+                      onDrop={(e) => { e.preventDefault(); setMonthDock(null); stopAutoAdvance(); }}
                       title="ماه‌های قبل"
                     >
                       <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-ink/40 bg-paper-soft/90 shadow-sm">
