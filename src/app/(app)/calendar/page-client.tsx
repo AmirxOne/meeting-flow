@@ -613,7 +613,7 @@ export function CalendarPage() {
                       exit={{ opacity: 0, x: 28 }}
                       transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
                       ref={dockNextRef}
-                      className="absolute -left-[2px] top-0 bottom-0 z-30 w-[72px]"
+                      className="absolute -left-[2px] top-0 bottom-0 z-30 w-[30px]"
                       onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); setMonthDock("next"); startAutoAdvance(1); }}
                       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); cancelPendingClose(); setMonthDock("next"); }}
                       onDragLeave={(e) => { if (inDockUnion(e.relatedTarget)) return; scheduleDockClose(); }}
@@ -633,7 +633,7 @@ export function CalendarPage() {
                       exit={{ opacity: 0, x: -28 }}
                       transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
                       ref={dockPrevRef}
-                      className="absolute -right-[2px] top-0 bottom-0 z-30 w-[72px]"
+                      className="absolute -right-[2px] top-0 bottom-0 z-30 w-[30px]"
                       onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); setMonthDock("prev"); startAutoAdvance(-1); }}
                       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); cancelPendingClose(); setMonthDock("prev"); }}
                       onDragLeave={(e) => { if (inDockUnion(e.relatedTarget)) return; scheduleDockClose(); }}
@@ -660,7 +660,7 @@ export function CalendarPage() {
                       transition={{ duration: 0.2, ease: [0.22, 0.8, 0.36, 1] }}
                       className={cn(
                         "absolute top-10 z-40 w-56 rounded-xl border border-line bg-white p-3 shadow-2xl",
-                        monthDock === "next" ? "left-[80px]" : "right-[80px]",
+                        monthDock === "next" ? "left-[38px]" : "right-[38px]",
                       )}
                       ref={panelRootRef}
                       onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); stopAutoAdvance(); }}
