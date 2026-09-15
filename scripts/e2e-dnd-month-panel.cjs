@@ -42,17 +42,25 @@ const { chromium } = require("playwright");
   if (await x.count()) { await x.click().catch(() => {}); await page.waitForTimeout(500); }
 
   // drag: chip → hover LEFT edge dock → panel opens → drop on +2 months tile
-  const flow = await page.evaluate((mid) => {
+  // start drag, then WAIT for the animated dock to mount before hovering it
+  const chipOk = await page.evaluate((mid) => {
     const chip = document.querySelector(`a[href="/meetings/${mid}"]`);
-    const dock = document.querySelector('div[title="ماه‌های بعد"]');
-    if (!chip || !dock) return { step: "find", chip: !!chip, dock: !!dock };
+    if (!chip) return false;
     const dt = new DataTransfer();
-    chip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, dataTransfer: dt }));
-    dock.dispatchEvent(new DragEvent("dragenter", { bubbles: true }));
-    dock.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }));
-    return { step: "panel-check" };
+    chip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    return true;
   }, mid);
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(900);
+  const dockFound = await page.evaluate(() => !!document.querySelector('div[title="ماه‌های بعد"]'));
+  const flow = { chip: chipOk, dock: dockFound };
+  if (dockFound) {
+    await page.evaluate(() => {
+      const dock = document.querySelector('div[title="ماه‌های بعد"]');
+      const dt = new DataTransfer();
+      dock.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true }));
+      dock.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: dt }));
+    });
+  }
 
   const panel = await page.evaluate(() => {
     const p = [...document.querySelectorAll("div")].find(

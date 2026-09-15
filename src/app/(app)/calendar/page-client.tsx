@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronLeft, Plus, Shield, Download } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
@@ -537,41 +538,62 @@ export function CalendarPage() {
                   );
                 })}
               {/* ── edge docks (hover while dragging): LEFT = next months, RIGHT = previous months ── */}
-              {(true) && (
-                <>
-                  {/* next-months dock (left edge in RTL) */}
-                  <div
-                    className={cn("absolute -left-[2px] top-8 bottom-1 z-30 w-[72px] transition-opacity pointer-events-none", dragId && "pointer-events-auto opacity-100")}
-                    onDragEnter={() => setMonthDock("next")}
-                    onDragOver={(e) => { e.preventDefault(); setMonthDock("next"); }}
-                    onDragLeave={() => setMonthDock((d) => (d === "next" ? null : d))}
-                    onDrop={(e) => { e.preventDefault(); setMonthDock(null); }}
-                    title="ماه‌های بعد"
-                  >
-                    <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-ink/40 bg-paper-soft/80 text-[10px] font-bold text-ink-soft">
-                      ماه‌های بعد ←
-                    </div>
-                  </div>
-                  {/* previous-months dock (right edge) */}
-                  <div
-                    className={cn("absolute -right-[2px] top-8 bottom-1 z-30 w-[72px] transition-opacity pointer-events-none", dragId && "pointer-events-auto opacity-100")}
-                    onDragEnter={() => setMonthDock("prev")}
-                    onDragOver={(e) => { e.preventDefault(); setMonthDock("prev"); }}
-                    onDragLeave={() => setMonthDock((d) => (d === "prev" ? null : d))}
-                    onDrop={(e) => { e.preventDefault(); setMonthDock(null); }}
-                    title="ماه‌های قبل"
-                  >
-                    <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-ink/40 bg-paper-soft/80 text-[10px] font-bold text-ink-soft">
-                      → ماه‌های قبل
-                    </div>
-                  </div>
+              <AnimatePresence>
+                {dragId && (
+                  <>
+                    {/* next-months dock — full calendar height, slides in only while dragging */}
+                    <motion.div
+                      key="dock-next"
+                      initial={{ opacity: 0, x: 28 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 28 }}
+                      transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
+                      className="absolute -left-[2px] top-0 bottom-0 z-30 w-[72px]"
+                      onDragEnter={() => setMonthDock("next")}
+                      onDragOver={(e) => { e.preventDefault(); setMonthDock("next"); }}
+                      onDragLeave={() => setMonthDock((d) => (d === "next" ? null : d))}
+                      onDrop={(e) => { e.preventDefault(); setMonthDock(null); }}
+                      title="ماه‌های بعد"
+                    >
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-ink/40 bg-paper-soft/90 shadow-sm">
+                        <ChevronLeft className="h-4 w-4" />
+                        <span className="text-[10px] font-bold [writing-mode:vertical-rl] text-ink-soft">ماه‌های بعد</span>
+                      </div>
+                    </motion.div>
+                    {/* previous-months dock */}
+                    <motion.div
+                      key="dock-prev"
+                      initial={{ opacity: 0, x: -28 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -28 }}
+                      transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
+                      className="absolute -right-[2px] top-0 bottom-0 z-30 w-[72px]"
+                      onDragEnter={() => setMonthDock("prev")}
+                      onDragOver={(e) => { e.preventDefault(); setMonthDock("prev"); }}
+                      onDragLeave={() => setMonthDock((d) => (d === "prev" ? null : d))}
+                      onDrop={(e) => { e.preventDefault(); setMonthDock(null); }}
+                      title="ماه‌های قبل"
+                    >
+                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-ink/40 bg-paper-soft/90 shadow-sm">
+                        <ChevronRight className="h-4 w-4" />
+                        <span className="text-[10px] font-bold [writing-mode:vertical-rl] text-ink-soft">ماه‌های قبل</span>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
 
                   {/* floating month panel */}
+                  <AnimatePresence>
                   {monthDock && (
-                    <div
+                    <motion.div
                       dir="rtl"
+                      initial={{ opacity: 0, scale: 0.92, y: 8 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.92, y: 8 }}
+                      transition={{ duration: 0.2, ease: [0.22, 0.8, 0.36, 1] }}
                       className={cn(
-                        "absolute top-8 z-30 w-56 rounded-xl border border-line bg-white p-3 shadow-2xl",
+                        "absolute top-10 z-40 w-56 rounded-xl border border-line bg-white p-3 shadow-2xl",
                         monthDock === "next" ? "left-[80px]" : "right-[80px]",
                       )}
                       onDragOver={(e) => e.preventDefault()}
@@ -608,10 +630,9 @@ export function CalendarPage() {
                       <p className="mt-2 text-center text-[9px] text-ink-faint">
                         جلسه را روی ماه دلخواه رها کنید
                       </p>
-                    </div>
+                    </motion.div>
                   )}
-                </>
-              )}
+                  </AnimatePresence>
               </div>
 
             </Card>
