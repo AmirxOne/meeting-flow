@@ -189,12 +189,20 @@ export function LandingPage() {
             <a href="#workflow" className="transition-colors hover:text-ink">گردش‌کار</a>
             <a href="#trust" className="transition-colors hover:text-ink">امنیت و دسترسی</a>
           </nav>
-          <Link
-            href="/login"
-            className="flex h-10 items-center rounded-lg bg-ink px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#2a2a2e] sm:px-5"
-          >
-            ورود به سامانه
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/request"
+              className="hidden h-10 items-center rounded-lg border border-line bg-white px-4 text-[13px] font-medium text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink sm:flex sm:px-5"
+            >
+              درخواست جلسه
+            </Link>
+            <Link
+              href="/login"
+              className="flex h-10 items-center rounded-lg bg-ink px-4 text-[13px] font-medium text-white transition-colors hover:bg-[#2a2a2e] sm:px-5"
+            >
+              ورود به سامانه
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -225,8 +233,14 @@ export function LandingPage() {
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link
-                  href="/login"
+                  href="/request"
                   className="flex h-12 items-center rounded-lg bg-ink px-7 text-[14px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
+                >
+                  درخواست جلسه (بدون ورود)
+                </Link>
+                <Link
+                  href="/login"
+                  className="flex h-12 items-center rounded-lg border border-line bg-white px-7 text-[14px] text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
                 >
                   ورود به سامانه
                 </Link>
@@ -349,12 +363,20 @@ export function LandingPage() {
                 با حساب سازمانی وارد شوید. مسیر از داشبورد تا اولین رزرو کمتر از چند دقیقه است.
               </p>
             </div>
-            <Link
-              href="/login"
-              className="flex h-12 shrink-0 items-center rounded-lg bg-white px-7 text-[14px] font-medium text-ink transition-colors hover:bg-paper-soft"
-            >
-              ورود به سامانه
-            </Link>
+            <div className="flex shrink-0 flex-wrap gap-3">
+              <Link
+                href="/request"
+                className="flex h-12 items-center rounded-lg bg-white px-7 text-[14px] font-medium text-ink transition-colors hover:bg-paper-soft"
+              >
+                درخواست جلسه (بدون ورود)
+              </Link>
+              <Link
+                href="/login"
+                className="flex h-12 items-center rounded-lg border border-line px-7 text-[14px] text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+              >
+                ورود به سامانه
+              </Link>
+            </div>
           </div>
         </section>
       </main>
