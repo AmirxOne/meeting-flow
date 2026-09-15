@@ -15,7 +15,7 @@ const { chromium } = require("playwright");
   const [n, v] = sc.value.split(";")[0].split("=");
   await ctx.addCookies([{ name: n.trim(), value: v.trim(), domain: "localhost", path: "/" }]);
 
-  const start = new Date(Date.now() + 3 * 86400000); start.setUTCHours(9, 0, 0, 0);
+  const start = new Date(Date.now() + 3 * 86400000); start.setUTCHours(11, 0, 0, 0);
   const uniq = Date.now() % 100000;
   const created = await page.request.post("http://127.0.0.1:3100/api/meetings", {
     headers: { "Content-Type": "application/json" },

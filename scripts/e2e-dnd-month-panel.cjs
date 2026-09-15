@@ -20,7 +20,7 @@ const { chromium } = require("playwright");
   // meeting in the current month view
   const uniq = Date.now() % 100000;
   const start = new Date(Date.now() + 3 * 86400000);
-  start.setUTCHours(9, 0, 0, 0);
+  start.setUTCHours(11, 0, 0, 0);
   const created = await page.request.post("http://127.0.0.1:3100/api/meetings", {
     headers: { "Content-Type": "application/json" },
     data: {

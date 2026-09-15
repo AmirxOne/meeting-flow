@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronLeft, Plus, Shield, Download } from "@/components/ui/icon";
 import { api } from "@/lib/api";
@@ -100,6 +100,12 @@ export function CalendarPage() {
   const [selectedIso, setSelectedIso] = useState(today);
   const todayJ = toJalali(new Date());
   const [anchor, setAnchor] = useState({ jy: todayJ.jy, jm: todayJ.jm });
+  // +1 = paging forward (slide left), -1 = backward (slide right)
+  const [monthAnimDir, setMonthAnimDir] = useState(1);
+  const gotoMonth = useCallback((jy: number, jm: number, dir?: 1 | -1) => {
+    if (dir) setMonthAnimDir(dir);
+    setAnchor({ jy, jm });
+  }, []);
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -116,13 +122,18 @@ export function CalendarPage() {
     };
   }, [anchor]);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ["calendar", range.from.toISOString(), range.to.toISOString(), scope],
     queryFn: () =>
       api<{ meetings: CalMeeting[]; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean }>(
         `/api/calendar?from=${range.from.toISOString()}&to=${range.to.toISOString()}&scope=${scope}`,
       ),
-  });  const meetings = data?.meetings ?? [];
+    // keep last month's data while fetching the new one — no skeleton flash,
+    // no DOM teardown (docks/drag context survive), smooth animated flip
+    placeholderData: keepPreviousData,
+  });
+  // only the FIRST load shows a skeleton; month flips keep rendering data
+  const showSkeleton = isLoading && !isPlaceholderData;  const meetings = data?.meetings ?? [];
   // ── drag & drop reschedule (month view) ──
   const qc = useQueryClient();
   const { push } = useToast();
@@ -136,6 +147,7 @@ export function CalendarPage() {
   // auto-advance: hold the chip on an edge → calendar pages through months repeatedly
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stopAutoAdvance = useCallback(() => {
     if (autoTimerRef.current) { clearTimeout(autoTimerRef.current); autoTimerRef.current = null; }
     if (autoIntervalRef.current) { clearInterval(autoIntervalRef.current); autoIntervalRef.current = null; }
@@ -151,7 +163,29 @@ export function CalendarPage() {
     },
     [stopAutoAdvance, monthDelta],
   );
-  useEffect(() => stopAutoAdvance, [stopAutoAdvance]); // cleanup on unmount
+  useEffect(() => () => { stopAutoAdvance(); if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, [stopAutoAdvance]);
+
+  // sticky dock hover: the panel stays open while the chip is over the dock OR the panel.
+  // Closing is delayed 280ms so the dock→panel journey doesn't kill it, and any
+  // dragenter/dragover on either element cancels the pending close.
+  const dockNextRef = useRef<HTMLDivElement | null>(null);
+  const dockPrevRef = useRef<HTMLDivElement | null>(null);
+  const panelRootRef = useRef<HTMLDivElement | null>(null);
+  const cancelPendingClose = useCallback(() => {
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null; }
+  }, []);
+  const scheduleDockClose = useCallback(() => {
+    cancelPendingClose();
+    closeTimerRef.current = setTimeout(() => { setMonthDock(null); stopAutoAdvance(); }, 280);
+  }, [cancelPendingClose, stopAutoAdvance]);
+  const inDockUnion = useCallback((t: EventTarget | null) => {
+    if (!(t instanceof Node)) return false;
+    return (
+      (dockNextRef.current?.contains(t) ?? false) ||
+      (dockPrevRef.current?.contains(t) ?? false) ||
+      (panelRootRef.current?.contains(t) ?? false)
+    );
+  }, []);
   // pending drop awaiting modal confirmation: { meeting, iso, newStart, newEnd }
   const [pendingDrop, setPendingDrop] = useState<{
     id: string;
@@ -313,13 +347,14 @@ export function CalendarPage() {
     jm += delta;
     if (jm > 12) { jm = 1; jy += 1; }
     if (jm < 1) { jm = 12; jy -= 1; }
-    setAnchor({ jy, jm });
+    gotoMonth(jy, jm, delta > 0 ? 1 : -1);
   }
 
   function jumpToIso(iso: string) {
     setSelectedIso(iso);
     const j = jalaliOfIso(iso);
-    setAnchor({ jy: j.jy, jm: j.jm });
+    const dir = j.jm !== anchor.jm || j.jy !== anchor.jy ? (j.jy > anchor.jy || (j.jy === anchor.jy && j.jm > anchor.jm) ? 1 : -1) : undefined;
+    gotoMonth(j.jy, j.jm, dir as 1 | -1 | undefined);
   }
 
   function goToday() {
@@ -438,7 +473,7 @@ export function CalendarPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {showSkeleton ? (
         view === "month" ? (
           <CalendarMonthSkeleton monthGrid={monthGrid} />
         ) : view === "week" ? (
@@ -455,7 +490,16 @@ export function CalendarPage() {
                   <div key={d} className={cn("px-0.5 py-2 text-center text-[10px] font-medium leading-4 sm:text-[11px]", i === 6 ? "text-red-500" : "text-ink-soft")}>{d}</div>
                 ))}
               </div>
-              <div className="relative grid grid-cols-7">
+              <div className="relative overflow-hidden">
+              <AnimatePresence initial={false} mode="popLayout">
+                <motion.div
+                  key={`${anchor.jy}/${anchor.jm}`}
+                  initial={{ opacity: 0, x: monthAnimDir * 36 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: monthAnimDir * -36 }}
+                  transition={{ duration: 0.28, ease: [0.22, 0.8, 0.36, 1] }}
+                  className="grid grid-cols-7"
+                >
                 {monthGrid.map((cell, i) => {
                   const fridayCol = i % 7 === 6;
                   if (!cell) return <div key={i} className="h-16 border-b border-l border-line/40 bg-paper-soft/20 sm:h-24 lg:h-[7.25rem]" />;
@@ -568,14 +612,15 @@ export function CalendarPage() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 28 }}
                       transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
+                      ref={dockNextRef}
                       className="absolute -left-[2px] top-0 bottom-0 z-30 w-[72px]"
-                      onDragEnter={() => { setMonthDock("next"); startAutoAdvance(1); }}
-                      onDragOver={(e) => { e.preventDefault(); setMonthDock("next"); }}
-                      onDragLeave={() => { setMonthDock((d) => (d === "next" ? null : d)); stopAutoAdvance(); }}
-                      onDrop={(e) => { e.preventDefault(); setMonthDock(null); stopAutoAdvance(); }}
+                      onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); setMonthDock("next"); startAutoAdvance(1); }}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); cancelPendingClose(); setMonthDock("next"); }}
+                      onDragLeave={(e) => { if (inDockUnion(e.relatedTarget)) return; scheduleDockClose(); }}
+                      onDrop={(e) => { e.preventDefault(); cancelPendingClose(); setMonthDock(null); stopAutoAdvance(); }}
                       title="ماه‌های بعد"
                     >
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-ink/40 bg-paper-soft/90 shadow-sm">
+                      <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-ink/40 bg-paper-soft/90 shadow-sm">
                         <ChevronLeft className="h-4 w-4" />
                         <span className="text-[10px] font-bold [writing-mode:vertical-rl] text-ink-soft">ماه‌های بعد</span>
                       </div>
@@ -587,14 +632,15 @@ export function CalendarPage() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -28 }}
                       transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
+                      ref={dockPrevRef}
                       className="absolute -right-[2px] top-0 bottom-0 z-30 w-[72px]"
-                      onDragEnter={() => { setMonthDock("prev"); startAutoAdvance(-1); }}
-                      onDragOver={(e) => { e.preventDefault(); setMonthDock("prev"); }}
-                      onDragLeave={() => { setMonthDock((d) => (d === "prev" ? null : d)); stopAutoAdvance(); }}
-                      onDrop={(e) => { e.preventDefault(); setMonthDock(null); stopAutoAdvance(); }}
+                      onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); setMonthDock("prev"); startAutoAdvance(-1); }}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); cancelPendingClose(); setMonthDock("prev"); }}
+                      onDragLeave={(e) => { if (inDockUnion(e.relatedTarget)) return; scheduleDockClose(); }}
+                      onDrop={(e) => { e.preventDefault(); cancelPendingClose(); setMonthDock(null); stopAutoAdvance(); }}
                       title="ماه‌های قبل"
                     >
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-ink/40 bg-paper-soft/90 shadow-sm">
+                      <div className="pointer-events-none flex h-full w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-ink/40 bg-paper-soft/90 shadow-sm">
                         <ChevronRight className="h-4 w-4" />
                         <span className="text-[10px] font-bold [writing-mode:vertical-rl] text-ink-soft">ماه‌های قبل</span>
                       </div>
@@ -616,7 +662,10 @@ export function CalendarPage() {
                         "absolute top-10 z-40 w-56 rounded-xl border border-line bg-white p-3 shadow-2xl",
                         monthDock === "next" ? "left-[80px]" : "right-[80px]",
                       )}
-                      onDragOver={(e) => e.preventDefault()}
+                      ref={panelRootRef}
+                      onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); stopAutoAdvance(); }}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); cancelPendingClose(); }}
+                      onDragLeave={(e) => { if (inDockUnion(e.relatedTarget)) return; scheduleDockClose(); }}
                     >
                       <p className="mb-2 text-[11px] font-bold text-ink">
                         {monthDock === "next" ? "انتقال به ماه‌های بعد" : "انتقال به ماه‌های قبل"}
@@ -653,6 +702,8 @@ export function CalendarPage() {
                     </motion.div>
                   )}
                   </AnimatePresence>
+                </motion.div>
+              </AnimatePresence>
               </div>
 
             </Card>
