@@ -439,7 +439,7 @@ export function CalendarPage() {
           <JalaliDatePicker variant="icon" value={selectedIso} onChange={jumpToIso} className="shrink-0" />
           <button
             onClick={goToday}
-            className="rounded-md border border-line bg-white px-2.5 py-1.5 text-[11px] font-medium text-ink-soft hover:bg-paper-soft"
+            className="inline-flex h-9 items-center rounded-md border border-line bg-white px-3 text-[11px] font-medium text-ink-soft hover:bg-paper-soft"
           >
             امروز
           </button>
