@@ -293,7 +293,7 @@ export function PeoplePicker({
                 <FaInput allow="phone" value={manual.phone} onChange={(phone) => setManual({ ...manual, phone })} placeholder="تلفن" />
                 <input dir="ltr" value={manual.email} onChange={(e) => setManual({ ...manual, email: e.target.value })} placeholder="ایمیل" className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
               </div>
-              <div className="flex gap-2">
+              <div className="flex justify-end gap-2">
                 <button type="button" onClick={saveManualToDirectory} className="h-9 flex-1 rounded-md bg-ink text-[12px] font-medium text-white hover:bg-[#2a2a2e]">ذخیره و افزودن</button>
                 <button type="button" onClick={() => setManualMode(false)} className="h-9 rounded-md border border-line px-3 text-[12px] text-ink-soft">انصراف</button>
               </div>

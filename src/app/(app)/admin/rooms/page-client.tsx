@@ -294,7 +294,7 @@ export function AdminRoomsPage() {
         subtitle="اتاق جلسه در شعبه انتخابی ساخته می‌شود"
         wide
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button onClick={save} loading={busy} disabled={!form.name.trim() || (!editing && !form.branchId)}>
               {editing ? "ذخیره تغییرات" : "ایجاد اتاق"}
             </Button>

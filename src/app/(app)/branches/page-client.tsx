@@ -273,7 +273,7 @@ export function BranchesPage() {
         subtitle="شعبه‌های سازمان — هر شعبه اتاق‌ها و کاربران خود را دارد"
         wide
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
               {editing ? "ذخیره تغییرات" : "ایجاد شعبه"}
             </Button>

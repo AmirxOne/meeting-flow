@@ -860,7 +860,7 @@ export function CalendarPage() {
         title="جابه‌جایی جلسه"
         subtitle="زمان جدید با حفظ ساعت و مدت جلسه"
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPendingDrop(null)}>
               انصراف
             </Button>

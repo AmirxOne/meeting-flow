@@ -102,7 +102,7 @@ export function AvatarCropModal({
       title="برش تصویر پروفایل"
       subtitle="برای جابه‌جایی بکشید؛ با نوار، بزرگ‌نمایی کنید. خروجی مربع است."
       footer={
-        <div className="flex gap-2">
+        <div className="flex justify-end gap-2">
           <Button onClick={confirm} loading={busy} disabled={!objectUrl}>
             برش و ذخیره
           </Button>

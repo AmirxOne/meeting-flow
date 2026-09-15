@@ -162,7 +162,7 @@ function SummaryTab({ meetingId, minutes, onSaved }: { meetingId: string; minute
       {locked ? (
         <p className="text-[11px] text-ink-faint">صورتجلسه نهایی‌شده — قابل ویرایش نیست</p>
       ) : (
-        <div className="flex justify-start">
+        <div className="flex justify-end">
           <Button onClick={save} disabled={busy}>
             <Check className="h-4 w-4" />
             {busy ? "در حال ذخیره…" : "ذخیره خلاصه"}
@@ -386,7 +386,7 @@ function TopicsTab({
           </div>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="نتیجه بحث (اختیاری)" className="w-full rounded-md border border-line p-2 text-[12px] outline-none focus:border-ink" />
           <textarea value={decisions} onChange={(e) => setDecisions(e.target.value)} rows={2} placeholder="تصمیمات اتخاذشده (اختیاری)" className="w-full rounded-md border border-line p-2 text-[12px] outline-none focus:border-ink" />
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button onClick={add}>ثبت موضوع</Button>
             <Button variant="outline" onClick={() => setAdding(false)}>انصراف</Button>
           </div>

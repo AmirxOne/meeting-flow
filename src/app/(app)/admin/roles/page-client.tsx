@@ -235,7 +235,7 @@ export function AdminRolesPage() {
         subtitle="دسترسی‌ها را از چک‌لیست انتخاب کنید"
         wide
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button
               onClick={save}
               loading={busy}

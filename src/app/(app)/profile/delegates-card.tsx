@@ -201,7 +201,7 @@ export function DelegatesCard() {
         title="افزودن نماینده"
         subtitle="این فرد می‌تواند در ویزارد برگزارکننده را شما انتخاب کند"
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button onClick={add} loading={busy} disabled={!pickedId}>
               افزودن
             </Button>
@@ -257,7 +257,7 @@ export function DelegatesCard() {
         title="حذف نماینده"
         subtitle={removeRow ? `${removeRow.user.fullName} دیگر به نام شما جلسه نمی‌سازد` : undefined}
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button variant="danger" onClick={remove} loading={busy}>
               حذف
             </Button>

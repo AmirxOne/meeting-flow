@@ -135,7 +135,7 @@ export function MeetingRequestForm() {
               placeholder="با چه کسانی می‌خواهید جلسه داشته باشید؟"
             />
           </div>
-          <div className="flex justify-start">
+          <div className="flex justify-end">
             <Button onClick={submit} disabled={busy}>
               <ArrowLeft className="h-4 w-4" />
               {busy ? "در حال ثبت…" : "ثبت درخواست"}

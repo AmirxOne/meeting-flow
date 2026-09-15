@@ -394,7 +394,7 @@ function HolidaysCard({
         title="تعطیلی جدید"
         subtitle="تاریخ را با تقویم شمسی انتخاب کنید"
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button onClick={addHoliday} loading={busy}>
               ثبت
             </Button>

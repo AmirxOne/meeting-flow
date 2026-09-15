@@ -143,7 +143,7 @@ export function PeopleDirectoryPage({ variant = "default" }: PeopleDirectoryPage
         title={editing ? `ویرایش ${editing.name}` : "افزودن فرد"}
         subtitle="اعضای شرکت و ارتباط‌های خارجی — هنگام ساخت جلسه از همین لیست انتخاب می‌شوند"
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
               {editing ? "ذخیره تغییرات" : "افزودن"}
             </Button>

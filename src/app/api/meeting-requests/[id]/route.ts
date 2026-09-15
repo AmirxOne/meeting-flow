@@ -50,6 +50,38 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return ok({ request: updated });
     }
 
+    if (action === "update") {
+      if (!canSchedule(user)) return fail(403, "دسترسی لازم را ندارید", "FORBIDDEN");
+      if (request.status !== "OPEN") return fail(409, "قبلاً پردازش شده", "ALREADY_HANDLED");
+      const title = typeof body.title === "string" && body.title.trim().length >= 2 ? body.title.trim().slice(0, 120) : request.title;
+      const description =
+        typeof body.description === "string" ? body.description.trim().slice(0, 2000) : request.description;
+      const urgency = ["URGENT", "NORMAL", "FLEXIBLE"].includes(body.urgency) ? body.urgency : request.urgency;
+      const durationMin =
+        Number.isInteger(body.durationMin) && body.durationMin >= 15 && body.durationMin <= 480
+          ? body.durationMin
+          : request.durationMin;
+      const participantIds = Array.isArray(body.participantIds)
+        ? body.participantIds.filter((x: unknown) => typeof x === "string").slice(0, 15)
+        : request.participantIds;
+      const attendeeCount =
+        Number.isInteger(body.attendeeCount) && body.attendeeCount >= 1 && body.attendeeCount <= 50
+          ? body.attendeeCount
+          : request.attendeeCount;
+      const updated = await prisma.meetingRequest.update({
+        where: { id },
+        data: { title, description, urgency, durationMin, participantIds, attendeeCount },
+      });
+      await audit({
+        actorId: user.id,
+        action: "meeting-request.update",
+        entity: "MeetingRequest",
+        entityId: id,
+        newValue: { title, urgency, durationMin },
+      });
+      return ok({ request: updated });
+    }
+
     if (action === "cancel") {
       if (request.requesterId !== user.id && !canSchedule(user))
         return fail(403, "دسترسی لازم را ندارید", "FORBIDDEN");

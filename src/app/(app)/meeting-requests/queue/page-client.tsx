@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock, CalendarPlus, XCircle, Users } from "@/components/ui/icon";
+import { motion, AnimatePresence } from "framer-motion";
+import { CalendarPlus, XCircle, Users, Pencil, CheckCircle2 } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useAuth } from "@/lib/auth-store";
 import { faNum, formatJalali } from "@/lib";
 import { StatusChip } from "@/components/ui/request-status";
 
@@ -26,7 +27,9 @@ type Req = {
   urgency: string;
   durationMin: number;
   participantIds: string[];
+  attendeeCount: number | null;
   status: string;
+  adminNote: string | null;
   createdAt: string;
   requester: { id: string; fullName: string } | null;
   guestName: string | null;
@@ -39,35 +42,26 @@ type Req = {
 export function RequestQueuePage() {
   const { push } = useToast();
   const qc = useQueryClient();
-  const { can } = useAuth();
   const [scheduling, setScheduling] = useState<Req | null>(null);
+  const [rejecting, setRejecting] = useState<Req | null>(null);
+  const [editing, setEditing] = useState<Req | null>(null);
 
   const { data } = useQuery({
     queryKey: ["meeting-requests", "all"],
     queryFn: () => api<{ items: Req[]; total: number }>("/api/meeting-requests?scope=all"),
   });
 
-  async function reject(r: Req) {
-    if (!confirm(`درخواست «${r.title}» رد شود؟`)) return;
-    try {
-      await api(`/api/meeting-requests/${r.id}`, { method: "PATCH", json: { action: "reject" } });
-      push("درخواست رد شد", "success");
-      qc.invalidateQueries({ queryKey: ["meeting-requests"] });
-    } catch (e) {
-      push((e as Error).message, "error");
-    }
-  }
-
   const items = data?.items ?? [];
   const open = items.filter((r) => r.status === "OPEN");
   const done = items.filter((r) => r.status !== "OPEN");
+  const refresh = () => qc.invalidateQueries({ queryKey: ["meeting-requests"] });
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div>
         <h1 className="text-[18px] font-bold">هماهنگی درخواست‌های جلسه</h1>
         <p className="mt-1 text-[12px] text-ink-soft">
-          درخواست‌های کارکنان — زمان و اتاق را شما تعیین می‌کنید
+          درخواست‌های کارکنان و مهمان‌ها — تأیید، ویرایش، زمان‌بندی یا رد
         </p>
       </div>
 
@@ -77,12 +71,20 @@ export function RequestQueuePage() {
           {open.length === 0 ? (
             <EmptyState
               title="درخواست بازی نیست"
-              description="هر زمان کارمندی درخواست جلسه بدهد، این‌جا می‌آید"
+              description="هر زمان کارمند یا مهمانی درخواست جلسه بدهد، این‌جا می‌آید"
             />
           ) : (
             <div className="space-y-3">
               {open.map((r) => (
-                <div key={r.id} className="rounded-lg border border-line p-4">
+                <motion.div
+                  key={r.id}
+                  layout
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: 0.22, ease: [0.22, 0.8, 0.36, 1] }}
+                  className="rounded-lg border border-line p-4"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-[14px] font-bold">{r.title}</p>
@@ -101,6 +103,7 @@ export function RequestQueuePage() {
                           {URGENCY_FA[r.urgency] ?? r.urgency}
                         </span>{" "}
                         · حدود {faNum(Math.round((r.durationMin / 60) * 10) / 10)} ساعت
+                        {r.attendeeCount ? ` · ${faNum(r.attendeeCount)} نفر حاضر` : ""}
                       </p>
                       {r.participantIds.length > 0 && (
                         <p className="mt-1 flex items-center gap-1 text-[11px] text-ink-faint">
@@ -113,15 +116,20 @@ export function RequestQueuePage() {
                           {r.description}
                         </p>
                       )}
+                      <p className="mt-1.5 text-[10.5px] text-ink-faint">
+                        ثبت: {formatJalali(new Date(r.createdAt), { withTime: true })}
+                      </p>
                     </div>
-                    <div className="flex shrink-0 gap-2">
-                      {r.requester && (
-                        <Button onClick={() => setScheduling(r)}>
-                          <CalendarPlus className="h-4 w-4" />
-                          زمان‌بندی جلسه
-                        </Button>
-                      )}
-                      <Button variant="outline" onClick={() => reject(r)}>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      <Button onClick={() => setScheduling(r)}>
+                        <CalendarPlus className="h-4 w-4" />
+                        زمان‌بندی و تأیید
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditing(r)}>
+                        <Pencil className="h-4 w-4" />
+                        ویرایش
+                      </Button>
+                      <Button variant="outline" onClick={() => setRejecting(r)}>
                         <XCircle className="h-4 w-4" />
                         رد
                       </Button>
@@ -129,16 +137,9 @@ export function RequestQueuePage() {
                   </div>
 
                   {scheduling?.id === r.id && (
-                    <ScheduleForm
-                      r={r}
-                      onDone={() => {
-                        setScheduling(null);
-                        qc.invalidateQueries({ queryKey: ["meeting-requests"] });
-                      }}
-                      onCancel={() => setScheduling(null)}
-                    />
+                    <ScheduleForm r={r} onDone={() => { setScheduling(null); refresh(); }} onCancel={() => setScheduling(null)} />
                   )}
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
@@ -161,6 +162,7 @@ export function RequestQueuePage() {
                         {formatJalali(new Date(r.meeting.startAt), { withTime: true })}
                       </>
                     )}
+                    {r.adminNote ? ` · یادداشت: ${r.adminNote}` : ""}
                   </p>
                 </div>
                 <StatusChip status={r.status} />
@@ -169,7 +171,172 @@ export function RequestQueuePage() {
           </CardBody>
         </Card>
       )}
+
+      {/* reject modal (with reason) */}
+      <RejectModal req={rejecting} onClose={() => setRejecting(null)} onDone={refresh} />
+      {/* edit modal */}
+      <EditModal req={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); refresh(); }} />
     </div>
+  );
+}
+
+/* ── reject with reason ── */
+function RejectModal({ req, onClose, onDone }: { req: Req | null; onClose: () => void; onDone: () => void }) {
+  const { push } = useToast();
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function reject() {
+    if (!req) return;
+    setBusy(true);
+    try {
+      await api(`/api/meeting-requests/${req.id}`, {
+        method: "PATCH",
+        json: { action: "reject", adminNote: reason.trim() || null },
+      });
+      push("درخواست رد شد", "success");
+      onClose();
+      setReason("");
+      onDone();
+    } catch (e) {
+      push((e as Error).message || "خطا در رد درخواست", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal open={!!req} onClose={onClose} title="رد درخواست">
+      {req && (
+        <div className="space-y-4">
+          <p className="text-[13px] leading-6">
+            درخواست «<span className="font-bold">{req.title}</span>»
+            {req.requester ? ` از ${req.requester.fullName}` : ` از مهمان ${req.guestName ?? ""}`} رد شود؟
+          </p>
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium">دلیل رد (اختیاری — برای اطلاع درخواست‌کننده)</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              placeholder="مثلاً: موضوع خارج از حدود اختیارات است"
+              className="w-full rounded-md border border-[#d9d9e0] p-3 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button onClick={reject} disabled={busy} className="!bg-red-600 hover:!bg-red-700">
+              <XCircle className="h-4 w-4" />
+              {busy ? "در حال ثبت…" : "رد قطعی"}
+            </Button>
+            <Button variant="outline" onClick={onClose}>انصراف</Button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/* ── edit before approve ── */
+function EditModal({ req, onClose, onDone }: { req: Req | null; onClose: () => void; onDone: () => void }) {
+  const { push } = useToast();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [urgency, setUrgency] = useState("NORMAL");
+  const [durationMin, setDurationMin] = useState("60");
+  const [busy, setBusy] = useState(false);
+
+  // sync when a different request opens
+  const reqId = req?.id ?? null;
+  const [syncedId, setSyncedId] = useState<string | null>(null);
+  if (reqId && syncedId !== reqId) {
+    setSyncedId(reqId);
+    setTitle(req!.title);
+    setDescription(req!.description ?? "");
+    setUrgency(req!.urgency);
+    setDurationMin(String(req!.durationMin));
+  }
+
+  async function save() {
+    if (!req) return;
+    if (title.trim().length < 2) {
+      push("عنوان را کامل کنید", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api(`/api/meeting-requests/${req.id}`, {
+        method: "PATCH",
+        json: { action: "update", title: title.trim(), description: description.trim(), urgency, durationMin: Number(durationMin) },
+      });
+      push("درخواست ویرایش شد — حالا می‌توانید زمان‌بندی کنید", "success");
+      onClose();
+      onDone();
+    } catch (e) {
+      push((e as Error).message || "خطا در ویرایش", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal open={!!req} onClose={onClose} title="ویرایش و تأیید درخواست">
+      {req && (
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium">عنوان جلسه</label>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium">توضیحات</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="w-full rounded-md border border-[#d9d9e0] p-3 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-[12px] font-medium">فوریت</label>
+              <Select
+                value={urgency}
+                onChange={(v) => setUrgency(v)}
+                options={Object.entries(URGENCY_FA).map(([v, l]) => ({ value: v, label: l }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[12px] font-medium">مدت</label>
+              <Select
+                value={durationMin}
+                onChange={(v) => setDurationMin(v)}
+                options={[
+                  { value: "30", label: "۳۰ دقیقه" },
+                  { value: "45", label: "۴۵ دقیقه" },
+                  { value: "60", label: "۱ ساعت" },
+                  { value: "90", label: "۱.۵ ساعت" },
+                  { value: "120", label: "۲ ساعت" },
+                ]}
+              />
+            </div>
+          </div>
+          <p className="text-[11px] text-ink-faint">
+            <CheckCircle2 className="ml-1 inline h-3.5 w-3.5" />
+            بعد از ذخیره، از دکمه‌ی «زمان‌بندی و تأیید» جلسه را قطعی کنید
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button onClick={save} disabled={busy}>
+              <Pencil className="h-4 w-4" />
+              {busy ? "در حال ذخیره…" : "ذخیره تغییرات"}
+            </Button>
+            <Button variant="outline" onClick={onClose}>انصراف</Button>
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -231,64 +398,77 @@ function ScheduleForm({ r, onDone, onCancel }: { r: Req; onDone: () => void; onC
   }
 
   return (
-    <div className="mt-4 space-y-3 rounded-lg border border-dashed border-line bg-paper-soft/50 p-4">
-      <p className="text-[12px] font-bold">هماهنگی جلسه</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-[11px] font-medium">شعبه</label>
-          <Select
-            value={branchId}
-            onChange={(v) => {
-              setBranchId(v);
-              setRoomId("");
-            }}
-            placeholder="انتخاب شعبه"
-            options={(branches?.branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
-          />
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
+      className="mt-4 overflow-hidden"
+    >
+      <div className="space-y-3 rounded-lg border border-dashed border-line bg-paper-soft/50 p-4">
+        <p className="text-[12px] font-bold">
+          هماهنگی جلسه {r.requester ? "" : "مهمان"}
+        </p>
+        {!r.requester && (
+          <p className="rounded-md bg-amber-50 p-2 text-[11px] leading-5 text-amber-800">
+            این درخواست از مهمان «{r.guestName}» است — با ثبت نهایی، شما برگزارکننده می‌شوید و مهمان به‌عنوان مهمان خارجی به جلسه اضافه می‌شود.
+          </p>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium">شعبه</label>
+            <Select
+              value={branchId}
+              onChange={(v) => {
+                setBranchId(v);
+                setRoomId("");
+              }}
+              placeholder="انتخاب شعبه"
+              options={(branches?.branches ?? []).map((b) => ({ value: b.id, label: b.name }))}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium">اتاق</label>
+            <Select
+              value={roomId}
+              onChange={(v) => setRoomId(v)}
+              placeholder="انتخاب اتاق"
+              options={branchRooms.map((room) => ({
+                value: room.id,
+                label: `${room.name} (${faNum(room.capacity)} نفر)`,
+              }))}
+            />
+          </div>
         </div>
-        <div>
-          <label className="mb-1.5 block text-[11px] font-medium">اتاق</label>
-          <Select
-            value={roomId}
-            onChange={(v) => setRoomId(v)}
-            placeholder="انتخاب اتاق"
-            options={branchRooms.map((room) => ({
-              value: room.id,
-              label: `${room.name} (${faNum(room.capacity)} نفر)`,
-            }))}
-          />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium">تاریخ</label>
+            <JalaliDatePicker value={startIso} onChange={(v) => setStartIso(v)} />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium">ساعت</label>
+            <Select
+              value={startTime}
+              onChange={(v) => setStartTime(v)}
+              placeholder="انتخاب ساعت"
+              options={Array.from({ length: 24 }, (_, h) => ({
+                value: String(h).padStart(2, "0") + ":00",
+                label: faNum(String(h).padStart(2, "0")) + ":۰۰",
+              }))}
+            />
+          </div>
+        </div>
+        <p className="text-[11px] text-ink-faint">
+          مدت: {faNum(r.durationMin)} دقیقه · برگزارکننده: {r.requester?.fullName ?? "شما (ادمین — درخواست مهمان)"} ·
+          شرکت‌کنندگان درخواست‌شده خودکار دعوت می‌شوند
+        </p>
+        <div className="flex justify-end gap-2">
+          <Button onClick={schedule} disabled={busy}>
+            {busy ? "در حال ثبت…" : "ثبت نهایی جلسه"}
+          </Button>
+          <Button variant="outline" onClick={onCancel}>انصراف</Button>
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-[11px] font-medium">تاریخ</label>
-          <JalaliDatePicker value={startIso} onChange={(v) => setStartIso(v)} />
-        </div>
-        <div>
-          <label className="mb-1.5 block text-[11px] font-medium">ساعت</label>
-          <Select
-            value={startTime}
-            onChange={(v) => setStartTime(v)}
-            placeholder="انتخاب ساعت"
-            options={Array.from({ length: 24 }, (_, h) => ({
-              value: String(h).padStart(2, "0") + ":00",
-              label: faNum(String(h).padStart(2, "0")) + ":۰۰",
-            }))}
-          />
-        </div>
-      </div>
-      <p className="text-[11px] text-ink-faint">
-        مدت: {faNum(r.durationMin)} دقیقه · برگزارکننده: {r.requester?.fullName ?? "—"} (درخواست‌دهنده) ·
-        شرکت‌کنندگان درخواست‌شده خودکار دعوت می‌شوند
-      </p>
-      <div className="flex gap-2">
-        <Button onClick={schedule} disabled={busy}>
-          {busy ? "در حال ثبت…" : "ثبت نهایی جلسه"}
-        </Button>
-        <Button variant="outline" onClick={onCancel}>
-          انصراف
-        </Button>
-      </div>
-    </div>
+    </motion.div>
   );
 }

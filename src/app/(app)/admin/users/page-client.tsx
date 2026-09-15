@@ -256,7 +256,7 @@ export function AdminUsersPage() {
         subtitle="حساب داخلی با رمز موقت ساخته می‌شود"
         wide
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button
               onClick={createUser}
               loading={busy}
@@ -346,7 +346,7 @@ export function AdminUsersPage() {
         subtitle={editing?.email}
         wide
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button
               onClick={saveEdit}
               loading={busy}
@@ -413,7 +413,7 @@ export function AdminUsersPage() {
         title={resetUser ? `بازنشانی رمز — ${resetUser.fullName}` : "بازنشانی رمز"}
         subtitle="کاربر باید با رمز جدید دوباره وارد شود"
         footer={
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button onClick={resetPassword} loading={busy} disabled={newPassword.length < 6}>
               بازنشانی رمز
             </Button>

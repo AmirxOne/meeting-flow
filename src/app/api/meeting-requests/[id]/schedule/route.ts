@@ -42,8 +42,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!request) return fail(404, "درخواست یافت نشد", "NOT_FOUND");
     if (request.status !== "OPEN")
       return fail(409, "این درخواست قبلاً پردازش شده است", "ALREADY_HANDLED");
-    if (!request.requesterId)
-      return fail(400, "درخواست مهمان کاربر سامانه ندارد — جلسه را دستی بسازید و با او تماس بگیرید", "GUEST_REQUEST");
+    // Guest requests CAN be scheduled now: the admin becomes the organizer and
+    // the guest is attached as an external guest of the meeting.
 
     const meeting = await createMeeting({
       title: request.title,
@@ -51,16 +51,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       orgId: request.orgId,
       branchId: input.branchId,
       roomId: input.roomId,
-      organizerId: request.requesterId,
+      organizerId: request.requesterId ?? user.id,
       startAt: new Date(input.startAt),
       endAt: new Date(input.endAt),
       meetingType: input.meetingType,
       participantIds: Array.from(
-        new Set<string>([...request.participantIds, user.id]),
+        new Set<string>([...request.participantIds, ...(request.requesterId ? [user.id] : [])]),
       ).filter((x) => x !== request.requesterId),
       guests: Array.isArray(request.guests)
         ? (request.guests as { name: string; company?: string; phone?: string }[])
-        : [],
+        : request.guestName
+          ? [{ name: request.guestName, company: request.guestCompany ?? undefined, phone: request.guestPhone ?? undefined }]
+          : [],
     });
 
     await prisma.meetingRequest.update({

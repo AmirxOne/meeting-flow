@@ -731,7 +731,7 @@ function UrlRow({
   return (
     <div>
       <p className="mb-1.5 text-[12px] font-medium text-ink-soft">{label}</p>
-      <div className="flex gap-2">
+      <div className="flex justify-end gap-2">
         <input
           readOnly
           dir="ltr"
