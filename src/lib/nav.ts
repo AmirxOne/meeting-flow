@@ -152,8 +152,16 @@ export function isMobileNavActive(pathname: string, href: string): boolean {
   return pathname === href;
 }
 
+/**
+ * Prefix routes that must match EXACTLY (their sub-routes are separate
+ * sidebar entries, not children): /meeting-requests/queue is the admin
+ * queue under مدیریت — it must NOT also light up «درخواست جلسه».
+ */
+const EXACT_ONLY = new Set(["/meeting-requests"]);
+
 /** True when this href is the most specific visible match for the current path. */
 export function isNavActive(pathname: string, href: string, siblings: string[] = []): boolean {
+  if (EXACT_ONLY.has(href)) return pathname === href;
   const matches = pathname === href || pathname.startsWith(`${href}/`);
   if (!matches) return false;
   return !siblings.some(
@@ -166,6 +174,7 @@ export function isNavActive(pathname: string, href: string, siblings: string[] =
 
 /** A parent nav item is "open/expanded" relevant when the current path is inside it. */
 export function isParentActive(pathname: string, parent: string, children: string[]): boolean {
+  if (EXACT_ONLY.has(parent)) return pathname === parent;
   if (pathname === parent || pathname.startsWith(`${parent}/`)) return true;
   return children.some((c) => pathname === c || pathname.startsWith(`${c}/`));
 }
