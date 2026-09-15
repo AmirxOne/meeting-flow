@@ -66,6 +66,10 @@ const { chromium } = require("playwright");
   const distinctH = new Set(heights.filter((x) => x > 0)).size;
   check("expansion is animated (multiple heights: " + heights.join(",") + ")", distinctH >= 2);
 
+  // 3b. overview link exists and goes to /admin
+  const overview = page.locator('aside a[href="/admin"]').first();
+  check('overview sub-link «نمای کلی» present', (await overview.count()) >= 1 && (await overview.isVisible()));
+
   // 4. child link navigates directly
   await page.locator('aside a[href="/admin/settings"]').first().click();
   await page.waitForTimeout(1800);

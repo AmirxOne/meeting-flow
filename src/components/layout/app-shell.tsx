@@ -370,44 +370,38 @@ function SidebarNavParent({
 
   return (
     <div>
-      <div className="flex items-center gap-1">
-        <Link
-          href={href}
-          aria-current={active ? "page" : undefined}
+      {/* ONE row = ONE action: click toggles the submenu (standard sidebar UX) */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? `بستن ${label}` : `باز کردن ${label}`}
+        aria-expanded={open}
+        className={cn(
+          "group flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors",
+          active || anyChildActive
+            ? "bg-white text-ink shadow-[0_1px_2px_rgba(13,13,13,0.06)]"
+            : "text-ink-soft hover:bg-white/70 hover:text-ink",
+        )}
+      >
+        <span
           className={cn(
-            "group flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] font-medium transition-colors",
+            "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
             active || anyChildActive
-              ? "bg-white text-ink shadow-[0_1px_2px_rgba(13,13,13,0.06)]"
-              : "text-ink-soft hover:bg-white/70 hover:text-ink",
+              ? "bg-ink text-white"
+              : "text-ink-faint group-hover:text-ink-soft",
           )}
         >
-          <span
-            className={cn(
-              "flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors",
-              active || anyChildActive
-                ? "bg-ink text-white"
-                : "text-ink-faint group-hover:text-ink-soft",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-          </span>
-          <span className="min-w-0 truncate">{label}</span>
-        </Link>
-        <button
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? `بستن ${label}` : `باز کردن ${label}`}
-          aria-expanded={open}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-ink-faint transition-colors hover:bg-white/70 hover:text-ink"
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="min-w-0 flex-1 truncate text-right">{label}</span>
+        <motion.span
+          animate={{ rotate: open ? 0 : 90 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="flex shrink-0"
         >
-          <motion.span
-            animate={{ rotate: open ? 0 : 90 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="flex"
-          >
-            <ChevronDown className="h-3.5 w-3.5" />
-          </motion.span>
-        </button>
-      </div>
+          <ChevronDown className="h-3.5 w-3.5" />
+        </motion.span>
+      </button>
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
@@ -419,6 +413,25 @@ function SidebarNavParent({
             className="overflow-hidden"
           >
             <div className="mt-0.5 mr-[22px] space-y-0.5 border-r border-line pr-2 pt-0.5">
+              {/* the parent page itself is the first sub-link («نمای کلی») */}
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-[12px] transition-colors",
+                  active && !anyChildActive
+                    ? "bg-white font-medium text-ink shadow-[0_1px_2px_rgba(13,13,13,0.06)]"
+                    : "text-ink-soft hover:bg-white/70 hover:text-ink",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-1 w-1 shrink-0 rounded-full transition-colors",
+                    active && !anyChildActive ? "bg-ink" : "bg-line",
+                  )}
+                />
+                <span className="min-w-0 truncate">نمای کلی</span>
+              </Link>
               {children.map((c) => (
                 <Link
                   key={c.href}
