@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, Check } from "@/components/ui/icon";
 import { cn } from "@/lib";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 export interface SelectOption {
@@ -39,6 +40,13 @@ export function Select({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  // portal'd panel anchor — never clipped by ancestor overflow
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!open || !rootRef.current) return;
+    const r = rootRef.current.getBoundingClientRect();
+    setPanelPos({ top: r.bottom + 6, left: r.left, width: r.width });
+  }, [open, open]);
   const listRef = useRef<HTMLUListElement>(null);
 
   const selected = options.find((o) => o.value === value);
@@ -139,16 +147,18 @@ export function Select({
         />
       </button>
 
+      {createPortal(
       <AnimatePresence>
         {open && (
         <motion.ul
           ref={listRef}
+          style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left, width: panelPos.width } : undefined}
           role="listbox"
           initial={{ opacity: 0, y: -6, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, scale: 0.98, transition: { duration: 0.12 } }}
           transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
-          className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 max-h-64 overflow-y-auto rounded-md border border-line bg-white py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.14)]"
+          className="z-[9999] max-h-64 overflow-y-auto rounded-md border border-line bg-white py-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.14)]"
         >
           {options.length === 0 && (
             <li className="px-4 py-3 text-center text-[12px] text-ink-faint">موردی نیست</li>
@@ -180,7 +190,11 @@ export function Select({
           })}
         </motion.ul>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+        document.body,
+      )}
     </div>
   );
 }
+
+// keep ts happy: nothing below

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Building2, Briefcase, Search, ChevronDown } from "@/components/ui/icon";
 import { motion, AnimatePresence } from "framer-motion";
+import { createPortal } from "react-dom";
 import { api, type ApiError } from "@/lib/api";
 import { cn, faNum, faStr } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
@@ -64,9 +65,16 @@ export function PeoplePicker({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [showMore, setShowMore] = useState(false);
+  useEffect(() => {
+    if (!open || !rootRef.current) return;
+    const r = rootRef.current.getBoundingClientRect();
+    setPanelPos({ top: r.bottom + 6, left: r.left, width: r.width });
+  }, [open]);
+
   const [manualMode, setManualMode] = useState(false);
   const [manual, setManual] = useState({ name: "", company: "", jobTitle: "", phone: "", email: "" });
   const rootRef = useRef<HTMLDivElement>(null);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -273,15 +281,16 @@ export function PeoplePicker({
         <ChevronDown className={cn("h-4 w-4 shrink-0 text-ink-faint transition-transform", open && "rotate-180")} />
       </div>
 
-      {/* dropdown */}
+      {createPortal(
       <AnimatePresence>
       {open && !disabled && (
         <motion.div
+          style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left, width: panelPos.width } : undefined}
           initial={{ opacity: 0, y: -6, scale: 0.99 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, transition: { duration: 0.12 } }}
           transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
-          className="absolute right-0 left-0 top-[calc(100%+6px)] z-50 overflow-hidden rounded-lg border border-line bg-white shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
+          className="z-[9999] overflow-hidden rounded-lg border border-line bg-white shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
           {/* manual form */}
           {manualMode ? (
             <div className="space-y-2 p-3">
@@ -387,7 +396,9 @@ export function PeoplePicker({
           )}
         </motion.div>
       )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body,
+      )}
     </div>
   );
 }

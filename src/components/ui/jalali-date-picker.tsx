@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useLayoutEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { ChevronRight, ChevronLeft, CalendarDays } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
 import { Select } from "@/components/ui/select";
@@ -50,6 +51,12 @@ export function JalaliDatePicker({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
+  useLayoutEffect(() => {
+    if (!open || !rootRef.current) return;
+    const r = rootRef.current.getBoundingClientRect();
+    setPanelPos({ top: r.bottom + 6, left: r.right - 290 });
+  }, [open]);
 
   const today = useMemo(() => toJalali(new Date()), []);
   const selected = value ? jalaliOfIso(value) : null;
@@ -130,8 +137,8 @@ export function JalaliDatePicker({
         <CalendarDays className={cn("h-4 w-4 shrink-0", variant === "field" && (selected ? "text-ink" : "text-ink-faint"))} />
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[290px] rounded-lg border border-line bg-white p-3 shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
+      {open && createPortal(
+        <div style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left } : undefined} className="z-[9999] w-[290px] rounded-lg border border-line bg-white p-3 shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
           {/* month header */}
           <div className="mb-2 flex items-center justify-between">
             <button
@@ -205,7 +212,7 @@ export function JalaliDatePicker({
             امروز
           </button>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
