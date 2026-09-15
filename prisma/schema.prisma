@@ -354,6 +354,8 @@ model MeetingRequest {
   prefTo      DateTime?
   /// requested participants (internal users)
   participantIds String[] @default([])
+  /// total head-count the requester expects (excl. themselves)
+  attendeeCount Int?
   /// requested external guests (name/company/phone)
   guests      Json?
   /// approximate duration in minutes the requester wants

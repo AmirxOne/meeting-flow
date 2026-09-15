@@ -1,0 +1,1 @@
+ALTER TABLE "MeetingRequest" ADD COLUMN "attendeeCount" INTEGER;

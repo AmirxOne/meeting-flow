@@ -2775,3 +2775,39 @@ describe("meeting delegates", () => {
     await wipeAliDelegate();
   });
 });
+
+describe("public guest request form", () => {
+  it("public directory lists names without contact info", async () => {
+    const r = await fetch(`${BASE}/api/public/people?q=`, { headers: { cookie: "" } });
+    expect(r.status).toBe(200);
+    const j = await r.json();
+    expect(j.ok).toBe(true);
+    expect(Array.isArray(j.data.people)).toBe(true);
+    // must NOT leak phone/email fields
+    for (const p of j.data.people) {
+      expect(Object.keys(p).sort()).toEqual(["company", "id", "jobTitle", "name"]);
+    }
+  });
+
+  it("guest request accepts attendeeCount + requestedPersonIds", async () => {
+    const dir = await (await fetch(`${BASE}/api/public/people`)).json();
+    const person = dir.data.people[0];
+    const r = await fetch(`${BASE}/api/public/meeting-requests`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "تست فرم عمومی",
+        guestName: "مهمان تست",
+        guestPhone: "09120000099",
+        urgency: "URGENT",
+        durationMin: 30,
+        attendeeCount: 4,
+        requestedPersonIds: person ? [person.id] : [],
+      }),
+    });
+    expect(r.status).toBe(201);
+    const j = await r.json();
+    expect(j.data.request.attendeeCount).toBe(4);
+    expect(j.data.request.participantIds).toEqual(person ? [person.id] : []);
+  });
+});
