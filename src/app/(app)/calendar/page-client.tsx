@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronLeft, Plus, Shield, Download } from "@/components/ui/icon";
 import { api } from "@/lib/api";
@@ -95,6 +96,7 @@ function EventLabel({ meeting, className }: { meeting: CalMeeting; className?: s
 export function CalendarPage() {
   const [mode, setMode] = useState<CalMode>("jalali");
   const [view, setView] = useState<ViewMode>("month");
+  const router = useRouter();
   const [scope, setScope] = useState<"all" | "mine">("all");
   const today = todayIso();
   const [selectedIso, setSelectedIso] = useState(today);
@@ -556,10 +558,13 @@ export function CalendarPage() {
 
                       <div className="mt-0.5 hidden space-y-0.5 sm:block">
                         {dayMeetings.slice(0, 3).map((m) => (
-                          <Link
+                          <div
                             key={m.id}
-                            href={`/meetings/${m.id}`}
-                            onClick={(e) => e.stopPropagation()}
+                            data-mid={m.id}
+                            role="link"
+                            tabIndex={0}
+                            onClick={(e) => { e.stopPropagation(); router.push(`/meetings/${m.id}`); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); router.push(`/meetings/${m.id}`); } }}
                             draggable={canDnD && !m.isMasked ? true : undefined}
                             onDragStart={(e) => {
                               setDragId(m.id);
@@ -579,7 +584,7 @@ export function CalendarPage() {
                             )}
                           >
                             <span className="truncate">{timeOf(m.startAt)} {m.isMasked ? "جلسه محرمانه" : m.title}{m.seriesId ? " ↻" : ""}</span>
-                          </Link>
+                          </div>
                         ))}
                         {dayMeetings.length > 3 && (
                           <div className="pr-1 text-[10px] text-ink-faint">+{faNum(dayMeetings.length - 3)} جلسه دیگر</div>

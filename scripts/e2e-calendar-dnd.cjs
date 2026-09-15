@@ -50,7 +50,7 @@ const { chromium } = require("playwright");
   if (await monthBtn.count()) { await monthBtn.click().catch(() => {}); await page.waitForTimeout(800); }
 
   // find the chip
-  const chip = page.locator(`a[href="/meetings/${meeting.id}"]`).first();
+  const chip = page.locator(`[data-mid="${meeting.id}"]`).first();
   check("chip visible in month grid", (await chip.count()) >= 1);
   const draggable = await chip.getAttribute("draggable");
   check("chip is draggable", draggable === "true");

@@ -31,7 +31,7 @@ const { chromium } = require("playwright");
   const xx = page.locator('[aria-label="بستن"]').first();
   if (await xx.count()) { await xx.click().catch(() => {}); await page.waitForTimeout(400); }
   await page.evaluate((mid) => {
-    const chip = document.querySelector('a[href="/meetings/' + mid + '"]');
+    const chip = document.querySelector(`[data-mid="${mid}"]`);
     if (!chip) throw new Error('chip not found for ' + mid);
     const dt = new DataTransfer();
     chip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));

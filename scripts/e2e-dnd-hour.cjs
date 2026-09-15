@@ -47,15 +47,15 @@ const { chromium } = require("playwright");
   if (await dayBtn.count()) { await dayBtn.click(); await page.waitForTimeout(1500); }
   // navigate forward until the meeting chip appears (meeting is 2 days ahead)
   for (let i = 0; i < 4; i++) {
-    if (await page.locator(`a[href="/meetings/${mid}"]`).count()) break;
+    if (await page.locator(`[data-mid="${mid}"]`).count()) break;
     await page.locator('button[aria-label*="بعد"]').first().click().catch(() => {});
     await page.waitForTimeout(800);
   }
-  console.log("day view, chip present:", (await page.locator(`a[href="/meetings/${mid}"]`).count()) > 0);
+  console.log("day view, chip present:", (await page.locator(`[data-mid="${mid}"]`).count()) > 0);
 
   // drag to ANOTHER existing hour row (the timeline only renders occupied hours)
   const dropped = await page.evaluate((mid) => {
-    const card = document.querySelector(`[data-tour="day-timeline"] a[href="/meetings/${mid}"]`);
+    const card = document.querySelector(`[data-tour="day-timeline"] [data-mid="${mid}"]`);
     if (!card) return { card: false, hour: false, target: null };
     const srcRow = card.closest("[id^='day-hour']");
     const rows = [...document.querySelectorAll("[id^='day-hour']")];

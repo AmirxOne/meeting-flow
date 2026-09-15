@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown, Shield } from "@/components/ui/icon";
 import { Card } from "@/components/ui/card";
@@ -93,6 +94,7 @@ export function DayTimeline({
   const isToday = selectedIso === todayIso;
   const [now, setNow] = useState(() => new Date());
   const [dragId, setDragId] = useState<string | null>(null);
+  const router = useRouter();
   const [dragOverHour, setDragOverHour] = useState<number | null>(null);
   const [openHours, setOpenHours] = useState<Set<number>>(() => new Set());
 
@@ -242,9 +244,13 @@ export function DayTimeline({
                         const tone = statusTone(m.status);
                         const faded = m.status === "CANCELLED" || m.status === "REJECTED";
                         return (
-                          <Link
+                          <div
                             key={m.id}
-                            href={`/meetings/${m.id}`}
+                            data-mid={m.id}
+                            role="link"
+                            tabIndex={0}
+                            onClick={() => router.push(`/meetings/${m.id}`)}
+                            onKeyDown={(e) => { if (e.key === "Enter") router.push(`/meetings/${m.id}`); }}
                             draggable={onReschedule && !m.isMasked ? true : undefined}
                             onDragStart={(e) => {
                               setDragId(m.id);
@@ -287,7 +293,7 @@ export function DayTimeline({
                             {STATUS_FA[m.status] && m.status !== "APPROVED" && m.status !== "CONFIRMED" && (
                               <span className={cn("badge shrink-0", tone.badge)}>{STATUS_FA[m.status]}</span>
                             )}
-                          </Link>
+                          </div>
                         );
                       })}
                       {hidden > 0 && (

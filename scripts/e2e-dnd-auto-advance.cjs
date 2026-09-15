@@ -2,6 +2,7 @@
 const { chromium } = require("playwright");
 
 (async () => {
+  const ROOMS = ["room-a", "room-b", "room-c", "room-d", "room-m-beta"];
   const browser = await chromium.launch({
     executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
     headless: true,
@@ -19,7 +20,7 @@ const { chromium } = require("playwright");
   const uniq = Date.now() % 100000;
   const created = await page.request.post("http://127.0.0.1:3100/api/meetings", {
     headers: { "Content-Type": "application/json" },
-    data: { title: "اتو تست " + uniq, branchId: "branch-niavaran", roomId: "room-c", startAt: start.toISOString(), endAt: new Date(start.getTime() + 3600000).toISOString(), meetingType: "INTERNAL", participantIds: [] },
+    data: { title: "اتو تست " + uniq, branchId: "branch-niavaran", roomId: ROOMS[Date.now() % 5], startAt: start.toISOString(), endAt: new Date(start.getTime() + 3600000).toISOString(), meetingType: "INTERNAL", participantIds: [] },
   });
   const mid = (await created.json())?.data?.meeting?.id;
 
@@ -35,7 +36,7 @@ const { chromium } = require("playwright");
 
   // start drag → wait for dock → hold dragover on the LEFT dock for ~2.2s
   await page.evaluate((mid) => {
-    const chip = document.querySelector(`a[href="/meetings/${mid}"]`);
+    const chip = document.querySelector(`[data-mid="${mid}"]`);
     const dt = new DataTransfer();
     chip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt }));
   }, mid);
@@ -57,7 +58,7 @@ const { chromium } = require("playwright");
   console.log(moved ? "AUTO-ADVANCE WORKS ✅" : "NO AUTO-ADVANCE ❌");
 
   await page.evaluate((mid) => {
-    const chip = document.querySelector(`a[href="/meetings/${mid}"]`);
+    const chip = document.querySelector(`[data-mid="${mid}"]`);
     chip && chip.dispatchEvent(new DragEvent("dragend", { bubbles: true }));
   }, mid);
   await page.request.post(`http://127.0.0.1:3100/api/meetings/${mid}/cancel`, { headers: { "Content-Type": "application/json" }, data: { reason: "OTHER" } }).catch(() => {});

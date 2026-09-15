@@ -2,6 +2,7 @@
 const { chromium } = require("playwright");
 
 (async () => {
+  const ROOMS = ["room-a", "room-b", "room-c", "room-d", "room-m-beta"];
   const browser = await chromium.launch({
     executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
     headless: true,
@@ -21,19 +22,23 @@ const { chromium } = require("playwright");
   const uniq = Date.now() % 100000;
   const start = new Date(Date.now() + 3 * 86400000);
   start.setUTCHours(11, 0, 0, 0);
-  const created = await page.request.post("http://127.0.0.1:3100/api/meetings", {
-    headers: { "Content-Type": "application/json" },
-    data: {
-      title: `پنل ماه ${uniq}`,
-      branchId: "branch-niavaran",
-      roomId: "room-c",
-      startAt: start.toISOString(),
-      endAt: new Date(start.getTime() + 3600000).toISOString(),
-      meetingType: "INTERNAL",
-      participantIds: [],
-    },
-  });
-  const mid = (await created.json())?.data?.meeting?.id;
+  let created, mid;
+  for (const room of ROOMS) {
+    created = await page.request.post("http://127.0.0.1:3100/api/meetings", {
+      headers: { "Content-Type": "application/json" },
+      data: {
+        title: `پنل ماه ${uniq}`,
+        branchId: "branch-niavaran",
+        roomId: room,
+        startAt: start.toISOString(),
+        endAt: new Date(start.getTime() + 3600000).toISOString(),
+        meetingType: "INTERNAL",
+        participantIds: [],
+      },
+    });
+    if (created.status() === 201) break;
+  }
+  mid = (await created.json())?.data?.meeting?.id;
   const orig = (await (await page.request.get(`http://127.0.0.1:3100/api/meetings/${mid}`)).json())?.data?.meeting?.startAt;
 
   await page.goto("http://127.0.0.1:3100/calendar", { waitUntil: "domcontentloaded", timeout: 60000 });
@@ -44,7 +49,7 @@ const { chromium } = require("playwright");
   // drag: chip → hover LEFT edge dock → panel opens → drop on +2 months tile
   // start drag, then WAIT for the animated dock to mount before hovering it
   const chipOk = await page.evaluate((mid) => {
-    const chip = document.querySelector(`a[href="/meetings/${mid}"]`);
+    const chip = document.querySelector(`[data-mid="${mid}"]`);
     if (!chip) return false;
     const dt = new DataTransfer();
     chip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt }));

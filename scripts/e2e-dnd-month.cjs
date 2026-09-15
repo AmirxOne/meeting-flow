@@ -43,7 +43,7 @@ const { chromium } = require("playwright");
 
   // drag the chip onto the NEXT-month arrow (بعدی)
   const dropped = await page.evaluate((mid) => {
-    const chip = document.querySelector(`a[href="/meetings/${mid}"]`);
+    const chip = document.querySelector(`[data-mid="${mid}"]`);
     const arrow = document.querySelector('button[aria-label="بعدی"]');
     if (!chip || !arrow) return { chip: !!chip, arrow: !!arrow };
     const dt = new DataTransfer();

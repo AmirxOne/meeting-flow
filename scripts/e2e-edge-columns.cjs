@@ -34,7 +34,7 @@ const { chromium } = require("playwright");
 
   // start drag then dispatch drop directly onto the FIRST cell (Saturday col) and LAST cell (Friday col)
   const result = await page.evaluate(async (mid) => {
-    const chip = document.querySelector(`a[href="/meetings/${mid}"]`);
+    const chip = document.querySelector(`[role=link][draggable]`) && [...document.querySelectorAll('[role=link][draggable]')].find(c => c.textContent.includes('')) || document.querySelector('[draggable=true]');
     if (!chip) return { step: "chip" };
     const dt = new DataTransfer();
     chip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt }));

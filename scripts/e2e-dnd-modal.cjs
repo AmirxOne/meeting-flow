@@ -43,7 +43,7 @@ const { chromium } = require("playwright");
 
   // find the chip's cell and a DIFFERENT day cell in the same month grid
   const cells = await page.evaluate((mid) => {
-    const chip = document.querySelector(`a[href="/meetings/${mid}"]`);
+    const chip = document.querySelector(`[data-mid="${mid}"]`);
     if (!chip) return { chip: false };
     const grid = chip.closest(".grid.grid-cols-7");
     const cellBtns = [...grid.querySelectorAll("button")];
