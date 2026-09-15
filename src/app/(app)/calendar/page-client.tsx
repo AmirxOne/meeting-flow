@@ -503,12 +503,12 @@ export function CalendarPage() {
                   <div key={d} className={cn("px-0.5 py-2 text-center text-[10px] font-medium leading-4 sm:text-[11px]", i === 6 ? "text-red-500" : "text-ink-soft")}>{d}</div>
                 ))}
               </div>
-              <div className="relative overflow-hidden">
+              <div className="relative" data-cal-wrap>
               <AnimatePresence initial={false} mode="popLayout">
                 <motion.div
                   key={`${anchor.jy}/${anchor.jm}`}
                   initial={{ opacity: 0, x: monthAnimDir * 36 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  animate={{ opacity: 1, x: 0, paddingLeft: dragId ? 76 : 0, paddingRight: dragId ? 76 : 0 }}
                   exit={{ opacity: 0, x: monthAnimDir * -36 }}
                   transition={{ duration: 0.28, ease: [0.22, 0.8, 0.36, 1] }}
                   className="grid grid-cols-7"
@@ -631,7 +631,7 @@ export function CalendarPage() {
                       exit={{ opacity: 0, x: 28 }}
                       transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
                       ref={dockNextRef}
-                      className="absolute -left-[2px] top-0 bottom-0 z-30 w-[30px]"
+                      className="absolute left-0 top-0 bottom-0 z-30 w-[72px]"
                       onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); setMonthDock("next"); startAutoAdvance(1); }}
                       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); cancelPendingClose(); setMonthDock("next"); }}
                       onDragLeave={(e) => { if (inDockUnion(e.relatedTarget)) return; scheduleDockClose(); }}
@@ -651,7 +651,7 @@ export function CalendarPage() {
                       exit={{ opacity: 0, x: -28 }}
                       transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
                       ref={dockPrevRef}
-                      className="absolute -right-[2px] top-0 bottom-0 z-30 w-[30px]"
+                      className="absolute right-0 top-0 bottom-0 z-30 w-[72px]"
                       onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); setMonthDock("prev"); startAutoAdvance(-1); }}
                       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); cancelPendingClose(); setMonthDock("prev"); }}
                       onDragLeave={(e) => { if (inDockUnion(e.relatedTarget)) return; scheduleDockClose(); }}
@@ -678,7 +678,7 @@ export function CalendarPage() {
                       transition={{ duration: 0.2, ease: [0.22, 0.8, 0.36, 1] }}
                       className={cn(
                         "absolute top-10 z-40 w-56 rounded-xl border border-line bg-white p-3 shadow-2xl",
-                        monthDock === "next" ? "left-[38px]" : "right-[38px]",
+                        monthDock === "next" ? "left-[80px]" : "right-[80px]",
                       )}
                       ref={panelRootRef}
                       onDragEnter={(e) => { e.preventDefault(); cancelPendingClose(); stopAutoAdvance(); }}

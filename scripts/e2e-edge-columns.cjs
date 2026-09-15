@@ -40,7 +40,7 @@ const { chromium } = require("playwright");
     chip.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: dt }));
     await new Promise((r) => setTimeout(r, 150));
 
-    const wrap = document.querySelector("div.relative.overflow-hidden");
+    const wrap = document.querySelector("[data-cal-wrap]");
     const grid = wrap ? wrap.querySelector("div.grid") : null;
     if (!wrap || !grid) return { step: 'no-wrap-or-grid', wrap: !!wrap };
     const cells = [...grid.querySelectorAll("button")].filter((b) => /[۰-۹]/.test(b.textContent.trim().slice(0, 4)));

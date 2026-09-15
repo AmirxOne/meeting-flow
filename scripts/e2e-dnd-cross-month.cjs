@@ -61,7 +61,7 @@ const { chromium } = require("playwright");
     const dock = document.querySelector('div[title="ماه‌های بعد"]');
     const dtl = new DataTransfer();
     dock.dispatchEvent(new DragEvent("dragleave", { bubbles: true, cancelable: true, relatedTarget: document.body }));
-    const wrap = document.querySelector("div.relative.overflow-hidden");
+    const wrap = document.querySelector("[data-cal-wrap]");
     const grid = wrap ? wrap.querySelector("div.grid") : null;
     const cells = grid ? [...grid.querySelectorAll("button")].filter(b => /[۰-۹]/.test(b.textContent.trim().slice(0, 4))) : [];
     // a mid-month same-month cell (avoid other-month)
