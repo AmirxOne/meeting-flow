@@ -455,11 +455,14 @@ export function CalendarPage() {
                       onClick={() => setSelectedIso(iso)}
                       onDragOver={(e) => {
                         if (!dragId) return;
+                        // other-month cells are NOT drop targets — use the edge dock panel instead
+                        if (cell.jm !== anchor.jm) return;
                         e.preventDefault();
                         setDragOverIso(iso);
                       }}
                       onDragLeave={() => setDragOverIso((cur) => (cur === iso ? null : cur))}
                       onDrop={(e) => {
+                        if (cell.jm !== anchor.jm) return; // not this month → dock panel handles it
                         e.preventDefault();
                         const fromData = e.dataTransfer.getData("text/plain");
                         onDropToDay(iso, fromData || undefined);
@@ -533,14 +536,12 @@ export function CalendarPage() {
                     </button>
                   );
                 })}
-              </div>
-
               {/* ── edge docks (hover while dragging): LEFT = next months, RIGHT = previous months ── */}
               {(true) && (
                 <>
                   {/* next-months dock (left edge in RTL) */}
                   <div
-                    className={cn("absolute left-0 top-10 bottom-2 z-20 w-10 transition-opacity", dragId ? "opacity-100" : "opacity-0 hover:opacity-100")}
+                    className={cn("absolute -left-[2px] top-8 bottom-1 z-30 w-[72px] transition-opacity pointer-events-none", dragId && "pointer-events-auto opacity-100")}
                     onDragEnter={() => setMonthDock("next")}
                     onDragOver={(e) => { e.preventDefault(); setMonthDock("next"); }}
                     onDragLeave={() => setMonthDock((d) => (d === "next" ? null : d))}
@@ -553,7 +554,7 @@ export function CalendarPage() {
                   </div>
                   {/* previous-months dock (right edge) */}
                   <div
-                    className={cn("absolute right-0 top-10 bottom-2 z-20 w-10 transition-opacity", dragId ? "opacity-100" : "opacity-0 hover:opacity-100")}
+                    className={cn("absolute -right-[2px] top-8 bottom-1 z-30 w-[72px] transition-opacity pointer-events-none", dragId && "pointer-events-auto opacity-100")}
                     onDragEnter={() => setMonthDock("prev")}
                     onDragOver={(e) => { e.preventDefault(); setMonthDock("prev"); }}
                     onDragLeave={() => setMonthDock((d) => (d === "prev" ? null : d))}
@@ -571,7 +572,7 @@ export function CalendarPage() {
                       dir="rtl"
                       className={cn(
                         "absolute top-8 z-30 w-56 rounded-xl border border-line bg-white p-3 shadow-2xl",
-                        monthDock === "next" ? "left-12" : "right-12",
+                        monthDock === "next" ? "left-[80px]" : "right-[80px]",
                       )}
                       onDragOver={(e) => e.preventDefault()}
                     >
@@ -611,6 +612,8 @@ export function CalendarPage() {
                   )}
                 </>
               )}
+              </div>
+
             </Card>
 
             <DayPanel
