@@ -130,6 +130,8 @@ export function CalendarPage() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverIso, setDragOverIso] = useState<string | null>(null);
   const [dropping, setDropping] = useState(false);
+  // edge-dock month picker during drag: NEXT months (left edge) / PREV months (right edge)
+  const [monthDock, setMonthDock] = useState<"next" | "prev" | null>(null);
   // pending drop awaiting modal confirmation: { meeting, iso, newStart, newEnd }
   const [pendingDrop, setPendingDrop] = useState<{
     id: string;
@@ -162,6 +164,19 @@ export function CalendarPage() {
     },
     [dragId, meetings],
   );
+
+  // compute target iso: same Jalali day in an arbitrary month offset from the DRAGGED meeting's month
+  const isoInMonthOffset = useCallback((meetingId: string, offset: number): string | null => {
+    const m = (meetings ?? []).find((x) => x.id === meetingId);
+    if (!m) return null;
+    const j = jalaliOfIso(new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(0, 10));
+    let { jy, jm } = j;
+    jm += offset;
+    while (jm > 12) { jm -= 12; jy += 1; }
+    while (jm < 1) { jm += 12; jy -= 1; }
+    const jd = Math.min(j.jd, jMonthLen(jy, jm));
+    return isoOfJalali(jy, jm, jd);
+  }, [meetings]);
 
   // drop on the month arrows: same Jalali day in the next/previous month
   const onDropToMonth = useCallback(
@@ -262,6 +277,16 @@ export function CalendarPage() {
     const start = firstDayOfWeekIso(selectedIso);
     return Array.from({ length: 7 }, (_, i) => addDaysIso(start, i));
   }, [selectedIso]);
+
+  function monthMeta(offset: number): { label: string; sub: string } {
+    let { jy, jm } = anchor;
+    jm += offset;
+    while (jm > 12) { jm -= 12; jy += 1; }
+    while (jm < 1) { jm += 12; jy -= 1; }
+    const now = toJalali(new Date());
+    const isCurrent = jy === now.jy && jm === now.jm;
+    return { label: `${J_MONTHS[jm - 1]}`, sub: isCurrent ? "ماه جاری" : `${jy}` };
+  }
 
   function monthDelta(delta: number) {
     let { jy, jm } = anchor;
@@ -403,14 +428,14 @@ export function CalendarPage() {
         )
       ) : view === "month" ? (
         <>
-          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
-            <Card className="overflow-hidden">
+          <div className="relative grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_19rem]">
+            <Card className="overflow-visible">
               <div className="grid grid-cols-7 border-b border-line bg-paper-soft/50">
                 {J_WEEKDAYS_LONG.map((d, i) => (
                   <div key={d} className={cn("px-0.5 py-2 text-center text-[10px] font-medium leading-4 sm:text-[11px]", i === 6 ? "text-red-500" : "text-ink-soft")}>{d}</div>
                 ))}
               </div>
-              <div className="grid grid-cols-7">
+              <div className="relative grid grid-cols-7">
                 {monthGrid.map((cell, i) => {
                   const fridayCol = i % 7 === 6;
                   if (!cell) return <div key={i} className="h-16 border-b border-l border-line/40 bg-paper-soft/20 sm:h-24 lg:h-[7.25rem]" />;
@@ -509,6 +534,83 @@ export function CalendarPage() {
                   );
                 })}
               </div>
+
+              {/* ── edge docks (hover while dragging): LEFT = next months, RIGHT = previous months ── */}
+              {(true) && (
+                <>
+                  {/* next-months dock (left edge in RTL) */}
+                  <div
+                    className={cn("absolute left-0 top-10 bottom-2 z-20 w-10 transition-opacity", dragId ? "opacity-100" : "opacity-0 hover:opacity-100")}
+                    onDragEnter={() => setMonthDock("next")}
+                    onDragOver={(e) => { e.preventDefault(); setMonthDock("next"); }}
+                    onDragLeave={() => setMonthDock((d) => (d === "next" ? null : d))}
+                    onDrop={(e) => { e.preventDefault(); setMonthDock(null); }}
+                    title="ماه‌های بعد"
+                  >
+                    <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-ink/40 bg-paper-soft/80 text-[10px] font-bold text-ink-soft">
+                      ماه‌های بعد ←
+                    </div>
+                  </div>
+                  {/* previous-months dock (right edge) */}
+                  <div
+                    className={cn("absolute right-0 top-10 bottom-2 z-20 w-10 transition-opacity", dragId ? "opacity-100" : "opacity-0 hover:opacity-100")}
+                    onDragEnter={() => setMonthDock("prev")}
+                    onDragOver={(e) => { e.preventDefault(); setMonthDock("prev"); }}
+                    onDragLeave={() => setMonthDock((d) => (d === "prev" ? null : d))}
+                    onDrop={(e) => { e.preventDefault(); setMonthDock(null); }}
+                    title="ماه‌های قبل"
+                  >
+                    <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-ink/40 bg-paper-soft/80 text-[10px] font-bold text-ink-soft">
+                      → ماه‌های قبل
+                    </div>
+                  </div>
+
+                  {/* floating month panel */}
+                  {monthDock && (
+                    <div
+                      dir="rtl"
+                      className={cn(
+                        "absolute top-8 z-30 w-56 rounded-xl border border-line bg-white p-3 shadow-2xl",
+                        monthDock === "next" ? "left-12" : "right-12",
+                      )}
+                      onDragOver={(e) => e.preventDefault()}
+                    >
+                      <p className="mb-2 text-[11px] font-bold text-ink">
+                        {monthDock === "next" ? "انتقال به ماه‌های بعد" : "انتقال به ماه‌های قبل"}
+                      </p>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {(monthDock === "next"
+                          ? [1, 2, 3, 4, 5, 6]
+                          : [-1, -2, -3, -4, -5, -6]
+                        ).map((offset) => {
+                          const meta = monthMeta(offset);
+                          return (
+                            <div
+                              key={offset}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                const id = e.dataTransfer.getData("text/plain") || dragId || "";
+                                setMonthDock(null);
+                                setDragId(null);
+                                const iso = isoInMonthOffset(id, offset);
+                                if (id && iso) onDropToDay(iso, id);
+                              }}
+                              className="cursor-pointer rounded-lg border border-line bg-paper-soft/40 p-2 text-center transition-colors hover:border-ink hover:bg-paper-soft"
+                            >
+                              <p className="text-[12px] font-bold text-ink">{meta.label}</p>
+                              <p className="mt-0.5 text-[9px] text-ink-faint">{meta.sub}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-2 text-center text-[9px] text-ink-faint">
+                        جلسه را روی ماه دلخواه رها کنید
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
             </Card>
 
             <DayPanel
