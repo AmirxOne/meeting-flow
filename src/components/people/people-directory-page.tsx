@@ -129,13 +129,24 @@ export function PeopleDirectoryPage({ variant = "default" }: PeopleDirectoryPage
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold">{title}</h1>
-          <p className="mt-0.5 text-[12px] text-ink-soft">{subtitle}</p>
+          <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">{subtitle}</p>
         </div>
         <Button size="sm" onClick={openCreate} data-tour="people-add">
           <UserPlus className="h-4 w-4" />
           فرد جدید
         </Button>
       </div>
+
+      {variant !== "admin" && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-line bg-paper-soft/50 px-4 py-2.5 text-[11.5px] leading-6 text-ink-soft">
+          <span className="font-medium text-ink">تفاوت با «کاربران»؟</span>
+          فرد = مخاطبی که در جلسات دعوت می‌شود (حتی مهمان بیرونی بدون لاگین) ·
+          <a href="/users" className="font-medium text-ink underline underline-offset-4">
+            کاربران
+          </a>
+          = حساب‌های لاگین با نقش و دسترسی
+        </div>
+      )}
 
       <Modal
         open={showForm}

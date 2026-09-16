@@ -54,10 +54,23 @@ export function UsersPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold">کاربران</h1>
-          <p className="mt-0.5 text-[12px] text-ink-soft">
-            فهرست همکاران سازمان — فقط مشاهده؛ مدیریت کاربران از بخش مدیریت سیستم انجام می‌شود
+          <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">
+            همکارانی که <span className="font-medium text-ink">به سامانه لاگین می‌کنند</span> — با نقش، سمت و سطح دسترسی.
+            مدیریت کاربران از بخش مدیریت سیستم انجام می‌شود.
           </p>
         </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-line bg-paper-soft/50 px-4 py-2.5 text-[11.5px] leading-6 text-ink-soft">
+        <span className="font-medium text-ink">تفاوت با «افراد»؟</span>
+        کاربر = حساب لاگین و دسترسی‌ها ·
+        <a href="/people" className="font-medium text-ink underline underline-offset-4">
+          افراد
+        </a>
+        = دفترچه‌ی مخاطبین جلسات (شامل مهمان‌های بیرونی بدون لاگین)
+      </div>
+
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div />
         {can("user:update") && (
           <Link href="/admin/users">
             <Button size="sm" variant="outline">
