@@ -51,11 +51,37 @@ export function JalaliDatePicker({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
-  useLayoutEffect(() => {
+  const updatePos = () => {
     if (!open || !rootRef.current) return;
     const r = rootRef.current.getBoundingClientRect();
-    setPanelPos({ top: r.bottom + 6, left: r.right - 290 });
+    const ph = panelRef.current?.offsetHeight ?? 380;
+    const wh = window.innerHeight;
+    // flip above when there isn't room below
+    const top = r.bottom + 6 + ph > wh && r.top - 6 - ph > 0 ? r.top - 6 - ph : r.bottom + 6;
+    setPanelPos({ top: Math.max(8, Math.min(top, wh - 40)), left: Math.max(8, Math.min(r.right - 290, window.innerWidth - 298)) });
+  };
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePos();
+    // re-measure AFTER the portal mounts (real height) and settle animations
+    const id1 = requestAnimationFrame(updatePos);
+    const id2 = setTimeout(updatePos, 60);
+    return () => { cancelAnimationFrame(id1); clearTimeout(id2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  // live-follow scroll & resize while open
+  useEffect(() => {
+    if (!open) return;
+    const h = () => updatePos();
+    window.addEventListener("scroll", h, true);
+    window.addEventListener("resize", h);
+    return () => {
+      window.removeEventListener("scroll", h, true);
+      window.removeEventListener("resize", h);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const today = useMemo(() => toJalali(new Date()), []);
@@ -73,7 +99,9 @@ export function JalaliDatePicker({
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (panelRef.current?.contains(t)) return; // inside the portalled panel
+      if (rootRef.current && !rootRef.current.contains(t)) setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -138,7 +166,7 @@ export function JalaliDatePicker({
       </button>
 
       {open && createPortal(
-        <div style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left } : undefined} className="z-[9999] w-[290px] rounded-lg border border-line bg-white p-3 shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
+        <div ref={panelRef} style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left } : undefined} className="z-[9999] w-[290px] rounded-lg border border-line bg-white p-3 shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
           {/* month header */}
           <div className="mb-2 flex items-center justify-between">
             <button

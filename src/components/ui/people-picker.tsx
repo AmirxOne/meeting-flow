@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X, Building2, Briefcase, Search, ChevronDown } from "@/components/ui/icon";
 import { motion, AnimatePresence } from "framer-motion";
@@ -65,16 +65,40 @@ export function PeoplePicker({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [showMore, setShowMore] = useState(false);
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePos();
+    // re-measure AFTER the portal mounts (real height) and settle animations
+    const id1 = requestAnimationFrame(updatePos);
+    const id2 = setTimeout(updatePos, 60);
+    return () => { cancelAnimationFrame(id1); clearTimeout(id2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   useEffect(() => {
-    if (!open || !rootRef.current) return;
-    const r = rootRef.current.getBoundingClientRect();
-    setPanelPos({ top: r.bottom + 6, left: r.left, width: r.width });
+    if (!open) return;
+    const h = () => updatePos();
+    window.addEventListener("scroll", h, true);
+    window.addEventListener("resize", h);
+    return () => {
+      window.removeEventListener("scroll", h, true);
+      window.removeEventListener("resize", h);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const [manualMode, setManualMode] = useState(false);
   const [manual, setManual] = useState({ name: "", company: "", jobTitle: "", phone: "", email: "" });
   const rootRef = useRef<HTMLDivElement>(null);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const updatePos = () => {
+    if (!rootRef.current) return;
+    const r = rootRef.current.getBoundingClientRect();
+    const ph = Math.min(panelRef.current?.offsetHeight ?? 320, 420);
+    const wh = window.innerHeight;
+    const top = r.bottom + 6 + ph > wh && r.top - 6 - ph > 0 ? r.top - 6 - ph : r.bottom + 6;
+    setPanelPos({ top: Math.max(8, top), left: r.left, width: r.width });
+  };
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -285,6 +309,7 @@ export function PeoplePicker({
       <AnimatePresence>
       {open && !disabled && (
         <motion.div
+          ref={panelRef}
           style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left, width: panelPos.width } : undefined}
           initial={{ opacity: 0, y: -6, scale: 0.99 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}

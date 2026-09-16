@@ -41,12 +41,36 @@ export function Select({
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   // portal'd panel anchor — never clipped by ancestor overflow
+  const panelRef = useRef<HTMLUListElement>(null);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
-  useLayoutEffect(() => {
+  const updatePos = () => {
     if (!open || !rootRef.current) return;
     const r = rootRef.current.getBoundingClientRect();
-    setPanelPos({ top: r.bottom + 6, left: r.left, width: r.width });
-  }, [open, open]);
+    const ph = Math.min(panelRef.current?.offsetHeight ?? 256, 256);
+    const wh = window.innerHeight;
+    const top = r.bottom + 6 + ph > wh && r.top - 6 - ph > 0 ? r.top - 6 - ph : r.bottom + 6;
+    setPanelPos({ top: Math.max(8, top), left: r.left, width: r.width });
+  };
+  useLayoutEffect(() => {
+    if (!open) return;
+    updatePos();
+    // re-measure AFTER the portal mounts (real height) and settle animations
+    const id1 = requestAnimationFrame(updatePos);
+    const id2 = setTimeout(updatePos, 60);
+    return () => { cancelAnimationFrame(id1); clearTimeout(id2); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const h = () => updatePos();
+    window.addEventListener("scroll", h, true);
+    window.addEventListener("resize", h);
+    return () => {
+      window.removeEventListener("scroll", h, true);
+      window.removeEventListener("resize", h);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   const listRef = useRef<HTMLUListElement>(null);
 
   const selected = options.find((o) => o.value === value);
@@ -54,7 +78,9 @@ export function Select({
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (panelRef.current?.contains(t)) return; // inside the portalled listbox
+      if (rootRef.current && !rootRef.current.contains(t)) setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);

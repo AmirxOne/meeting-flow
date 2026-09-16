@@ -94,7 +94,7 @@ export function AdminSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-2xl space-y-4 p-4 lg:p-6">
+      <div className="space-y-4 p-4 lg:p-6">
         <SkeletonBlock className="h-7 w-40" />
         <Card>
           <div className="border-b border-line px-5 py-4">
@@ -114,7 +114,7 @@ export function AdminSettingsPage() {
 
   if (!org) {
     return (
-      <div className="mx-auto max-w-2xl p-4 lg:p-6">
+      <div className="space-y-4 p-4 lg:p-6">
         <Card>
           <EmptyState
             icon={<Building2 className="h-10 w-10" />}
@@ -127,7 +127,7 @@ export function AdminSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-4 lg:p-6">
+    <div className="space-y-4 p-4 lg:p-6">
       <div>
         <h1 className="text-lg font-bold">تنظیمات سازمان</h1>
         <p className="mt-0.5 text-[12px] text-ink-soft">
@@ -138,34 +138,47 @@ export function AdminSettingsPage() {
       <Card>
         <CardHeader title="مشخصات سازمان" subtitle="تغییرات در لاگ ممیزی ثبت می‌شود" />
         <CardBody className="space-y-4">
-          <label className="block space-y-1.5">
-            <span className="text-[12px] font-medium text-ink-soft">نام نمایشی *</span>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="نام سازمان"
-              className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-          </label>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <label className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">نام نمایشی *</span>
+              <input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="نام سازمان"
+                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+              />
+            </label>
 
-          <label className="block space-y-1.5">
-            <span className="text-[12px] font-medium text-ink-soft">نام حقوقی</span>
-            <input
-              value={form.legalName}
-              onChange={(e) => setForm({ ...form, legalName: e.target.value })}
-              placeholder="نام ثبت‌شده / حقوقی"
-              className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-          </label>
+            <label className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">نام حقوقی</span>
+              <input
+                value={form.legalName}
+                onChange={(e) => setForm({ ...form, legalName: e.target.value })}
+                placeholder="نام ثبت‌شده / حقوقی"
+                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+              />
+            </label>
 
-          <label className="block space-y-1.5">
-            <span className="text-[12px] font-medium text-ink-soft">منطقه زمانی</span>
-            <Select
-              value={form.timezone}
-              onChange={(v) => setForm({ ...form, timezone: v })}
-              options={TIMEZONE_OPTIONS}
-            />
-          </label>
+            <label className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">منطقه زمانی</span>
+              <Select
+                value={form.timezone}
+                onChange={(v) => setForm({ ...form, timezone: v })}
+                options={TIMEZONE_OPTIONS}
+              />
+            </label>
+
+            <label className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">آدرس لوگو (URL)</span>
+              <input
+                dir="ltr"
+                value={form.logoUrl}
+                onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+                placeholder="https://example.com/logo.png"
+                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+              />
+            </label>
+          </div>
 
           <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper-soft/40 p-3.5">
             <div className="min-w-0">
@@ -176,17 +189,6 @@ export function AdminSettingsPage() {
             </div>
             <DoorDisplayToggle initial={org.displayEnabled} />
           </div>
-
-          <label className="block space-y-1.5">
-            <span className="text-[12px] font-medium text-ink-soft">آدرس لوگو (URL)</span>
-            <input
-              dir="ltr"
-              value={form.logoUrl}
-              onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-              placeholder="https://example.com/logo.png"
-              className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-            />
-          </label>
 
           <div className="flex justify-end pt-2">
             <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>

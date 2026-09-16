@@ -419,6 +419,10 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                     setPeople([]);
                     setGuests([]);
                   }
+                  if (v !== "ONLINE") {
+                    setVideoUrl("");
+                    setVideoProvider("");
+                  }
                 }}
                 options={Object.entries(TYPE_FA).map(([value, label]) => ({ value, label }))}
               />
@@ -463,13 +467,15 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               className="w-full rounded-md border border-[#d9d9e0] px-3.5 py-2.5 text-[13px] outline-none focus:border-ink"
             />
           </div>
-          <VideoLinkFields
-            provider={videoProvider}
-            url={videoUrl}
-            onProvider={setVideoProvider}
-            onUrl={setVideoUrl}
-            highlighted={meetingType === "ONLINE"}
-          />
+          {meetingType === "ONLINE" && (
+            <VideoLinkFields
+              provider={videoProvider}
+              url={videoUrl}
+              onProvider={setVideoProvider}
+              onUrl={setVideoUrl}
+              highlighted
+            />
+          )}
         </CardBody>
       </Card>
 
