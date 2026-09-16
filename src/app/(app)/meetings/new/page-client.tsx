@@ -8,6 +8,8 @@ import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import Link from "next/link";
+import { CalendarPlus } from "@/components/ui/icon";
 import { cn, faNum, faStr, formatJalali, isoDateInTz, EQUIPMENT_FA, TYPE_FA, TYPE_HINT_FA, isSoloMeetingType, VIDEO_PROVIDER_FA, isVideoProvider } from "@/lib";
 import { formatClockInTz, DEFAULT_ORG_TIMEZONE } from "@/lib/timezone";
 import { J_WEEKDAYS_LONG, iranianWeekdayIndex, zonedTimeToUtc } from "@/lib/jalali";
@@ -366,9 +368,40 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
 
   const fromAvailability = fromAvailabilityHandoff && !!slot;
 
+  const { can } = useAuth();
+
+  if (!can("meeting:create")) {
+    return (
+      <div className="space-y-4 p-4 lg:p-6">
+        <h1 className="text-lg font-bold">ثبت جلسه</h1>
+        <Card className="p-8 text-center">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-paper-soft">
+            <CalendarPlus className="h-6 w-6 text-ink-soft" />
+          </div>
+          <p className="text-[14px] font-bold">اینجا مخصوص مدیریت است</p>
+          <p className="mx-auto mt-2 max-w-md text-[12.5px] leading-6 text-ink-soft">
+            در این سازمان جلسه‌ها را همه به‌صورت <span className="font-medium">درخواست</span> ثبت می‌کنند و مدیریت
+            متناسب با شرایط و اولویت، زمان‌بندی می‌کند. درخواست خود را ثبت کنید:
+          </p>
+          <Link
+            href="/meeting-requests"
+            className="mt-5 inline-flex h-10 items-center rounded-lg bg-ink px-5 text-[13px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
+          >
+            ثبت درخواست جلسه
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
-      <h1 className="text-lg font-bold">جلسه جدید</h1>
+      <div>
+        <h1 className="text-lg font-bold">ثبت مستقیم جلسه</h1>
+        <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">
+          فقط برای مدیریت — ثبت قطعی بدون صف درخواست · برای نیازهای عادی، از «درخواست جلسه» استفاده کنید
+        </p>
+      </div>
 
       {/* Step 1: basics */}
       <Card>

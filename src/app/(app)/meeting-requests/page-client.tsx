@@ -76,8 +76,9 @@ export function MeetingRequestForm() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-[18px] font-bold">درخواست جلسه</h1>
-          <p className="mt-1 text-[12px] text-ink-soft">
-            نیاز خود را ثبت کنید — هماهنگی زمان و اتاق با مدیریت انجام می‌شود
+          <p className="mt-1 text-[12px] leading-6 text-ink-soft">
+            روش اصلی همه‌ی همکاران: نیازتان را این‌جا ثبت کنید (موضوع، افراد، فوریت) —
+            <span className="font-medium text-ink"> مدیریت زمان و اتاق را هماهنگ و اولویت‌بندی می‌کند</span> و نتیجه با اعلان می‌رسد.
           </p>
         </div>
       </div>

@@ -45,14 +45,7 @@ export const NAV_GROUPS: { id: NavGroupId; label: string }[] = [
 export const NAV: NavItemDef[] = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard, perm: null, group: "main" },
   { href: "/calendar", label: "تقویم", icon: CalendarDays, perm: null, group: "main" },
-  {
-    href: "/meetings",
-    label: "جلسات",
-    icon: Users,
-    perm: null,
-    group: "main",
-    children: [{ href: "/meetings/new", label: "جلسه جدید" }],
-  },
+  { href: "/meetings", label: "جلسات", icon: Users, perm: null, group: "main" },
   { href: "/availability", label: "زمان مناسب", icon: Search, perm: null, group: "main" },
   { href: "/meeting-requests", label: "درخواست جلسه", icon: CalendarPlus, perm: null, group: "main" },
   {
@@ -96,6 +89,7 @@ export const NAV: NavItemDef[] = [
     group: "system",
     children: [
       { href: "/meeting-requests/queue", label: "هماهنگی درخواست‌ها" },
+      { href: "/meetings/new", label: "ثبت مستقیم جلسه", perm: "meeting:create" },
       { href: "/admin/users", label: "کاربران" },
       { href: "/admin/rooms", label: "اتاق‌ها" },
       { href: "/admin/people", label: "افراد" },
