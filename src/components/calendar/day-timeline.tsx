@@ -322,6 +322,35 @@ export function DayTimeline({
             })}
           </div>
         )}
+        {onReschedule && (
+          <div className="mt-4 rounded-lg border border-dashed border-line p-3">
+            <p className="mb-2 text-[11px] font-medium text-ink-faint">انتقال به ساعت خالی — جلسه را روی ساعت دلخواه رها کنید</p>
+            <div className="grid grid-cols-6 gap-1.5 sm:grid-cols-7 lg:grid-cols-13">
+              {Array.from({ length: 13 }, (_, i) => 8 + i).map((h) => (
+                <div
+                  key={h}
+                  data-empty-hour={h}
+                  onDragOver={(e) => { if (!dragId) return; e.preventDefault(); setDragOverHour(h); }}
+                  onDragLeave={() => setDragOverHour((x) => (x === h ? null : x))}
+                  onDrop={(e) => {
+                    if (!onReschedule) return;
+                    e.preventDefault();
+                    const id = e.dataTransfer.getData("text/plain") || dragId;
+                    setDragId(null);
+                    setDragOverHour(null);
+                    if (id) onReschedule(id, h);
+                  }}
+                  className={cn(
+                    "flex h-9 cursor-grab items-center justify-center rounded-md border text-[11.5px] font-medium tabular-nums transition-colors",
+                    dragOverHour === h ? "border-ink bg-paper-soft ring-2 ring-inset ring-ink" : "border-line bg-white text-ink-soft hover:bg-paper-soft",
+                  )}
+                >
+                  {faPad2(h)}:۰۰
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );

@@ -791,12 +791,30 @@ export function CalendarPage() {
                   return (
                     <div key={iso} className="relative border-l border-line/40">
                       {Array.from({ length: WEEK_HOURS }, (_, i) => WEEK_START_HOUR + i).map((h) => (
-                        <Link
+                        <div
                           key={h}
-                          href={newMeetingHref(iso, h)}
-                          aria-label={`جلسه جدید ${faPad2(h)}:۰۰`}
-                          className="block h-12 border-b border-line/30 transition-colors hover:bg-paper-soft/80"
-                        />
+                          data-week-cell={`${iso}T${h}`}
+                          onDragOver={(e) => { if (dragId) { e.preventDefault(); (e.currentTarget as HTMLElement).classList.add("ring-2", "ring-inset", "ring-ink", "bg-paper-soft"); } }}
+                          onDragLeave={(e) => { (e.currentTarget as HTMLElement).classList.remove("ring-2", "ring-inset", "ring-ink", "bg-paper-soft"); }}
+                          onDrop={(e) => {
+                            if (!dragId && !e.dataTransfer.getData("text/plain")) return;
+                            e.preventDefault();
+                            (e.currentTarget as HTMLElement).classList.remove("ring-2", "ring-inset", "ring-ink", "bg-paper-soft");
+                            const id = e.dataTransfer.getData("text/plain") || dragId;
+                            if (!id) return;
+                            const m = (meetings ?? []).find((x) => x.id === id) ?? (dragInfo?.id === id ? dragInfo : undefined);
+                            if (!m) return;
+                            const src = new Date(new Date(m.startAt).getTime() + 210 * 60000);
+                            const [y, mo, d] = iso.split("-").map(Number);
+                            const newStart = new Date(Date.UTC(y, mo - 1, d, src.getUTCHours(), src.getUTCMinutes()));
+                            const durMin = (new Date(m.endAt).getTime() - new Date(m.startAt).getTime()) / 60000;
+                            setDragId(null);
+                            setPendingDrop({ id, title: m.isMasked ? "جلسه محرمانه" : m.title, iso, newStart: new Date(newStart.getTime() - 210 * 60000), newEnd: new Date(newStart.getTime() - 210 * 60000 + durMin * 60000) });
+                          }}
+                          className="relative block h-12 border-b border-line/30 transition-colors hover:bg-paper-soft/80"
+                        >
+                          <Link href={newMeetingHref(iso, h)} aria-label={`جلسه جدید ${faPad2(h)}:۰۰`} className="absolute inset-0" />
+                        </div>
                       ))}
                       {nowTop != null && (
                         <div className="pointer-events-none absolute right-0 left-0 z-20" style={{ top: nowTop }}>
@@ -808,11 +826,25 @@ export function CalendarPage() {
                         const m = dayMeetings.find((x) => x.id === b.id);
                         if (!m) return null;
                         return (
-                          <Link
+                          <div
+                            role="link"
+                            tabIndex={0}
+                            data-mid={m.id}
+                            onClick={() => router.push(`/meetings/${m.id}`)}
+                            onKeyDown={(e) => { if (e.key === "Enter") router.push(`/meetings/${m.id}`); }}
+                            draggable={canDnD && !m.isMasked ? true : undefined}
+                            onDragStart={(e) => {
+                              setDragId(m.id);
+                              setDragInfo({ id: m.id, title: m.title, startAt: m.startAt, endAt: m.endAt, isMasked: m.isMasked });
+                              e.dataTransfer.effectAllowed = "move";
+                              e.dataTransfer.setData("text/plain", m.id);
+                            }}
+                            onDragEnd={() => { setDragId(null); setDragOverIso(null); setDragInfo(null); stopAutoAdvance(); }}
                             key={m.id}
-                            href={`/meetings/${m.id}`}
                             className={cn(
                               "absolute z-10 overflow-hidden rounded px-1.5 py-1 text-[10px] leading-tight transition-opacity hover:opacity-90",
+                              canDnD && !m.isMasked && "cursor-grab active:cursor-grabbing",
+                              dragId === m.id && "opacity-40",
                               calendarEventTone(m.status).block,
                             )}
                             style={{
@@ -825,7 +857,7 @@ export function CalendarPage() {
                             <p className="truncate font-medium"><EventLabel meeting={m} /></p>
                             <p className="truncate opacity-80">{timeOf(m.startAt)}</p>
                             {m.room && b.height > 36 && <p className="truncate opacity-70">{m.room.name}</p>}
-                          </Link>
+                          </div>
                         );
                       })}
                     </div>
