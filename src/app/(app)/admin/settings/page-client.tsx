@@ -198,9 +198,11 @@ export function AdminSettingsPage() {
         </CardBody>
       </Card>
 
-      <WorkerStatusCard />
-
-      <SmsPilotCard />
+      {/* integrations & ops — two-column on wide screens */}
+      <div className="grid gap-4 items-start lg:grid-cols-2">
+        <WorkerStatusCard />
+        <SmsPilotCard />
+      </div>
 
       <SsoSettingsCard />
     </div>
