@@ -31,6 +31,7 @@ export function PublicRequestForm() {
   const [attendeeCount, setAttendeeCount] = useState(2);
   const [people, setPeople] = useState<PubPerson[]>([]); // picked from public directory
   const [busy, setBusy] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,6 +53,7 @@ export function PublicRequestForm() {
           guestPhone: guestPhone.trim(),
           guestCompany: guestCompany.trim() || undefined,
           urgency,
+          isPrivate,
           durationMin: Number(durationMin),
           attendeeCount,
           requestedPersonIds: people.map((p) => p.id),
@@ -165,6 +167,12 @@ export function PublicRequestForm() {
 
               {/* who do you want to meet — public directory picker */}
               <PublicPeoplePicker value={people} onChange={setPeople} />
+
+              {/* confidential */}
+              <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-white px-3.5">
+                <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="h-4 w-4 accent-black" />
+                <span className="text-[12px]">جلسه محرمانه — موضوع و جزئیات فقط برای من، دعوت‌شدگان و مدیریت دیده می‌شود</span>
+              </label>
 
               {/* head-count stepper */}
               <div className="flex items-center justify-between rounded-lg border border-line bg-paper-soft/60 px-4 py-3">

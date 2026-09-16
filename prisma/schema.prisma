@@ -358,6 +358,8 @@ model MeetingRequest {
   participantIds String[] @default([])
   /// total head-count the requester expects (excl. themselves)
   attendeeCount Int?
+  /// requester asked for a confidential meeting (title/details masked for others)
+  isPrivate    Boolean  @default(false)
   /// requested external guests (name/company/phone)
   guests      Json?
   /// approximate duration in minutes the requester wants

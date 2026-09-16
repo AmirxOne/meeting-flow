@@ -52,6 +52,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       branchId: input.branchId,
       roomId: input.roomId,
       organizerId: request.requesterId ?? user.id,
+      isPrivate: request.isPrivate,
       startAt: new Date(input.startAt),
       endAt: new Date(input.endAt),
       meetingType: input.meetingType,

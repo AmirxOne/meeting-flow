@@ -31,6 +31,7 @@ export function MeetingRequestForm() {
   const [durationMin, setDurationMin] = useState("60");
   const [participants, setParticipants] = useState<PickedPerson[]>([]);
   const [busy, setBusy] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
 
   // my past requests
   const { data } = useQuery({
@@ -51,6 +52,7 @@ export function MeetingRequestForm() {
           title: title.trim(),
           description: description.trim() || undefined,
           urgency,
+          isPrivate,
           durationMin: Number(durationMin),
           participantIds: participants
             .filter((p) => p.ref.startsWith("user:"))
@@ -105,6 +107,10 @@ export function MeetingRequestForm() {
               className="w-full rounded-md border border-line p-3 text-[13px] outline-none focus:border-ink focus:ring-2 focus:ring-ink/15"
             />
           </div>
+          <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-white px-3.5">
+            <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="h-4 w-4 accent-black" />
+            <span className="text-[12px]">جلسه محرمانه — موضوع و جزئیات فقط برای خودم، دعوت‌شدگان و مدیریت دیده می‌شود</span>
+          </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[12px] font-medium">فوریت</label>

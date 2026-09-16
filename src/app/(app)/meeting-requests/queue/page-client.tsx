@@ -23,6 +23,7 @@ const URGENCY_FA: Record<string, string> = {
 type Req = {
   id: string;
   title: string;
+  isPrivate: boolean;
   description: string | null;
   urgency: string;
   durationMin: number;
@@ -87,7 +88,12 @@ export function RequestQueuePage() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[14px] font-bold">{r.title}</p>
+                      <p className="flex items-center gap-1.5 text-[14px] font-bold">
+                        {r.isPrivate && (
+                          <span className="rounded bg-ink px-1.5 py-0.5 text-[9.5px] font-bold text-white">محرمانه</span>
+                        )}
+                        {r.title}
+                      </p>
                       <p className="mt-1 text-[12px] text-ink-soft">
                         درخواست‌کننده:{" "}
                         {r.requester ? (

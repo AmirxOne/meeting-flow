@@ -29,6 +29,7 @@ const guestSchema = z.object({
   guestCompany: z.string().trim().max(120).optional(),
   urgency: z.enum(["URGENT", "NORMAL", "FLEXIBLE"]).default("NORMAL"),
   durationMin: z.number().int().min(15).max(480).default(60),
+  isPrivate: z.boolean().default(false),
   /// total head-count the requester expects (excluding themselves)
   attendeeCount: z.number().int().min(1).max(50).optional(),
   /// ids from the PUBLIC directory (name/jobTitle only) the guest picked
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest) {
         description: input.description,
         urgency: input.urgency,
         durationMin: input.durationMin,
+        isPrivate: input.isPrivate,
         status: "OPEN",
         attendeeCount: input.attendeeCount,
         participantIds: input.requestedPersonIds ?? [],
@@ -85,7 +87,7 @@ export async function POST(req: NextRequest) {
       newValue: { title: item.title, guest: input.guestName },
       ip,
     });
-    return ok({ request: { id: item.id, status: item.status, attendeeCount: item.attendeeCount, participantIds: item.participantIds } }, 201);
+    return ok({ request: { id: item.id, status: item.status, attendeeCount: item.attendeeCount, participantIds: item.participantIds, isPrivate: item.isPrivate } }, 201);
   } catch (e) {
     return handleError(e);
   }
