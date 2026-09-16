@@ -265,7 +265,7 @@ export function DayTimeline({
                               "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 transition-colors",
                               tone.card,
                               onReschedule && "cursor-grab active:cursor-grabbing",
-                              dragId === m.id && "opacity-40",
+                              dragId === m.id && "dragging opacity-40",
                             )}
                           >
                             <span className={cn("h-9 w-[3px] shrink-0 rounded-full", tone.rail)} />

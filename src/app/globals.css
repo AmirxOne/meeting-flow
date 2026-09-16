@@ -97,3 +97,30 @@ body {
   animation: shimmer 1.4s infinite;
   pointer-events: none;
 }
+
+/* ── drag styling: no browser focus outline while dragging ──
+   Elements being dragged (chips/blocks) get a subtle thin border instead. */
+[draggable="true"]:focus,
+[draggable="true"]:focus-visible,
+[draggable="true"]:active {
+  outline: none !important;
+}
+[draggable="true"] {
+  outline: none;
+}
+/* the dragged ghost element itself */
+[draggable="true"]:-moz-drag-over {
+  outline: none;
+}
+/* soft thin border ONLY while the item is being dragged (JS fades it with opacity-40) */
+.dragging,
+[draggable="true"][aria-grabbed="true"] {
+  border: 1px solid rgb(0 0 0 / 0.12) !important;
+  outline: none !important;
+}
+/* drop targets while dragging over (JS adds ring classes too) */
+[data-week-cell],
+[data-empty-hour],
+[id^="day-hour-"] {
+  outline: none;
+}

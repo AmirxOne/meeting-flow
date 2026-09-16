@@ -592,7 +592,7 @@ export function CalendarPage() {
                             className={cn(
                               "flex truncate rounded px-1 py-0.5 text-[10px] leading-4",
                               calendarEventTone(m.status).chip,
-                              dragId === m.id && "opacity-40",
+                              dragId === m.id && "dragging opacity-40",
                               canDnD && "cursor-grab active:cursor-grabbing",
                             )}
                           >
@@ -844,7 +844,7 @@ export function CalendarPage() {
                             className={cn(
                               "absolute z-10 overflow-hidden rounded px-1.5 py-1 text-[10px] leading-tight transition-opacity hover:opacity-90",
                               canDnD && !m.isMasked && "cursor-grab active:cursor-grabbing",
-                              dragId === m.id && "opacity-40",
+                              dragId === m.id && "dragging opacity-40",
                               calendarEventTone(m.status).block,
                             )}
                             style={{
