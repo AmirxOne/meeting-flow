@@ -452,6 +452,9 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                     setPeople([]);
                     setGuests([]);
                   }
+                  if (v === "ONE_ON_ONE") {
+                    setPeople((p) => p.slice(0, 1));
+                  }
                   if (v !== "ONLINE") {
                     setVideoUrl("");
                     setVideoProvider("");
@@ -482,8 +485,12 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
             </div>
           ) : (
           <div>
-            <label className="mb-1.5 block text-[12px] font-medium">افراد دعوت‌شده ({faNum(people.length)} نفر — از لیست انتخاب کنید یا نام جدید بنویسید)</label>
-            <PeoplePicker value={people} onChange={setPeople} />
+            <label className="mb-1.5 block text-[12px] font-medium">
+              {meetingType === "ONE_ON_ONE"
+                ? `طرف مقابل (${faNum(people.length)}/۱ — فقط یک نفر)`
+                : `افراد دعوت‌شده (${faNum(people.length)} نفر — از لیست انتخاب کنید یا نام جدید بنویسید)`}
+            </label>
+            <PeoplePicker value={people} onChange={setPeople} max={meetingType === "ONE_ON_ONE" ? 1 : undefined} />
             {people.filter((p) => p.kind === "EXTERNAL").length > 0 && (
               <p className="mt-1.5 text-[11px] text-amber-600">
                 ⚠ افراد خارجی به‌عنوان مهمان ثبت می‌شوند و جلسه نیازمند تأیید اپراتور خواهد بود.
