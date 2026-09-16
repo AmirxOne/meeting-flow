@@ -42,7 +42,8 @@ export interface CreateMeetingInput {
   title: string;
   description?: string;
   orgId: string;
-  branchId: string;
+  /// optional for OFFSITE meetings (held at another organization, no room)
+  branchId?: string;
   roomId?: string;
   organizerId: string;
   createdById?: string | null;
@@ -419,7 +420,7 @@ export async function createMeetingSeries(input: CreateSeriesInput): Promise<Cre
         data: {
           orgId: input.orgId,
           organizerId: input.organizerId,
-          branchId: input.branchId,
+          branchId: input.branchId ?? "",
           roomId: input.roomId,
           title: input.title,
           description: input.description,

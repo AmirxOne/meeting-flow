@@ -26,7 +26,7 @@ export async function GET(
         startAt: guest.meeting.startAt,
         endAt: guest.meeting.endAt,
         status: guest.meeting.status,
-        branchName: guest.meeting.branch.name,
+        branchName: guest.meeting.branch?.name ?? "بیرون از شرکت",
         roomName: guest.meeting.room?.name ?? null,
       },
       wayfinding: wayfindingFromGuest(guest),

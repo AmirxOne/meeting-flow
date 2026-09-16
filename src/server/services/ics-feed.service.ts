@@ -133,8 +133,8 @@ type FeedMeeting = Awaited<ReturnType<typeof loadOwnMeetingsForIcs>>[number];
 
 export function meetingToIcsEvent(m: FeedMeeting, origin?: string): IcsEvent {
   const location = m.room
-    ? `${m.room.name} — ${m.branch.name}`
-    : m.branch.name;
+    ? `${m.room.name} — ${m.branch?.name}`
+    : m.branch?.name;
   const agendaPlain = formatAgendaPlain(
     m.agendaItems.map((it) => ({
       title: it.title,

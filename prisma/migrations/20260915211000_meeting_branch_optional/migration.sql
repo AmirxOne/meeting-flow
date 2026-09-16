@@ -1,0 +1,1 @@
+ALTER TABLE "Meeting" ALTER COLUMN "branchId" DROP NOT NULL;

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarPlus, XCircle, Users, Pencil, CheckCircle2, Clock } from "@/components/ui/icon";
+import { CalendarPlus, XCircle, Users, Pencil, CheckCircle2, Clock, Building2 } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,9 @@ type Req = {
   attendeeCount: number | null;
   prefFrom: string | null;
   prefTo: string | null;
+  venue: string;
+  offsiteOrg: string | null;
+  offsiteNote: string | null;
   status: string;
   adminNote: string | null;
   createdAt: string;
@@ -117,6 +120,14 @@ export function RequestQueuePage() {
                         <p className="mt-1 flex items-center gap-1 text-[11px] text-ink-faint">
                           <Users className="h-3 w-3" />
                           {faNum(r.participantIds.length)} نفر شرکت‌کننده درخواست شده
+                        </p>
+                      )}
+                      {r.venue === "OFFSITE" && (
+                        <p className="mt-2 flex flex-wrap items-center gap-1.5 rounded-md border border-ink/25 bg-paper-soft px-2.5 py-1.5 text-[11.5px] font-medium text-ink">
+                          <Building2 className="h-3.5 w-3.5 shrink-0" />
+                          بیرون از شرکت — در محل «{r.offsiteOrg}»
+                          {r.offsiteNote ? ` (${r.offsiteNote})` : ""}
+                          <span className="text-ink-faint">· اتاق لازم ندارد؛ ساعت را هماهنگ کنید</span>
                         </p>
                       )}
                       {(r.prefFrom || r.prefTo) && (
@@ -378,9 +389,9 @@ function ScheduleForm({ r, onDone, onCancel }: { r: Req; onDone: () => void; onC
   );
 
   async function schedule() {
-    if (!startIso || !startTime || !roomId) {
-      push("تاریخ، ساعت و اتاق را انتخاب کنید", "error");
-      return;
+    const offsite = r.venue === "OFFSITE";
+    if (!startIso || !startTime || (!offsite && !roomId)) {
+      push(offsite ? "تاریخ و ساعت را انتخاب کنید" : "تاریخ، ساعت و اتاق را انتخاب کنید", "error");
     }
     // Tehran local → UTC (offset +03:30 fixed)
     const [y, m, d] = startIso.split("-").map(Number);
@@ -394,10 +405,14 @@ function ScheduleForm({ r, onDone, onCancel }: { r: Req; onDone: () => void; onC
         {
           method: "POST",
           json: {
-            branchId: branchId || (rooms?.rooms ?? []).find((x) => x.id === roomId)?.id
-              ? ((rooms?.rooms ?? []).find((x) => x.id === roomId) as { branchId?: string })?.branchId ?? ""
-              : "",
-            roomId,
+            ...(r.venue === "OFFSITE"
+              ? {}
+              : {
+                  branchId: branchId || (rooms?.rooms ?? []).find((x) => x.id === roomId)?.id
+                    ? ((rooms?.rooms ?? []).find((x) => x.id === roomId) as { branchId?: string })?.branchId ?? ""
+                    : "",
+                  roomId,
+                }),
             startAt: start.toISOString(),
             endAt: end.toISOString(),
           },

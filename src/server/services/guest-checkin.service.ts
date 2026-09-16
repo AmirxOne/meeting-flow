@@ -78,9 +78,9 @@ type CheckinGuestRow = Awaited<ReturnType<typeof getGuestByCheckinCode>>;
 export function wayfindingFromGuest(guest: CheckinGuestRow): WayfindingDto {
   const floor = guest.meeting.room?.floor ?? null;
   return buildWayfinding({
-    branchName: guest.meeting.branch.name,
-    branchDirections: guest.meeting.branch.wayfindingText,
-    branchHasMap: !!guest.meeting.branch.mapStorageKey,
+    branchName: guest.meeting.branch?.name ?? "بیرون از شرکت",
+    branchDirections: guest.meeting.branch?.wayfindingText ?? null,
+    branchHasMap: !!guest.meeting.branch?.mapStorageKey,
     roomName: guest.meeting.room?.name ?? null,
     floorName: floor?.name ?? null,
     floorNumber: floor?.number ?? null,
@@ -94,11 +94,11 @@ export async function readCheckinMap(code: string): Promise<{ body: Buffer; mime
   const floor = guest.meeting.room?.floor ?? null;
   const picked = preferFloorMapKey({
     floorKey: floor?.mapStorageKey,
-    branchKey: guest.meeting.branch.mapStorageKey,
+    branchKey: guest.meeting.branch?.mapStorageKey,
   });
   if (!picked) throw new HttpError(404, "نقشه‌ای برای این جلسه ثبت نشده است", "NO_MAP");
   const mime =
-    picked.source === "floor" ? floor?.mapMimeType : guest.meeting.branch.mapMimeType;
+    picked.source === "floor" ? floor?.mapMimeType : guest.meeting.branch?.mapMimeType;
   if (!mime) throw new HttpError(404, "نقشه‌ای برای این جلسه ثبت نشده است", "NO_MAP");
   const body = await readAttachmentBuffer(picked.storageKey);
   return { body, mimeType: mime };

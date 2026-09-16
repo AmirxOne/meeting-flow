@@ -8,8 +8,9 @@ import { createMeeting } from "@/server/services/meeting.service";
 export const dynamic = "force-dynamic";
 
 const scheduleSchema = z.object({
-  branchId: z.string().min(1),
-  roomId: z.string().min(1),
+  /// required for ONSITE requests; OFFSITE (at another org) needs no room
+  branchId: z.string().optional(),
+  roomId: z.string().optional(),
   startAt: z.string().datetime(),
   endAt: z.string().datetime(),
   meetingType: z.enum(["INTERNAL", "EXTERNAL", "CROSS_TEAM"]).default("INTERNAL"),
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     const { id } = await params;
     const input = scheduleSchema.parse(await req.json().catch(() => ({})));
+    // room check is done per-venue below (OFFSITE skips it)
 
     const request = await prisma.meetingRequest.findUnique({
       where: { id },
@@ -45,17 +47,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Guest requests CAN be scheduled now: the admin becomes the organizer and
     // the guest is attached as an external guest of the meeting.
 
+    const offsite = request.venue === "OFFSITE";
     const meeting = await createMeeting({
       title: request.title,
-      description: request.description ?? undefined,
+      description: [
+        request.description ?? undefined,
+        offsite
+          ? "📍 محل جلسه: " + (request.offsiteOrg ?? "بیرون از شرکت") + (request.offsiteNote ? " — " + request.offsiteNote : "")
+          : undefined,
+      ]
+        .filter(Boolean)
+        .join("\n\n") || undefined,
       orgId: request.orgId,
-      branchId: input.branchId,
-      roomId: input.roomId,
+      // offsite: no room/branch — the meeting happens at the other organization
+      ...(offsite ? {} : { branchId: input.branchId!, roomId: input.roomId! }),
       organizerId: request.requesterId ?? user.id,
       isPrivate: request.isPrivate,
+      meetingType: offsite ? "EXTERNAL" : input.meetingType,
       startAt: new Date(input.startAt),
       endAt: new Date(input.endAt),
-      meetingType: input.meetingType,
       participantIds: Array.from(
         new Set<string>([...request.participantIds, ...(request.requesterId ? [user.id] : [])]),
       ).filter((x) => x !== request.requesterId),

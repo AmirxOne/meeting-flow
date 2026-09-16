@@ -204,7 +204,7 @@ export async function meetingsForExport(f: ReportFilters): Promise<MeetingRow[]>
     title: m.title,
     status: m.status,
     type: m.meetingType,
-    branch: m.branch.name,
+    branch: m.branch?.name ?? "—",
     room: m.room?.name ?? "—",
     organizer: m.organizer.fullName,
     participants: m._count.participants,

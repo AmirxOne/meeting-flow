@@ -360,6 +360,13 @@ model MeetingRequest {
   attendeeCount Int?
   /// requester asked for a confidential meeting (title/details masked for others)
   isPrivate    Boolean  @default(false)
+  /// where the meeting should take place
+  /// ONSITE = our company's rooms · OFFSITE = at the other org (e.g. همراه اول)
+  venue        String   @default("ONSITE") // ONSITE | OFFSITE
+  /// target organization name when OFFSITE (e.g. «همراه اول»)
+  offsiteOrg   String?
+  /// optional address/note for the offsite venue
+  offsiteNote  String?
   /// requested external guests (name/company/phone)
   guests      Json?
   /// approximate duration in minutes the requester wants
@@ -387,7 +394,7 @@ model Meeting {
   fromRequests MeetingRequest[]
   description  String?
   organizerId  String
-  branchId     String
+  branchId     String?
   roomId       String?
   startAt      DateTime
   endAt        DateTime
@@ -414,7 +421,7 @@ model Meeting {
   org       Organization        @relation(fields: [orgId], references: [id], onDelete: Restrict)
   organizer User                @relation("organizer", fields: [organizerId], references: [id])
   createdBy User?               @relation("meetingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  branch    Branch              @relation(fields: [branchId], references: [id])
+  branch    Branch?             @relation(fields: [branchId], references: [id])
   room      MeetingRoom?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
   participants MeetingParticipant[]
   guests       MeetingGuest[]
