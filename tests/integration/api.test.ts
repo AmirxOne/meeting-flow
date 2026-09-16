@@ -175,10 +175,10 @@ describe("meeting lifecycle", () => {
   const branchId = "branch-niavaran";
   const roomId = "room-a";
 
-  it("employee creates internal meeting → auto-confirmed", async () => {
+  it("operator creates internal meeting → auto-confirmed (employees now file requests)", async () => {
     const { status, body } = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست یکپارچه — جلسه داخلی",
         branchId,
@@ -214,7 +214,7 @@ describe("meeting lifecycle", () => {
   it("guest meeting requires approval → operator approves", async () => {
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "جلسه با مهمان خارجی — نیاز به تأیید",
         branchId,
@@ -246,7 +246,7 @@ describe("meeting lifecycle", () => {
   it("reschedule changes time with history event", async () => {
     const { status, body } = await api(`/api/meetings/${meetingId}/reschedule`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { startAt: tehran(10, 12), endAt: tehran(10, 13), reason: "تست" },
     });
     expect(status).toBe(200);
@@ -260,7 +260,7 @@ describe("meeting lifecycle", () => {
   it("change room checks availability", async () => {
     const { status } = await api(`/api/meetings/${meetingId}/change-room`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { roomId: "room-c" },
     });
     expect(status).toBe(200);
@@ -273,7 +273,7 @@ describe("meeting lifecycle", () => {
 
     const added = await api(`/api/meetings/${meetingId}/participants`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { userId: amir.id },
     });
     expect(added.status).toBe(201);
@@ -288,7 +288,7 @@ describe("meeting lifecycle", () => {
   it("cancel requires reason and clears reminders", async () => {
     const { status, body } = await api(`/api/meetings/${meetingId}/cancel`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { reason: "DUPLICATE_MEETING" },
     });
     expect(status).toBe(200);
@@ -324,7 +324,7 @@ describe("room waitlist", () => {
   it("conflict 409 offers optional waitlist without locking", async () => {
     const occupant = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست لیست انتظار — اشغال‌کننده",
         branchId,
@@ -384,7 +384,7 @@ describe("room waitlist", () => {
   it("when occupant cancels, first waiter is offered but the slot stays bookable", async () => {
     const cancelled = await api(`/api/meetings/${occupantId}/cancel`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { reason: "DUPLICATE_MEETING" },
     });
     expect(cancelled.status).toBe(200);
@@ -404,7 +404,7 @@ describe("room waitlist", () => {
 
     const sniped = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست لیست انتظار — رزرو در مهلت",
         branchId,
