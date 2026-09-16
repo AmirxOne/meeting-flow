@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { useToast } from "@/components/ui/toast";
 import { faNum } from "@/lib";
@@ -19,6 +20,13 @@ const URGENCY_FA: Record<string, string> = {
   NORMAL: "معمولی",
   FLEXIBLE: "منعطف — هر زمان مناسب",
 };
+
+/** "2026-09-20" + "14:30" (Tehran, +03:30) → ISO UTC */
+function tehranToIso(day: string, hm: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const [hh, mm] = hm.split(":").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, hh - 3, mm - 30, 0)).toISOString();
+}
 
 /** Employee page: «ما به چنین جلسه‌ای نیاز داریم» — the admin schedules it. */
 export function MeetingRequestForm() {
@@ -33,6 +41,10 @@ export function MeetingRequestForm() {
   const [participants, setParticipants] = useState<PickedPerson[]>([]);
   const [busy, setBusy] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  // preferred window (optional): day + from-hour/to-hour
+  const [prefDay, setPrefDay] = useState("");
+  const [prefFrom, setPrefFrom] = useState("");
+  const [prefTo, setPrefTo] = useState("");
 
   // my past requests
   const { data } = useQuery({
@@ -55,6 +67,12 @@ export function MeetingRequestForm() {
           urgency,
           isPrivate,
           durationMin: Number(durationMin),
+          ...(prefDay && prefFrom
+            ? {
+                prefFrom: tehranToIso(prefDay, prefFrom),
+                ...(prefTo ? { prefTo: tehranToIso(prefDay, prefTo) } : {}),
+              }
+            : {}),
           participantIds: participants
             .filter((p) => p.ref.startsWith("user:"))
             .map((p) => p.ref.slice(5)),
@@ -64,6 +82,9 @@ export function MeetingRequestForm() {
       setTitle("");
       setDescription("");
       setParticipants([]);
+      setPrefDay("");
+      setPrefFrom("");
+      setPrefTo("");
       qc.invalidateQueries({ queryKey: ["meeting-requests"] });
     } catch (e) {
       push((e as Error).message || "خطا در ثبت درخواست", "error");
@@ -142,6 +163,28 @@ export function MeetingRequestForm() {
               onChange={(next) => setParticipants(next)}
               placeholder="با چه کسانی می‌خواهید جلسه داشته باشید؟"
             />
+          </div>
+
+          {/* preferred window */}
+          <div className="rounded-lg border border-dashed border-line bg-paper-soft/40 p-3.5">
+            <p className="text-[12px] font-bold">بازه‌ی دلخواه (اختیاری)</p>
+            <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
+              روز و ساعتی که برایتان مناسب است را بگویید — مدیریت سعی می‌کند جلسه را در همین بازه بگیرد
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-ink-soft">روز</label>
+                <JalaliDatePicker value={prefDay} onChange={(v) => setPrefDay(v)} />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
+                <TimePicker value={prefFrom} onChange={(v) => setPrefFrom(v)} />
+              </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
+                <TimePicker value={prefTo} onChange={(v) => setPrefTo(v)} />
+              </div>
+            </div>
           </div>
           <div className="flex justify-end">
             <Button onClick={submit} disabled={busy}>

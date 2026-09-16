@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarPlus, XCircle, Users, Pencil, CheckCircle2 } from "@/components/ui/icon";
+import { CalendarPlus, XCircle, Users, Pencil, CheckCircle2, Clock } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,8 @@ type Req = {
   durationMin: number;
   participantIds: string[];
   attendeeCount: number | null;
+  prefFrom: string | null;
+  prefTo: string | null;
   status: string;
   adminNote: string | null;
   createdAt: string;
@@ -115,6 +117,13 @@ export function RequestQueuePage() {
                         <p className="mt-1 flex items-center gap-1 text-[11px] text-ink-faint">
                           <Users className="h-3 w-3" />
                           {faNum(r.participantIds.length)} نفر شرکت‌کننده درخواست شده
+                        </p>
+                      )}
+                      {(r.prefFrom || r.prefTo) && (
+                        <p className="mt-2 flex items-center gap-1.5 rounded-md border border-dashed border-ink/30 bg-amber-50/60 px-2.5 py-1.5 text-[11.5px] font-medium text-amber-800">
+                          <Clock className="h-3.5 w-3.5 shrink-0" />
+                          بازه‌ی درخواستی: {formatJalali(new Date(r.prefFrom!), { withTime: true })}
+                          {r.prefTo ? ` تا ${formatJalali(new Date(r.prefTo), { withTime: true }).split(" — ")[1] ?? formatJalali(new Date(r.prefTo), { withTime: true })}` : ""}
                         </p>
                       )}
                       {r.description && (
