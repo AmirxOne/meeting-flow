@@ -131,6 +131,14 @@ export async function getRoomDisplayBoard(room: {
   branch: { id: string; name: string };
   floor: { name: string; number: number } | null;
 }) {
+  // org-level kill switch (admin toggles in مدیریت → تنظیمات)
+  const org = await prisma.organization.findUnique({
+    where: { id: room.orgId },
+    select: { displayEnabled: true },
+  });
+  if (org && !org.displayEnabled) {
+    throw new HttpError(403, "نمایشگر اتاق توسط مدیر سیستم غیرفعال شده است", "DISPLAY_DISABLED");
+  }
   const now = new Date();
   const horizon = new Date(now.getTime() + 36 * 3600000);
   const lookback = new Date(now.getTime() - 12 * 3600000);

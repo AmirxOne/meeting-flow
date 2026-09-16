@@ -36,6 +36,23 @@ interface DisplayBoard {
   serverNow: string;
 }
 
+function DisplayDisabledScreen({ roomName }: { roomName?: string }) {
+  return (
+    <div dir="rtl" className="flex min-h-screen flex-col items-center justify-center gap-4 bg-ink p-8 text-center text-white">
+      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10">
+        <svg viewBox="0 0 24 24" className="h-8 w-8 opacity-70" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="3" y="4" width="18" height="13" rx="2" />
+          <path d="M12 21v-4" />
+        </svg>
+      </div>
+      <p className="text-[18px] font-bold">نمایشگر {roomName ? `اتاق ${roomName}` : "اتاق"} غیرفعال است</p>
+      <p className="max-w-md text-[13px] leading-6 text-white/60">
+        مدیر سیستم می‌تواند این قابلیت را از بخش مدیریت → تنظیمات سازمان فعال کند.
+      </p>
+    </div>
+  );
+}
+
 const OCCUPANCY_FA: Record<DisplayOccupancy, string> = {
   AVAILABLE: "آزاد",
   OCCUPIED: "اشغال",
@@ -112,6 +129,7 @@ export function RoomDisplayPage({
   }, [data, roomId, creds]);
 
   const needsGate = isError && (error as ApiError | undefined)?.status === 401;
+  const displayDisabled = isError && (error as ApiError | undefined)?.code === "DISPLAY_DISABLED";
 
   const tz = data?.timezone ?? DEFAULT_ORG_TIMEZONE;
   const occupancy = data?.occupancy ?? "AVAILABLE";
@@ -123,6 +141,10 @@ export function RoomDisplayPage({
     const code = normalizeDisplayCode(toEnDigits(codeInput));
     if (code.length !== 8) return;
     setCreds({ code });
+  }
+
+  if (displayDisabled) {
+    return <DisplayDisabledScreen />;
   }
 
   if (!data && isPending) {

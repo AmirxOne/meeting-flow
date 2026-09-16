@@ -20,6 +20,7 @@ interface Organization {
   legalName: string | null;
   timezone: string;
   logoUrl: string | null;
+  displayEnabled: boolean;
   updatedAt: string;
 }
 
@@ -166,6 +167,16 @@ export function AdminSettingsPage() {
             />
           </label>
 
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper-soft/40 p-3.5">
+            <div className="min-w-0">
+              <p className="text-[12.5px] font-bold">نمایشگر تبلت کنار در</p>
+              <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
+                برد اطلاعاتی جلسات که روی تبلتِ کنار در هر اتاق نمایش داده می‌شود — با خاموش کردن، همه‌ی نمایشگرها پیام «غیرفعال» می‌بینند
+              </p>
+            </div>
+            <DoorDisplayToggle initial={org.displayEnabled} />
+          </div>
+
           <label className="block space-y-1.5">
             <span className="text-[12px] font-medium text-ink-soft">آدرس لوگو (URL)</span>
             <input
@@ -191,5 +202,55 @@ export function AdminSettingsPage() {
 
       <SsoSettingsCard />
     </div>
+  );
+}
+
+
+/** Instant on/off switch for door-tablet display boards. */
+function DoorDisplayToggle({ initial }: { initial: boolean }) {
+  const { push } = useToast();
+  const qc = useQueryClient();
+  const [on, setOn] = useState(initial);
+  const [busy, setBusy] = useState(false);
+
+  async function toggle() {
+    const next = !on;
+    setOn(next); // optimistic
+    setBusy(true);
+    try {
+      await api("/api/admin/organization", {
+        method: "PATCH",
+        json: { displayEnabled: next },
+      });
+      push(next ? "نمایشگر اتاق‌ها فعال شد" : "نمایشگر اتاق‌ها غیرفعال شد", "success");
+      qc.invalidateQueries({ queryKey: ["organization"] });
+    } catch (e) {
+      setOn(!next); // revert
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label="نمایشگر تبلت کنار در"
+      disabled={busy}
+      onClick={toggle}
+      className={
+        "relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 " +
+        (on ? "bg-ink" : "bg-[#d9d9e0]")
+      }
+    >
+      <span
+        className={
+          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all " +
+          (on ? "right-0.5" : "right-[calc(100%-1.375rem)]")
+        }
+      />
+    </button>
   );
 }

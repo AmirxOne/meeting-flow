@@ -18,6 +18,7 @@ export async function GET() {
         name: true,
         legalName: true,
         timezone: true,
+        displayEnabled: true,
         logoUrl: true,
         updatedAt: true,
       },
@@ -48,6 +49,7 @@ export async function PATCH(req: NextRequest) {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.legalName !== undefined ? { legalName: input.legalName || null } : {}),
         ...(input.timezone !== undefined ? { timezone: input.timezone } : {}),
+        ...(input.displayEnabled !== undefined ? { displayEnabled: input.displayEnabled } : {}),
         ...(input.logoUrl !== undefined ? { logoUrl: input.logoUrl || null } : {}),
       },
       select: {
@@ -55,6 +57,7 @@ export async function PATCH(req: NextRequest) {
         name: true,
         legalName: true,
         timezone: true,
+        displayEnabled: true,
         logoUrl: true,
         updatedAt: true,
       },

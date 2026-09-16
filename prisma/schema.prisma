@@ -172,6 +172,8 @@ model Organization {
   legalName String?
   timezone  String   @default("Asia/Tehran")
   logoUrl   String?
+  /// door-tablet display boards — admin toggle (per org)
+  displayEnabled Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
