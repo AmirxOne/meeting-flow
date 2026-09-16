@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, ArrowLeft } from "@/components/ui/icon";
 import { api } from "@/lib/api";
@@ -151,40 +152,23 @@ export function MeetingRequestForm() {
         </CardBody>
       </Card>
 
-      <Card>
-        <CardHeader title="درخواست‌های من" />
-        <CardBody>
-          {mine.length === 0 ? (
-            <EmptyState
-              title="هنوز درخواستی ثبت نکرده‌اید"
-              description="فرم بالا را پر کنید تا مدیریت زمان آن را هماهنگ کند"
-            />
-          ) : (
-            <div className="space-y-2">
-              {mine.map((r) => (
-                <RequestRow key={r.id} r={r} />
-              ))}
-            </div>
-          )}
-        </CardBody>
-      </Card>
-    </div>
-  );
-}
-
-function RequestRow({ r }: { r: MyRequest }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border border-line p-3">
-      <div className="min-w-0">
-        <p className="truncate text-[13px] font-medium">{r.title}</p>
-        <p className="mt-0.5 flex items-center gap-2 text-[11px] text-ink-faint">
-          <Clock className="h-3 w-3" />
-          {faNum(Math.round(r.durationMin / 60) || 1)} ساعت · {URGENCY_FA[r.urgency] ?? r.urgency}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-paper-soft/50 px-4 py-3">
+        <p className="text-[12px] leading-6 text-ink-soft">
+          پیگیری وضعیت درخواست‌های قبلی (در انتظار، زمان‌بندی‌شده، ردشده):
         </p>
+        <Link
+          href="/meeting-requests/mine"
+          className="flex h-9 items-center rounded-md border border-line bg-white px-4 text-[12px] font-medium text-ink transition-colors hover:bg-paper-soft"
+        >
+          درخواست‌های من
+          {mine.length > 0 && (
+            <span className="mr-1.5 rounded-full bg-ink px-1.5 py-0.5 text-[10px] font-bold text-white">
+              {faNum(mine.length)}
+            </span>
+          )}
+        </Link>
       </div>
-      <StatusChip status={r.status} />
     </div>
   );
 }
-
 

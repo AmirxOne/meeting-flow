@@ -56,7 +56,7 @@ const { chromium } = require("playwright");
   check(`employee files request → ${req.status()}`, req.status() === 201 && !!requestId);
 
   // request page renders for employee
-  await emp.goto("http://127.0.0.1:3100/meeting-requests", { waitUntil: "domcontentloaded", timeout: 60000 });
+  await emp.goto("http://127.0.0.1:3100/meeting-requests/mine", { waitUntil: "domcontentloaded", timeout: 60000 });
   await emp.waitForTimeout(2500);
   const empPage = await emp.evaluate(() => document.body.innerText);
   check("employee sees own request in page", empPage.includes(`درخواست تست ${uniq}`));
