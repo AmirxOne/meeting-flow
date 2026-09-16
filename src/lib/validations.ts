@@ -25,7 +25,8 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const meetingCreateSchema = z.object({
   title: z.string().trim().min(2, "عنوان حداقل ۲ کاراکتر است").max(120),
   description: z.string().trim().max(2000).optional(),
-  branchId: z.string().min(1, "شعبه را انتخاب کنید"),
+  // branch/room optional for OFFSITE meetings (at another organization)
+  branchId: z.string().min(1, "شعبه را انتخاب کنید").optional(),
   roomId: z.string().min(1).optional().nullable(),
   startAt: z.string().datetime({ offset: true }).or(z.string().min(10)),
   endAt: z.string().datetime({ offset: true }).or(z.string().min(10)),

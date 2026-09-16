@@ -50,6 +50,12 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
   // form state
   const [title, setTitle] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
+  // venue: ONSITE (our rooms) | OFFSITE (at another org — no room needed)
+  const [venue, setVenue] = useState<"ONSITE" | "OFFSITE">("ONSITE");
+  const [offsiteOrg, setOffsiteOrg] = useState("");
+  const [offsiteNote, setOffsiteNote] = useState("");
+  const [offsiteHour, setOffsiteHour] = useState("");
+  const offsite = venue === "OFFSITE";
   const [description, setDescription] = useState("");
   const [meetingType, setMeetingType] = useState("INTERNAL");
   const [branchId, setBranchId] = useState("");
@@ -188,6 +194,18 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
   }
 
   async function findSlots() {
+    if (offsite) {
+      // OFFSITE: no room search — build the slot directly from the picked day + hour
+      if (!title.trim()) { push("عنوان را بنویسید", "error"); return; }
+      if (!dateIso) { push("تاریخ را انتخاب کنید", "error"); return; }
+      if (!offsiteHour) { push("ساعت جلسه را انتخاب کنید", "error"); return; }
+      const [y, m, d] = dateIso.split("-").map(Number);
+      const [hh, mm] = offsiteHour.split(":").map(Number);
+      const start = new Date(Date.UTC(y, m - 1, d, hh - 3, mm - 30, 0));
+      setSlot({ start: start.toISOString(), end: new Date(start.getTime() + durationMin * 60000).toISOString(), availableRooms: [] } as unknown as Slot);
+      setRoomId("");
+      return;
+    }
     if (!branchId || !title.trim()) {
       push("عنوان و شعبه را انتخاب کنید", "error");
       return;
@@ -303,13 +321,15 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
         method: "POST",
         json: {
           title: title.trim(),
-          description: description.trim() || undefined,
+          description: [
+            description.trim() || undefined,
+            offsite ? `📍 محل جلسه: ${offsiteOrg.trim() || "بیرون از شرکت"}${offsiteNote.trim() ? ` — ${offsiteNote.trim()}` : ""}` : undefined,
+          ].filter(Boolean).join("\n\n") || undefined,
           isPrivate,
-          branchId,
-          roomId,
+          ...(offsite ? {} : { branchId, roomId }),
           startAt: new Date(slot.start).toISOString(),
           endAt: new Date(slot.end).toISOString(),
-          meetingType,
+          meetingType: offsite ? "EXTERNAL" : meetingType,
           ...(organizerId && me?.id && organizerId !== me.id ? { organizerId } : {}),
           ...(videoUrl.trim()
             ? { videoProvider: videoProvider || "CUSTOM", videoUrl: videoUrl.trim() }
@@ -466,17 +486,56 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                 <p className="mt-1.5 text-[11px] leading-5 text-ink-soft">{TYPE_HINT_FA[meetingType]}</p>
               )}
             </div>
-            <div>
-              <label className="mb-1.5 block text-[12px] font-medium">شعبه</label>
-              <Select
-                value={branchId}
-                onChange={setBranchId}
-                placeholder="انتخاب شعبه…"
-                options={branches.map((b) => ({ value: b.id, label: b.name }))}
-              />
-            </div>
+            {!offsite && (
+              <div>
+                <label className="mb-1.5 block text-[12px] font-medium">شعبه</label>
+                <Select
+                  value={branchId}
+                  onChange={setBranchId}
+                  placeholder="انتخاب شعبه…"
+                  options={branches.map((b) => ({ value: b.id, label: b.name }))}
+                />
+              </div>
+            )}
           </div>
           
+          {/* venue */}
+          <div className="rounded-lg border border-line bg-paper-soft/40 p-3.5">
+            <p className="text-[12px] font-bold">محل برگزاری</p>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <button type="button" onClick={() => setVenue("ONSITE")}
+                className={cn("flex items-center gap-2.5 rounded-md border p-3 text-right transition-colors", venue === "ONSITE" ? "border-ink bg-white shadow-sm" : "border-line bg-white hover:bg-paper-soft")}>
+                <span className={cn("h-3.5 w-3.5 shrink-0 rounded-full border-2", venue === "ONSITE" ? "border-ink bg-ink" : "border-[#c9c9d0]")} />
+                <span className="min-w-0">
+                  <span className="block text-[12.5px] font-medium">در شرکت خودمان</span>
+                  <span className="block text-[10.5px] text-ink-faint">جستجوی اتاق آزاد و رزرو</span>
+                </span>
+              </button>
+              <button type="button" onClick={() => setVenue("OFFSITE")}
+                className={cn("flex items-center gap-2.5 rounded-md border p-3 text-right transition-colors", venue === "OFFSITE" ? "border-ink bg-white shadow-sm" : "border-line bg-white hover:bg-paper-soft")}>
+                <span className={cn("h-3.5 w-3.5 shrink-0 rounded-full border-2", venue === "OFFSITE" ? "border-ink bg-ink" : "border-[#c9c9d0]")} />
+                <span className="min-w-0">
+                  <span className="block text-[12.5px] font-medium">بیرون از شرکت</span>
+                  <span className="block text-[10.5px] text-ink-faint">جلسه در محل سازمان مقصد — بدون رزرو اتاق</span>
+                </span>
+              </button>
+            </div>
+            {offsite && (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-ink-soft">نام سازمان مقصد *</label>
+                  <input value={offsiteOrg} onChange={(e) => setOffsiteOrg(e.target.value)} placeholder="مثلاً: همراه اول"
+                    className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-medium text-ink-soft">نشانی / توضیح (اختیاری)</label>
+                  <input value={offsiteNote} onChange={(e) => setOffsiteNote(e.target.value)} placeholder="مثلاً: برج ساعی، طبقه ۵"
+                    className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                </div>
+              </div>
+            )}
+          </div>
+
           {soloType ? (
             <div className="rounded-md border border-line bg-paper-soft px-3.5 py-3 text-[12px] leading-6 text-ink-soft">
               {meetingType === "ONLINE"
@@ -683,12 +742,33 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               </p>
             )}
           </div>
-          {!fromAvailability && (
+          {!fromAvailability && !offsite && (
             <div className="flex justify-end">
               <Button onClick={findSlots} loading={searching} disabled={holidayBlocked} className="w-full sm:w-auto">
                 <Sparkles className="h-4 w-4" />
                 یافتن زمان‌های آزاد
               </Button>
+            </div>
+          )}
+          {offsite && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-[12px] font-medium">ساعت جلسه *</label>
+                <Select
+                  value={offsiteHour}
+                  onChange={(v) => setOffsiteHour(v)}
+                  placeholder="انتخاب ساعت"
+                  options={Array.from({ length: 13 }, (_, i) => 8 + i).map((h) => ({
+                    value: String(h).padStart(2, "0") + ":00",
+                    label: faNum(String(h).padStart(2, "0")) + ":۰۰",
+                  }))}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={findSlots} className="w-full sm:w-auto">
+                  ثبت زمان جلسه بیرونی
+                </Button>
+              </div>
             </div>
           )}
         </CardBody>
@@ -711,7 +791,11 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
             </div>
 
             <div>
+              {offsite ? (
+                <p className="mb-2 text-[12px] font-medium text-amber-800">📍 جلسه در محل «{offsiteOrg.trim() || "سازمان مقصد"}» — اتاقی رزرو نمی‌شود</p>
+              ) : (
               <p className="mb-2 text-[12px] font-medium">اتاق مناسب (مرتب‌شده بر اساس ظرفیت — کمترین ظرفیت کافی در اولویت است):</p>
+              )}
               <div className="grid gap-2 sm:grid-cols-2">
                 {[...slot.availableRooms]
                   .sort((a, b) => {
