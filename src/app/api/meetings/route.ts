@@ -73,14 +73,29 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
-    if (!can(user, "meeting:create")) {
-      return Response.json(
-        { ok: false, error: { message: "دسترسی لازم را ندارید", code: "FORBIDDEN" } },
-        { status: 403 },
-      );
-    }
     const body = await req.json();
     const input = meetingCreateSchema.parse(body);
+    if (!can(user, "meeting:create")) {
+      // carve-out: an appointed delegate may create ON BEHALF of their
+      // principal (who holds meeting:create) — the delegate flow predates
+      // the request-only model for employees.
+      const onBehalf = input.organizerId && input.organizerId !== user.id;
+      let delegateOk = false;
+      if (onBehalf) {
+        const [meId, principalId] = await Promise.resolve([user.id, input.organizerId]);
+        const rows = await prisma.delegate.findMany({
+          where: { delegateId: meId, managerId: principalId },
+          select: { id: true },
+        });
+        delegateOk = rows.length > 0;
+      }
+      if (!delegateOk) {
+        return Response.json(
+          { ok: false, error: { message: "دسترسی لازم را ندارید", code: "FORBIDDEN" } },
+          { status: 403 },
+        );
+      }
+    }
     const video = validateVideoLink(input.videoProvider ?? null, input.videoUrl ?? null);
     const videoFields = video.ok ? video.value : { videoProvider: null, videoUrl: null };
     const organizerId = await resolveOrganizerId(user.orgId, user.id, input.organizerId);

@@ -231,7 +231,7 @@ describe("meeting lifecycle", () => {
 
     // employee cannot approve (403)
     const forbidden = await api(`/api/meetings/${id}/approve`, {
-      method: "POST", cookie: employeeCookie, json: {},
+      method: "POST", cookie: operatorCookie, json: {},
     });
     expect(forbidden.status).toBe(403);
 
@@ -448,7 +448,7 @@ describe("org holidays", () => {
   it("employee cannot create org holidays", async () => {
     const { status } = await api("/api/admin/holidays", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { dateIso, name: "تعطیل تستی" },
     });
     expect(status).toBe(403);
@@ -470,7 +470,7 @@ describe("org holidays", () => {
 
     const booked = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست تعطیل سازمانی — باید رد شود",
         branchId: "branch-niavaran",
@@ -527,7 +527,7 @@ describe("meeting start / end / no-show", () => {
     const slot = liveSlotShort((RUN % 30) + 1);
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: LIVE_TITLES[0],
         branchId,
@@ -541,14 +541,14 @@ describe("meeting start / end / no-show", () => {
 
     const started = await api(`/api/meetings/${id}/start`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(started.status).toBe(200);
     expect(started.body.data.meeting.status).toBe("IN_PROGRESS");
 
     const ended = await api(`/api/meetings/${id}/end`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { noShow: false },
     });
     expect(ended.status).toBe(200);
@@ -564,7 +564,7 @@ describe("meeting start / end / no-show", () => {
     const slot = liveSlotShort((RUN % 30) + 15);
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: LIVE_TITLES[1],
         branchId,
@@ -578,13 +578,13 @@ describe("meeting start / end / no-show", () => {
 
     const started = await api(`/api/meetings/${id}/start`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(started.status).toBe(200);
 
     const ended = await api(`/api/meetings/${id}/end`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { noShow: true },
     });
     expect(ended.status).toBe(200);
@@ -607,7 +607,7 @@ describe("availability & permissions", () => {
   it("finds common free slots", async () => {
     const { status, body } = await api("/api/availability", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         branchId: "branch-niavaran",
         participantIds: [],
@@ -752,7 +752,7 @@ describe("colleagues directory", () => {
   it("employee cannot create users (403)", async () => {
     const { status } = await api("/api/users", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         email: `colleague-test-${RUN}@example.com`,
         fullName: "تست همکار",
@@ -772,7 +772,7 @@ describe("floors", () => {
   it("employee cannot create floors (403)", async () => {
     const { status } = await api(`/api/branches/${branchId}/floors`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { name: "طبقه تست", number: floorNumber },
     });
     expect(status).toBe(403);
@@ -868,7 +868,7 @@ describe("room display kiosk", () => {
 
     const emp = await api("/api/rooms/room-b/display-token", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(emp.status).toBe(403);
   });
@@ -886,7 +886,7 @@ describe("room display kiosk", () => {
 
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: SECRET,
         branchId: "branch-niavaran",
@@ -920,7 +920,7 @@ describe("room display kiosk", () => {
     if (meetingId) {
       await api(`/api/meetings/${meetingId}/cancel`, {
         method: "POST",
-        cookie: employeeCookie,
+        cookie: operatorCookie,
         json: { reason: "OTHER" },
       });
     }
@@ -947,7 +947,7 @@ describe("room exclusions", () => {
   it("employee cannot schedule exclusion (403)", async () => {
     const { status } = await api(`/api/rooms/${testRoomId}/exclusions`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         reason: "تعمیرات",
         startAt: tehran(exDay, 10),
@@ -983,7 +983,7 @@ describe("room exclusions", () => {
   it("blocks meeting booking during exclusion (ROOM_EXCLUDED)", async () => {
     const { status, body } = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تلاش رزرو در تعمیرات",
         branchId,
@@ -1195,7 +1195,7 @@ describe("participant rsvp", () => {
 
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست RSVP — دعوت با PENDING",
         branchId,
@@ -1269,7 +1269,7 @@ describe("participant rsvp", () => {
   it("cleans up rsvp test meeting", async () => {
     const { status } = await api(`/api/meetings/${meetingId}/cancel`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { reason: "DUPLICATE_MEETING" },
     });
     expect(status).toBe(200);
@@ -1418,7 +1418,7 @@ describe("guest check-in", () => {
     const slot = checkinWindow();
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: `تست checkin ${RUN}`,
         branchId,
@@ -1431,7 +1431,7 @@ describe("guest check-in", () => {
 
     const added = await api(`/api/meetings/${meetingId}/guests`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { name: "مهمان checkin", company: "تست" },
     });
     expect(added.status).toBe(201);
@@ -1461,7 +1461,7 @@ describe("guest check-in", () => {
   it("organizer manual check-in via meeting route", async () => {
     const added = await api(`/api/meetings/${meetingId}/guests`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { name: "مهمان دوم checkin", company: "تست" },
     });
     expect(added.status).toBe(201);
@@ -1470,7 +1470,7 @@ describe("guest check-in", () => {
 
     const manual = await api(`/api/meetings/${meetingId}/guests/${gid}/checkin`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {},
     });
     expect(manual.status).toBe(200);
@@ -1480,7 +1480,7 @@ describe("guest check-in", () => {
   it("wrong checkin code rejected (403)", async () => {
     const added = await api(`/api/meetings/${meetingId}/guests`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { name: "مهمان سوم checkin" },
     });
     const gid = added.body.data.guest.id;
@@ -1516,7 +1516,7 @@ describe("room manager RBAC", () => {
   it("employee cannot update rooms (403)", async () => {
     const { status } = await api("/api/rooms/room-a/manage", {
       method: "PATCH",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { description: "نباید مجاز باشد" },
     });
     expect(status).toBe(403);
@@ -1550,7 +1550,7 @@ describe("self-service profile", () => {
 
     const { status, body } = await api("/api/auth/profile", {
       method: "PATCH",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { jobTitle: "تست پروفایل یکپارچه", department: "QA" },
     });
     expect(status).toBe(200);
@@ -1558,7 +1558,7 @@ describe("self-service profile", () => {
 
     await api("/api/auth/profile", {
       method: "PATCH",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { jobTitle: originalTitle ?? "", department: me.body.data.user.department ?? "" },
     });
   });
@@ -1566,7 +1566,7 @@ describe("self-service profile", () => {
   it("rejects change-password with wrong current (401)", async () => {
     const { status, body } = await api("/api/auth/change-password", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { currentPassword: "wrong-pass", newPassword: TEMP_PASS },
     });
     expect(status).toBe(401);
@@ -1576,7 +1576,7 @@ describe("self-service profile", () => {
   it("change-password then login with new password; restore seed", async () => {
     const changed = await api("/api/auth/change-password", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { currentPassword: SEED_PASS, newPassword: TEMP_PASS },
     });
     expect(changed.status).toBe(200);
@@ -1618,7 +1618,7 @@ describe("self-service profile", () => {
     fd.append("file", new Blob([new Uint8Array(PNG_DOT)], { type: "image/png" }), "me.png");
     const uploaded = await api("/api/auth/avatar", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       body: fd,
     });
     expect(uploaded.status).toBe(200);
@@ -1648,7 +1648,7 @@ describe("self-service profile", () => {
 
     const removed = await api("/api/auth/avatar", {
       method: "DELETE",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(removed.status).toBe(200);
     expect(removed.body.data.avatarUrl).toBeNull();
@@ -1668,7 +1668,7 @@ describe("self-service profile", () => {
     );
     const pdf = await api("/api/auth/avatar", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       body: pdfFd,
     });
     expect(pdf.status).toBe(400);
@@ -1682,7 +1682,7 @@ describe("self-service profile", () => {
     bigFd.append("file", new Blob([new Uint8Array(huge)], { type: "image/jpeg" }), "big.jpg");
     const tooBig = await api("/api/auth/avatar", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       body: bigFd,
     });
     expect(tooBig.status).toBe(400);
@@ -1842,7 +1842,7 @@ describe("recurring meetings", () => {
     const endAt = tehran(48, 21, 40);
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title,
         branchId,
@@ -1892,7 +1892,7 @@ describe("recurring meetings", () => {
 
     const blocked = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: conflictTitle,
         branchId,
@@ -1916,7 +1916,7 @@ describe("recurring meetings", () => {
   it("cancels this-and-following without touching earlier instances", async () => {
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: `${title} — دامنه`,
         branchId,
@@ -1942,7 +1942,7 @@ describe("recurring meetings", () => {
     const mid = occ[1];
     const cancelled = await api(`/api/meetings/${mid.id}/cancel`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { reason: "OTHER", scope: "FOLLOWING" },
     });
     expect(cancelled.status).toBe(200);
@@ -1960,7 +1960,7 @@ describe("recurring meetings", () => {
   it("masks a private series for a non-involved admin", async () => {
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: privateTitle,
         branchId,
@@ -2017,7 +2017,7 @@ describe("calendar ICS feed", () => {
   it("employee can create a personal feed that only lists their meetings", async () => {
     const created = await api("/api/calendar/feed-token", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(created.status).toBe(200);
     aliToken = created.body.data.token as string;
@@ -2052,7 +2052,7 @@ describe("calendar ICS feed", () => {
     const oldToken = aliToken;
     const rotated = await api("/api/calendar/feed-token", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(rotated.status).toBe(200);
     const newToken = rotated.body.data.token as string;
@@ -2063,7 +2063,7 @@ describe("calendar ICS feed", () => {
 
     const revoked = await api("/api/calendar/feed-token", {
       method: "DELETE",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(revoked.status).toBe(200);
     expect(revoked.body.data.enabled).toBe(false);
@@ -2085,7 +2085,7 @@ describe("google calendar per-user OAuth (mock)", () => {
   });
 
   it("employee can mock-connect and disconnect without Google", async () => {
-    await api("/api/calendar/google", { method: "DELETE", cookie: employeeCookie });
+    await api("/api/calendar/google", { method: "DELETE", cookie: operatorCookie });
 
     const before = await api("/api/calendar/google", { cookie: employeeCookie });
     expect(before.status).toBe(200);
@@ -2106,7 +2106,7 @@ describe("google calendar per-user OAuth (mock)", () => {
 
     const gone = await api("/api/calendar/google", {
       method: "DELETE",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(gone.status).toBe(200);
     expect(gone.body.data.connected).toBe(false);
@@ -2162,7 +2162,7 @@ describe("meeting attachments", () => {
 
     const pub = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست پیوست — عمومی",
         branchId,
@@ -2178,7 +2178,7 @@ describe("meeting attachments", () => {
 
     const priv = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست پیوست — محرمانه استراتژی",
         branchId,
@@ -2255,7 +2255,7 @@ describe("meeting attachments", () => {
 
     const del = await api(`/api/meetings/${publicId}/attachments/${publicAttId}`, {
       method: "DELETE",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(del.status).toBe(200);
 
@@ -2278,7 +2278,7 @@ describe("meeting attachments", () => {
       if (!id) continue;
       await api(`/api/meetings/${id}/cancel`, {
         method: "POST",
-        cookie: employeeCookie,
+        cookie: operatorCookie,
         json: { reason: "OTHER" },
       }).catch(() => {});
     }
@@ -2298,7 +2298,7 @@ describe("meeting agenda", () => {
 
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست دستور جلسه — استندآپ",
         branchId,
@@ -2329,7 +2329,7 @@ describe("meeting agenda", () => {
 
     const saved = await api(`/api/meetings/${meetingId}/agenda`, {
       method: "PUT",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         items: [
           { title: "مرور KPI", durationMin: 15, ownerId: amirId },
@@ -2364,7 +2364,7 @@ describe("meeting agenda", () => {
     const adminId = adminMe.body.data.user.id as string;
     const bad = await api(`/api/meetings/${meetingId}/agenda`, {
       method: "PUT",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { items: [{ title: "خارجی", ownerId: adminId }] },
     });
     expect(bad.status).toBe(400);
@@ -2373,7 +2373,7 @@ describe("meeting agenda", () => {
   it("cleanup: cancel agenda test meeting", async () => {
     await api(`/api/meetings/${meetingId}/cancel`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { reason: "OTHER" },
     }).catch(() => {});
   });
@@ -2395,7 +2395,7 @@ describe("meeting minutes", () => {
   it("rejects write before the meeting is held; organizer saves after COMPLETED", async () => {
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "تست صورتجلسه — عمومی",
         branchId,
@@ -2411,34 +2411,34 @@ describe("meeting minutes", () => {
 
     const tooSoon = await api(`/api/meetings/${publicId}/minutes`, {
       method: "PUT",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { body: "نباید ذخیره شود" },
     });
     expect(tooSoon.status).toBe(400);
 
     const started = await api(`/api/meetings/${publicId}/start`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     expect(started.status).toBe(200);
 
     const inProgress = await api(`/api/meetings/${publicId}/minutes`, {
       method: "PUT",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { body: "پیش‌نویس حین برگزاری" },
     });
     expect(inProgress.status).toBe(200);
 
     const ended = await api(`/api/meetings/${publicId}/end`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { noShow: false },
     });
     expect(ended.status).toBe(200);
 
     const saved = await api(`/api/meetings/${publicId}/minutes`, {
       method: "PUT",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         body: "جمع‌بندی جلسه تست صورتجلسه",
         decisions: [
@@ -2506,7 +2506,7 @@ describe("meeting minutes", () => {
   it("private meeting: outsider 403, invitee can read minutes", async () => {
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: "کمیته محرمانه صورتجلسه",
         branchId,
@@ -2523,17 +2523,17 @@ describe("meeting minutes", () => {
 
     await api(`/api/meetings/${privateId}/start`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
     });
     await api(`/api/meetings/${privateId}/end`, {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { noShow: false },
     });
 
     const saved = await api(`/api/meetings/${privateId}/minutes`, {
       method: "PUT",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: { body: "متن محرمانه صورتجلسه", decisions: [{ text: "تصمیم سری" }] },
     });
     expect(saved.status).toBe(200);
@@ -2659,7 +2659,7 @@ describe("meeting delegates", () => {
   it("unauthorized employee cannot create as the admin", async () => {
     const { status, body } = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: TITLE,
         branchId: "branch-niavaran",
@@ -2678,7 +2678,7 @@ describe("meeting delegates", () => {
   it("unauthorized employee cannot query admin availability", async () => {
     const { status, body } = await api("/api/availability", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         branchId: "branch-niavaran",
         participantIds: [],
@@ -2711,7 +2711,7 @@ describe("meeting delegates", () => {
   it("appointed employee can create on behalf of admin", async () => {
     const { status, body } = await api("/api/meetings", {
       method: "POST",
-      cookie: employeeCookie,
+      cookie: operatorCookie,
       json: {
         title: TITLE,
         branchId: "branch-niavaran",
