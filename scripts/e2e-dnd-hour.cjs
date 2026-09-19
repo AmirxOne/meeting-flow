@@ -22,19 +22,22 @@ const { chromium } = require("playwright");
   const uniq = Date.now() % 100000;
   const start = new Date(Date.now() + 2 * 86400000);
   start.setUTCHours(6, 30, 0, 0); // 10:00 Tehran
-  const created = await page.request.post("http://127.0.0.1:3100/api/meetings", {
+  let created, mid = null;
+  for (const room of ["room-d", "room-a", "room-b", "room-c", "room-m-beta"]) {
+    created = await page.request.post("http://127.0.0.1:3100/api/meetings", {
     headers: { "Content-Type": "application/json" },
     data: {
       title: `درگ ساعت ${uniq}`,
       branchId: "branch-niavaran",
-      roomId: "room-c",
+      roomId: room,
       startAt: start.toISOString(),
       endAt: new Date(start.getTime() + 3600000).toISOString(),
       meetingType: "INTERNAL",
       participantIds: [],
     },
   });
-  const mid = (await created.json())?.data?.meeting?.id;
+    if (created.status() === 201) { mid = (await created.json())?.data?.meeting?.id; break; }
+  }
   console.log("meeting:", !!mid);
 
   await page.goto("http://127.0.0.1:3100/calendar", { waitUntil: "domcontentloaded", timeout: 60000 });

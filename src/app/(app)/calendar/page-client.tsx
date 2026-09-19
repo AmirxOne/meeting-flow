@@ -804,9 +804,10 @@ export function CalendarPage() {
                             if (!id) return;
                             const m = (meetings ?? []).find((x) => x.id === id) ?? (dragInfo?.id === id ? dragInfo : undefined);
                             if (!m) return;
+                            // drop on the h:00 cell → meeting moves to THAT hour (keep only minutes-of-hour)
                             const src = new Date(new Date(m.startAt).getTime() + 210 * 60000);
                             const [y, mo, d] = iso.split("-").map(Number);
-                            const newStart = new Date(Date.UTC(y, mo - 1, d, src.getUTCHours(), src.getUTCMinutes()));
+                            const newStart = new Date(Date.UTC(y, mo - 1, d, h, src.getUTCMinutes()));
                             const durMin = (new Date(m.endAt).getTime() - new Date(m.startAt).getTime()) / 60000;
                             setDragId(null);
                             setPendingDrop({ id, title: m.isMasked ? "جلسه محرمانه" : m.title, iso, newStart: new Date(newStart.getTime() - 210 * 60000), newEnd: new Date(newStart.getTime() - 210 * 60000 + durMin * 60000) });
