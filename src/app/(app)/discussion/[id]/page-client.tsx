@@ -1,7 +1,11 @@
 "use client";
 
+// Standalone discussion room — same messenger quality as the hub pane,
+// full-bleed layout: glassy room header + borderless chat surface.
+
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { cn } from "@/lib";
 import { MeetingChat, type MeetingMessageRow } from "@/components/meetings/meeting-chat";
 
@@ -27,65 +31,64 @@ type Props = {
 
 export function DiscussionRoomClient(p: Props) {
   return (
-    <div className="flex h-[calc(100dvh-3.75rem)] flex-col p-2 md:mx-auto md:max-w-4xl md:space-y-3 md:p-4 lg:p-6">
-      <div className="flex items-center justify-between gap-2 border-b border-line pb-2 md:border-0 md:pb-0">
-        <Link
-          href="/discussion"
-          className="flex size-10 items-center gap-1 rounded-full border border-line bg-white px-3 text-[12px] font-bold text-ink-soft hover:bg-paper-soft md:size-auto md:py-1"
-          aria-label="بازگشت به گفتگوها"
-        >
-          <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="hidden md:inline">همه‌ی گفتگوها</span>
-        </Link>
-        <span className="text-[10px] text-ink-faint md:hidden">گفتگوی جلسه</span>
-      </div>
+    <div className="flex h-[calc(100dvh-3.75rem)] flex-col overflow-hidden" dir="rtl">
+      {/* room header — one piece with the chat surface */}
+      <header className="z-10 shrink-0 border-b border-line bg-white/85 px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-4xl items-center gap-3">
+          <Link
+            href="/discussion"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink-soft transition hover:bg-paper-soft"
+            aria-label="بازگشت به گفتگوها"
+          >
+            <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
 
-      {/* meeting context header — the discussion is ALWAYS anchored to this meeting */}
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="shrink-0 rounded-xl border border-line bg-gradient-to-l from-paper-soft/70 to-white p-3 md:p-4"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="truncate text-[15px] font-bold">«{p.title}»</h1>
-            <p className="mt-1 text-[11px] text-ink-faint">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="truncate text-[14.5px] font-bold">«{p.title}»</h1>
+              <span className={cn(
+                "shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-medium",
+                p.status === "COMPLETED" ? "bg-emerald-50 text-emerald-600"
+                  : p.status === "IN_PROGRESS" ? "bg-blue-50 text-blue-600"
+                  : p.status === "PENDING_APPROVAL" ? "bg-amber-50 text-amber-600"
+                  : "border border-line bg-white text-ink-soft",
+              )}>
+                {STATUS_FA[p.status] ?? p.status}
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-[10.5px] text-ink-faint">
               {p.place ? `${p.place} · ` : ""}
               <span className="text-ink-soft">
                 {new Date(p.startAt).toLocaleDateString("fa-IR", { year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
               </span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className={cn(
-              "rounded-full px-2.5 py-1 text-[10.5px] font-medium",
-              p.status === "COMPLETED" ? "bg-emerald-50 text-emerald-600"
-                : p.status === "IN_PROGRESS" ? "bg-blue-50 text-blue-600"
-                : p.status === "PENDING_APPROVAL" ? "bg-amber-50 text-amber-600"
-                : "bg-white text-ink-soft border border-line",
-            )}>
-              {STATUS_FA[p.status] ?? p.status}
-            </span>
-            <Link
-              href={`/meetings/${p.meetingId}`}
-              className="rounded-lg border border-line bg-white px-3 py-1.5 text-[11px] font-medium text-ink-soft hover:bg-paper-soft"
-            >
-              صفحه‌ی جلسه ↗
-            </Link>
-          </div>
-        </div>
-      </motion.div>
 
-      {/* full chat — stretched taller on the dedicated page */}
-      <div className="flex min-h-0 flex-1 flex-col [&_section]:flex [&_section]:min-h-0 [&_section]:flex-1 [&_section]:max-h-none md:[&_section]:min-h-72">
-        <MeetingChat
-          meetingId={p.meetingId}
-          currentUserId={p.currentUserId}
-          canChat={p.canChat}
-          initialMessages={p.initialMessages}
-        />
+          <Link
+            href={`/meetings/${p.meetingId}`}
+            className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-[11px] font-medium text-ink-soft transition hover:bg-paper-soft"
+          >
+            صفحه‌ی جلسه
+            <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M7 17 17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
+        </div>
+      </header>
+
+      {/* chat surface — full width, dotted paper backdrop, borderless card */}
+      <div className="min-h-0 flex-1 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.03)_1px,transparent_0)] [background-size:20px_20px]">
+        <div className="mx-auto flex h-full w-full max-w-4xl flex-col">
+          <MeetingChat
+            meetingId={p.meetingId}
+            currentUserId={p.currentUserId}
+            canChat={p.canChat}
+            initialMessages={p.initialMessages}
+            bare
+          />
+        </div>
       </div>
     </div>
   );
