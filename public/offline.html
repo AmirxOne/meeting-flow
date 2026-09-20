@@ -70,25 +70,60 @@
     </div>
     <h1>اتصال برقرار نیست</h1>
     <p>مهرسا برای جلسات شما به سرور نیاز دارد. اتصال اینترنت یا سرور را بررسی کنید و دوباره تلاش کنید.</p>
-    <button class="retry" onclick="location.replace('/', /* force reload */ '')">تلاش دوباره</button>
+    <button class="retry" id="retry">تلاش دوباره</button>
     <p class="hint" id="auto">در حال تلاش مجدد خودکار…</p>
+    <p class="hint" id="dest" style="display:none"></p>
 
     <script>
+      // Where was the user heading? Ask the service worker (it recorded the
+      // failed navigation); fall back to sessionStorage set by the previous page.
+      (function () {
+        var target = null;
+        function apply(t) {
+          target = t || "/";
+          document.getElementById("retry").onclick = function () {
+            location.replace(target);
+          };
+          if (t && t !== "/") {
+            var d = document.getElementById("dest");
+            d.style.display = "block";
+            d.textContent = "مسیر درخواستی: " + t;
+          }
+        }
+        var stored = null;
+        try { stored = sessionStorage.getItem("mehrsa-offline-back"); } catch (e) {}
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.addEventListener("message", function (e) {
+            if (e.data && e.data.type === "OFFLINE_TARGET") {
+              try { sessionStorage.setItem("mehrsa-offline-back", e.data.url); } catch (x) {}
+              apply(e.data.url || stored);
+            }
+          });
+          navigator.serviceWorker.controller.postMessage({ type: "GET_OFFLINE_TARGET" });
+          // fallback if the SW never answers (e.g. older controller)
+          setTimeout(function () { if (!target) apply(stored); }, 800);
+        } else {
+          apply(stored);
+        }
+      })();
+
       // auto-retry: poll the server; as soon as it answers, go back cleanly
       (function () {
         var attempts = 0;
+        function back() {
+          var b = null;
+          try {
+            b = sessionStorage.getItem("mehrsa-offline-back");
+            sessionStorage.removeItem("mehrsa-offline-back");
+          } catch (e) {}
+          location.replace(b || document.getElementById("retry").getAttribute("data-target") || "/");
+        }
         function ping() {
           attempts++;
           fetch("/api/auth/config", { cache: "no-store" })
             .then(function (r) {
-              if (r.ok) {
-                // server is back — reload the ORIGINAL target the user wanted
-                var back = sessionStorage.getItem("mehrsa-offline-back");
-                sessionStorage.removeItem("mehrsa-offline-back");
-                location.replace(back || "/");
-              } else {
-                schedule();
-              }
+              if (r.ok) back();
+              else schedule();
             })
             .catch(schedule);
         }

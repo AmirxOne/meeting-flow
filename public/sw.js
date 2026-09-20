@@ -1,5 +1,6 @@
 /* مهرسا PWA shell — cache fonts/icons/offline; never intercept /api or /_next */
-const CACHE = "mehrsa-shell-v3";
+const CACHE = "mehrsa-shell-v4";
+let lastOfflineTarget = null;
 const SHELL = [
   "/offline.html",
   "/fonts/Alibaba-Regular.woff2",
@@ -56,16 +57,36 @@ self.addEventListener("fetch", (event) => {
 
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req).catch(() => {
-        // remember WHERE the user wanted to go, so offline.html can return there
-        try {
-          self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
-            for (const w of wins) w.postMessage({ type: "OFFLINE_NAV", url: url.pathname + url.search });
-          });
-        } catch (e) { /* best-effort */ }
-        return caches.match("/offline.html");
-      }),
+      fetch(req).then(
+        (res) => res,
+        () => {
+          // remember WHERE the user wanted to go, so offline.html can return there
+          lastOfflineTarget = url.pathname + url.search;
+          try {
+            self.clients
+              .matchAll({ type: "window", includeUncontrolled: true })
+              .then((wins) => {
+                for (const w of wins)
+                  w.postMessage({ type: "OFFLINE_NAV", url: lastOfflineTarget });
+              })
+              .catch(() => {});
+          } catch (e) {
+            /* best-effort */
+          }
+          return caches.match("/offline.html");
+        },
+      ),
     );
+  }
+});
+
+// offline.html asks the SW where the user was heading
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "GET_OFFLINE_TARGET") {
+    event.source?.postMessage({
+      type: "OFFLINE_TARGET",
+      url: lastOfflineTarget || "/",
+    });
   }
 });
 
