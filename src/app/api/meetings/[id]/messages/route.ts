@@ -40,8 +40,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const isInvolved =
       meeting.organizerId === user.id ||
       meeting.participants.some((p) => p.userId === user.id);
-    const viewAll = user.permissions.has("meeting:view-all");
-    if (!isInvolved && !viewAll) {
+    if (!isInvolved) {
       throw new HttpError(403, "دسترسی به گفتگوی این جلسه ندارید", "FORBIDDEN");
     }
 

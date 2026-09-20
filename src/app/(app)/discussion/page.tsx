@@ -75,7 +75,8 @@ export default async function DiscussionHubPage({
         },
       },
     });
-    if (mt && (mt.organizerId === user.id || mt.participants.some((p) => p.userId === user.id) || user.permissions.has("meeting:view-all"))) {
+    const involved = mt && (mt.organizerId === user.id || mt.participants.some((p) => p.userId === user.id));
+    if (mt && involved) {
       selected = mt;
       selectedMessages = mt.messages;
       canChat = mt.organizerId === user.id || mt.participants.some((p) => p.userId === user.id);

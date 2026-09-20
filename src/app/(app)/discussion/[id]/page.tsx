@@ -33,9 +33,9 @@ export default async function DiscussionRoomPage({ params }: { params: Promise<{
   });
   if (!meeting) notFound();
 
+  // the discussion is private to its participants — even admins not involved cannot open it
   const isInvolved = meeting.organizerId === user.id || meeting.participants.some((p) => p.userId === user.id);
-  const viewAll = user.permissions.has("meeting:view-all");
-  if (!isInvolved && !viewAll) notFound();
+  if (!isInvolved) notFound();
 
   return (
     <DiscussionRoomClient

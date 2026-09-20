@@ -898,6 +898,7 @@ export function MeetingDetailPage() {
             </div>
           </Card>
 
+          {me && (m.organizer.id === me.id || m.participants.some((p: { userId: string }) => p.userId === me.id)) && (
           <Card>
             <CardHeader
               title="💬 تبادل نظر"
@@ -918,6 +919,7 @@ export function MeetingDetailPage() {
               </p>
             </CardBody>
           </Card>
+          )}
 
           <MeetingAgenda
             meetingId={id}
