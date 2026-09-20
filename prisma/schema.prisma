@@ -10,6 +10,7 @@ datasource db {
 // ============================ RBAC ============================
 
 model User {
+  messages     MeetingMessage[]
   sentRequests  MeetingRequest[] @relation("MeetingRequestRequester")
   id           String    @id @default(cuid())
   email        String    @unique
@@ -394,6 +395,7 @@ model Meeting {
   orgId        String
   title        String
   fromRequests MeetingRequest[]
+  messages     MeetingMessage[]
   description  String?
   organizerId  String
   branchId     String?
@@ -771,6 +773,19 @@ model MeetingReminder {
   @@index([status, remindAt])
   @@index([meetingId])
   @@index([userId])
+}
+
+model MeetingMessage {
+  id        String   @id @default(cuid())
+  meetingId String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, createdAt])
 }
 
 model Notification {

@@ -90,13 +90,24 @@ export async function isDelegateOf(
   return !!row;
 }
 
-/** Throws 403 unless actor is organizer or an appointed delegate in this org. */
+/**
+ * Throws 403 unless actor is organizer, an appointed delegate in this org,
+ * or holds meeting:create (admins/operators may schedule on behalf of
+ * anyone — the request-only model resolves employee requests this way).
+ */
 export async function assertCanBookAs(
   orgId: string,
   actorId: string,
   organizerId: string,
 ): Promise<void> {
   if (actorId === organizerId) return;
+  const actor = await prisma.user.findUnique({
+    where: { id: actorId },
+    select: { roles: { select: { role: true } } },
+  });
+  const actorRoles: string[] = actor?.roles.map((r) => r.role.key) ?? [];
+  const BOOK_AS_ROLES = ["SUPER_ADMIN", "ADMIN", "MEETING_OPERATOR"];
+  if (actorRoles.some((r: string) => BOOK_AS_ROLES.includes(r))) return;
   const ok = await isDelegateOf(orgId, organizerId, actorId);
   if (!ok) {
     throw new HttpError(403, "شما نمایندهٔ این کاربر نیستید", "NOT_DELEGATE");

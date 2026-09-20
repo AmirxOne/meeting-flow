@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +21,7 @@ import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { GuestCheckinPanel } from "@/components/checkin/guest-checkin-panel";
 import { MeetingAttachments, type MeetingAttachmentRow } from "@/components/meetings/meeting-attachments";
+import { MeetingChat, type MeetingMessageRow } from "@/components/meetings/meeting-chat";
 import { MeetingAgenda, type MeetingAgendaItemRow } from "@/components/meetings/meeting-agenda";
 import { MeetingMinutes } from "@/components/meetings/meeting-minutes";
 import { MeetingVideoLink } from "@/components/meetings/meeting-video-link";
@@ -129,6 +130,7 @@ const EVENT_FA: Record<string, string> = {
   ATTACHMENT_ADDED: "پیوست افزوده شد",
   ATTACHMENT_REMOVED: "پیوست حذف شد",
   AGENDA_UPDATED: "دستور جلسه به‌روز شد",
+  MEETING_MESSAGE: "پیام جدید در جلسه",
   MINUTES_PUBLISHED: "صورتجلسه ثبت شد",
   COMPLETED: "تکمیل شد",
   NO_SHOW: "غیبت",
@@ -144,6 +146,16 @@ export function MeetingDetailPage() {
   const qc = useQueryClient();
   const { push } = useToast();
   const { me, can } = useAuth();
+  const [chat, setChat] = useState<MeetingMessageRow[]>([]);
+  useEffect(() => {
+    if (!id) return;
+    let alive = true;
+    fetch(`/api/meetings/${id}/messages`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (alive && j?.data?.messages) setChat(j.data.messages); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [id]);
   const [busy, setBusy] = useState<string | null>(null);
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("OTHER");
@@ -848,6 +860,13 @@ export function MeetingDetailPage() {
               ))}
             </div>
           </Card>
+
+          <MeetingChat
+            meetingId={id}
+            currentUserId={me?.id ?? ""}
+            canChat={Boolean(me && (m.organizer.id === me.id || m.participants.some((p: { userId: string }) => p.userId === me.id)))}
+            initialMessages={chat}
+          />
 
           <MeetingAgenda
             meetingId={id}

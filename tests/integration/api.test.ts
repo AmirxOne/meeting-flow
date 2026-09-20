@@ -231,7 +231,7 @@ describe("meeting lifecycle", () => {
 
     // employee cannot approve (403)
     const forbidden = await api(`/api/meetings/${id}/approve`, {
-      method: "POST", cookie: operatorCookie, json: {},
+      method: "POST", cookie: employeeCookie, json: {},
     });
     expect(forbidden.status).toBe(403);
 
@@ -1240,7 +1240,7 @@ describe("participant rsvp", () => {
   it("non-participant cannot respond (403)", async () => {
     const { status } = await api(`/api/meetings/${meetingId}/participants/respond`, {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: employeeCookie,
       json: { responseStatus: "DECLINED" },
     });
     expect(status).toBe(403);
@@ -1258,7 +1258,7 @@ describe("participant rsvp", () => {
   });
 
   it("organizer receives PARTICIPANT_RESPONDED notification", async () => {
-    const notifs = await api("/api/notifications", { cookie: employeeCookie });
+    const notifs = await api("/api/notifications", { cookie: operatorCookie }); // organizer
     const hit = (notifs.body.data.notifications ?? []).find(
       (n: { type: string; data?: { meetingId?: string } }) =>
         n.type === "PARTICIPANT_RESPONDED" && n.data?.meetingId === meetingId,
@@ -1624,7 +1624,7 @@ describe("self-service profile", () => {
     fd.append("file", new Blob([new Uint8Array(PNG_DOT)], { type: "image/png" }), "me.png");
     const uploaded = await api("/api/auth/avatar", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: employeeCookie,
       body: fd,
     });
     expect(uploaded.status).toBe(200);
@@ -1654,7 +1654,7 @@ describe("self-service profile", () => {
 
     const removed = await api("/api/auth/avatar", {
       method: "DELETE",
-      cookie: operatorCookie,
+      cookie: employeeCookie,
     });
     expect(removed.status).toBe(200);
     expect(removed.body.data.avatarUrl).toBeNull();
@@ -1674,7 +1674,7 @@ describe("self-service profile", () => {
     );
     const pdf = await api("/api/auth/avatar", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: employeeCookie,
       body: pdfFd,
     });
     expect(pdf.status).toBe(400);
@@ -1688,7 +1688,7 @@ describe("self-service profile", () => {
     bigFd.append("file", new Blob([new Uint8Array(huge)], { type: "image/jpeg" }), "big.jpg");
     const tooBig = await api("/api/auth/avatar", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: employeeCookie,
       body: bigFd,
     });
     expect(tooBig.status).toBe(400);
@@ -2023,7 +2023,7 @@ describe("calendar ICS feed", () => {
   it("employee can create a personal feed that only lists their meetings", async () => {
     const created = await api("/api/calendar/feed-token", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: employeeCookie, // personal feed = ali's meetings
     });
     expect(created.status).toBe(200);
     aliToken = created.body.data.token as string;
@@ -2058,7 +2058,7 @@ describe("calendar ICS feed", () => {
     const oldToken = aliToken;
     const rotated = await api("/api/calendar/feed-token", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: employeeCookie, // token owner rotates their own feed
     });
     expect(rotated.status).toBe(200);
     const newToken = rotated.body.data.token as string;
@@ -2069,7 +2069,7 @@ describe("calendar ICS feed", () => {
 
     const revoked = await api("/api/calendar/feed-token", {
       method: "DELETE",
-      cookie: operatorCookie,
+      cookie: employeeCookie,
     });
     expect(revoked.status).toBe(200);
     expect(revoked.body.data.enabled).toBe(false);
@@ -2119,10 +2119,13 @@ describe("meeting attachments", () => {
     const me = await api("/api/auth/me", { cookie: amirCookie });
     amirId = me.body.data.user.id as string;
 
+    const aliLookup = await api("/api/users?q=ali", { cookie: adminCookie });
+    const aliOrgId = aliLookup.body.data.users.find((u: { email: string }) => u.email === "ali@example.com")?.id;
     const pub = await api("/api/meetings", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: adminCookie, // on behalf of ali — employees file requests now
       json: {
+        organizerId: aliOrgId,
         title: "تست پیوست — عمومی",
         branchId,
         roomId: "room-a",
@@ -2137,8 +2140,9 @@ describe("meeting attachments", () => {
 
     const priv = await api("/api/meetings", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: adminCookie,
       json: {
+        organizerId: aliOrgId,
         title: "تست پیوست — محرمانه استراتژی",
         branchId,
         roomId: "room-b",
@@ -2255,10 +2259,13 @@ describe("meeting agenda", () => {
     const me = await api("/api/auth/me", { cookie: amirCookie });
     amirId = me.body.data.user.id as string;
 
+    const aliLookup = await api("/api/users?q=ali", { cookie: adminCookie });
+    const aliOrgId = aliLookup.body.data.users.find((u: { email: string }) => u.email === "ali@example.com")?.id;
     const created = await api("/api/meetings", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: adminCookie, // on behalf of ali (employees file requests now)
       json: {
+        organizerId: aliOrgId,
         title: "تست دستور جلسه — استندآپ",
         branchId,
         roomId: "room-a",
@@ -2288,7 +2295,7 @@ describe("meeting agenda", () => {
 
     const saved = await api(`/api/meetings/${meetingId}/agenda`, {
       method: "PUT",
-      cookie: operatorCookie,
+      cookie: employeeCookie, // ali is the organizer now
       json: {
         items: [
           { title: "مرور KPI", durationMin: 15, ownerId: amirId },
@@ -2768,5 +2775,84 @@ describe("public guest request form", () => {
     const j = await r.json();
     expect(j.data.request.attendeeCount).toBe(4);
     expect(j.data.request.participantIds).toEqual(person ? [person.id] : []);
+  });
+});
+
+describe("meeting chat", () => {
+  let chatId = "";
+  let amirCookie = "";
+  let amirId = "";
+  const branchId = "branch-niavaran";
+
+  beforeAll(async () => {
+    amirCookie = await login("amir@example.com");
+    const me = await api("/api/auth/me", { cookie: amirCookie });
+    amirId = me.body.data.user.id as string;
+
+    const aliLookup = await api("/api/users?q=ali", { cookie: adminCookie });
+    const aliOrgId = aliLookup.body.data.users.find((u: { email: string }) => u.email === "ali@example.com")?.id;
+    const created = await api("/api/meetings", {
+      method: "POST",
+      cookie: adminCookie, // on behalf of ali — employees file requests now
+      json: {
+        organizerId: aliOrgId,
+        title: `تست چت — ${RUN}`,
+        branchId,
+        roomId: "room-a",
+        startAt: tehran(70, 9, 5),
+        endAt: tehran(70, 9, 35),
+        meetingType: "INTERNAL",
+        participantIds: [amirId],
+      },
+    });
+    expect(created.status).toBe(201);
+    chatId = created.body.data.meeting.id as string;
+  });
+
+  it("organizer and participant can chat; outsider cannot", async () => {
+    const send = (cookie: string, body: string) =>
+      api(`/api/meetings/${chatId}/messages`, { method: "POST", cookie, json: { body } });
+
+    const fromAmir = await send(amirCookie, "پیام پیش از جلسه");
+    expect(fromAmir.status).toBe(201);
+
+    // ali is organizer — employeeCookie
+    const fromAli = await send(employeeCookie, "پیام برگزارکننده");
+    expect(fromAli.status).toBe(201);
+
+    // outsider (sara) is forbidden
+    const sara = await login("sara@example.com");
+    const outsider = await send(sara, "نباید بتوانم");
+    expect(outsider.status).toBe(403);
+
+    // empty body rejected
+    const empty = await send(employeeCookie, "   ");
+    expect(empty.status).toBe(400);
+
+    // list shows both messages in order
+    const list = await api(`/api/meetings/${chatId}/messages`, { cookie: amirCookie });
+    expect(list.status).toBe(200);
+    const msgs = list.body.data.messages as { body: string }[];
+    expect(msgs.length).toBe(2);
+    expect(msgs[0].body).toContain("پیش از جلسه");
+    expect(msgs[1].body).toContain("برگزارکننده");
+  });
+
+  it("notifies the other side with MEETING_MESSAGE", async () => {
+    const notifs = await api("/api/notifications", { cookie: amirCookie });
+    const items = notifs.body.data.notifications ?? notifs.body.data.items ?? [];
+    const hit = items.some(
+      (n: { type: string; body?: string }) => n.type === "MEETING_MESSAGE" && (n.body ?? "").includes("برگزارکننده"),
+    );
+    expect(hit).toBe(true);
+  });
+
+  it("cleanup: cancel chat meeting", async () => {
+    const res = await api(`/api/meetings/${chatId}/cancel`, {
+      method: "POST",
+      cookie: adminCookie,
+      json: { reason: "OTHER" },
+    });
+    expect([200, 409]).toContain(res.status);
   });
 });
