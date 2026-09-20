@@ -447,7 +447,7 @@ export function DiscussionClient({
 
             {/* composer — Telegram-style floating bar */}
             {canChat ? (
-              <footer className="relative border-t border-line bg-white/80 px-4 pb-4 pt-3 backdrop-blur-md md:px-8">
+              <footer className="relative bg-transparent px-4 pb-4 pt-1 md:px-8">
                 <div className="mx-auto max-w-3xl">
                   {error && (
                     <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mb-2 flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-1.5 text-[11px] font-medium text-red-600">
@@ -486,7 +486,7 @@ export function DiscussionClient({
                     )}
                   </AnimatePresence>
 
-                  <div className="flex items-end gap-1 rounded-[1.6rem] border border-line/90 bg-paper-soft/50 p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.05)] transition-all duration-200 focus-within:border-ink/30 focus-within:bg-white focus-within:shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
+                  <div className="flex items-end gap-1 rounded-[1.6rem] border border-line bg-white p-1.5 shadow-[0_4px_18px_rgba(0,0,0,0.10)] transition-all duration-200 focus-within:border-ink/35 focus-within:shadow-[0_6px_22px_rgba(0,0,0,0.14)]">
                     <input
                       ref={fileRef}
                       type="file"
