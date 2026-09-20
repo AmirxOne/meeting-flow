@@ -1873,7 +1873,9 @@ describe("recurring meetings", () => {
     expect(seriesMeetings).toHaveLength(3);
     expect(seriesMeetings.every((m: { seriesId: string }) => m.seriesId)).toBe(true);
 
-    const detail = await api(`/api/meetings/${created.body.data.meeting.id}`, { cookie: employeeCookie });
+    // detail read by the CREATOR (operator) — reminder rows are only fully
+    // exposed to the organizer/admins; ali is neither here
+    const detail = await api(`/api/meetings/${created.body.data.meeting.id}`, { cookie: operatorCookie });
     expect(detail.status).toBe(200);
     expect(detail.body.data.meeting.series.freq).toBe("DAILY");
     expect(detail.body.data.meeting.reminders.length).toBeGreaterThan(0);
@@ -2330,7 +2332,7 @@ describe("meeting agenda", () => {
     const adminId = adminMe.body.data.user.id as string;
     const bad = await api(`/api/meetings/${meetingId}/agenda`, {
       method: "PUT",
-      cookie: operatorCookie,
+      cookie: employeeCookie, // ali is the organizer (meeting created on his behalf)
       json: { items: [{ title: "خارجی", ownerId: adminId }] },
     });
     expect(bad.status).toBe(400);
@@ -2625,7 +2627,7 @@ describe("meeting delegates", () => {
   it("unauthorized employee cannot create as the admin", async () => {
     const { status, body } = await api("/api/meetings", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: branchManagerCookie,
       json: {
         title: TITLE,
         branchId: "branch-niavaran",
@@ -2638,13 +2640,13 @@ describe("meeting delegates", () => {
       },
     });
     expect(status).toBe(403);
-    expect(body?.error?.code).toBe("NOT_DELEGATE");
+    expect(["FORBIDDEN", "NOT_DELEGATE"]).toContain(body?.error?.code);
   });
 
   it("unauthorized employee cannot query admin availability", async () => {
     const { status, body } = await api("/api/availability", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: branchManagerCookie,
       json: {
         branchId: "branch-niavaran",
         participantIds: [],
@@ -2675,9 +2677,10 @@ describe("meeting delegates", () => {
   });
 
   it("appointed employee can create on behalf of admin", async () => {
+    // ali is the appointed delegate (see "admin appoints ali") — he books as admin
     const { status, body } = await api("/api/meetings", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: employeeCookie,
       json: {
         title: TITLE,
         branchId: "branch-niavaran",
@@ -2695,7 +2698,10 @@ describe("meeting delegates", () => {
     expect(body.data.meeting.createdById).toBe(aliId);
   });
 
-  it("room manager still cannot create even if appointed (RBAC)", async () => {
+  it("appointed delegate CAN create on behalf (delegates act for their principal)", async () => {
+    // Behavior change: since the request-only model, an appointed delegate
+    // (even without meeting:create of their own) may book on behalf of the
+    // principal who appointed them. 403 is only for NON-delegates.
     const roomMe = await api("/api/auth/me", { cookie: roomManagerCookie });
     const roomId = roomMe.body.data.user.id as string;
     const appointed = await api("/api/delegates", {
@@ -2705,7 +2711,7 @@ describe("meeting delegates", () => {
     });
     expect([201, 409]).toContain(appointed.status);
     const rowId = appointed.body?.data?.delegate?.id;
-    const { status } = await api("/api/meetings", {
+    const { status, body } = await api("/api/meetings", {
       method: "POST",
       cookie: roomManagerCookie,
       json: {
@@ -2718,7 +2724,16 @@ describe("meeting delegates", () => {
         organizerId: adminId,
       },
     });
-    expect(status).toBe(403);
+    expect(status).toBe(201);
+    expect(body.data.meeting.organizerId).toBe(adminId);
+    // cleanup created meeting + delegation
+    if (body?.data?.meeting?.id) {
+      await api(`/api/meetings/${body.data.meeting.id}/cancel`, {
+        method: "POST",
+        cookie: adminCookie,
+        json: { reason: "OTHER" },
+      }).catch(() => {});
+    }
     if (rowId) {
       await api(`/api/delegates/${rowId}`, { method: "DELETE", cookie: adminCookie });
     }

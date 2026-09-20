@@ -20,6 +20,7 @@ export type MeetingForAcl = {
   id: string;
   organizerId: string;
   isPrivate: boolean;
+  status?: string;
   participants: { userId: string }[];
   secretaries?: { userId: string }[];
 };
@@ -103,6 +104,7 @@ export async function loadMeetingForAcl(meetingId: string, orgId: string): Promi
       id: true,
       organizerId: true,
       isPrivate: true,
+      status: true,
       participants: { select: { userId: true } },
       secretaries: { select: { userId: true } },
     },

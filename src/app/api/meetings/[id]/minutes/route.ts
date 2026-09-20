@@ -174,9 +174,11 @@ export async function PUT(
       ...input,
       summary: (input as { summary?: string }).summary,
     });
+    // a save on a COMPLETED meeting publishes final minutes — audit it as such
+    const isPublish = aclMeeting.status === "COMPLETED";
     await audit({
       actorId: user.id,
-      action: "MINUTES_SAVE_DRAFT",
+      action: isPublish ? "MINUTES_PUBLISH" : "MINUTES_SAVE_DRAFT",
       entity: "Meeting",
       entityId: id,
       newValue: {
