@@ -294,6 +294,10 @@ export const notificationPrefsPatchSchema = z
   .strict();
 export type NotificationPrefsPatch = z.infer<typeof notificationPrefsPatchSchema>;
 
+export const emailTestSchema = z.object({
+  email: z.string().trim().email("ایمیل معتبر وارد کنید"),
+});
+
 export const smsTestSchema = z.object({
   phone: z.string().trim().min(10, "شماره موبایل را وارد کنید").max(20),
 });

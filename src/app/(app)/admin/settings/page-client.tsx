@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth-store";
 import { formatJalali } from "@/lib";
 import { SsoSettingsCard } from "./sso-card";
 import { SmsPilotCard } from "./sms-pilot-card";
+import { EmailPilotCard } from "./email-pilot-card";
 import { WorkerStatusCard } from "./worker-status-card";
 
 interface Organization {
@@ -202,6 +203,7 @@ export function AdminSettingsPage() {
       <div className="grid gap-4 items-start lg:grid-cols-2">
         <WorkerStatusCard />
         <SmsPilotCard />
+        <EmailPilotCard />
       </div>
 
       <SsoSettingsCard />

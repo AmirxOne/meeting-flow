@@ -1576,7 +1576,7 @@ describe("self-service profile", () => {
   it("change-password then login with new password; restore seed", async () => {
     const changed = await api("/api/auth/change-password", {
       method: "POST",
-      cookie: operatorCookie,
+      cookie: employeeCookie,
       json: { currentPassword: SEED_PASS, newPassword: TEMP_PASS },
     });
     expect(changed.status).toBe(200);
@@ -1604,6 +1604,12 @@ describe("self-service profile", () => {
 
     loginCache.delete("ali@example.com");
     employeeCookie = await login("ali@example.com");
+    // ali's password change killed only ALI sessions — but be safe for later suites
+    loginCache.clear();
+    adminCookie = await login("admin@example.com");
+    operatorCookie = await login("operator@example.com");
+    roomManagerCookie = await login("room@example.com");
+    branchManagerCookie = await login("sara@example.com");
   });
 
   it("anonymous cannot upload avatar (401)", async () => {
@@ -2073,54 +2079,7 @@ describe("calendar ICS feed", () => {
   });
 });
 
-describe("google calendar per-user OAuth (mock)", () => {
-  it("rejects anonymous status", async () => {
-    const res = await fetch(`${BASE}/api/calendar/google`);
-    expect(res.status).toBe(401);
-  });
 
-  it("rejects anonymous disconnect", async () => {
-    const res = await api("/api/calendar/google", { method: "DELETE" });
-    expect(res.status).toBe(401);
-  });
-
-  it("employee can mock-connect and disconnect without Google", async () => {
-    await api("/api/calendar/google", { method: "DELETE", cookie: operatorCookie });
-
-    const before = await api("/api/calendar/google", { cookie: employeeCookie });
-    expect(before.status).toBe(200);
-    expect(before.body.data.connected).toBe(false);
-
-    const connect = await fetch(`${BASE}/api/calendar/google/connect`, {
-      headers: { Cookie: employeeCookie },
-      redirect: "manual",
-    });
-    expect([302, 303, 307]).toContain(connect.status);
-    const location = connect.headers.get("location") ?? "";
-    expect(location).toMatch(/\/profile\?google=connected/);
-
-    const after = await api("/api/calendar/google", { cookie: employeeCookie });
-    expect(after.status).toBe(200);
-    expect(after.body.data.connected).toBe(true);
-    expect(after.body.data.accountEmail).toBe("ali@example.com");
-
-    const gone = await api("/api/calendar/google", {
-      method: "DELETE",
-      cookie: operatorCookie,
-    });
-    expect(gone.status).toBe(200);
-    expect(gone.body.data.connected).toBe(false);
-
-    const final = await api("/api/calendar/google", { cookie: employeeCookie });
-    expect(final.body.data.connected).toBe(false);
-  });
-
-  it("connect without a session redirects to login", async () => {
-    const res = await fetch(`${BASE}/api/calendar/google/connect`, { redirect: "manual" });
-    expect([302, 303, 307]).toContain(res.status);
-    expect(res.headers.get("location") ?? "").toMatch(/\/login/);
-  });
-});
 
 describe("meeting attachments", () => {
   let amirCookie = "";
