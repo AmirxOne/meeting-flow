@@ -37,12 +37,20 @@ export function PublicRequestForm() {
   const [prefDay, setPrefDay] = useState("");
   const [prefFrom, setPrefFrom] = useState("");
   const [prefTo, setPrefTo] = useState("");
+  // ONSITE = our company · OFFSITE = at another org (e.g. همراه اول)
+  const [venue, setVenue] = useState<"ONSITE" | "OFFSITE">("ONSITE");
+  const [offsiteOrg, setOffsiteOrg] = useState("");
+  const [offsiteNote, setOffsiteNote] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function submit() {
     if (guestName.trim().length < 2 || guestPhone.trim().length < 7 || title.trim().length < 2) {
       setError("نام، شماره تماس و موضوع درخواست را کامل کنید");
+      return;
+    }
+    if (venue === "OFFSITE" && offsiteOrg.trim().length < 2) {
+      setError("نام سازمان مقصد را بنویسید");
       return;
     }
     setBusy(true);
@@ -60,6 +68,9 @@ export function PublicRequestForm() {
           urgency,
           isPrivate,
           durationMin: Number(durationMin),
+          venue,
+          ...(venue === "OFFSITE" ? { offsiteOrg: offsiteOrg.trim() } : {}),
+          ...(venue === "OFFSITE" && offsiteNote.trim() ? { offsiteNote: offsiteNote.trim() } : {}),
           ...(prefDay && prefFrom
             ? {
                 prefFrom: tehranToIso(prefDay, prefFrom),
@@ -123,6 +134,9 @@ export function PublicRequestForm() {
                 setPrefDay("");
                 setPrefFrom("");
                 setPrefTo("");
+                setVenue("ONSITE");
+                setOffsiteOrg("");
+                setOffsiteNote("");
               }}
               className="mt-5 h-10 rounded-md border border-line px-4 text-[12px] text-ink-soft hover:bg-paper-soft"
             >
@@ -187,6 +201,63 @@ export function PublicRequestForm() {
                 <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="h-4 w-4 accent-black" />
                 <span className="text-[12px]">جلسه محرمانه — موضوع و جزئیات فقط برای من، دعوت‌شدگان و مدیریت دیده می‌شود</span>
               </label>
+
+              {/* venue */}
+              <div className="rounded-lg border border-line bg-paper-soft/40 p-3.5">
+                <p className="text-[12px] font-bold">محل برگزاری</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setVenue("ONSITE")}
+                    className={
+                      "flex items-center gap-2.5 rounded-md border p-3 text-right transition-colors " +
+                      (venue === "ONSITE" ? "border-ink bg-white shadow-sm" : "border-line bg-white hover:bg-paper-soft")
+                    }
+                  >
+                    <span className={"h-3.5 w-3.5 shrink-0 rounded-full border-2 " + (venue === "ONSITE" ? "border-ink bg-ink" : "border-[#c9c9d0]")} />
+                    <span className="min-w-0">
+                      <span className="block text-[12.5px] font-medium">در شرکت خودمان</span>
+                      <span className="block text-[10.5px] text-ink-faint">اتاق را مدیریت انتخاب می‌کند</span>
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVenue("OFFSITE")}
+                    className={
+                      "flex items-center gap-2.5 rounded-md border p-3 text-right transition-colors " +
+                      (venue === "OFFSITE" ? "border-ink bg-white shadow-sm" : "border-line bg-white hover:bg-paper-soft")
+                    }
+                  >
+                    <span className={"h-3.5 w-3.5 shrink-0 rounded-full border-2 " + (venue === "OFFSITE" ? "border-ink bg-ink" : "border-[#c9c9d0]")} />
+                    <span className="min-w-0">
+                      <span className="block text-[12.5px] font-medium">بیرون از شرکت</span>
+                      <span className="block text-[10.5px] text-ink-faint">جلسه در محل سازمان مقصد</span>
+                    </span>
+                  </button>
+                </div>
+                {venue === "OFFSITE" && (
+                  <div className="mt-3 space-y-2.5">
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-ink-soft">نام سازمان مقصد *</label>
+                      <input
+                        value={offsiteOrg}
+                        onChange={(e) => setOffsiteOrg(e.target.value)}
+                        placeholder="مثلاً: همراه اول"
+                        className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[11px] font-medium text-ink-soft">نشانی / توضیح (اختیاری)</label>
+                      <input
+                        value={offsiteNote}
+                        onChange={(e) => setOffsiteNote(e.target.value)}
+                        placeholder="مثلاً: برج ساعی، طبقه ۵"
+                        className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* preferred window */}
               <div className="rounded-lg border border-dashed border-line bg-paper-soft/40 p-3.5">
