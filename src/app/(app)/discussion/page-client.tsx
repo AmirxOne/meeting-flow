@@ -575,8 +575,6 @@ export function DiscussionClient({
                       )}
                     </motion.button>
                   </div>
-
-                  <p className="mt-1.5 px-2 text-[9px] text-ink-faint/80">Enter ارسال · Shift+Enter خط جدید · 📎 فایل به پیوست‌های جلسه می‌رود</p>
                 </div>
               </footer>
             ) : (
