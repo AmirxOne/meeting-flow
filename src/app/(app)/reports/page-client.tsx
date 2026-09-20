@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download, BarChart3 } from "@/components/ui/icon";
+import { TrendChart, DonutChart, BarList } from "@/components/reports/charts";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { cn, faNum, faPad2, faStr, formatJalali, isoDateInTz, startOfDayUtcFromIso, STATUS_FA, TYPE_FA } from "@/lib";
@@ -325,46 +326,29 @@ export function ReportsPage() {
             </Card>
 
             <Card>
-              <CardHeader title="بهره‌وری اتاق‌ها" subtitle="درصد اشغال در ساعات کاری" />
-              <CardBody className="space-y-3">
-                {s.roomUtilization.filter((r) => r.meetings > 0).length === 0 ? (
-                  <p className="text-[12px] text-ink-faint">در این بازه اتاقی جلسه نداشته است</p>
-                ) : (
-                  s.roomUtilization.filter((r) => r.meetings > 0).map((r) => (
-                  <div key={r.roomId}>
-                    <div className="flex items-center justify-between text-[12px]">
-                      <span className="font-medium">
-                        {r.roomName}
-                        <span className="mr-1.5 text-[10px] text-ink-faint">({r.branchName})</span>
-                      </span>
-                      <span className="text-ink-soft">
-                        {faStr(r.hours.toFixed(1))} ساعت · ٪{faNum(r.utilization)}
-                      </span>
-                    </div>
-                    <div className="mt-1 h-1.5 rounded-full bg-paper-soft">
-                      <div className="h-1.5 rounded-full bg-ink" style={{ width: `${Math.min(100, r.utilization)}%` }} />
-                    </div>
-                  </div>
-                  ))
-                )}
+              <CardHeader title="اشغال اتاق‌های جلسات" subtitle="ساعات رزرو و درصد استفاده در بازه" />
+              <CardBody>
+                <BarList
+                  items={
+                    s.roomUtilization
+                      .filter((r) => r.meetings > 0)
+                      .map((r) => ({
+                        label: r.roomName,
+                        sub: r.branchName,
+                        value: r.hours,
+                        valueLabel: `${faStr(r.hours.toFixed(1))} ساعت · ٪${faNum(r.utilization)}`,
+                      }))
+                  }
+                />
               </CardBody>
             </Card>
 
             <Card>
-              <CardHeader title="جلسات به تفکیک شعبه" />
+              <CardHeader title="سهم شعبه‌ها" subtitle="توزیع جلسات به تفکیک شعبه" />
               <CardBody>
-                {s.byBranch.filter((b) => b.meetings > 0).length === 0 ? (
-                  <p className="text-[12px] text-ink-faint">در این بازه جلسه‌ای ثبت نشده است</p>
-                ) : (
-                  s.byBranch.filter((b) => b.meetings > 0).map((b) => (
-                  <div key={b.branchId} className="flex items-center justify-between border-b border-line py-2.5 text-[13px] last:border-0">
-                    <span>{b.branchName}</span>
-                    <span className="text-ink-soft">
-                      {faNum(b.meetings)} جلسه · {faStr(b.hours.toFixed(1))} ساعت
-                    </span>
-                  </div>
-                  ))
-                )}
+                <DonutChart
+                  items={s.byBranch.filter((b) => b.meetings > 0).map((b) => ({ label: b.branchName, value: b.meetings }))}
+                />
               </CardBody>
             </Card>
 
@@ -383,16 +367,15 @@ export function ReportsPage() {
 
           {s.meetingsByDay.length > 0 && (
             <Card>
-              <CardHeader title="روند روزانه" subtitle="روزهایی از بازه که جلسه داشته‌اند" />
+              <CardHeader title="روند روزانه جلسات" subtitle="تعداد جلسه در هر روزِ بازه" />
               <CardBody>
-                {s.meetingsByDay.map((d) => (
-                  <div key={d.date} className="flex items-center justify-between border-b border-line py-2.5 text-[13px] last:border-0">
-                    <span>{formatJalali(startOfDayUtcFromIso(d.date), { monthName: true })}</span>
-                    <span className="text-ink-soft">
-                      {faNum(d.count)} جلسه · {faStr(d.hours.toFixed(1))} ساعت
-                    </span>
-                  </div>
-                ))}
+                <TrendChart
+                  points={s.meetingsByDay.map((d) => ({
+                    label: formatJalali(startOfDayUtcFromIso(d.date)).slice(5),
+                    sub: formatJalali(startOfDayUtcFromIso(d.date), { monthName: true }),
+                    value: d.count,
+                  }))}
+                />
               </CardBody>
             </Card>
           )}
