@@ -149,3 +149,21 @@ export function minutesEmailTemplate(input: {
     }),
   };
 }
+
+/** Guest invitation — external participant (no app account, no link). */
+export function guestInviteEmailTemplate(input: {
+  heading: string;
+  when: string;
+  place: string;
+}): EmailPayload {
+  const textParts = [input.heading, "", input.when, "", input.place];
+  const paragraphs = [input.when, input.place];
+  return {
+    subject: input.heading,
+    text: textParts.join("\n"),
+    html: wrapRtlEmailHtml({
+      heading: input.heading,
+      paragraphs,
+    }),
+  };
+}

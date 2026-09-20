@@ -170,6 +170,13 @@ async function meetingInviteBody(meeting: Meeting): Promise<string> {
 
 export const notificationService = {
   async meetingCreated(meeting: Meeting, actorId: string, opts?: { occurrenceCount?: number }) {
+    // external guests (no app account) get SMS/email invitations directly
+    try {
+      const { sendGuestInvites } = await import("./guest-invite.service");
+      await sendGuestInvites(meeting, actorId);
+    } catch {
+      /* guest invites must never break meeting creation */
+    }
     const others = (await meetingPeople(meeting.id)).filter((id) => id !== actorId);
     const n = opts?.occurrenceCount ?? 1;
     await notifyUsers(

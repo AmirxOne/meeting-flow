@@ -147,6 +147,29 @@ export function MeetingDetailPage() {
   const { push } = useToast();
   const { me, can } = useAuth();
   const [chat, setChat] = useState<MeetingMessageRow[]>([]);
+  const [guestInviteToast, setGuestInviteToast] = useState<string | null>(null);
+  const resendGuestInvites = async () => {
+    setBusy("guest-invites");
+    setGuestInviteToast(null);
+    try {
+      const res = await fetch(`/api/meetings/${id}/guest-invites`, { method: "POST" });
+      const j = await res.json();
+      if (!res.ok) {
+        setGuestInviteToast(j?.error?.message ?? "ارسال دعوت‌نامه ناموفق بود");
+        return;
+      }
+      const { sent, failed } = j.data as { sent: number; failed: number };
+      setGuestInviteToast(
+        failed > 0
+          ? `دعوت‌نامه برای ${faNum(sent)} مهمان رفت؛ ${faNum(failed)} ناموفق`
+          : `دعوت‌نامه برای ${faNum(sent)} مهمان ارسال شد`,
+      );
+    } catch {
+      setGuestInviteToast("ارتباط با سرور برقرار نشد");
+    } finally {
+      setBusy(null);
+    }
+  };
   useEffect(() => {
     if (!id) return;
     let alive = true;
@@ -774,7 +797,21 @@ export function MeetingDetailPage() {
             <CardHeader
               title={`مشارکت‌کنندان (${faNum(m.participants.length)})`}
               subtitle={`داخلی: ${faNum(m.participants.length)} · خارجی: ${faNum(m.guests.length)}`}
+              action={
+                m.guests.length > 0 ? (
+                  <button
+                    onClick={() => void resendGuestInvites()}
+                    disabled={busy === "guest-invites"}
+                    className="rounded-md border border-line bg-white px-2.5 py-1.5 text-[11px] font-medium text-ink-soft hover:bg-paper-soft disabled:opacity-40"
+                  >
+                    {busy === "guest-invites" ? "در حال ارسال…" : "✉️ ارسال دعوت‌نامه مهمان‌ها"}
+                  </button>
+                ) : undefined
+              }
             />
+            {guestInviteToast && (
+              <p className="px-5 pt-3 text-[11px] text-ink-soft">{guestInviteToast}</p>
+            )}
             <div className="divide-y divide-line">
               {m.participants.map((p) => (
                 <div key={p.id} className="flex items-center gap-3 px-5 py-3">

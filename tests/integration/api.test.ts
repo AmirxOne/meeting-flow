@@ -2856,3 +2856,53 @@ describe("meeting chat", () => {
     expect([200, 409]).toContain(res.status);
   });
 });
+
+describe("guest invitations", () => {
+  let mid = "";
+  const branchId = "branch-niavaran";
+
+  it("creates an external meeting with guests and auto-invites them", async () => {
+    const created = await api("/api/meetings", {
+      method: "POST",
+      cookie: adminCookie,
+      json: {
+        title: `تست دعوت مهمان — ${RUN}`,
+        startAt: tehran(75, 9, 5),
+        endAt: tehran(75, 9, 35),
+        meetingType: "EXTERNAL",
+        participantIds: [],
+        guests: [
+          { name: "مهدی رضایی", company: "همراه اول", phone: "09121000001", email: "mehdi@ext-example.com" },
+          { name: "سمیرا کاظمی", email: "samira@ext-example.com" },
+        ],
+      },
+    });
+    expect(created.status).toBe(201);
+    mid = created.body.data.meeting.id as string;
+    // auto-invites are audit-logged per guest (mock providers never throw)
+    const { execSync } = await import("node:child_process");
+    const sql = "SELECT COUNT(*) FROM \"AuditLog\" WHERE action='GUEST_INVITE_SENT' AND \"newValue\"->>'meetingId'=" + "'" + mid + "';";
+    const cmd = ["docker exec meetinghub-postgres-1 psql -U meetinghub -d meetinghub -t -c", JSON.stringify(sql)].join(" ");
+    const out = String(execSync(cmd, { shell: true as never })).trim();
+    expect(Number(out)).toBeGreaterThanOrEqual(2);
+  });
+
+  it("resend works for admin, forbidden for non-manager", async () => {
+    const rs = await api(`/api/meetings/${mid}/guest-invites`, { method: "POST", cookie: adminCookie });
+    expect(rs.status).toBe(200);
+    expect(rs.body.data.sent).toBeGreaterThanOrEqual(1);
+
+    const outsider = await login("amir@example.com");
+    const rf = await api(`/api/meetings/${mid}/guest-invites`, { method: "POST", cookie: outsider });
+    expect(rf.status).toBe(403);
+  });
+
+  it("cleanup: cancel guest-invite meeting", async () => {
+    const res = await api(`/api/meetings/${mid}/cancel`, {
+      method: "POST",
+      cookie: adminCookie,
+      json: { reason: "OTHER" },
+    });
+    expect([200, 409]).toContain(res.status);
+  });
+});
