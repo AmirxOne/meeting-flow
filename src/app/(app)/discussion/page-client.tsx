@@ -76,6 +76,7 @@ export function DiscussionClient({
   const [live, setLive] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showPeople, setShowPeople] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
@@ -182,7 +183,7 @@ export function DiscussionClient({
     <div className="flex h-[calc(100dvh-3.75rem)] gap-0 overflow-hidden p-0 lg:p-0" dir="rtl">
       {/* ── conversations rail ── */}
       <aside className="flex w-full max-w-sm shrink-0 flex-col border-l border-line bg-white md:w-80 lg:w-[22rem]">
-        <div className="border-b border-line px-4 py-3">
+        <div className="border-b border-line bg-gradient-to-l from-paper-soft/50 to-white px-4 py-3.5">
           <h1 className="flex items-center gap-2 text-[15px] font-bold">
             <span className="flex size-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
               <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -220,14 +221,14 @@ export function DiscussionClient({
                   key={c.id}
                   onClick={() => router.push(`/discussion?m=${c.id}`)}
                   className={cn(
-                    "flex w-full items-start gap-3 border-b border-line px-4 py-3 text-right transition",
-                    active ? "bg-accent/5 shadow-[inset_2px_0_0_0_var(--accent)]" : "hover:bg-paper-soft/60",
+                    "group flex w-full items-start gap-3 border-b border-line/70 px-4 py-3 text-right transition-colors",
+                    active ? "bg-accent/5 shadow-[inset_3px_0_0_0_var(--accent)]" : "hover:bg-paper-soft/70",
                   )}
                 >
                   <div className="relative shrink-0">
                     <span className={cn(
-                      "flex size-11 items-center justify-center rounded-xl text-[13px] font-bold",
-                      active ? "bg-accent text-white" : "bg-paper-soft text-ink-soft",
+                      "flex size-11 items-center justify-center rounded-2xl text-[14px] font-bold shadow-sm transition-transform group-hover:scale-105",
+                      active ? "bg-gradient-to-br from-accent to-accent/80 text-white" : "bg-gradient-to-br from-paper-soft to-paper-deep text-ink-soft",
                     )}>
                       {c.title.trim().slice(0, 1)}
                     </span>
@@ -273,7 +274,7 @@ export function DiscussionClient({
         ) : (
           <>
             {/* room header */}
-            <header className="z-10 flex items-center gap-3 border-b border-line bg-white/85 px-4 py-2.5 backdrop-blur">
+            <header className="z-10 flex items-center gap-3 border-b border-line bg-white/90 px-4 py-3 shadow-[0_1px_3px_rgba(0,0,0,0.03)] backdrop-blur">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h2 className="truncate text-[13.5px] font-bold">«{selected.title}»</h2>
@@ -360,7 +361,7 @@ export function DiscussionClient({
                           <UserAvatar name={g.author.fullName} src={g.author.avatarUrl} size="sm" variant={g.mine ? "ink" : "soft"} />
                           <div className={cn("flex max-w-[75%] flex-col gap-1", g.mine ? "items-end" : "items-start")}>
                             {!g.mine && (
-                              <span className="px-1 text-[10px] font-medium text-ink-soft">
+                              <span className="px-1 text-[10.5px] font-bold text-ink/80">
                                 {g.author.fullName}
                                 {g.author.jobTitle ? <span className="mr-1 font-normal text-ink-faint">· {g.author.jobTitle}</span> : null}
                               </span>
@@ -373,8 +374,8 @@ export function DiscussionClient({
                                   className={cn(
                                     "whitespace-pre-wrap break-words px-3.5 py-2 text-[13px] leading-6 shadow-[0_1px_1px_rgba(0,0,0,0.05)]",
                                     g.mine
-                                      ? cn("bg-accent text-white", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md")
-                                      : cn("border border-line bg-white text-ink", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md"),
+                                      ? cn("bg-gradient-to-br from-accent to-accent/90 text-white", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md")
+                                      : cn("border border-line/80 bg-white/95 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)]", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md"),
                                   )}
                                 >
                                   {m.body}
@@ -412,41 +413,96 @@ export function DiscussionClient({
 
             {/* composer */}
             {canChat ? (
-              <footer className="border-t border-line bg-white/90 px-4 py-3 backdrop-blur md:px-8">
+<footer className="relative border-t border-line bg-gradient-to-l from-paper-soft/30 to-white px-4 py-3 md:px-8">
                 <div className="mx-auto max-w-3xl">
                   {error && <p className="mb-2 rounded-md bg-red-50 px-2 py-1 text-[10.5px] text-red-600">{error}</p>}
-                  <div className="flex items-end gap-2 rounded-2xl border border-line bg-white p-2 shadow-sm transition-colors focus-within:border-accent/60">
+
+                  {/* emoji picker */}
+                  <AnimatePresence>
+                    {showEmoji && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                        className="absolute bottom-[4.5rem] left-4 z-20 w-72 rounded-2xl border border-line bg-white p-3 shadow-xl md:left-8"
+                      >
+                        <p className="mb-2 text-[10px] font-medium text-ink-faint">ایموجی</p>
+                        <div className="grid grid-cols-8 gap-1">
+                          {["😀","😂","🥲","😍","😎","🤔","🙂","🙃","😉","😅","😊","🥳","😴","🤝","👍","👎","👏","🙌","💪","✌️","🤞","❤️","🔥","✨","⭐","🎉","📌","📎","✅","❌","⏰","📅"].map((e) => (
+                            <button
+                              key={e}
+                              onClick={() => { setDraft((d) => (d + " " + e).slice(0, 2000)); setShowEmoji(false); }}
+                              className="flex size-8 items-center justify-center rounded-lg text-[17px] transition hover:bg-paper-soft"
+                            >
+                              {e}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="flex items-end gap-2 rounded-[1.75rem] border border-line bg-paper-soft/60 p-1.5 pl-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors focus-within:border-accent/50 focus-within:bg-white">
+                    {/* attach (link to meeting attachments) */}
+                    <button
+                      onClick={() => router.push(`/meetings/${selected.id}`)}
+                      className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-white hover:text-accent"
+                      title="پیوست‌های جلسه"
+                      aria-label="پیوست‌های جلسه"
+                    >
+                      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    {/* emoji */}
+                    <button
+                      onClick={() => setShowEmoji((v) => !v)}
+                      className={cn("flex size-10 shrink-0 items-center justify-center rounded-full transition hover:bg-white", showEmoji ? "text-accent" : "text-ink-faint hover:text-accent")}
+                      title="ایموجی"
+                      aria-label="ایموجی"
+                    >
+                      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                    {/* input */}
                     <textarea
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
                       }}
-                      rows={Math.min(4, Math.max(1, draft.split("\n").length))}
-                      placeholder={`پیام در گفتگوی «${selected.title.slice(0, 24)}${selected.title.length > 24 ? "…" : ""}»…`}
-                      className="max-h-28 flex-1 resize-none bg-transparent px-2 py-1 text-[13px] outline-none placeholder:text-ink-faint"
+                      rows={Math.min(5, Math.max(1, draft.split("\n").length))}
+                      placeholder="پیام…"
+                      className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-1 py-2.5 text-[13.5px] leading-6 text-ink outline-none placeholder:text-ink-faint/80"
                       maxLength={2000}
                     />
-                    <span className={cn("shrink-0 pb-1 text-[9px] tabular-nums", draft.length > 1800 ? "text-amber-600" : "text-ink-faint")}>
-                      {faNum(draft.length)}/۲۰۰۰
+                    <span className={cn("shrink-0 self-center pb-0.5 text-[9px] tabular-nums", draft.length > 1800 ? "text-amber-600" : "text-ink-faint")}>
+                      {draft.length > 0 ? `${faNum(draft.length)}/۲۰۰۰` : ""}
                     </span>
+                    {/* round Telegram-style send FAB */}
                     <motion.button
-                      whileTap={{ scale: 0.92 }}
+                      whileTap={{ scale: 0.88 }}
+                      whileHover={{ scale: 1.06 }}
                       onClick={() => void send()}
                       disabled={!draft.trim() || sending}
-                      className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition disabled:opacity-30"
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-full shadow-md transition-colors",
+                        draft.trim() ? "bg-accent text-white" : "bg-paper-deep text-ink-faint",
+                      )}
                       aria-label="ارسال پیام"
+                      title="ارسال (Enter)"
                     >
                       {sending ? (
-                        <span className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                       ) : (
-                        <svg viewBox="0 0 24 24" className="size-4.5 -scale-x-100" fill="none" stroke="currentColor" strokeWidth="1.8">
-                          <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" strokeLinecap="round" strokeLinejoin="round" />
+                        <svg viewBox="0 0 24 24" className="size-5 text-white" fill="currentColor">
+                          <path d="M3.4 20.4 20.85 12 3.4 3.6l-.01 6.53L15 12 3.39 13.87z" />
                         </svg>
                       )}
                     </motion.button>
                   </div>
-                  <p className="mt-1 px-1 text-[9px] text-ink-faint">Enter ارسال · Shift+Enter خط جدید</p>
+                  <p className="mt-1 px-2 text-[9px] text-ink-faint">Enter ارسال · Shift+Enter خط جدید</p>
                 </div>
               </footer>
             ) : (

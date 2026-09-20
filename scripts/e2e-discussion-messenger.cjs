@@ -45,6 +45,10 @@ const { chromium } = require('playwright');
   await page.keyboard.press('Enter');
   await page.waitForTimeout(2000);
   r.sent = await page.evaluate(() => document.body.innerText.includes('پیام از چت‌اپ جدید'));
+  // counter appears only while typing — type again and check
+  await page.evaluate(() => { const ta = document.querySelector('textarea'); if (ta) ta.focus(); });
+  await page.keyboard.type('چک', { delay: 10 });
+  await page.waitForTimeout(400);
   r.counter = await page.evaluate(() => /\/۲۰۰۰/.test(document.body.innerText));
   // mobile: rail full-width
   await page.setViewportSize({ width: 500, height: 800 });
