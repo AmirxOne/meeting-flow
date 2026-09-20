@@ -359,6 +359,9 @@ model MeetingRequest {
   attendeeCount Int?
   /// requester asked for a confidential meeting (title/details masked for others)
   isPrivate    Boolean  @default(false)
+  /// requested recurrence (admin creates a series at scheduling time)
+  /// { freq: DAILY|WEEKLY|MONTHLY, count?: 1..52 }
+  recReq       Json?
   /// where the meeting should take place
   /// ONSITE = our company's rooms · OFFSITE = at the other org (e.g. همراه اول)
   venue        String   @default("ONSITE") // ONSITE | OFFSITE

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth/session";
 import { ok, fail, handleError, audit } from "@/server/http";
-import { createMeeting } from "@/server/services/meeting.service";
+import { createMeeting, createMeetingSeries } from "@/server/services/meeting.service";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // the guest is attached as an external guest of the meeting.
 
     const offsite = request.venue === "OFFSITE";
-    const meeting = await createMeeting({
+    const shared = {
       title: request.title,
       description: [
         request.description ?? undefined,
@@ -74,7 +74,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         : request.guestName
           ? [{ name: request.guestName, company: request.guestCompany ?? undefined, phone: request.guestPhone ?? undefined }]
           : [],
-    });
+    };
+    // requested recurrence → create a SERIES of meetings
+    const rec = (request.recReq as { freq?: string; count?: number } | null) ?? null;
+    if (rec && rec.freq) {
+      const created = await createMeetingSeries({
+        ...shared,
+        recurrence: { freq: rec.freq as "DAILY" | "WEEKLY" | "MONTHLY", interval: 1, count: rec.count },
+      });
+      await prisma.meetingRequest.update({
+        where: { id },
+        data: { status: "SCHEDULED", meetingId: created.meeting.id },
+      });
+      await audit({
+        actorId: user.id,
+        action: "meeting-request.schedule",
+        entity: "MeetingRequest",
+        entityId: id,
+        newValue: { meetingId: created.meeting.id, series: true, occurrences: created.meetings.length },
+      });
+      return ok(
+        { meeting: created.meeting, series: created.series, occurrenceCount: created.meetings.length, request: { ...request, status: "SCHEDULED", meetingId: created.meeting.id } },
+        201,
+      );
+    }
+
+    const meeting = await createMeeting(shared);
 
     await prisma.meetingRequest.update({
       where: { id },

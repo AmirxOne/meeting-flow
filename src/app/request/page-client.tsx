@@ -39,6 +39,8 @@ export function PublicRequestForm() {
   const [prefTo, setPrefTo] = useState("");
   // ONSITE = our company · OFFSITE = at another org (e.g. همراه اول)
   const [venue, setVenue] = useState<"ONSITE" | "OFFSITE">("ONSITE");
+  const [recFreq, setRecFreq] = useState("NONE");
+  const [recCount, setRecCount] = useState("4");
   const [offsiteOrg, setOffsiteOrg] = useState("");
   const [offsiteNote, setOffsiteNote] = useState("");
   const [done, setDone] = useState(false);
@@ -68,6 +70,7 @@ export function PublicRequestForm() {
           urgency,
           isPrivate,
           durationMin: Number(durationMin),
+          ...(recFreq !== "NONE" ? { recReq: { freq: recFreq, count: Number(recCount) } } : {}),
           venue,
           ...(venue === "OFFSITE" ? { offsiteOrg: offsiteOrg.trim() } : {}),
           ...(venue === "OFFSITE" && offsiteNote.trim() ? { offsiteNote: offsiteNote.trim() } : {}),
@@ -137,6 +140,8 @@ export function PublicRequestForm() {
                 setVenue("ONSITE");
                 setOffsiteOrg("");
                 setOffsiteNote("");
+                setRecFreq("NONE");
+                setRecCount("4");
               }}
               className="mt-5 h-10 rounded-md border border-line px-4 text-[12px] text-ink-soft hover:bg-paper-soft"
             >
@@ -201,6 +206,25 @@ export function PublicRequestForm() {
                 <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="h-4 w-4 accent-black" />
                 <span className="text-[12px]">جلسه محرمانه — موضوع و جزئیات فقط برای من، دعوت‌شدگان و مدیریت دیده می‌شود</span>
               </label>
+
+              {/* recurrence */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-[12px] font-medium">تکرار (اختیاری)</label>
+                  <GuestSelect value={recFreq} onChange={setRecFreq} options={[
+                    { v: "NONE", l: "بدون تکرار — یک جلسه" },
+                    { v: "DAILY", l: "هر روز" },
+                    { v: "WEEKLY", l: "هر هفته" },
+                    { v: "MONTHLY", l: "هر ماه" },
+                  ]} />
+                </div>
+                {recFreq !== "NONE" && (
+                  <div>
+                    <label className="mb-1.5 block text-[12px] font-medium">تعداد دفعات</label>
+                    <GuestSelect value={recCount} onChange={setRecCount} options={[2, 3, 4, 6, 8, 12].map((n) => ({ v: String(n), l: fa(n) + " بار" }))} />
+                  </div>
+                )}
+              </div>
 
               {/* venue */}
               <div className="rounded-lg border border-line bg-paper-soft/40 p-3.5">

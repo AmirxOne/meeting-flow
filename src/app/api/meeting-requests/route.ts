@@ -11,6 +11,12 @@ const requestSchema = z.object({
   description: z.string().trim().max(2000).optional(),
   urgency: z.enum(["URGENT", "NORMAL", "FLEXIBLE"]).default("NORMAL"),
   isPrivate: z.boolean().default(false),
+  recReq: z
+    .object({
+      freq: z.enum(["DAILY", "WEEKLY", "MONTHLY"]),
+      count: z.coerce.number().int().min(1).max(52).optional(),
+    })
+    .optional(),
   venue: z.enum(["ONSITE", "OFFSITE"]).default("ONSITE"),
   offsiteOrg: z.string().trim().min(2).max(120).optional(),
   offsiteNote: z.string().trim().max(300).optional(),
@@ -84,6 +90,7 @@ export async function POST(req: NextRequest) {
         description: input.description,
         urgency: input.urgency,
         isPrivate: input.isPrivate,
+        recReq: input.recReq ? JSON.parse(JSON.stringify(input.recReq)) : null,
         venue: input.venue,
         offsiteOrg: input.venue === "OFFSITE" ? (input.offsiteOrg ?? null) : null,
         offsiteNote: input.venue === "OFFSITE" ? (input.offsiteNote ?? null) : null,

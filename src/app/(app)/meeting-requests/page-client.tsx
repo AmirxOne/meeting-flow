@@ -47,6 +47,8 @@ export function MeetingRequestForm() {
   const [prefTo, setPrefTo] = useState("");
   // ONSITE = in our rooms · OFFSITE = at another org (e.g. همراه اول)
   const [venue, setVenue] = useState("ONSITE");
+  const [recFreq, setRecFreq] = useState("NONE");
+  const [recCount, setRecCount] = useState("4");
   const [offsiteOrg, setOffsiteOrg] = useState("");
   const [offsiteNote, setOffsiteNote] = useState("");
 
@@ -75,6 +77,7 @@ export function MeetingRequestForm() {
           urgency,
           isPrivate,
           durationMin: Number(durationMin),
+          ...(recFreq !== "NONE" ? { recReq: { freq: recFreq, count: Number(recCount) } } : {}),
           venue,
           ...(venue === "OFFSITE" ? { offsiteOrg: offsiteOrg.trim() } : {}),
           ...(venue === "OFFSITE" && offsiteNote.trim() ? { offsiteNote: offsiteNote.trim() } : {}),
@@ -99,6 +102,8 @@ export function MeetingRequestForm() {
       setVenue("ONSITE");
       setOffsiteOrg("");
       setOffsiteNote("");
+      setRecFreq("NONE");
+      setRecCount("4");
       qc.invalidateQueries({ queryKey: ["meeting-requests"] });
     } catch (e) {
       push((e as Error).message || "خطا در ثبت درخواست", "error");
@@ -177,6 +182,33 @@ export function MeetingRequestForm() {
               onChange={(next) => setParticipants(next)}
               placeholder="با چه کسانی می‌خواهید جلسه داشته باشید؟"
             />
+          </div>
+
+          {/* recurrence */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-[12px] font-medium">تکرار (اختیاری)</label>
+              <Select
+                value={recFreq}
+                onChange={(v) => setRecFreq(v)}
+                options={[
+                  { value: "NONE", label: "بدون تکرار — یک جلسه" },
+                  { value: "DAILY", label: "هر روز" },
+                  { value: "WEEKLY", label: "هر هفته" },
+                  { value: "MONTHLY", label: "هر ماه" },
+                ]}
+              />
+            </div>
+            {recFreq !== "NONE" && (
+              <div>
+                <label className="mb-1.5 block text-[12px] font-medium">تعداد دفعات</label>
+                <Select
+                  value={recCount}
+                  onChange={(v) => setRecCount(v)}
+                  options={[2, 3, 4, 6, 8, 12].map((n) => ({ value: String(n), label: faNum(n) + " بار" }))}
+                />
+              </div>
+            )}
           </div>
 
           {/* venue */}

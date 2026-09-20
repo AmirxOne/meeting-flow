@@ -32,6 +32,7 @@ type Req = {
   prefFrom: string | null;
   prefTo: string | null;
   venue: string;
+  recReq: { freq?: string; count?: number } | null;
   offsiteOrg: string | null;
   offsiteNote: string | null;
   status: string;
@@ -120,6 +121,12 @@ export function RequestQueuePage() {
                         <p className="mt-1 flex items-center gap-1 text-[11px] text-ink-faint">
                           <Users className="h-3 w-3" />
                           {faNum(r.participantIds.length)} نفر شرکت‌کننده درخواست شده
+                        </p>
+                      )}
+                      {r.recReq?.freq && (
+                        <p className="mt-1.5 inline-flex items-center gap-1 rounded bg-ink/5 px-2 py-0.5 text-[10.5px] font-medium text-ink-soft">
+                          ↻ {{ DAILY: "هر روز", WEEKLY: "هر هفته", MONTHLY: "هر ماه" }[r.recReq.freq] ?? r.recReq.freq}
+                          {r.recReq.count ? ` × ${faNum(r.recReq.count)}` : ""}
                         </p>
                       )}
                       {r.venue === "OFFSITE" && (
