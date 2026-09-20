@@ -331,7 +331,7 @@ export function MeetingDetailPage() {
             {m.isException && <span className="badge badge-gray">استثنا</span>}
           </div>
           <p className="mt-1.5 text-[12px] text-ink-soft">
-            برگزارکننده: {m.organizer.fullName} · {m.branch.name}
+            برگزارکننده: {m.organizer.fullName} · {m.branch?.name ?? "بیرون از شرکت"}
             {m.room ? ` · ${m.room.name}` : ""}
             {m.createdBy && m.createdBy.id !== m.organizer.id
               ? ` · رزرو توسط ${m.createdBy.fullName}`
@@ -679,8 +679,8 @@ export function MeetingDetailPage() {
                 <DetailRow label="شروع" value={formatJalali(new Date(m.startAt), { withTime: true })} />
                 <DetailRow label="پایان" value={formatJalali(new Date(m.endAt), { withTime: true })} />
                 <DetailRow label="مدت" value={`${faNum(durationMin)} دقیقه`} />
-                <DetailRow label="اتاق" value={m.room ? `${m.room.name} (${faNum(m.room.capacity)} نفر)` : "—"} />
-                <DetailRow label="شعبه" value={m.branch.name} />
+                <DetailRow label="اتاق" value={m.room ? `${m.room.name} (${faNum(m.room.capacity)} نفر)` : "بیرون از شرکت"} />
+                <DetailRow label="محل" value={m.branch?.name ?? "بیرون از شرکت"} />
                 <DetailRow label="برگزارکننده" value={m.organizer.fullName} />
                 {m.series && (
                   <DetailRow

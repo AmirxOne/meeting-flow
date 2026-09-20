@@ -238,7 +238,7 @@ export function MeetingsPage() {
                   <div className="mt-2 flex min-w-0 flex-col gap-1 text-[12px] text-ink-soft sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4">
                     <span className="min-w-0 truncate">{formatJalali(new Date(m.startAt), { withTime: true })}</span>
                     {m.room && <span className="min-w-0 truncate">· {m.room.name}</span>}
-                    <span className="min-w-0 truncate">· {m.branch.name}</span>
+                    <span className="min-w-0 truncate">· {m.branch?.name ?? "بیرون از شرکت"}</span>
                     <span className="flex items-center gap-1">
                       <Users className="h-3.5 w-3.5 shrink-0" />
                       {faNum(m._count.participants)}
