@@ -21,7 +21,6 @@ import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { GuestCheckinPanel } from "@/components/checkin/guest-checkin-panel";
 import { MeetingAttachments, type MeetingAttachmentRow } from "@/components/meetings/meeting-attachments";
-import { MeetingChat, type MeetingMessageRow } from "@/components/meetings/meeting-chat";
 import { MeetingAgenda, type MeetingAgendaItemRow } from "@/components/meetings/meeting-agenda";
 import { MeetingMinutes } from "@/components/meetings/meeting-minutes";
 import { MeetingVideoLink } from "@/components/meetings/meeting-video-link";
@@ -130,7 +129,6 @@ const EVENT_FA: Record<string, string> = {
   ATTACHMENT_ADDED: "پیوست افزوده شد",
   ATTACHMENT_REMOVED: "پیوست حذف شد",
   AGENDA_UPDATED: "دستور جلسه به‌روز شد",
-  MEETING_MESSAGE: "پیام جدید در جلسه",
   MINUTES_PUBLISHED: "صورتجلسه ثبت شد",
   COMPLETED: "تکمیل شد",
   NO_SHOW: "غیبت",
@@ -146,7 +144,6 @@ export function MeetingDetailPage() {
   const qc = useQueryClient();
   const { push } = useToast();
   const { me, can } = useAuth();
-  const [chat, setChat] = useState<MeetingMessageRow[]>([]);
   const [guestInviteToast, setGuestInviteToast] = useState<string | null>(null);
   const resendGuestInvites = async () => {
     setBusy("guest-invites");
@@ -170,15 +167,6 @@ export function MeetingDetailPage() {
       setBusy(null);
     }
   };
-  useEffect(() => {
-    if (!id) return;
-    let alive = true;
-    fetch(`/api/meetings/${id}/messages`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => { if (alive && j?.data?.messages) setChat(j.data.messages); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [id]);
   const [busy, setBusy] = useState<string | null>(null);
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>("OTHER");
@@ -898,28 +886,6 @@ export function MeetingDetailPage() {
             </div>
           </Card>
 
-          {me && (m.organizer.id === me.id || m.participants.some((p: { userId: string }) => p.userId === me.id)) && (
-          <Card>
-            <CardHeader
-              title="💬 تبادل نظر"
-              subtitle="گفتگوی متصل به همین جلسه — در صفحه‌ی اختصاصی"
-              action={
-                <Link
-                  href={`/discussion/${id}`}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-[11px] font-medium text-white hover:opacity-90"
-                >
-                  ورود به گفتگو
-                  <span aria-hidden>←</span>
-                </Link>
-              }
-            />
-            <CardBody>
-              <p className="text-[12px] leading-6 text-ink-soft">
-                بحث پیش و پس از جلسه (هماهنگی، اسناد، جمع‌بندی) در صفحه‌ی گفتگوی این جلسه انجام می‌شود — همه‌ی پیام‌ها با زمینه‌ی همین جلسه در یک‌جا.
-              </p>
-            </CardBody>
-          </Card>
-          )}
 
           <MeetingAgenda
             meetingId={id}
