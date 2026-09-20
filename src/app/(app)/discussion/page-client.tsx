@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn, faNum } from "@/lib";
 import { formatJalali } from "@/lib/jalali";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { MessageCircle, Search, X, ArrowLeft } from "@/components/ui/icon";
 
 type Conv = {
   id: string;
@@ -215,17 +216,13 @@ export function DiscussionClient({
       <aside className="flex w-full max-w-sm shrink-0 flex-col border-l border-line bg-white md:w-80 lg:w-[22rem]">
         <div className="border-b border-line bg-gradient-to-l from-paper-soft/50 to-white px-4 py-3.5">
           <h1 className="flex items-center gap-2 text-[15px] font-bold">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
-              <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <span className="flex size-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <MessageCircle className="size-4" />
             </span>
             تبادل نظر
           </h1>
           <div className="mt-2.5 flex h-9 items-center gap-2 rounded-lg bg-paper-soft px-3">
-            <svg viewBox="0 0 24 24" className="size-4 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-            </svg>
+            <Search className="size-3.5 text-ink-faint" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -295,10 +292,8 @@ export function DiscussionClient({
       <main className="relative hidden min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.03)_1px,transparent_0)] [background-size:20px_20px] md:flex">
         {!selected ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-            <span className="flex size-16 items-center justify-center rounded-2xl bg-white text-ink-faint shadow-sm">
-              <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.4">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-ink-faint shadow-sm">
+              <MessageCircle className="size-6" />
             </span>
             <p className="text-[14px] font-bold text-ink-soft">یک گفتگو را انتخاب کنید</p>
             <p className="max-w-72 text-[11.5px] leading-6 text-ink-faint">
@@ -472,7 +467,7 @@ export function DiscussionClient({
                       >
                         <div className="mb-2 flex items-center justify-between px-1">
                           <span className="text-[10px] font-bold text-ink-soft">ایموجی</span>
-                          <button onClick={() => setShowEmoji(false)} className="flex size-5 items-center justify-center rounded-full text-ink-faint hover:bg-paper-soft" aria-label="بستن">✕</button>
+                          <button onClick={() => setShowEmoji(false)} className="flex size-6 items-center justify-center rounded-full text-ink-faint hover:bg-paper-soft" aria-label="بستن"><X className="size-3.5" /></button>
                         </div>
                         <div className="grid max-h-52 grid-cols-7 gap-0.5 overflow-y-auto">
                           {["😀","😄","😂","🥲","😍","🥰","😎","🤔","🙂","🙃","😉","😅","😢","😡","🥳","😴","🤯","🫡","🤝","👍","👎","👏","🙌","💪","✌️","🤞","🙏","❤️","🧡","💙","💚","💜","💯","🔥","✨","⭐","🎉","🎊","📌","📎","✅","❌","⚠️","⏰","📅","💡","🎯","🚀","☕","🍕"].map((e) => (
@@ -513,7 +508,7 @@ export function DiscussionClient({
                       {uploading ? (
                         <span className="size-4 animate-spin rounded-full border-2 border-ink-faint/30 border-t-ink-faint" />
                       ) : (
-                        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7">
+                        <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.7">
                           <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
@@ -529,7 +524,7 @@ export function DiscussionClient({
                       title="ایموجی"
                       aria-label="ایموجی"
                     >
-                      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.7">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" strokeLinecap="round" />
                       </svg>
@@ -567,9 +562,7 @@ export function DiscussionClient({
                       {sending ? (
                         <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                       ) : (
-                        <svg viewBox="0 0 24 24" className="size-5" fill="currentColor">
-                          <path d="M3.4 20.4 20.85 12 3.4 3.6l-.01 6.53L15 12 3.39 13.87z" />
-                        </svg>
+                        <ArrowLeft className="size-4.5" />
                       )}
                     </motion.button>
                   </div>

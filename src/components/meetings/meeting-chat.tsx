@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn, faNum } from "@/lib";
 import { formatJalali } from "@/lib/jalali";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { MessageCircle } from "@/components/ui/icon";
 
 export type MeetingMessageRow = {
   id: string;
@@ -186,10 +187,8 @@ export function MeetingChat({ meetingId, currentUserId, canChat, initialMessages
         >
           {messages.length === 0 && (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
-              <span className="flex size-11 items-center justify-center rounded-full bg-paper-soft text-ink-faint">
-                <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.6">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+              <span className="flex size-10 items-center justify-center rounded-full bg-paper-soft text-ink-faint">
+                <MessageCircle className="size-4.5" />
               </span>
               <p className="text-[12px] font-medium text-ink-soft">
                 {canChat ? "اولین پیام را شما بنویسید" : "هنوز گفتگویی شروع نشده"}

@@ -8,6 +8,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib";
 import { MeetingChat, type MeetingMessageRow } from "@/components/meetings/meeting-chat";
+import { ChevronLeft, ExternalLink } from "@/components/ui/icon";
 
 const STATUS_FA: Record<string, string> = {
   PENDING_APPROVAL: "در انتظار تأیید",
@@ -40,9 +41,7 @@ export function DiscussionRoomClient(p: Props) {
             className="flex size-10 shrink-0 items-center justify-center rounded-full border border-line bg-white text-ink-soft transition hover:bg-paper-soft"
             aria-label="بازگشت به گفتگوها"
           >
-            <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <ChevronLeft className="size-4.5" />
           </Link>
 
           <div className="min-w-0 flex-1">
@@ -71,9 +70,7 @@ export function DiscussionRoomClient(p: Props) {
             className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-[11px] font-medium text-ink-soft transition hover:bg-paper-soft"
           >
             صفحه‌ی جلسه
-            <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M7 17 17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <ExternalLink className="size-3.5" />
           </Link>
         </div>
       </header>
