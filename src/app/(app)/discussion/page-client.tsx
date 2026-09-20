@@ -1,21 +1,46 @@
 "use client";
 
-import { useMemo, useState } from "react";
+// Full messenger-style discussion page: conversations rail (right, RTL) +
+// chat pane (left), like a real chat app.
+
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn, faNum } from "@/lib";
 import { formatJalali } from "@/lib/jalali";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
-type MeetingCard = {
+type Conv = {
   id: string;
   title: string;
   startAt: string;
   status: string;
   meetingType: string;
-  organizer: { id: string; fullName: string };
+  organizer: { id: string; fullName: string; avatarUrl: string | null };
   room: { name: string } | null;
   branch: { name: string } | null;
-  _count: { messages: number; participants: number };
+  _count: { messages: number };
+  messages: { body: string; createdAt: string; userId: string }[];
+};
+
+type Msg = {
+  id: string;
+  userId: string;
+  body: string;
+  createdAt: string;
+  user: { id: string; fullName: string; avatarUrl: string | null; jobTitle: string | null };
+};
+
+type Selected = {
+  id: string;
+  title: string;
+  startAt: string;
+  status: string;
+  organizerId: string;
+  branch: { name: string } | null;
+  room: { name: string } | null;
+  participants: { userId: string; user: { id: string; fullName: string; avatarUrl: string | null; jobTitle: string | null } }[];
 };
 
 const STATUS_FA: Record<string, string> = {
@@ -27,40 +52,146 @@ const STATUS_FA: Record<string, string> = {
   COMPLETED: "برگزارشده",
 };
 
-export function DiscussionClient({ userId, meetings }: { userId: string; meetings: MeetingCard[] }) {
+export function DiscussionClient({
+  userId,
+  meetings,
+  selectedId,
+  selected,
+  selectedMessages,
+  canChat,
+}: {
+  userId: string;
+  meetings: Conv[];
+  selectedId: string | null;
+  selected: Selected | null;
+  selectedMessages: Msg[];
+  canChat: boolean;
+}) {
+  const router = useRouter();
+  const sp = useSearchParams();
   const [q, setQ] = useState("");
-  const [onlyMine, setOnlyMine] = useState(false);
+  const [messages, setMessages] = useState<Msg[]>(selectedMessages);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [live, setLive] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showPeople, setShowPeople] = useState(false);
+  const listRef = useRef<HTMLDivElement>(null);
+  const atBottomRef = useRef(true);
+  const [showJump, setShowJump] = useState(false);
 
-  const list = useMemo(() => {
+  useEffect(() => setMessages(selectedMessages), [selectedId, selectedMessages]);
+
+  /* live polling for the open room */
+  const refresh = async () => {
+    if (!selectedId) return;
+    try {
+      const res = await fetch(`/api/meetings/${selectedId}/messages`, { cache: "no-store" });
+      if (!res.ok) return;
+      const j = await res.json();
+      const next: Msg[] = j?.data?.messages ?? [];
+      setMessages((prev) =>
+        prev.length === next.length && prev[prev.length - 1]?.id === next[next.length - 1]?.id ? prev : next,
+      );
+      setLive(true);
+    } catch {
+      setLive(false);
+    }
+  };
+  useEffect(() => {
+    if (!selectedId) return;
+    const t = setInterval(refresh, 6000);
+    return () => clearInterval(t);
+  }, [selectedId]);
+
+  const scrollToBottom = (smooth = true) => {
+    const el = listRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+  };
+  useEffect(() => {
+    if (atBottomRef.current) scrollToBottom(false);
+  }, [messages.length]);
+  const onScroll = () => {
+    const el = listRef.current;
+    if (!el) return;
+    const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
+    atBottomRef.current = bottom;
+    setShowJump(!bottom && el.scrollHeight > el.clientHeight + 120);
+  };
+
+  const send = async () => {
+    const body = draft.trim();
+    if (!body || sending || !selectedId) return;
+    setSending(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/meetings/${selectedId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        setError(j?.error?.message ?? "ارسال پیام ناموفق بود");
+        return;
+      }
+      setMessages((prev) => [...prev, j.data.message]);
+      setDraft("");
+      atBottomRef.current = true;
+      requestAnimationFrame(() => scrollToBottom());
+    } catch {
+      setError("ارتباط با سرور برقرار نشد");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  /* group consecutive messages */
+  const groups = useMemo(() => {
+    const out: { key: string; day: string; author: Msg["user"]; mine: boolean; items: Msg[] }[] = [];
+    let lastDay = "";
+    for (const m of messages) {
+      const d = new Date(m.createdAt).toISOString().slice(0, 10);
+      const prev = out[out.length - 1];
+      const same =
+        prev &&
+        prev.items[0].userId === m.userId &&
+        new Date(m.createdAt).getTime() - new Date(prev.items[prev.items.length - 1].createdAt).getTime() < 4 * 60000;
+      if (!same) out.push({ key: m.id, day: d !== lastDay ? d : "", author: m.user, mine: m.userId === userId, items: [m] });
+      else prev.items.push(m);
+      lastDay = d;
+    }
+    return out;
+  }, [messages, userId]);
+
+  const convs = useMemo(() => {
     const needle = q.trim();
-    return meetings.filter((m) => {
-      if (onlyMine && m.organizer.id !== userId) return false;
-      if (needle && !m.title.includes(needle)) return false;
-      return true;
-    });
-  }, [meetings, q, onlyMine, userId]);
+    return meetings.filter((m) => !needle || m.title.includes(needle));
+  }, [meetings, q]);
 
-  const totalMsgs = meetings.reduce((a, b) => a + b._count.messages, 0);
+  const people = useMemo(() => {
+    if (!selected) return [];
+    const map = new Map<string, { fullName: string; avatarUrl: string | null; jobTitle: string | null; role: string }>();
+    for (const p of selected.participants) {
+      map.set(p.user.id, { ...p.user, role: "مشارکت‌کننده" });
+    }
+    return [...map.values()];
+  }, [selected]);
 
   return (
-    <div className="space-y-4 p-4 lg:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-lg font-bold">
-            <span className="flex size-9 items-center justify-center rounded-lg bg-accent/10 text-accent">
-              <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <div className="flex h-[calc(100dvh-3.75rem)] gap-0 overflow-hidden p-0 lg:p-0" dir="rtl">
+      {/* ── conversations rail ── */}
+      <aside className="flex w-full max-w-sm shrink-0 flex-col border-l border-line bg-white md:w-80 lg:w-[22rem]">
+        <div className="border-b border-line px-4 py-3">
+          <h1 className="flex items-center gap-2 text-[15px] font-bold">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.8">
                 <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
             تبادل نظر
           </h1>
-          <p className="mt-1 text-[12px] text-ink-soft">
-            گفتگو همیشه متصل به یک جلسه‌ی مشخص است — جلسه را انتخاب کن تا درباره‌ی همان بحث کنید
-            {totalMsgs > 0 && <span className="mr-1 text-ink-faint">({faNum(totalMsgs)} پیام در {faNum(meetings.length)} جلسه)</span>}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 items-center gap-2 rounded-lg border border-line bg-white px-3">
+          <div className="mt-2.5 flex h-9 items-center gap-2 rounded-lg bg-paper-soft px-3">
             <svg viewBox="0 0 24 24" className="size-4 text-ink-faint" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
             </svg>
@@ -68,76 +199,264 @@ export function DiscussionClient({ userId, meetings }: { userId: string; meeting
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="جستجوی جلسه…"
-              className="w-40 bg-transparent text-[12px] outline-none placeholder:text-ink-faint"
+              className="w-full bg-transparent text-[12px] outline-none placeholder:text-ink-faint"
             />
           </div>
-          <button
-            onClick={() => setOnlyMine((v) => !v)}
-            className={cn(
-              "h-9 rounded-lg border px-3 text-[12px] font-medium transition",
-              onlyMine ? "border-accent bg-accent text-white" : "border-line bg-white text-ink-soft hover:bg-paper-soft",
-            )}
-          >
-            جلساتی که من ساخته‌ام
-          </button>
         </div>
-      </div>
 
-      {list.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-line bg-white py-16 text-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-paper-soft text-ink-faint">
-            <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-            </svg>
-          </span>
-          <p className="text-[13px] font-medium text-ink-soft">جلسه‌ای برای تبادل نظر نیست</p>
-          <p className="max-w-80 text-[11px] leading-5 text-ink-faint">
-            تبادل نظر فقط روی جلسه انجام می‌شود. اول جلسه را بساز (یا درخواستش را بفرست)، بعد همین‌جا گفتگو را شروع کن.
-          </p>
-          <Link href="/meeting-requests" className="mt-1 rounded-lg bg-accent px-4 py-2 text-[12px] font-medium text-white">
-            درخواست جلسه جدید
-          </Link>
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {list.map((m, i) => (
-            <motion.div key={m.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}>
-              <Link
-                href={`/discussion/${m.id}`}
-                className="block h-full rounded-xl border border-line bg-white p-4 transition hover:border-accent/50 hover:shadow-md"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="line-clamp-2 text-[13.5px] font-bold leading-6">{m.title}</h3>
-                  {m._count.messages > 0 && (
-                    <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
-                      {faNum(m._count.messages)}
-                    </span>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {convs.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 px-6 py-10 text-center">
+              <p className="text-[12px] font-medium text-ink-soft">جلسه‌ای پیدا نشد</p>
+              <p className="text-[10.5px] leading-5 text-ink-faint">گفتگو همیشه روی یک جلسه است — اول جلسه بساز.</p>
+              <Link href="/meeting-requests" className="mt-1 rounded-lg bg-accent px-3.5 py-1.5 text-[11px] font-medium text-white">درخواست جلسه</Link>
+            </div>
+          ) : (
+            convs.map((c) => {
+              const active = c.id === selectedId;
+              const last = c.messages[0];
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => router.push(`/discussion?m=${c.id}`)}
+                  className={cn(
+                    "flex w-full items-start gap-3 border-b border-line px-4 py-3 text-right transition",
+                    active ? "bg-accent/5 shadow-[inset_2px_0_0_0_var(--accent)]" : "hover:bg-paper-soft/60",
                   )}
-                </div>
-                <p className="mt-1.5 text-[11px] text-ink-faint">
-                  {formatJalali(new Date(m.startAt), { monthName: true, withTime: true })}
-                  {m.branch ? ` · ${m.branch.name}` : ""}
-                  {m.room ? ` · ${m.room.name}` : ""}
-                </p>
-                <div className="mt-3 flex items-center justify-between border-t border-line pt-2.5">
-                  <span className="text-[10.5px] text-ink-soft">
-                    برگزارکننده: {m.organizer.id === userId ? "شما" : m.organizer.fullName}
-                  </span>
-                  <span className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                    m.status === "COMPLETED" ? "bg-emerald-50 text-emerald-600"
-                      : m.status === "IN_PROGRESS" ? "bg-blue-50 text-blue-600"
-                      : m.status === "PENDING_APPROVAL" ? "bg-amber-50 text-amber-600"
-                      : "bg-paper-soft text-ink-soft",
-                  )}>
-                    {STATUS_FA[m.status] ?? m.status}
-                  </span>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
+                >
+                  <div className="relative shrink-0">
+                    <span className={cn(
+                      "flex size-11 items-center justify-center rounded-xl text-[13px] font-bold",
+                      active ? "bg-accent text-white" : "bg-paper-soft text-ink-soft",
+                    )}>
+                      {c.title.trim().slice(0, 1)}
+                    </span>
+                    {c._count.messages > 0 && (
+                      <span className="absolute -top-1.5 -left-1.5 flex min-w-4.5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-white">
+                        {faNum(c._count.messages)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className={cn("truncate text-[12.5px]", active ? "font-bold" : "font-medium")}>{c.title}</p>
+                      <span className="shrink-0 text-[9.5px] text-ink-faint">{formatJalali(new Date(c.startAt)).slice(5)}</span>
+                    </div>
+                    <p className="mt-0.5 truncate text-[10.5px] text-ink-faint">
+                      {last ? last.body : STATUS_FA[c.status] ?? c.status}
+                    </p>
+                    <p className="mt-0.5 text-[9.5px] text-ink-faint/70">
+                      {c.branch?.name ?? "بیرون"}{c.room ? ` · ${c.room.name}` : ""}
+                    </p>
+                  </div>
+                </button>
+              );
+            })
+          )}
         </div>
-      )}
+      </aside>
+
+      {/* ── chat pane ── */}
+      <main className="relative hidden min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.03)_1px,transparent_0)] [background-size:20px_20px] md:flex">
+        {!selected ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+            <span className="flex size-16 items-center justify-center rounded-2xl bg-white text-ink-faint shadow-sm">
+              <svg viewBox="0 0 24 24" className="size-8" fill="none" stroke="currentColor" strokeWidth="1.4">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+            <p className="text-[14px] font-bold text-ink-soft">یک گفتگو را انتخاب کنید</p>
+            <p className="max-w-72 text-[11.5px] leading-6 text-ink-faint">
+              از فهرست سمت راست جلسه‌ای را انتخاب کن تا گفتگوی همان جلسه باز شود — هر گفتگو به یک جلسه‌ی مشخص گره خورده است.
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* room header */}
+            <header className="z-10 flex items-center gap-3 border-b border-line bg-white/85 px-4 py-2.5 backdrop-blur">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="truncate text-[13.5px] font-bold">«{selected.title}»</h2>
+                  <span className={cn(
+                    "shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-medium",
+                    selected.status === "COMPLETED" ? "bg-emerald-50 text-emerald-600"
+                      : selected.status === "IN_PROGRESS" ? "bg-blue-50 text-blue-600"
+                      : selected.status === "PENDING_APPROVAL" ? "bg-amber-50 text-amber-600"
+                      : "border border-line bg-white text-ink-soft",
+                  )}>
+                    {STATUS_FA[selected.status] ?? selected.status}
+                  </span>
+                </div>
+                <p className="mt-0.5 truncate text-[10.5px] text-ink-faint">
+                  {formatJalali(new Date(selected.startAt), { monthName: true, withTime: true })}
+                  {selected.branch ? ` · ${selected.branch.name}` : ""}{selected.room ? ` · ${selected.room.name}` : ""}
+                  {" · "}
+                  <button onClick={() => setShowPeople((v) => !v)} className="font-medium text-accent underline decoration-dotted underline-offset-2">
+                    {faNum(people.length)} نفر
+                  </button>
+                </p>
+              </div>
+              <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-medium", live ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600")}>
+                <span className={cn("size-1.5 rounded-full", live ? "animate-pulse bg-emerald-500" : "bg-amber-500")} />
+                {live ? "زنده" : "آفلاین"}
+              </span>
+              <Link href={`/meetings/${selected.id}`} className="shrink-0 rounded-lg border border-line bg-white px-2.5 py-1.5 text-[10.5px] font-medium text-ink-soft hover:bg-paper-soft">
+                صفحه‌ی جلسه ↗
+              </Link>
+            </header>
+
+            {/* people drawer */}
+            <AnimatePresence>
+              {showPeople && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="z-10 overflow-hidden border-b border-line bg-paper-soft/50"
+                >
+                  <div className="flex flex-wrap gap-2 px-4 py-2.5">
+                    {people.map((p) => (
+                      <span key={p.fullName} className="flex items-center gap-1.5 rounded-full border border-line bg-white py-1 pl-3 pr-1.5 text-[11px]">
+                        <UserAvatar name={p.fullName} src={p.avatarUrl} size="sm" variant="soft" />
+                        {p.fullName}
+                        {p.jobTitle && <span className="text-ink-faint">· {p.jobTitle}</span>}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* messages */}
+            <div className="relative min-h-0 flex-1">
+              <div ref={listRef} onScroll={onScroll} className="h-full overflow-y-auto px-4 py-4 md:px-8">
+                {messages.length === 0 && (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 text-center">
+                    <p className="text-[12.5px] font-medium text-ink-soft">
+                      {canChat ? "اولین پیام گفتگوی این جلسه را بنویسید" : "هنوز گفتگویی شروع نشده"}
+                    </p>
+                    <p className="max-w-72 text-[10.5px] leading-5 text-ink-faint">هماهنگی پیش از جلسه و جمع‌بندی پس از آن، همه این‌جا.</p>
+                  </div>
+                )}
+                <div className="mx-auto flex max-w-3xl flex-col gap-1">
+                  <AnimatePresence initial={false}>
+                    {groups.map((g) => (
+                      <div key={g.key} className="flex flex-col gap-1">
+                        {g.day && (
+                          <div className="my-2.5 flex items-center gap-3">
+                            <span className="h-px flex-1 bg-line/70" />
+                            <span className="rounded-full border border-line bg-white px-2.5 py-0.5 text-[9.5px] text-ink-faint">
+                              {formatJalali(new Date(g.day + "T12:00:00Z"), { monthName: true })}
+                            </span>
+                            <span className="h-px flex-1 bg-line/70" />
+                          </div>
+                        )}
+                        <motion.div
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.18 }}
+                          className={cn("flex items-end gap-2", g.mine ? "flex-row-reverse" : "flex-row")}
+                        >
+                          <UserAvatar name={g.author.fullName} src={g.author.avatarUrl} size="sm" variant={g.mine ? "ink" : "soft"} />
+                          <div className={cn("flex max-w-[75%] flex-col gap-1", g.mine ? "items-end" : "items-start")}>
+                            {!g.mine && (
+                              <span className="px-1 text-[10px] font-medium text-ink-soft">
+                                {g.author.fullName}
+                                {g.author.jobTitle ? <span className="mr-1 font-normal text-ink-faint">· {g.author.jobTitle}</span> : null}
+                              </span>
+                            )}
+                            {g.items.map((m, i) => {
+                              const last = i === g.items.length - 1;
+                              return (
+                                <div
+                                  key={m.id}
+                                  className={cn(
+                                    "whitespace-pre-wrap break-words px-3.5 py-2 text-[13px] leading-6 shadow-[0_1px_1px_rgba(0,0,0,0.05)]",
+                                    g.mine
+                                      ? cn("bg-accent text-white", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md")
+                                      : cn("border border-line bg-white text-ink", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md"),
+                                  )}
+                                >
+                                  {m.body}
+                                  {last && (
+                                    <span className={cn("mt-0.5 block text-left text-[9px] leading-3", g.mine ? "text-white/70" : "text-ink-faint")}>
+                                      {formatJalali(new Date(m.createdAt), { withTime: true })}
+                                      {g.mine && <span className="mr-1">✓✓</span>}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </motion.div>
+                      </div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {showJump && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    onClick={() => { atBottomRef.current = true; scrollToBottom(); }}
+                    className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-line bg-white px-3 py-1.5 text-[10.5px] font-medium text-ink-soft shadow-md hover:bg-paper-soft"
+                  >
+                    ↓ آخرین پیام
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* composer */}
+            {canChat ? (
+              <footer className="border-t border-line bg-white/90 px-4 py-3 backdrop-blur md:px-8">
+                <div className="mx-auto max-w-3xl">
+                  {error && <p className="mb-2 rounded-md bg-red-50 px-2 py-1 text-[10.5px] text-red-600">{error}</p>}
+                  <div className="flex items-end gap-2 rounded-2xl border border-line bg-white p-2 shadow-sm transition-colors focus-within:border-accent/60">
+                    <textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+                      }}
+                      rows={Math.min(4, Math.max(1, draft.split("\n").length))}
+                      placeholder={`پیام در گفتگوی «${selected.title.slice(0, 24)}${selected.title.length > 24 ? "…" : ""}»…`}
+                      className="max-h-28 flex-1 resize-none bg-transparent px-2 py-1 text-[13px] outline-none placeholder:text-ink-faint"
+                      maxLength={2000}
+                    />
+                    <span className={cn("shrink-0 pb-1 text-[9px] tabular-nums", draft.length > 1800 ? "text-amber-600" : "text-ink-faint")}>
+                      {faNum(draft.length)}/۲۰۰۰
+                    </span>
+                    <motion.button
+                      whileTap={{ scale: 0.92 }}
+                      onClick={() => void send()}
+                      disabled={!draft.trim() || sending}
+                      className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-accent text-white transition disabled:opacity-30"
+                      aria-label="ارسال پیام"
+                    >
+                      {sending ? (
+                        <span className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                      ) : (
+                        <svg viewBox="0 0 24 24" className="size-4.5 -scale-x-100" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </motion.button>
+                  </div>
+                  <p className="mt-1 px-1 text-[9px] text-ink-faint">Enter ارسال · Shift+Enter خط جدید</p>
+                </div>
+              </footer>
+            ) : (
+              <footer className="border-t border-line bg-white/90 py-3 text-center text-[11px] text-ink-soft">
+                برای شرکت در گفتگو باید به این جلسه دعوت شده باشید.
+              </footer>
+            )}
+          </>
+        )}
+      </main>
     </div>
   );
 }
