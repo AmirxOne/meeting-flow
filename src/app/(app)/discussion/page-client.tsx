@@ -445,38 +445,48 @@ export function DiscussionClient({
               </AnimatePresence>
             </div>
 
-            {/* composer */}
+            {/* composer — Telegram-style floating bar */}
             {canChat ? (
-<footer className="relative border-t border-line bg-gradient-to-l from-paper-soft/30 to-white px-4 py-3 md:px-8">
+              <footer className="relative border-t border-line bg-white/80 px-4 pb-4 pt-3 backdrop-blur-md md:px-8">
                 <div className="mx-auto max-w-3xl">
-                  {error && <p className="mb-2 rounded-md bg-red-50 px-2 py-1 text-[10.5px] text-red-600">{error}</p>}
+                  {error && (
+                    <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mb-2 flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-1.5 text-[11px] font-medium text-red-600">
+                      <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" strokeLinecap="round" /></svg>
+                      {error}
+                    </motion.p>
+                  )}
 
-                  {/* emoji picker */}
+                  {/* emoji panel */}
                   <AnimatePresence>
                     {showEmoji && (
                       <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                        className="absolute bottom-[4.5rem] left-4 z-20 w-72 rounded-2xl border border-line bg-white p-3 shadow-xl md:left-8"
+                        exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                        transition={{ type: "spring", duration: 0.25, bounce: 0.2 }}
+                        className="absolute bottom-[5rem] left-4 z-30 w-[19.5rem] rounded-2xl border border-line bg-white/95 p-3 shadow-2xl backdrop-blur md:left-8"
                       >
-                        <div className="grid grid-cols-7 gap-1">
-                          {["😀","😄","😂","🥲","😍","🥰","😎","🤔","🙂","🙃","😉","😅","😢","😡","🥳","😴","🤯","🫡","🤝","👍","👎","👏","🙌","💪","✌️","🤞","🙏","❤️","🧡","💙","💯","🔥","✨","⭐","🎉","🎊","📌","📎","✅","❌","⚠️","⏰","📅","💡","🎯","🚀","☕","🍕"].map((e) => (
-                            <button
+                        <div className="mb-2 flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-ink-soft">ایموجی</span>
+                          <button onClick={() => setShowEmoji(false)} className="flex size-5 items-center justify-center rounded-full text-ink-faint hover:bg-paper-soft" aria-label="بستن">✕</button>
+                        </div>
+                        <div className="grid max-h-52 grid-cols-7 gap-0.5 overflow-y-auto">
+                          {["😀","😄","😂","🥲","😍","🥰","😎","🤔","🙂","🙃","😉","😅","😢","😡","🥳","😴","🤯","🫡","🤝","👍","👎","👏","🙌","💪","✌️","🤞","🙏","❤️","🧡","💙","💚","💜","💯","🔥","✨","⭐","🎉","🎊","📌","📎","✅","❌","⚠️","⏰","📅","💡","🎯","🚀","☕","🍕"].map((e) => (
+                            <motion.button
                               key={e}
-                              onClick={() => { setDraft((d) => (d + " " + e).slice(0, 2000)); }}
-                              className="flex size-9 items-center justify-center rounded-xl text-[21px] transition hover:scale-125 hover:bg-paper-soft"
+                              whileTap={{ scale: 0.8 }}
+                              onClick={() => setDraft((d) => (d + " " + e).slice(0, 2000))}
+                              className="flex size-9 items-center justify-center rounded-xl text-[21px] transition hover:bg-paper-soft"
                             >
                               {e}
-                            </button>
+                            </motion.button>
                           ))}
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  <div className="flex items-end gap-2 rounded-[1.75rem] border border-line bg-paper-soft/60 p-1.5 pl-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors focus-within:border-accent/50 focus-within:bg-white">
-                    {/* attach — real file upload to the meeting's attachments */}
+                  <div className="flex items-end gap-1 rounded-[1.6rem] border border-line/90 bg-paper-soft/50 p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.05)] transition-all duration-200 focus-within:border-ink/30 focus-within:bg-white focus-within:shadow-[0_4px_16px_rgba(0,0,0,0.08)]">
                     <input
                       ref={fileRef}
                       type="file"
@@ -488,56 +498,70 @@ export function DiscussionClient({
                         e.target.value = "";
                       }}
                     />
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
                       onClick={() => fileRef.current?.click()}
                       disabled={uploading}
-                      className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-white hover:text-ink disabled:opacity-40"
+                      className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-white hover:text-ink disabled:opacity-40"
                       title="بارگذاری فایل در پیوست‌های جلسه"
                       aria-label="بارگذاری فایل"
                     >
                       {uploading ? (
-                        <span className="size-4 animate-spin rounded-full border-2 border-ink-faint/40 border-t-ink-faint" />
+                        <span className="size-4 animate-spin rounded-full border-2 border-ink-faint/30 border-t-ink-faint" />
                       ) : (
-                        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7">
                           <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
-                    </button>
-                    {/* emoji */}
-                    <button
+                    </motion.button>
+
+                    <motion.button
+                      whileTap={{ scale: 0.85 }}
                       onClick={() => setShowEmoji((v) => !v)}
-                      className={cn("flex size-10 shrink-0 items-center justify-center rounded-full transition hover:bg-white", showEmoji ? "text-accent" : "text-ink-faint hover:text-accent")}
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white",
+                        showEmoji ? "bg-white text-ink" : "text-ink-faint hover:text-ink",
+                      )}
                       title="ایموجی"
                       aria-label="ایموجی"
                     >
-                      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" strokeLinecap="round" />
+                      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" strokeLinecap="round" />
                       </svg>
-                    </button>
-                    {/* input */}
+                    </motion.button>
+
                     <textarea
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(); }
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          void send();
+                        }
                       }}
                       rows={Math.min(5, Math.max(1, draft.split("\n").length))}
                       placeholder="پیام…"
-                      className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-1 py-2.5 text-[13.5px] leading-6 text-ink outline-none placeholder:text-ink-faint/80"
+                      className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-2 py-2.5 text-[13.5px] leading-6 text-ink outline-none placeholder:text-ink-faint/70"
                       maxLength={2000}
                     />
-                    <span className={cn("shrink-0 self-center pb-0.5 text-[9px] tabular-nums", draft.length > 1800 ? "text-amber-600" : "text-ink-faint")}>
-                      {draft.length > 0 ? `${faNum(draft.length)}/۲۰۰۰` : ""}
-                    </span>
-                    {/* round Telegram-style send FAB */}
+
+                    {draft.length > 0 && (
+                      <span className={cn("shrink-0 self-center text-[9px] tabular-nums", draft.length > 1800 ? "text-amber-600" : "text-ink-faint")}>
+                        {faNum(draft.length)}/۲۰۰۰
+                      </span>
+                    )}
+
                     <motion.button
-                      whileTap={{ scale: 0.88 }}
-                      whileHover={{ scale: 1.06 }}
+                      whileTap={{ scale: 0.85 }}
+                      whileHover={draft.trim() ? { scale: 1.08 } : undefined}
                       onClick={() => void send()}
                       disabled={!draft.trim() || sending}
                       className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-full shadow-md transition-colors",
-                        draft.trim() ? "bg-accent text-white" : "bg-paper-deep text-ink-faint",
+                        "ml-0.5 flex size-10 shrink-0 items-center justify-center rounded-full transition-all duration-200",
+                        draft.trim()
+                          ? "bg-ink text-white shadow-[0_3px_10px_rgba(13,13,13,0.3)]"
+                          : "bg-paper-deep/70 text-ink-faint/60",
                       )}
                       aria-label="ارسال پیام"
                       title="ارسال (Enter)"
@@ -545,17 +569,18 @@ export function DiscussionClient({
                       {sending ? (
                         <span className="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                       ) : (
-                        <svg viewBox="0 0 24 24" className="size-5 text-white" fill="currentColor">
+                        <svg viewBox="0 0 24 24" className="size-5" fill="currentColor">
                           <path d="M3.4 20.4 20.85 12 3.4 3.6l-.01 6.53L15 12 3.39 13.87z" />
                         </svg>
                       )}
                     </motion.button>
                   </div>
-                  <p className="mt-1 px-2 text-[9px] text-ink-faint">Enter ارسال · Shift+Enter خط جدید</p>
+
+                  <p className="mt-1.5 px-2 text-[9px] text-ink-faint/80">Enter ارسال · Shift+Enter خط جدید · 📎 فایل به پیوست‌های جلسه می‌رود</p>
                 </div>
               </footer>
             ) : (
-              <footer className="border-t border-line bg-white/90 py-3 text-center text-[11px] text-ink-soft">
+              <footer className="border-t border-line bg-white/80 py-4 text-center text-[11px] text-ink-soft backdrop-blur">
                 برای شرکت در گفتگو باید به این جلسه دعوت شده باشید.
               </footer>
             )}
