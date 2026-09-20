@@ -249,7 +249,11 @@ export function DiscussionClient({
               return (
                 <button
                   key={c.id}
-                  onClick={() => router.push(`/discussion?m=${c.id}`)}
+                  onClick={() => {
+                    // phones: go to the dedicated chat page; desktop: open in the side pane
+                    if (window.matchMedia("(max-width: 767px)").matches) router.push(`/discussion/${c.id}`);
+                    else router.push(`/discussion?m=${c.id}`);
+                  }}
                   className={cn(
                     "group flex w-full items-start gap-3 border-b border-line/70 px-4 py-3 text-right transition-colors",
                     active ? "bg-accent/5 shadow-[inset_3px_0_0_0_var(--accent)]" : "hover:bg-paper-soft/70",

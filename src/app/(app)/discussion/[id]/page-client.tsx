@@ -27,19 +27,26 @@ type Props = {
 
 export function DiscussionRoomClient(p: Props) {
   return (
-    <div className="mx-auto max-w-4xl space-y-3 p-4 lg:p-6">
-      <div className="flex items-center gap-2 text-[11px] text-ink-faint">
-        <Link href="/discussion" className="rounded-md border border-line bg-white px-2 py-1 font-medium text-ink-soft hover:bg-paper-soft">
-          → همه‌ی گفتگوها
+    <div className="flex h-[calc(100dvh-3.75rem)] flex-col p-2 md:mx-auto md:max-w-4xl md:space-y-3 md:p-4 lg:p-6">
+      <div className="flex items-center justify-between gap-2 border-b border-line pb-2 md:border-0 md:pb-0">
+        <Link
+          href="/discussion"
+          className="flex size-10 items-center gap-1 rounded-full border border-line bg-white px-3 text-[12px] font-bold text-ink-soft hover:bg-paper-soft md:size-auto md:py-1"
+          aria-label="بازگشت به گفتگوها"
+        >
+          <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="hidden md:inline">همه‌ی گفتگوها</span>
         </Link>
-        <span>گفتگوی جلسه</span>
+        <span className="text-[10px] text-ink-faint md:hidden">گفتگوی جلسه</span>
       </div>
 
       {/* meeting context header — the discussion is ALWAYS anchored to this meeting */}
       <motion.div
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-line bg-gradient-to-l from-paper-soft/70 to-white p-4"
+        className="shrink-0 rounded-xl border border-line bg-gradient-to-l from-paper-soft/70 to-white p-3 md:p-4"
       >
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
@@ -72,7 +79,7 @@ export function DiscussionRoomClient(p: Props) {
       </motion.div>
 
       {/* full chat — stretched taller on the dedicated page */}
-      <div className="[&_section]:max-h-[calc(100dvh-19rem)] [&_section]:min-h-72">
+      <div className="flex min-h-0 flex-1 flex-col [&_section]:flex [&_section]:min-h-0 [&_section]:flex-1 [&_section]:max-h-none md:[&_section]:min-h-72">
         <MeetingChat
           meetingId={p.meetingId}
           currentUserId={p.currentUserId}

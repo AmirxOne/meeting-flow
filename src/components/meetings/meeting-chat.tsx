@@ -134,7 +134,7 @@ export function MeetingChat({ meetingId, currentUserId, canChat, initialMessages
   const participants = useMemo(() => new Set(messages.map((m) => m.userId)).size, [messages]);
 
   return (
-    <section className="overflow-hidden rounded-xl border border-line bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+    <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       {/* header */}
       <header className="flex items-center justify-between border-b border-line bg-gradient-to-l from-paper-soft/60 to-white px-4 py-3">
         <div className="flex items-center gap-2.5">
@@ -166,11 +166,11 @@ export function MeetingChat({ meetingId, currentUserId, canChat, initialMessages
       </header>
 
       {/* messages */}
-      <div className="relative">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={listRef}
           onScroll={onScroll}
-          className="flex max-h-[26rem] min-h-44 flex-col gap-1 overflow-y-auto bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.035)_1px,transparent_0)] [background-size:18px_18px] px-4 py-4"
+          className="flex max-h-[26rem] min-h-44 flex-1 flex-col gap-1 overflow-y-auto bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.035)_1px,transparent_0)] [background-size:18px_18px] px-4 py-4"
         >
           {messages.length === 0 && (
             <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center">
