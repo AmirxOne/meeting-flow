@@ -501,14 +501,14 @@ export function DiscussionClient({
                       whileTap={{ scale: 0.85 }}
                       onClick={() => fileRef.current?.click()}
                       disabled={uploading}
-                      className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-white hover:text-ink disabled:opacity-40"
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-white hover:text-ink disabled:opacity-40"
                       title="بارگذاری فایل در پیوست‌های جلسه"
                       aria-label="بارگذاری فایل"
                     >
                       {uploading ? (
                         <span className="size-4 animate-spin rounded-full border-2 border-ink-faint/30 border-t-ink-faint" />
                       ) : (
-                        <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.7">
+                        <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.7">
                           <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
@@ -518,13 +518,13 @@ export function DiscussionClient({
                       whileTap={{ scale: 0.85 }}
                       onClick={() => setShowEmoji((v) => !v)}
                       className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white",
+                        "flex size-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-white",
                         showEmoji ? "bg-white text-ink" : "text-ink-faint hover:text-ink",
                       )}
                       title="ایموجی"
                       aria-label="ایموجی"
                     >
-                      <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.7">
                         <circle cx="12" cy="12" r="10" />
                         <path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01" strokeLinecap="round" />
                       </svg>
