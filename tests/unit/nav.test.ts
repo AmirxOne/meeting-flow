@@ -14,6 +14,7 @@ describe("nav visibility", () => {
       "/dashboard",
       "/calendar",
       "/meetings",
+      "/discussion",
       "/availability",
       "/meeting-requests",
     ]);

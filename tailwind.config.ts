@@ -16,6 +16,10 @@ const config: Config = {
           deep: "#ececf1",
         },
         line: "#e5e5e8",
+        accent: {
+          DEFAULT: "#0d0d0d",
+          soft: "#3a3a44",
+        },
         danger: "#ef4056",
         success: "#059669",
       },

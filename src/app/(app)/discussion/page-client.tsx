@@ -77,6 +77,8 @@ export function DiscussionClient({
   const [error, setError] = useState<string | null>(null);
   const [showPeople, setShowPeople] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const atBottomRef = useRef(true);
   const [showJump, setShowJump] = useState(false);
@@ -118,6 +120,34 @@ export function DiscussionClient({
     const bottom = el.scrollHeight - el.scrollTop - el.clientHeight < 60;
     atBottomRef.current = bottom;
     setShowJump(!bottom && el.scrollHeight > el.clientHeight + 120);
+  };
+
+  const uploadFile = async (file: File) => {
+    if (!selectedId) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/meetings/${selectedId}/attachments`, { method: "POST", body: fd });
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        setError(j?.error?.message ?? "بارگذاری فایل ناموفق بود");
+        return;
+      }
+      // announce the file in the chat
+      const name = j?.data?.attachment?.originalName ?? file.name;
+      await fetch(`/api/meetings/${selectedId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: `📎 «${name}» به پیوست‌های جلسه اضافه شد` }),
+      }).catch(() => {});
+      await refresh();
+    } catch {
+      setError("ارتباط با سرور برقرار نشد");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const send = async () => {
@@ -356,10 +386,10 @@ export function DiscussionClient({
                           initial={{ opacity: 0, y: 8 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.18 }}
-                          className={cn("flex items-end gap-2", g.mine ? "flex-row-reverse" : "flex-row")}
+                          className={cn("flex items-end gap-2.5", g.mine ? "justify-start flex-row" : "justify-end flex-row")}
                         >
                           <UserAvatar name={g.author.fullName} src={g.author.avatarUrl} size="sm" variant={g.mine ? "ink" : "soft"} />
-                          <div className={cn("flex max-w-[75%] flex-col gap-1", g.mine ? "items-end" : "items-start")}>
+                          <div className={cn("flex max-w-[75%] flex-col gap-1", g.mine ? "items-start" : "items-end")}>
                             {!g.mine && (
                               <span className="px-1 text-[10.5px] font-bold text-ink/80">
                                 {g.author.fullName}
@@ -374,11 +404,15 @@ export function DiscussionClient({
                                   className={cn(
                                     "whitespace-pre-wrap break-words px-3.5 py-2 text-[13px] leading-6 shadow-[0_1px_1px_rgba(0,0,0,0.05)]",
                                     g.mine
-                                      ? cn("bg-gradient-to-br from-accent to-accent/90 text-white", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md")
-                                      : cn("border border-line/80 bg-white/95 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.04)]", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md"),
+                                      ? cn("bg-ink text-white shadow-[0_2px_6px_rgba(13,13,13,0.22)]", last ? "rounded-2xl rounded-tr-md" : "rounded-2xl rounded-r-md", i === 0 && "rounded-tl-md")
+                                      : cn("border border-line bg-paper-soft text-ink", last ? "rounded-2xl rounded-tl-md" : "rounded-2xl rounded-l-md", i === 0 && "rounded-tr-md"),
                                   )}
                                 >
-                                  {m.body}
+                                  {m.body.startsWith("📎") ? (
+                                    <span className="block rounded-xl bg-ink/5 px-3 py-1.5 text-center text-[11.5px] font-medium text-ink-soft">{m.body}</span>
+                                  ) : (
+                                    m.body
+                                  )}
                                   {last && (
                                     <span className={cn("mt-0.5 block text-left text-[9px] leading-3", g.mine ? "text-white/70" : "text-ink-faint")}>
                                       {formatJalali(new Date(m.createdAt), { withTime: true })}
@@ -426,13 +460,12 @@ export function DiscussionClient({
                         exit={{ opacity: 0, y: 8, scale: 0.97 }}
                         className="absolute bottom-[4.5rem] left-4 z-20 w-72 rounded-2xl border border-line bg-white p-3 shadow-xl md:left-8"
                       >
-                        <p className="mb-2 text-[10px] font-medium text-ink-faint">ایموجی</p>
-                        <div className="grid grid-cols-8 gap-1">
-                          {["😀","😂","🥲","😍","😎","🤔","🙂","🙃","😉","😅","😊","🥳","😴","🤝","👍","👎","👏","🙌","💪","✌️","🤞","❤️","🔥","✨","⭐","🎉","📌","📎","✅","❌","⏰","📅"].map((e) => (
+                        <div className="grid grid-cols-7 gap-1">
+                          {["😀","😄","😂","🥲","😍","🥰","😎","🤔","🙂","🙃","😉","😅","😢","😡","🥳","😴","🤯","🫡","🤝","👍","👎","👏","🙌","💪","✌️","🤞","🙏","❤️","🧡","💙","💯","🔥","✨","⭐","🎉","🎊","📌","📎","✅","❌","⚠️","⏰","📅","💡","🎯","🚀","☕","🍕"].map((e) => (
                             <button
                               key={e}
-                              onClick={() => { setDraft((d) => (d + " " + e).slice(0, 2000)); setShowEmoji(false); }}
-                              className="flex size-8 items-center justify-center rounded-lg text-[17px] transition hover:bg-paper-soft"
+                              onClick={() => { setDraft((d) => (d + " " + e).slice(0, 2000)); }}
+                              className="flex size-9 items-center justify-center rounded-xl text-[21px] transition hover:scale-125 hover:bg-paper-soft"
                             >
                               {e}
                             </button>
@@ -443,16 +476,32 @@ export function DiscussionClient({
                   </AnimatePresence>
 
                   <div className="flex items-end gap-2 rounded-[1.75rem] border border-line bg-paper-soft/60 p-1.5 pl-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.04)] transition-colors focus-within:border-accent/50 focus-within:bg-white">
-                    {/* attach (link to meeting attachments) */}
+                    {/* attach — real file upload to the meeting's attachments */}
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void uploadFile(f);
+                        e.target.value = "";
+                      }}
+                    />
                     <button
-                      onClick={() => router.push(`/meetings/${selected.id}`)}
-                      className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-white hover:text-accent"
-                      title="پیوست‌های جلسه"
-                      aria-label="پیوست‌های جلسه"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                      className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-white hover:text-ink disabled:opacity-40"
+                      title="بارگذاری فایل در پیوست‌های جلسه"
+                      aria-label="بارگذاری فایل"
                     >
-                      <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                      {uploading ? (
+                        <span className="size-4 animate-spin rounded-full border-2 border-ink-faint/40 border-t-ink-faint" />
+                      ) : (
+                        <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
                     </button>
                     {/* emoji */}
                     <button
