@@ -550,12 +550,6 @@ export function DiscussionClient({
                       maxLength={2000}
                     />
 
-                    {draft.length > 0 && (
-                      <span className={cn("shrink-0 self-center text-[9px] tabular-nums", draft.length > 1800 ? "text-amber-600" : "text-ink-faint")}>
-                        {faNum(draft.length)}/۲۰۰۰
-                      </span>
-                    )}
-
                     <motion.button
                       whileTap={{ scale: 0.85 }}
                       whileHover={draft.trim() ? { scale: 1.08 } : undefined}
