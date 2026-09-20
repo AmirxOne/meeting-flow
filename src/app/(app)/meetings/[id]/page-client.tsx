@@ -898,12 +898,26 @@ export function MeetingDetailPage() {
             </div>
           </Card>
 
-          <MeetingChat
-            meetingId={id}
-            currentUserId={me?.id ?? ""}
-            canChat={Boolean(me && (m.organizer.id === me.id || m.participants.some((p: { userId: string }) => p.userId === me.id)))}
-            initialMessages={chat}
-          />
+          <Card>
+            <CardHeader
+              title="💬 تبادل نظر"
+              subtitle="گفتگوی متصل به همین جلسه — در صفحه‌ی اختصاصی"
+              action={
+                <Link
+                  href={`/discussion/${id}`}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-[11px] font-medium text-white hover:opacity-90"
+                >
+                  ورود به گفتگو
+                  <span aria-hidden>←</span>
+                </Link>
+              }
+            />
+            <CardBody>
+              <p className="text-[12px] leading-6 text-ink-soft">
+                بحث پیش و پس از جلسه (هماهنگی، اسناد، جمع‌بندی) در صفحه‌ی گفتگوی این جلسه انجام می‌شود — همه‌ی پیام‌ها با زمینه‌ی همین جلسه در یک‌جا.
+              </p>
+            </CardBody>
+          </Card>
 
           <MeetingAgenda
             meetingId={id}

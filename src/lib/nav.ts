@@ -2,6 +2,7 @@ import type { AppIcon } from "@/components/ui/icon";
 import {
   LayoutDashboard,
   CalendarDays,
+  MessageCircle,
   Users,
   UsersRound,
   UserRound,
@@ -46,6 +47,7 @@ export const NAV: NavItemDef[] = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard, perm: null, group: "main" },
   { href: "/calendar", label: "تقویم", icon: CalendarDays, perm: null, group: "main" },
   { href: "/meetings", label: "جلسات", icon: Users, perm: null, group: "main" },
+  { href: "/discussion", label: "تبادل نظر", icon: MessageCircle, perm: null, group: "main" },
   { href: "/availability", label: "زمان مناسب", icon: Search, perm: null, group: "main" },
   {
     href: "/meeting-requests",
