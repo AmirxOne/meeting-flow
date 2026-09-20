@@ -299,7 +299,6 @@ SMTP_FROM=no-reply@example.com
 
 - [x] اتصال SMS واقعی (Kavenegar) — `SMS_API_KEY` + پایلوت در ادمین → تنظیمات؛ mock برای dev
 - [x] ایمیل SMTP — قالب RTL دعوت/یادآور/صورتجلسه؛ mock برای dev
-- [ ] Sync تقویم Google / Outlook — معماری CalendarProvider آماده است
 - [x] QR Check-in مهمان‌ها — `/checkin/[code]` + QR canvas + self check-in + E2E (`e2e-checkin.cjs`)
 - [x] SSO / LDAP / Active Directory — LDAP bind + OIDC (Entra ID) با `AUTH_MODE=local,sso`
 

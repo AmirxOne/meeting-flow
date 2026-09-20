@@ -17,7 +17,6 @@ import {
   isParticipantResponse,
 } from "./participant-response.service";
 import { generateCheckinCode } from "./guest-checkin.service";
-import { calendarSyncBestEffort } from "./calendar-sync.service";
 import { expandOccurrences, type RecurrenceRule, type SeriesEditScope } from "@/lib/recurrence";
 import {
   filterSeriesTargets,
@@ -232,7 +231,6 @@ export async function createMeeting(input: CreateMeetingInput): Promise<Meeting>
       }
       await scheduleReminders(meeting);
       await notificationService.meetingCreated(meeting, input.createdById ?? input.organizerId);
-      void calendarSyncBestEffort("create", meeting);
       return meeting;
     })
     .catch((e) => {
@@ -456,7 +454,6 @@ export async function createMeetingSeries(input: CreateSeriesInput): Promise<Cre
     .then(async ({ series, meetings }) => {
       for (const m of meetings) {
         await scheduleReminders(m);
-        void calendarSyncBestEffort("create", m);
       }
       await notificationService.meetingCreated(meetings[0], input.createdById ?? input.organizerId, {
         occurrenceCount: meetings.length,
@@ -676,7 +673,6 @@ export async function rescheduleMeeting(
   ).then(async (m) => {
     for (const p of planned) {
       await scheduleReminders({ ...p.meeting, startAt: p.startAt, endAt: p.endAt, roomId: p.roomId });
-      void calendarSyncBestEffort("update", { ...p.meeting, startAt: p.startAt, endAt: p.endAt, roomId: p.roomId });
     }
     await notificationService.meetingRescheduled(m, ctx.actorId, old, { count: planned.length });
     for (const p of planned) {
@@ -745,7 +741,6 @@ export async function cancelMeeting(
   const updated = await prisma.meeting.findUniqueOrThrow({ where: { id: meetingId } });
   await notificationService.meetingCancelled(updated, ctx.actorId, input.reason, { count: ids.length });
   for (const t of targets) {
-    void calendarSyncBestEffort("cancel", { ...t, status: "CANCELLED" });
     void offerWaitlistAfterVacate({
       orgId: ctx.orgId,
       roomId: t.roomId,
@@ -1095,7 +1090,6 @@ export async function claimWaitlistMeeting(
 
   await scheduleReminders(updated);
   await notificationService.meetingCreated(updated, ctx.actorId);
-  void calendarSyncBestEffort("create", updated);
   return updated;
 }
 
