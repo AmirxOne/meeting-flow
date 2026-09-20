@@ -30,6 +30,9 @@ const guestSchema = z.object({
   urgency: z.enum(["URGENT", "NORMAL", "FLEXIBLE"]).default("NORMAL"),
   durationMin: z.number().int().min(15).max(480).default(60),
   isPrivate: z.boolean().default(false),
+  /// preferred window (Tehran ISO)
+  prefFrom: z.string().datetime().optional(),
+  prefTo: z.string().datetime().optional(),
   venue: z.enum(["ONSITE", "OFFSITE"]).default("ONSITE"),
   offsiteOrg: z.string().trim().min(2).max(120).optional(),
   offsiteNote: z.string().trim().max(300).optional(),
@@ -78,6 +81,8 @@ export async function POST(req: NextRequest) {
         urgency: input.urgency,
         durationMin: input.durationMin,
         isPrivate: input.isPrivate,
+        prefFrom: input.prefFrom ? new Date(input.prefFrom) : null,
+        prefTo: input.prefTo ? new Date(input.prefTo) : null,
         venue: input.venue,
         offsiteOrg: input.venue === "OFFSITE" ? (input.offsiteOrg ?? null) : null,
         offsiteNote: input.venue === "OFFSITE" ? (input.offsiteNote ?? null) : null,

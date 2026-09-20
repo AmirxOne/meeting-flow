@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, ChevronDown, Search, X, UserRound, Plus } from "@/components/ui/icon";
+import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 
 const URGENCY_FA: Record<string, string> = {
   URGENT: "فوری — در اسرع وقت",
@@ -32,6 +33,10 @@ export function PublicRequestForm() {
   const [people, setPeople] = useState<PubPerson[]>([]); // picked from public directory
   const [busy, setBusy] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
+  // preferred window (optional): day + from/to hours
+  const [prefDay, setPrefDay] = useState("");
+  const [prefFrom, setPrefFrom] = useState("");
+  const [prefTo, setPrefTo] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +60,12 @@ export function PublicRequestForm() {
           urgency,
           isPrivate,
           durationMin: Number(durationMin),
+          ...(prefDay && prefFrom
+            ? {
+                prefFrom: tehranToIso(prefDay, prefFrom),
+                ...(prefTo ? { prefTo: tehranToIso(prefDay, prefTo) } : {}),
+              }
+            : {}),
           attendeeCount,
           requestedPersonIds: people.map((p) => p.id),
         }),
@@ -109,6 +120,9 @@ export function PublicRequestForm() {
                 setDescription("");
                 setPeople([]);
                 setAttendeeCount(2);
+                setPrefDay("");
+                setPrefFrom("");
+                setPrefTo("");
               }}
               className="mt-5 h-10 rounded-md border border-line px-4 text-[12px] text-ink-soft hover:bg-paper-soft"
             >
@@ -173,6 +187,28 @@ export function PublicRequestForm() {
                 <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="h-4 w-4 accent-black" />
                 <span className="text-[12px]">جلسه محرمانه — موضوع و جزئیات فقط برای من، دعوت‌شدگان و مدیریت دیده می‌شود</span>
               </label>
+
+              {/* preferred window */}
+              <div className="rounded-lg border border-dashed border-line bg-paper-soft/40 p-3.5">
+                <p className="text-[12px] font-bold">بازه‌ی دلخواه (اختیاری)</p>
+                <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
+                  روز و ساعتی که برایتان مناسب است — مدیریت سعی می‌کند جلسه را در همین بازه بگیرد
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">روز</label>
+                    <JalaliDatePicker value={prefDay} onChange={(v) => setPrefDay(v)} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
+                    <TimePicker value={prefFrom} onChange={(v) => setPrefFrom(v)} />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
+                    <TimePicker value={prefTo} onChange={(v) => setPrefTo(v)} />
+                  </div>
+                </div>
+              </div>
 
               {/* head-count stepper */}
               <div className="flex items-center justify-between rounded-lg border border-line bg-paper-soft/60 px-4 py-3">
@@ -252,6 +288,13 @@ export function PublicRequestForm() {
 }
 
 /* ---------- helpers ---------- */
+
+/** "2026-09-20" + "14:30" (Tehran, +03:30) → ISO UTC */
+function tehranToIso(day: string, hm: string): string {
+  const [y, m, d] = day.split("-").map(Number);
+  const [hh, mm] = hm.split(":").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, hh - 3, mm - 30, 0)).toISOString();
+}
 
 function fa(n: number | string): string {
   return String(n).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);

@@ -165,7 +165,7 @@ export function JalaliDatePicker({
         <CalendarDays className={cn("h-4 w-4 shrink-0", variant === "field" && (selected ? "text-ink" : "text-ink-faint"))} />
       </button>
 
-      {open && createPortal(
+      {open && typeof document !== "undefined" && createPortal(
         <div ref={panelRef} style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left } : undefined} className="z-[9999] w-[290px] rounded-lg border border-line bg-white p-3 shadow-[0_12px_40px_rgba(0,0,0,0.14)]">
           {/* month header */}
           <div className="mb-2 flex items-center justify-between">

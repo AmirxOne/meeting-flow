@@ -173,7 +173,7 @@ export function Select({
         />
       </button>
 
-      {createPortal(
+      {typeof document !== "undefined" && createPortal(
       <AnimatePresence>
         {open && (
         <motion.ul
