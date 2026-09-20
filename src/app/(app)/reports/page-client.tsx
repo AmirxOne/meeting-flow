@@ -166,12 +166,22 @@ export function ReportsPage() {
           <BarChart3 className="h-5 w-5" />
           گزارش‌ها
         </h1>
-        <a href={`/api/reports?${queryString}&format=csv`} download>
-          <button className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium hover:bg-paper-soft">
-            <Download className="h-4 w-4" />
-            خروجی CSV
-          </button>
-        </a>
+        <div className="flex items-center gap-2">
+          {(
+            [
+              { fmt: "csv", label: "CSV" },
+              { fmt: "xlsx", label: "Excel" },
+              { fmt: "pdf", label: "PDF" },
+            ] as const
+          ).map((f) => (
+            <a key={f.fmt} href={`/api/reports?${queryString}&format=${f.fmt}`} download>
+              <button className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium hover:bg-paper-soft">
+                <Download className="h-4 w-4" />
+                {f.label}
+              </button>
+            </a>
+          ))}
+        </div>
       </div>
 
       <FilterBar

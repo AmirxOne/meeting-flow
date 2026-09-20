@@ -3,6 +3,7 @@ import { requirePermission } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
 import { endOfDayUtcFromIso, startOfDayUtcFromIso } from "@/lib";
 import { meetingsCsv, meetingsForExport, summaryReport } from "@/server/services/report.service";
+import { meetingsXlsx, meetingsPdf } from "@/server/services/report-export.service";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,26 @@ export async function GET(req: NextRequest) {
         headers: {
           "Content-Type": "text/csv; charset=utf-8",
           "Content-Disposition": 'attachment; filename="meetings-report.csv"',
+        },
+      });
+    }
+    if (format === "xlsx") {
+      const rows = await meetingsForExport(filters);
+      const buf = await meetingsXlsx(rows, { from: filters.from, to: filters.to, total: rows.length });
+      return new Response(new Uint8Array(buf), {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": 'attachment; filename="meetings-report.xlsx"',
+        },
+      });
+    }
+    if (format === "pdf") {
+      const rows = await meetingsForExport(filters);
+      const buf = await meetingsPdf(rows, { from: filters.from, to: filters.to, total: rows.length });
+      return new Response(new Uint8Array(buf), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": 'attachment; filename="meetings-report.pdf"',
         },
       });
     }
