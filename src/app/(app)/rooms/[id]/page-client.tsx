@@ -328,6 +328,7 @@ function Row({ label, value }: { label: string; value: string }) {
 /** QR panel — printable poster: scan to see this room's live agenda (no login). */
 function RoomQrPanel({ slug, name }: { slug: string | null; name: string }) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   if (!slug) return null;
   const url = typeof window !== "undefined" ? `${window.location.origin}/r/${slug}` : `/r/${slug}`;
 
@@ -354,13 +355,28 @@ function RoomQrPanel({ slug, name }: { slug: string | null; name: string }) {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="flex h-9 items-center gap-1.5 rounded-md border border-line px-3 text-[12px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
-      >
-        <QRCodeSVG value={url} size={14} level="M" />
-        QR اتاق
-      </button>
+      <div className="flex items-center gap-2">
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+          title={`نمایش صفحه‌ی عمومی این اتاق — ${url}`}
+        >
+          <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          صفحه‌ی نمایش اتاق
+        </a>
+        <button
+          onClick={() => setOpen(true)}
+          className="flex h-9 items-center gap-1.5 rounded-md border border-line px-3 text-[12px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+        >
+          <QRCodeSVG value={url} size={14} level="M" />
+          QR اتاق
+        </button>
+      </div>
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
@@ -378,9 +394,34 @@ function RoomQrPanel({ slug, name }: { slug: string | null; name: string }) {
             <div className="mx-auto mt-4 w-fit rounded-xl border border-line p-3" id="room-qr-wrap">
               <QRCodeSVG id="room-qr-svg" value={url} size={220} level="M" />
             </div>
-            <p dir="ltr" className="mt-3 break-all text-[10px] text-ink-faint">
-              {url}
-            </p>
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              <a
+                dir="ltr"
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="break-all text-[10.5px] text-accent underline decoration-dotted underline-offset-2 hover:opacity-80"
+              >
+                {url}
+              </a>
+              <button
+                onClick={() => { navigator.clipboard?.writeText(url).catch(() => {}); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }}
+                className="shrink-0 rounded-md border border-line px-2 py-1 text-[10px] font-medium text-ink-soft hover:bg-paper-soft"
+              >
+                {copied ? "کپی شد ✓" : "کپی"}
+              </button>
+            </div>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-ink text-[12px] font-medium text-white"
+            >
+              مشاهده‌ی صفحه‌ی نمایش اتاق
+              <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M7 17 17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
             <div className="mt-4 flex justify-center gap-2">
               <button
                 onClick={downloadPng}
