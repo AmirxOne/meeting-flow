@@ -77,32 +77,32 @@ export function InstallPwaBanner() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ type: "spring", stiffness: 160, damping: 24 }}
-        className="relative overflow-hidden rounded-3xl bg-ink px-6 py-8 text-white shadow-[0_24px_60px_-24px_rgba(13,13,13,0.55)] sm:px-10 sm:py-10"
+        className="relative overflow-hidden rounded-3xl bg-ink px-6 py-6 text-white shadow-[0_24px_60px_-24px_rgba(13,13,13,0.55)] sm:px-10 sm:py-8"
         dir="rtl"
       >
         {/* ambient decor */}
         <div aria-hidden className="pointer-events-none absolute -left-24 -top-24 size-64 rounded-full bg-emerald-400/15 blur-3xl" />
         <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-16 size-72 rounded-full bg-white/10 blur-3xl" />
 
-        <div className="relative flex flex-col-reverse items-center gap-8 lg:flex-row lg:items-stretch lg:gap-12">
+        <div className="relative flex flex-col-reverse items-center gap-6 lg:flex-row lg:items-stretch lg:gap-12">
           {/* copy + actions */}
           <div className="flex min-w-0 flex-1 flex-col justify-center text-center lg:text-right">
             <p className="inline-flex items-center gap-1.5 self-center rounded-full bg-white/10 px-3 py-1 text-[10.5px] font-medium text-white/80 ring-1 ring-white/15 lg:self-start">
               <span className="size-1.5 rounded-full bg-emerald-400" />
               وب‌اپلیکیشن — بدون نیاز به فروشگاه اپ
             </p>
-            <h3 className="mt-4 text-[22px] font-bold leading-9 sm:text-[26px]">مهرسا را همیشه دم‌دست داشته باشید</h3>
-            <p className="mx-auto mt-3 max-w-md text-[13px] leading-7 text-white/70 lg:mx-0">
+            <h3 className="mt-2.5 text-[21px] font-bold leading-8 sm:text-[24px]">مهرسا را همیشه دم‌دست داشته باشید</h3>
+            <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-white/70 lg:mx-0">
               روی گوشی یا دسکتاپ نصب کنید تا مهرسا مثل یک اپ‌لیکیشن مستقل، سریع و بدون مرورگر باز شود.
             </p>
-            <ul className="mx-auto mt-6 grid max-w-md gap-2.5 text-right sm:grid-cols-2 lg:mx-0">
+            <ul className="mx-auto mt-4 grid max-w-md gap-2 text-right sm:grid-cols-2 lg:mx-0">
               {[
                 { t: "باز شدن آنی", d: "بدون نوار مرورگر و صفحه‌ی تب" },
                 { t: "کارکرد آفلاین", d: "صفحات دیده‌شده بدون اینترنت" },
                 { t: "میان‌بر صفحه‌ی اصلی", d: "مثل هر اپ دیگری روی گوشی" },
                 { t: "بدون به‌روزرسانی دستی", d: "همیشه آخرین نسخه در دسترس" },
               ].map((f) => (
-                <li key={f.t} className="flex items-start gap-2.5 rounded-xl bg-white/[0.06] px-3 py-2.5 ring-1 ring-white/10">
+                <li key={f.t} className="flex items-start gap-2.5 rounded-xl bg-white/[0.06] px-3 py-2 ring-1 ring-white/10">
                   <svg viewBox="0 0 24 24" className="mt-0.5 size-4 shrink-0 text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2.4">
                     <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -113,7 +113,7 @@ export function InstallPwaBanner() {
                 </li>
               ))}
             </ul>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
               <button
                 onClick={() => void install()}
                 className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[13.5px] font-bold text-ink shadow-[0_6px_18px_-8px_rgba(255,255,255,0.45)] transition-shadow duration-200 hover:shadow-[0_14px_34px_-10px_rgba(255,255,255,0.55)] active:shadow-none"
