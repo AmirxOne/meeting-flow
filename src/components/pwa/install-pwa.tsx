@@ -133,7 +133,7 @@ export function InstallPwaBanner() {
             <div aria-hidden className="absolute inset-x-6 top-8 bottom-0 rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent blur-md" />
 
             {/* frame */}
-            <div className="relative aspect-[9/21] rounded-[2.6rem] border border-white/25 bg-gradient-to-b from-white/[0.14] to-white/[0.04] p-[10px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.25)] backdrop-blur-sm">
+            <div className="relative aspect-[9/19.5] rounded-[2.6rem] border border-white/25 bg-gradient-to-b from-white/[0.14] to-white/[0.04] p-[10px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.25)] backdrop-blur-sm">
               {/* side buttons */}
               <span aria-hidden className="absolute -right-[2.5px] top-[17%] h-7 w-[3px] rounded-l-md bg-white/30" />
               <span aria-hidden className="absolute -right-[2.5px] top-[26%] h-11 w-[3px] rounded-l-md bg-white/30" />
