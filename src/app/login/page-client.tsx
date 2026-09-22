@@ -321,11 +321,13 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setForgotSent(false); setForgotMode(false); setError(null); }}
-                  className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-white text-[12.5px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+                  className="group flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-white text-[12.5px] font-medium text-ink-soft transition-all hover:border-ink/25 hover:bg-paper-soft hover:text-ink hover:shadow-sm"
                 >
-                  <svg viewBox="0 0 24 24" className="size-3.5 rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <span className="flex size-6 items-center justify-center rounded-full bg-paper-soft text-ink-soft transition-colors group-hover:bg-ink group-hover:text-white">
+                    <svg viewBox="0 0 24 24" className="size-3.5 rotate-180" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
                   بازگشت به ورود
                 </button>
               </div>
@@ -367,11 +369,13 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setForgotMode(false); setError(null); }}
-                  className="mx-auto flex items-center gap-1.5 text-[12px] text-ink-soft transition hover:text-ink"
+                  className="group mx-auto flex items-center gap-2 rounded-full border border-line bg-white py-1 pl-1.5 pr-3 text-[12px] font-medium text-ink-soft transition-all hover:border-ink/25 hover:bg-paper-soft hover:text-ink hover:shadow-sm"
                 >
-                  <svg viewBox="0 0 24 24" className="size-3.5 rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                  <span className="flex size-6 items-center justify-center rounded-full bg-paper-soft text-ink-soft transition-colors group-hover:bg-ink group-hover:text-white">
+                    <svg viewBox="0 0 24 24" className="size-3.5 rotate-180" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
                   بازگشت به ورود
                 </button>
               </form>
