@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/icon";
 import { FadeIn, StaggerItem, StaggerList } from "@/components/ui/motion";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
+import { InstallPwaBanner, InstallPwaButton } from "@/components/pwa/install-pwa";
 
 /* ───────────────────────── content ───────────────────────── */
 
@@ -236,6 +237,7 @@ export function LandingPage() {
             <a href="#trust" className="transition-colors hover:text-ink">امنیت</a>
           </nav>
           <div className="flex items-center gap-2">
+            <InstallPwaButton className="hidden md:flex" />
             <Link
               href="/request"
               className="hidden h-10 items-center rounded-lg border border-line bg-white px-4 text-[13px] font-medium text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink sm:flex sm:px-5"
@@ -284,7 +286,10 @@ export function LandingPage() {
                   <svg viewBox="0 0 24 24" className="size-4 rotate-90" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </a>
               </div>
-              <dl className="mt-10 grid max-w-xl grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-6 sm:grid-cols-4">
+              <div className="mt-8">
+                <InstallPwaBanner />
+              </div>
+              <dl className="mt-8 grid max-w-xl grid-cols-2 gap-x-6 gap-y-5 border-t border-line pt-6 sm:grid-cols-4">
                 {HERO_STATS.map((s) => (
                   <div key={s.label}>
                     <dt className="text-[22px] font-bold tabular-nums">{s.value}</dt>
