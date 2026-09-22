@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, ChevronDown, Search, X, UserRound, Plus } from "@/components/ui/icon";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
+import { faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
 
 const URGENCY_FA: Record<string, string> = {
   URGENT: "فوری — در اسرع وقت",
@@ -162,11 +163,11 @@ export function PublicRequestForm() {
                 <div>
                   <label className="mb-1.5 block text-[12px] font-medium">شماره تماس *</label>
                   <input
-                    value={guestPhone}
-                    onChange={(e) => setGuestPhone(e.target.value)}
+                    value={guestPhone ? withRtlMark(faStr(guestPhone)) : ""}
+                    onChange={(e) => setGuestPhone(toEnDigits(stripBidiMarks(e.target.value)))}
                     className={field}
-                    placeholder="09xxxxxxxxx"
-                    dir="ltr"
+                    placeholder="۰۹۱۲۱۲۳۴۵۶۷"
+                    dir="rtl"
                     inputMode="tel"
                   />
                 </div>
