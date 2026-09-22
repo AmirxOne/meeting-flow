@@ -82,7 +82,7 @@ export function ForgotPasswordPage() {
               <span className={`flex size-5 items-center justify-center rounded-full text-[10px] font-bold ring-1 ${sent ? "bg-emerald-500 text-white ring-emerald-500" : "bg-white text-ink-soft ring-line"}`}>۲</span>
               <span className="h-px w-8 bg-line" />
               <span className="flex size-5 items-center justify-center rounded-full bg-white text-[10px] font-bold text-ink-soft ring-1 ring-line">۳</span>
-              <span className="mr-1">ایمیل → کد → رمز جدید</span>
+              <span className="mr-1">ایمیل ← کد ← رمز جدید</span>
             </div>
           </div>
 
@@ -155,7 +155,7 @@ export function ForgotPasswordPage() {
             )}
 
             <p className="mt-6 text-center text-[12px]">
-              <a href="/login" className="inline-flex items-center gap-1 text-ink-soft transition hover:text-ink">
+              <a href="/login" className="inline-flex flex-row-reverse items-center gap-1 text-ink-soft transition hover:text-ink">
                 <svg viewBox="0 0 24 24" className="size-3.5 rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
