@@ -68,6 +68,36 @@ export function LoginPage() {
   const [useRecovery, setUseRecovery] = useState(false);
   const [orgSlug, setOrgSlug] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
+  // in-place forgot-password mode — same page, same layout, no navigation
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.pathname === "/forgot-password") {
+      setForgotMode(true);
+      // keep the URL clean — this page owns the flow now
+      window.history.replaceState({}, "", "/login");
+    }
+  }, []);
+
+  async function submitForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setForgotLoading(true);
+    try {
+      await api("/api/auth/forgot-password", {
+        method: "POST",
+        json: { identifier: toEnDigits(stripBidiMarks(identifier)) },
+      });
+      setForgotSent(true);
+    } catch (err) {
+      setError((err as ApiError).message);
+    } finally {
+      setForgotLoading(false);
+    }
+  }
 
   useEffect(() => {
     api<AuthConfig>("/api/auth/config")
@@ -235,9 +265,15 @@ export function LoginPage() {
 
           <div className="flex flex-col justify-center px-6 py-8 sm:px-10">
             <div className="mb-7">
-              <h2 className="text-[20px] font-bold">{needs2fa ? "تأیید دو مرحله‌ای" : "ورود به حساب"}</h2>
+              <h2 className="text-[20px] font-bold">
+                {forgotMode ? (forgotSent ? "ایمیل ارسال شد" : "بازیابی رمز عبور") : needs2fa ? "تأیید دو مرحله‌ای" : "ورود به حساب"}
+              </h2>
               <p className="mt-1.5 text-[12.5px] leading-6 text-ink-soft">
-                {needs2fa
+                {forgotMode
+                  ? forgotSent
+                    ? "لینک و کد یک‌بارمصرف به ایمیل ثبت‌شده ارسال شد — تا ۱۵ دقیقه اعتبار دارد."
+                    : "ایمیل یا شماره موبایل حساب را وارد کنید تا لینک بازنشانی برایتان ارسال شود."
+                  : needs2fa
                   ? ssoEnabled && !passwordForm
                     ? "حساب سازمانی تأیید شد. کد ۶ رقمی اپ authenticator مهرسا را وارد کنید."
                     : ldapMode
@@ -263,7 +299,84 @@ export function LoginPage() {
               )}
             </div>
 
-            {needs2fa ? (
+            {forgotMode ? (
+              forgotSent ? (
+              <div className="space-y-4" data-testid="login-forgot-sent">
+                <div className="flex items-start gap-3 rounded-xl bg-emerald-50 px-3.5 py-3.5 ring-1 ring-emerald-100">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <p className="text-[12.5px] leading-6 text-emerald-800">
+                    اگر حسابی با این مشخصات باشد، لینک و کد یک‌بارمصرف به ایمیل ثبت‌شده ارسال شد.
+                    <span className="mt-1 block text-emerald-700/80">لینک تا ۱۵ دقیقه اعتبار دارد.</span>
+                  </p>
+                </div>
+                <a
+                  href="/reset-password"
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg"
+                >
+                  کد را دارم — ادامه
+                  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => { setForgotSent(false); setForgotMode(false); setError(null); }}
+                  className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-white text-[12.5px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+                >
+                  <svg viewBox="0 0 24 24" className="size-3.5 rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  بازگشت به ورود
+                </button>
+              </div>
+              ) : (
+              <form onSubmit={submitForgot} className="space-y-4" data-testid="login-forgot-form">
+                <div>
+                  <label className="mb-1.5 block text-[12px] font-medium" htmlFor="login-forgot-identifier">
+                    ایمیل یا شماره موبایل
+                  </label>
+                  <input
+                    id="login-forgot-identifier"
+                    name="identifier"
+                    type="text"
+                    inputMode="email"
+                    autoComplete="username"
+                    dir="rtl"
+                    value={identifier ? withRtlMark(faStr(identifier)) : ""}
+                    onChange={(e) => setIdentifier(toEnDigits(stripBidiMarks(e.target.value)))}
+                    className={fieldClass}
+                    placeholder="admin@example.com یا ۰۹۱۲۰۰۰۰۱۰۰۱"
+                    required
+                    autoFocus
+                  />
+                </div>
+                {error && (
+                  <p className="rounded-xl bg-red-50 px-3 py-2.5 text-[12px] font-medium text-red-600 ring-1 ring-red-100">{error}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
+                >
+                  {forgotLoading && <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
+                  {forgotLoading ? "در حال ارسال…" : "ارسال لینک بازنشانی"}
+                </button>
+                <p className="text-center text-[10.5px] leading-5 text-ink-faint">
+                  برای امنیت حساب، به ایمیل/موبایل دیگری اطلاعاتی داده نمی‌شود.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setForgotMode(false); setError(null); }}
+                  className="mx-auto flex items-center gap-1.5 text-[12px] text-ink-soft transition hover:text-ink"
+                >
+                  <svg viewBox="0 0 24 24" className="size-3.5 rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="m9 18 6-6-6-6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  بازگشت به ورود
+                </button>
+              </form>
+              )
+            ) : needs2fa ? (
             <form onSubmit={submit2fa} className="space-y-4" data-testid="login-2fa-form">
               {!useRecovery ? (
                 <div>
@@ -440,13 +553,14 @@ export function LoginPage() {
 
             {authConfig.passwordResetEnabled && !needs2fa && (
               <p className="mt-3 text-end">
-                <a
-                  href="/forgot-password"
+                <button
+                  type="button"
                   data-testid="forgot-password-link"
+                  onClick={() => { setForgotMode(true); setForgotSent(false); setError(null); }}
                   className="text-[12px] text-ink-soft transition hover:text-ink"
                 >
                   رمز را فراموش کرده‌ام
-                </a>
+                </button>
               </p>
             )}
 
