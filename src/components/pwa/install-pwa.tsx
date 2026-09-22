@@ -135,7 +135,7 @@ export function InstallPwaBanner() {
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
               <button
                 onClick={() => void install()}
-                className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[13.5px] font-bold text-ink transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-10px_rgba(255,255,255,0.5)]"
+                className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[13.5px] font-bold text-ink shadow-[0_6px_18px_-8px_rgba(255,255,255,0.45)] transition-shadow duration-200 hover:shadow-[0_14px_34px_-10px_rgba(255,255,255,0.55)] active:shadow-none"
               >
                 <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
@@ -155,7 +155,7 @@ export function InstallPwaBanner() {
             <div aria-hidden className="absolute inset-x-6 top-8 bottom-0 rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent blur-md" />
 
             {/* frame */}
-            <div className="relative aspect-[9/19.5] rounded-[2.6rem] border border-white/25 bg-gradient-to-b from-white/[0.14] to-white/[0.04] p-[10px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.25)] backdrop-blur-sm">
+            <div className="relative aspect-[9/21] rounded-[2.6rem] border border-white/25 bg-gradient-to-b from-white/[0.14] to-white/[0.04] p-[10px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.25)] backdrop-blur-sm">
               {/* side buttons */}
               <span aria-hidden className="absolute -right-[2.5px] top-[17%] h-7 w-[3px] rounded-l-md bg-white/30" />
               <span aria-hidden className="absolute -right-[2.5px] top-[26%] h-11 w-[3px] rounded-l-md bg-white/30" />

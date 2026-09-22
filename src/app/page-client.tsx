@@ -398,6 +398,13 @@ export function LandingPage() {
           </div>
         </section>
 
+      {/* ── install app: dedicated offer ── */}
+      <section className="px-5 pb-6">
+        <div className="mx-auto w-full max-w-6xl">
+          <InstallPwaBanner />
+        </div>
+      </section>
+
         {/* ── CTA ── */}
         <section className="px-5 pb-20">
           <div className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-2xl bg-ink px-8 py-12 text-white sm:px-10">
@@ -422,13 +429,6 @@ export function LandingPage() {
           </div>
         </section>
       </main>
-
-      {/* ── install app: dedicated offer ── */}
-      <section className="px-5 pb-4">
-        <div className="mx-auto w-full max-w-6xl">
-          <InstallPwaBanner />
-        </div>
-      </section>
 
       {/* ── footer: multi-column ── */}
       <footer className="border-t border-line bg-paper-soft/40 px-5 pb-8 pt-12">
