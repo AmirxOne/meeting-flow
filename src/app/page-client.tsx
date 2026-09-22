@@ -409,6 +409,8 @@ export function LandingPage() {
         {/* ── install app: dedicated offer ── */}
         <section className="relative overflow-hidden bg-ink">
           <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.14) 1px, transparent 0)", backgroundSize: "22px 22px" }} />
+          <div aria-hidden className="pointer-events-none absolute -left-24 -top-24 size-64 rounded-full bg-emerald-400/15 blur-3xl" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-16 size-72 rounded-full bg-white/10 blur-3xl" />
           <div className="relative mx-auto w-full max-w-6xl px-5">
             <InstallPwaBanner />
           </div>

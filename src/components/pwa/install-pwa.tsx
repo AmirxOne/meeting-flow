@@ -77,12 +77,9 @@ export function InstallPwaBanner() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ type: "spring", stiffness: 160, damping: 24 }}
-        className="relative overflow-hidden bg-ink px-6 py-6 text-white sm:px-10 sm:py-8"
+        className="relative px-6 py-6 text-white sm:px-10 sm:py-8"
         dir="rtl"
       >
-        {/* ambient decor */}
-        <div aria-hidden className="pointer-events-none absolute -left-24 -top-24 size-64 rounded-full bg-emerald-400/15 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-16 size-72 rounded-full bg-white/10 blur-3xl" />
 
         <div className="relative flex flex-col-reverse items-center gap-6 lg:flex-row lg:items-stretch lg:gap-12">
           {/* copy + actions */}
