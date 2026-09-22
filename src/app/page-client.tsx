@@ -279,7 +279,7 @@ function ProductPreview() {
             );
           })}
         </ul>
-        <div className="mt-3 flex items-center justify-between rounded-xl bg-ink px-3 py-2.5 text-white">
+        <div className="mt-3 flex items-center justify-between rounded-xl bg-ink px-3.5 py-3.5 text-white">
           <p className="text-[10.5px] text-white/70">
             جلسه‌ی جاری · {toFaDigits(String(minsLeft))} دقیقه تا پایان
           </p>
