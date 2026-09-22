@@ -149,18 +149,34 @@ export function InstallPwaBanner() {
             </div>
           </div>
 
-          {/* phone mockup */}
-          <div className="relative mx-auto w-full max-w-[240px] shrink-0 sm:max-w-[280px] lg:mx-0 lg:w-[280px]">
-            <div aria-hidden className="absolute inset-x-6 top-6 bottom-0 rounded-[2rem] bg-gradient-to-b from-white/10 to-transparent" />
-            <div className="relative rounded-[2.2rem] border border-white/20 bg-white/[0.07] p-3 backdrop-blur-sm">
-              <div className="overflow-hidden rounded-[1.6rem] bg-white shadow-2xl" dir="rtl">
-                <div className="flex items-center justify-between bg-ink px-4 pb-1 pt-2 text-[8px] text-white/90">
+          {/* phone mockup — realistic proportions (19.5:9), notch, side buttons */}
+          <div className="relative mx-auto w-full max-w-[230px] shrink-0 sm:max-w-[260px] lg:mx-0 lg:w-[260px]">
+            {/* glow behind the phone */}
+            <div aria-hidden className="absolute inset-x-6 top-8 bottom-0 rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent blur-md" />
+
+            {/* frame */}
+            <div className="relative aspect-[9/19.5] rounded-[2.6rem] border border-white/25 bg-gradient-to-b from-white/[0.14] to-white/[0.04] p-[10px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.25)] backdrop-blur-sm">
+              {/* side buttons */}
+              <span aria-hidden className="absolute -right-[2.5px] top-[17%] h-7 w-[3px] rounded-l-md bg-white/30" />
+              <span aria-hidden className="absolute -right-[2.5px] top-[26%] h-11 w-[3px] rounded-l-md bg-white/30" />
+              <span aria-hidden className="absolute -right-[2.5px] top-[34%] h-11 w-[3px] rounded-l-md bg-white/30" />
+              <span aria-hidden className="absolute -left-[2.5px] top-[24%] h-14 w-[3px] rounded-r-md bg-white/30" />
+
+              {/* screen */}
+              <div className="relative flex h-full flex-col overflow-hidden rounded-[2rem] bg-white" dir="rtl">
+                {/* dynamic island */}
+                <div aria-hidden className="absolute left-1/2 top-2 z-10 h-[18px] w-[74px] -translate-x-1/2 rounded-full bg-black" />
+
+                {/* status bar */}
+                <div className="flex items-center justify-between bg-ink px-5 pb-1 pt-2 text-[8px] text-white/90">
                   <span className="tabular-nums">۹:۴۱</span>
                   <div className="flex items-center gap-1">
                     <span className="inline-block h-2 w-3 rounded-[2px] ring-1 ring-white/60" />
                     <span className="inline-block h-2 w-4 rounded-[2px] bg-white/70" />
                   </div>
                 </div>
+
+                {/* app header */}
                 <div className="flex items-center gap-2 border-b border-line bg-white px-3 py-2.5">
                   <span className="flex size-7 items-center justify-center rounded-lg bg-ink text-[9px] font-bold text-white">م</span>
                   <div>
@@ -169,7 +185,9 @@ export function InstallPwaBanner() {
                   </div>
                   <span className="mr-auto size-1.5 rounded-full bg-emerald-500" />
                 </div>
-                <div className="space-y-1.5 bg-paper-soft/40 p-2.5">
+
+                {/* today list */}
+                <div className="flex-1 space-y-1.5 overflow-hidden bg-paper-soft/40 p-2.5">
                   <p className="px-1 text-[8px] font-medium text-ink-faint">جلسات امروز — سه‌شنبه ۳۱ شهریور</p>
                   {[
                     { t: "هماهنگی هفتگی فروش", r: "اتاق آریا · ۱۰:۰۰", c: "bg-emerald-100 text-emerald-700" },
@@ -190,7 +208,9 @@ export function InstallPwaBanner() {
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center justify-around border-t border-line bg-white px-2 py-1.5 text-ink-faint">
+
+                {/* bottom nav */}
+                <div className="flex items-center justify-around border-t border-line bg-white px-2 pb-3 pt-1.5 text-ink-faint">
                   {["خانه", "تقویم", "تبادل نظر", "گزارش‌ها"].map((n, i) => (
                     <div key={n} className="flex flex-col items-center gap-0.5">
                       <span className={`h-3.5 w-3.5 rounded ${i === 0 ? "bg-ink" : "bg-ink/15"}`} />
@@ -198,6 +218,8 @@ export function InstallPwaBanner() {
                     </div>
                   ))}
                 </div>
+                {/* home indicator */}
+                <div aria-hidden className="absolute bottom-1 left-1/2 h-[4px] w-[86px] -translate-x-1/2 rounded-full bg-ink/80" />
               </div>
             </div>
             <p className="mt-3 text-center text-[9.5px] text-white/40">مهرسا — روی صفحه‌ی اصلی گوشی شما</p>
