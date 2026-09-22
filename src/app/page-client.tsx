@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { formatJalali } from "@/lib/jalali";
+import { faStr as toFaDigits } from "@/lib/fa";
 import Link from "next/link";
 import {
   BarChart3,
@@ -169,11 +172,52 @@ function BrandMark({ dark = false }: { dark?: boolean }) {
 }
 
 function ProductPreview() {
+  // LIVE preview — real clock, real "now" marker, meetings derived from the
+  // current time so the timeline is always truthful.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const t = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const TZ = "Asia/Tehran";
+  // minutes since midnight in Tehran
+  const nowMin = now
+    ? (() => {
+        const [h, m] = new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: TZ }).format(now).split(":").map(Number);
+        return h * 60 + m;
+      })()
+    : 0;
+  const hhmm = (h: number, m: number) => h * 60 + m;
+
+  // demo meetings anchored around "now" so one is always in progress
+  const base = Math.max(hhmm(9, 0), Math.min(nowMin, hhmm(18, 0)));
   const meetings = [
-    { time: "۱۰:۰۰", title: "جلسه هفتگی تیم فروش", room: "اتاق جلسه آریا", status: "قطعی", tone: "bg-emerald-100 text-emerald-700" },
-    { time: "۱۱:۳۰", title: "ارائه به مشتری — همکاران همراه اول", room: "بیرون از شرکت", status: "بیرونی", tone: "bg-amber-100 text-amber-700" },
-    { time: "۱۴:۳۰", title: "بازبینی بودجه فصل", room: "اتاق کنفرانس بزرگ", status: "قطعی", tone: "bg-emerald-100 text-emerald-700" },
-  ];
+    { start: base - 90, end: base + 30, time: "", title: "جلسه هفتگی تیم فروش", room: "اتاق جلسه آریا", status: "قطعی", tone: "bg-emerald-100 text-emerald-700" },
+    { start: base + 90, end: base + 150, time: "", title: "ارائه به مشتری — همکاران همراه اول", room: "بیرون از شرکت", status: "بیرونی", tone: "bg-amber-100 text-amber-700" },
+    { start: base + 210, end: base + 270, time: "", title: "بازبینی بودجه فصل", room: "اتاق کنفرانس بزرگ", status: "قطعی", tone: "bg-emerald-100 text-emerald-700" },
+  ].map((m) => ({
+    ...m,
+    time: `${String(Math.floor(m.start / 60)).padStart(2, "0")}:${String(m.start % 60).padStart(2, "0")}`,
+  }));
+
+  const faClock = (min: number) =>
+    toFaDigits(`${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`);
+
+  // timeline 8..20 → percent (RTL: right = start of day)
+  const DAY_START = hhmm(8, 0), DAY_END = hhmm(20, 0);
+  const pct = (min: number) => Math.max(0, Math.min(100, ((min - DAY_START) / (DAY_END - DAY_START)) * 100));
+
+  const current = meetings.find((m) => nowMin >= m.start && nowMin < m.end) ?? meetings[0];
+  const minsLeft = Math.max(0, current.end - Math.max(nowMin, current.start));
+  const progress = Math.min(1, Math.max(0, (nowMin - current.start) / (current.end - current.start)));
+
+  const dayLabel = now ? formatJalali(now, { monthName: true, tz: TZ }) : "…";
+  const clockLabel = now
+    ? toFaDigits(new Intl.DateTimeFormat("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: TZ }).format(now))
+    : "…";
+
   return (
     <div className="relative">
       <div className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-gradient-to-l from-ink/5 to-transparent blur-xl" />
@@ -185,36 +229,64 @@ function ProductPreview() {
             </span>
             <div>
               <p className="text-[12px] font-bold">برنامه‌ی امروز</p>
-              <p className="text-[10px] text-ink-faint">اتاق کنفرانس بزرگ · ۲۹ شهریور ۱۴۰۵</p>
+              <p className="text-[10px] text-ink-faint">اتاق کنفرانس بزرگ · {dayLabel}</p>
             </div>
           </div>
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9.5px] font-medium text-emerald-600">● زنده</span>
+          <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[9.5px] font-medium text-emerald-600">
+            <span className="relative flex size-1.5">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-500 opacity-60" />
+              <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
+            </span>
+            زنده · {clockLabel}
+          </span>
         </div>
-        {/* timeline */}
+        {/* timeline — real positions from the actual clock */}
         <div className="relative mt-4 h-2 rounded-full bg-paper-soft">
-          <div className="absolute right-[8%] h-full w-[28%] rounded-full bg-emerald-400/70" title="۱۰:۰۰ فروش" />
-          <div className="absolute right-[55%] h-full w-[18%] rounded-full bg-ink/20" title="۱۴:۳۰ بودجه" />
-          <div className="absolute right-[30%] top-1/2 size-2 -translate-y-1/2 rounded-full border-2 border-white bg-red-500 shadow" title="الان" />
+          {meetings.map((m) => (
+            <div
+              key={m.title}
+              className="absolute top-0 h-full rounded-full bg-emerald-400/70"
+              style={{ right: `${pct(m.start)}%`, width: `${pct(m.end) - pct(m.start)}%` }}
+              title={`${faClock(m.start)} ${m.title}`}
+            />
+          ))}
+          {nowMin >= DAY_START && nowMin <= DAY_END && (
+            <div
+              className="absolute top-1/2 size-2 -translate-y-1/2 translate-x-1/2 rounded-full border-2 border-white bg-red-500 shadow"
+              style={{ right: `${pct(nowMin)}%` }}
+              title="الان"
+            />
+          )}
         </div>
         <div className="mt-1 flex justify-between px-0.5 text-[8.5px] text-ink-faint">
           <span>۸</span><span>۱۱</span><span>۱۴</span><span>۱۷</span><span>۲۰</span>
         </div>
         <ul className="mt-3 space-y-2">
-          {meetings.map((m) => (
-            <li key={m.time} className="flex items-center gap-3 rounded-xl border border-line/70 bg-paper-soft/50 px-3 py-2.5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-white text-[10.5px] font-bold tabular-nums shadow-sm">{m.time}</span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[12px] font-medium">{m.title}</p>
-                <p className="mt-0.5 truncate text-[10px] text-ink-faint">{m.room}</p>
-              </div>
-              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-medium ${m.tone}`}>{m.status}</span>
-            </li>
-          ))}
+          {meetings.map((m) => {
+            const isNow = m === current;
+            return (
+              <li key={m.title} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${isNow ? "border-emerald-200 bg-emerald-50/60" : "border-line/70 bg-paper-soft/50"}`}>
+                <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg text-[10.5px] font-bold tabular-nums shadow-sm ${isNow ? "bg-emerald-600 text-white" : "bg-white"}`}>{faClock(m.start)}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-medium">{m.title}</p>
+                  <p className="mt-0.5 truncate text-[10px] text-ink-faint">{m.room}</p>
+                </div>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-medium ${isNow ? "bg-emerald-100 text-emerald-700" : m.tone}`}>
+                  {isNow ? "در حال برگزاری" : m.status}
+                </span>
+              </li>
+            );
+          })}
         </ul>
         <div className="mt-3 flex items-center justify-between rounded-xl bg-ink px-3 py-2.5 text-white">
-          <p className="text-[10.5px] text-white/70">جلسه‌ی جاری · ۲۵ دقیقه تا پایان</p>
+          <p className="text-[10.5px] text-white/70">
+            جلسه‌ی جاری · {toFaDigits(String(minsLeft))} دقیقه تا پایان
+          </p>
           <div className="h-1.5 w-28 overflow-hidden rounded-full bg-white/20">
-            <div className="h-full w-2/3 rounded-full bg-gradient-to-l from-emerald-300 to-emerald-500" />
+            <div
+              className="h-full rounded-full bg-gradient-to-l from-emerald-300 to-emerald-500 transition-[width] duration-1000"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
           </div>
         </div>
       </div>
