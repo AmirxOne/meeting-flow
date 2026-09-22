@@ -3,7 +3,8 @@ import { LegalPageShell } from "@/components/legal/legal-page";
 import { termsDocument } from "@/lib/legal-content";
 
 export const metadata: Metadata = {
-  title: "شرایط استفاده — مهرسا",
+  alternates: { canonical: "/terms" },
+  title: { absolute: "شرایط استفاده — مهرسا" },
   description: termsDocument.subtitle,
 };
 

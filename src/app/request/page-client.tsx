@@ -102,10 +102,64 @@ export function PublicRequestForm() {
     "h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15";
 
   return (
-    <div dir="rtl" className="flex min-h-screen items-center justify-center bg-paper-soft p-4">
-      <div className="w-full max-w-lg">
-        {/* brand */}
-        <div className="mb-6 flex items-center gap-3">
+    <div dir="rtl" className="relative flex min-h-screen items-center justify-center overflow-hidden bg-paper-soft p-4 sm:p-6">
+      {/* dot-pattern backdrop */}
+      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #d9d9e0 1px, transparent 0)", backgroundSize: "22px 22px" }} />
+      <div aria-hidden className="pointer-events-none absolute -top-32 left-1/4 size-96 rounded-full bg-ink/[0.05] blur-3xl" />
+
+      <div className="relative grid w-full max-w-4xl overflow-hidden rounded-3xl border border-line bg-white shadow-[0_30px_80px_-30px_rgba(0,0,0,0.3)] lg:grid-cols-[340px_1fr]">
+        {/* ── side panel: brand + trust ── */}
+        <aside className="relative hidden flex-col justify-between overflow-hidden bg-ink p-8 text-white lg:flex">
+          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.14) 1px, transparent 0)", backgroundSize: "22px 22px" }} />
+          <div aria-hidden className="pointer-events-none absolute -left-20 -top-20 size-56 rounded-full bg-emerald-400/15 blur-3xl" />
+
+          <div className="relative">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-white.png" alt="مهرسا" className="h-7 w-7 object-contain" />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold">مهرسا</p>
+                <p className="text-[10.5px] text-white/60">سامانه‌ی مدیریت جلسات سازمانی</p>
+              </div>
+            </div>
+            <h2 className="mt-8 text-[20px] font-bold leading-9">
+              جلسه‌تان را درخواست کنید،
+              <br />
+              هماهنگی با ما
+            </h2>
+            <p className="mt-3 text-[12px] leading-7 text-white/60">
+              بدون حساب کاربری — درخواست شما مستقیم به تیم هماهنگی می‌رسد و نتیجه همان‌جا با شما تماس گرفته می‌شود.
+            </p>
+          </div>
+
+          <ul className="relative mt-10 space-y-3">
+            {[
+              { t: "بدون نیاز به ثبت‌نام", d: "فرم کوتاه — کمتر از یک دقیقه" },
+              { t: "تقویم شمسی و بازه دلخواه", d: "روز و ساعت مورد نظرتان را مشخص کنید" },
+              { t: "حضوری یا بیرونی", d: "در شرکت یا در محل سازمان شما" },
+              { t: "پیگیری با کد رهگیری", d: "وضعیت درخواست همیشه در دسترس" },
+            ].map((f) => (
+              <li key={f.t} className="flex items-start gap-2.5 rounded-xl bg-white/[0.06] px-3 py-2.5 ring-1 ring-white/10">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <div>
+                  <p className="text-[12px] font-bold">{f.t}</p>
+                  <p className="mt-0.5 text-[10.5px] leading-4 text-white/55">{f.d}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <p className="relative mt-8 text-[10px] leading-5 text-white/40">
+            حریم خصوصی شما محفوظ است — اطلاعات فقط برای هماهنگی همین جلسه استفاده می‌شود.
+          </p>
+        </aside>
+
+        {/* ── form column ── */}
+        <div className="p-6 sm:p-8">
+        {/* mobile brand */}
+        <div className="mb-5 flex items-center gap-3 lg:hidden">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo-white.png" alt="مهرسا" className="h-7 w-7 object-contain" />
@@ -121,11 +175,13 @@ export function PublicRequestForm() {
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.25, ease: [0.22, 0.8, 0.36, 1] }}
-            className="rounded-xl border border-line bg-white p-8 text-center"
+            className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-8 text-center"
           >
-            <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-            <p className="mt-3 text-[15px] font-bold">درخواست شما ثبت شد</p>
-            <p className="mt-2 text-[12px] leading-6 text-ink-soft">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+              <CheckCircle2 className="h-8 w-8 text-emerald-600" />
+            </span>
+            <p className="mt-4 text-[16px] font-bold">درخواست شما ثبت شد</p>
+            <p className="mx-auto mt-2 max-w-xs text-[12.5px] leading-7 text-ink-soft">
               همکاران ما در اسرع وقت زمان جلسه را هماهنگ کرده و با شما تماس می‌گیرند.
             </p>
             <button
@@ -150,9 +206,9 @@ export function PublicRequestForm() {
             </button>
           </motion.div>
         ) : (
-          <div className="rounded-xl border border-line bg-white p-6 sm:p-8">
-            <h1 className="text-[16px] font-bold">درخواست جلسه</h1>
-            <p className="mt-1 text-[12px] text-ink-soft">نیاز خود را ثبت کنید — هماهنگی زمان با ما</p>
+          <div>
+            <h1 className="text-[18px] font-bold">درخواست جلسه</h1>
+            <p className="mt-1 text-[12px] leading-6 text-ink-soft">نیاز خود را ثبت کنید — هماهنگی زمان با ما؛ فیلدهای ستاره‌دار الزامی‌اند.</p>
 
             <div className="mt-6 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
@@ -363,7 +419,7 @@ export function PublicRequestForm() {
                 whileTap={{ scale: 0.98 }}
                 onClick={submit}
                 disabled={busy}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-ink text-[13px] font-medium text-white transition-colors hover:bg-[#2a2a2e] disabled:opacity-60"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13.5px] font-bold text-white shadow-[0_10px_25px_-10px_rgba(13,13,13,0.5)] transition-colors hover:bg-[#2a2a2e] disabled:opacity-60"
               >
                 <ArrowLeft className="h-4 w-4" />
                 {busy ? "در حال ثبت…" : "ثبت درخواست"}
@@ -372,12 +428,13 @@ export function PublicRequestForm() {
           </div>
         )}
 
-        <p className="mt-4 text-center text-[11px] text-ink-faint">
+        <p className="mt-5 text-center text-[11px] text-ink-faint">
           کارمند سازمان هستید؟{" "}
           <a href="/login" className="font-medium text-ink underline underline-offset-4">
             وارد شوید
           </a>
         </p>
+        </div>
       </div>
     </div>
   );

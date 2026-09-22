@@ -12,7 +12,11 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "مهرسا — مدیریت جلسات سازمانی",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3100"),
+  title: {
+    default: "مهرسا — سامانه‌ی فارسی مدیریت جلسات سازمانی",
+    template: "%s | مهرسا",
+  },
   description: "سیستم مدیریت جلسات مهرسا — اتاق‌ها، زمان‌بندی و تأییدها",
   applicationName: "مهرسا",
   appleWebApp: {

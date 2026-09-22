@@ -3,7 +3,8 @@ import { LegalPageShell } from "@/components/legal/legal-page";
 import { dataRetentionDocument } from "@/lib/legal-content";
 
 export const metadata: Metadata = {
-  title: "نگهداری داده — مهرسا",
+  alternates: { canonical: "/data-retention" },
+  title: { absolute: "نگهداری داده — مهرسا" },
   description: dataRetentionDocument.subtitle,
 };
 

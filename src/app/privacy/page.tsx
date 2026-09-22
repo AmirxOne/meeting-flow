@@ -3,7 +3,8 @@ import { LegalPageShell } from "@/components/legal/legal-page";
 import { privacyDocument } from "@/lib/legal-content";
 
 export const metadata: Metadata = {
-  title: "حریم خصوصی — مهرسا",
+  alternates: { canonical: "/privacy" },
+  title: { absolute: "حریم خصوصی — مهرسا" },
   description: privacyDocument.subtitle,
 };
 
