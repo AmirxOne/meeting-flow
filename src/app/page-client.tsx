@@ -267,7 +267,7 @@ function ProductPreview() {
             const isNow = m === current;
             return (
               <li key={m.title} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${isNow ? "border-emerald-200 bg-emerald-50/60" : "border-line/70 bg-paper-soft/50"}`}>
-                <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg text-[10.5px] font-bold tabular-nums shadow-sm ${isNow ? "bg-emerald-600 text-white" : "bg-white"}`}>{faClock(m.start)}</span>
+                <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg text-[9px] font-medium tabular-nums shadow-sm ${isNow ? "bg-emerald-600 text-white" : "bg-white"}`}>{faClock(m.start)}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[12px] font-medium">{m.title}</p>
                   <p className="mt-0.5 truncate text-[10px] text-ink-faint">{m.room}</p>
