@@ -379,62 +379,106 @@ function RoomQrPanel({ slug, name }: { slug: string | null; name: string }) {
       </div>
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm"
           onClick={() => setOpen(false)}
         >
           <div
             dir="rtl"
-            className="w-[340px] rounded-xl bg-white p-6 text-center"
+            className="relative w-[380px] max-w-full overflow-hidden rounded-2xl bg-white shadow-2xl"
             onClick={(e) => e.stopPropagation()}
+            style={{ animation: "qrPop .22s cubic-bezier(.2,.9,.3,1.2)" }}
           >
-            <p className="text-[14px] font-bold">{name}</p>
-            <p className="mt-1 text-[11px] text-ink-soft">
-              با اسکن این کد، برنامه‌ی اتاق بدون ورود به سامانه دیده می‌شود
-            </p>
-            <div className="mx-auto mt-4 w-fit rounded-xl border border-line p-3" id="room-qr-wrap">
-              <QRCodeSVG id="room-qr-svg" value={url} size={220} level="M" />
+            <style>{`@keyframes qrPop { from { opacity: 0; transform: scale(.92) translateY(8px); } to { opacity: 1; transform: none; } }`}</style>
+
+            {/* close */}
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="بستن"
+              className="absolute left-3 top-3 z-10 flex size-8 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-paper-soft hover:text-ink"
+            >
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+              </svg>
+            </button>
+
+            {/* poster */}
+            <div id="room-qr-wrap" className="bg-gradient-to-b from-paper-soft to-white px-6 pb-2 pt-7 text-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[10.5px] font-medium text-ink-soft shadow-sm ring-1 ring-line">
+                <svg viewBox="0 0 24 24" className="size-3.5 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                صفحه‌ی زنده‌ی اتاق
+              </span>
+              <p className="mt-3 text-[17px] font-bold leading-7">{name}</p>
+              <p className="mt-1 text-[11px] leading-5 text-ink-soft">
+                دوربین گوشی را روی کد بگیرید —<br />
+                برنامه‌ی امروز این اتاق، بدون ورود به سامانه
+              </p>
+              <div className="relative mx-auto mt-4 w-fit rounded-2xl border border-line bg-white p-4 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.25)]">
+                <span aria-hidden className="absolute inset-x-4 top-0 h-1 rounded-b-full bg-emerald-500/70" />
+                <QRCodeSVG id="room-qr-svg" value={url} size={208} level="M" />
+                <p dir="ltr" className="mt-2 text-center text-[9px] tracking-wide text-ink-faint">SCAN ME · mehrsa</p>
+              </div>
             </div>
-            <div className="mt-3 flex items-center justify-center gap-1.5">
+
+            {/* actions */}
+            <div className="px-5 pb-5 pt-4">
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-line bg-paper-soft/60 px-3 py-2">
+                <a
+                  dir="ltr"
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-w-0 flex-1 truncate text-left text-[10.5px] text-accent underline decoration-dotted underline-offset-2 hover:opacity-80"
+                >
+                  {url}
+                </a>
+                <button
+                  onClick={() => { navigator.clipboard?.writeText(url).catch(() => {}); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }}
+                  className={`shrink-0 rounded-lg px-2.5 py-1.5 text-[10.5px] font-bold transition-colors ${copied ? "bg-emerald-100 text-emerald-700" : "bg-white text-ink-soft ring-1 ring-line hover:bg-paper-soft"}`}
+                >
+                  {copied ? "✓ کپی شد" : "کپی لینک"}
+                </button>
+              </div>
+
               <a
-                dir="ltr"
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="break-all text-[10.5px] text-accent underline decoration-dotted underline-offset-2 hover:opacity-80"
+                className="mt-3 flex h-10 w-full items-center justify-center gap-1.5 rounded-xl bg-ink text-[12.5px] font-medium text-white transition-all hover:shadow-lg"
               >
-                {url}
+                <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                مشاهده‌ی صفحه‌ی نمایش اتاق
               </a>
-              <button
-                onClick={() => { navigator.clipboard?.writeText(url).catch(() => {}); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }}
-                className="shrink-0 rounded-md border border-line px-2 py-1 text-[10px] font-medium text-ink-soft hover:bg-paper-soft"
-              >
-                {copied ? "کپی شد ✓" : "کپی"}
-              </button>
-            </div>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 flex h-9 w-full items-center justify-center gap-1.5 rounded-md bg-ink text-[12px] font-medium text-white"
-            >
-              مشاهده‌ی صفحه‌ی نمایش اتاق
-              <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M7 17 17 7M9 7h8v8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </a>
-            <div className="mt-4 flex justify-center gap-2">
-              <button
-                onClick={downloadPng}
-                className="h-9 rounded-md bg-ink px-4 text-[12px] font-medium text-white"
-              >
-                دانلود PNG
-              </button>
-              <button
-                onClick={() => window.print()}
-                className="h-9 rounded-md border border-line px-4 text-[12px] text-ink-soft"
-              >
-                چاپ
-              </button>
+
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button
+                  onClick={downloadPng}
+                  className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-line bg-white text-[12px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+                >
+                  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  دانلود PNG
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-line bg-white text-[12px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+                >
+                  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  چاپ پوستر
+                </button>
+              </div>
+
+              <p className="mt-3 text-center text-[10px] leading-5 text-ink-faint">
+                پیشنهاد: پوستر را چاپ کنید و کنار درِ اتاق بچسبانید
+              </p>
             </div>
           </div>
         </div>
