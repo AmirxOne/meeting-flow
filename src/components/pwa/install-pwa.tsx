@@ -77,9 +77,11 @@ export function InstallPwaBanner() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ type: "spring", stiffness: 160, damping: 24 }}
-        className="relative overflow-hidden rounded-3xl bg-ink px-6 py-6 text-white shadow-[0_24px_60px_-24px_rgba(13,13,13,0.55)] sm:px-10 sm:py-8"
+        className="relative overflow-hidden bg-ink px-6 py-6 text-white sm:px-10 sm:py-8"
         dir="rtl"
       >
+        {/* dot pattern — white, like the hero's */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.14) 1px, transparent 0)", backgroundSize: "22px 22px" }} />
         {/* ambient decor */}
         <div aria-hidden className="pointer-events-none absolute -left-24 -top-24 size-64 rounded-full bg-emerald-400/15 blur-3xl" />
         <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-16 size-72 rounded-full bg-white/10 blur-3xl" />

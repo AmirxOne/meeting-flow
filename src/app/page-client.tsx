@@ -197,6 +197,7 @@ function ProductPreview() {
     { start: base - 90, end: base + 30, time: "", title: "جلسه هفتگی تیم فروش", room: "اتاق جلسه آریا", status: "قطعی", tone: "bg-emerald-100 text-emerald-700" },
     { start: base + 90, end: base + 150, time: "", title: "ارائه به مشتری — همکاران همراه اول", room: "بیرون از شرکت", status: "بیرونی", tone: "bg-amber-100 text-amber-700" },
     { start: base + 210, end: base + 270, time: "", title: "بازبینی بودجه فصل", room: "اتاق کنفرانس بزرگ", status: "قطعی", tone: "bg-emerald-100 text-emerald-700" },
+    { start: base + 330, end: base + 390, time: "", title: "کمیته‌ی منابع انسانی", room: "اتاق جلسه دانا", status: "قطعی", tone: "bg-emerald-100 text-emerald-700" },
   ].map((m) => ({
     ...m,
     time: `${String(Math.floor(m.start / 60)).padStart(2, "0")}:${String(m.start % 60).padStart(2, "0")}`,
@@ -406,8 +407,8 @@ export function LandingPage() {
 
         {/* ── workflow ── */}
         {/* ── install app: dedicated offer ── */}
-        <section className="bg-white px-5 pb-6">
-          <div className="mx-auto w-full max-w-6xl">
+        <section className="bg-ink">
+          <div className="mx-auto w-full max-w-6xl px-5">
             <InstallPwaBanner />
           </div>
         </section>
