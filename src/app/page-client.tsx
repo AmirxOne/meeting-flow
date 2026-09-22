@@ -333,6 +333,13 @@ export function LandingPage() {
         </section>
 
         {/* ── workflow ── */}
+        {/* ── install app: dedicated offer ── */}
+        <section className="bg-white px-5 pb-6">
+          <div className="mx-auto w-full max-w-6xl">
+            <InstallPwaBanner />
+          </div>
+        </section>
+
         <section id="workflow" className="scroll-mt-20 border-y border-line bg-paper-soft/60 px-5 py-20">
           <div className="mx-auto w-full max-w-6xl">
             <div className="max-w-xl">
@@ -397,13 +404,6 @@ export function LandingPage() {
             </div>
           </div>
         </section>
-
-      {/* ── install app: dedicated offer ── */}
-      <section className="px-5 pb-6">
-        <div className="mx-auto w-full max-w-6xl">
-          <InstallPwaBanner />
-        </div>
-      </section>
 
         {/* ── CTA ── */}
         <section className="px-5 pb-20">
