@@ -45,10 +45,6 @@ export function InstallPwaBanner() {
 
   useEffect(() => {
     if (isStandalone()) return; // already installed
-    try {
-      const at = Number(localStorage.getItem("mehrsa-install-dismissed") ?? 0);
-      if (at && Date.now() - at < 7 * 86400000) return; // dismissed within 7 days
-    } catch { /* private mode */ }
     setHidden(false);
 
     const onPrompt = (e: Event) => {
@@ -72,11 +68,6 @@ export function InstallPwaBanner() {
     setShowManual(true); // iOS Safari / browsers without the native prompt
   };
 
-  const dismiss = () => {
-    setHidden(true);
-    try { localStorage.setItem("mehrsa-install-dismissed", String(Date.now())); } catch { /* ignore */ }
-  };
-
   if (hidden) return null;
 
   return (
@@ -92,16 +83,6 @@ export function InstallPwaBanner() {
         {/* ambient decor */}
         <div aria-hidden className="pointer-events-none absolute -left-24 -top-24 size-64 rounded-full bg-emerald-400/15 blur-3xl" />
         <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-16 size-72 rounded-full bg-white/10 blur-3xl" />
-
-        <button
-          onClick={dismiss}
-          aria-label="بستن"
-          className="absolute left-4 top-4 z-10 flex size-8 items-center justify-center rounded-lg text-white/50 transition-colors hover:bg-white/10 hover:text-white"
-        >
-          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
-          </svg>
-        </button>
 
         <div className="relative flex flex-col-reverse items-center gap-8 lg:flex-row lg:items-stretch lg:gap-12">
           {/* copy + actions */}
