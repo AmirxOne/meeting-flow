@@ -211,7 +211,7 @@ export function InstallPwaBanner() {
 
                 {/* bottom nav */}
                 <div className="flex items-center justify-around border-t border-line bg-white px-2 pb-3 pt-1.5 text-ink-faint">
-                  {["خانه", "تقویم", "تبادل نظر", "گزارش‌ها"].map((n, i) => (
+                  {["خانه", "تقویم", "درخواست‌ها", "گزارش‌ها"].map((n, i) => (
                     <div key={n} className="flex flex-col items-center gap-0.5">
                       <span className={`h-3.5 w-3.5 rounded ${i === 0 ? "bg-ink" : "bg-ink/15"}`} />
                       <span className={`text-[6.5px] ${i === 0 ? "font-bold text-ink" : ""}`}>{n}</span>
