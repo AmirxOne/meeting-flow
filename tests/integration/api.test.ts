@@ -2766,7 +2766,7 @@ describe("public guest request form", () => {
     expect(Array.isArray(j.data.people)).toBe(true);
     // must NOT leak phone/email fields
     for (const p of j.data.people) {
-      expect(Object.keys(p).sort()).toEqual(["company", "id", "jobTitle", "name"]);
+      expect(Object.keys(p).sort()).toEqual(["company", "id", "jobTitle", "kind", "name"]);
     }
   });
 

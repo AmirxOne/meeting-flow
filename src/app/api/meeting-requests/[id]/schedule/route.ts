@@ -37,8 +37,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const input = scheduleSchema.parse(await req.json().catch(() => ({})));
     // room check is done per-venue below (OFFSITE skips it)
 
-    const request = await prisma.meetingRequest.findUnique({
-      where: { id },
+    // org-scoped: cross-org scheduling must be invisible (404)
+    const request = await prisma.meetingRequest.findFirst({
+      where: { id, orgId: user.orgId },
       include: { requester: true },
     });
     if (!request) return fail(404, "درخواست یافت نشد", "NOT_FOUND");
@@ -46,6 +47,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return fail(409, "این درخواست قبلاً پردازش شده است", "ALREADY_HANDLED");
     // Guest requests CAN be scheduled now: the admin becomes the organizer and
     // the guest is attached as an external guest of the meeting.
+
+    // The public guest form stores PersonDirectory row ids as participantIds.
+    // Translate them to real User ids (internal people only); external
+    // contacts without a linked user are dropped — they become guests instead.
+    const rawIds: string[] = Array.isArray(request.participantIds) ? request.participantIds : [];
+    let resolvedIds: string[] = [];
+    if (rawIds.length > 0) {
+      const dirRows = await prisma.personDirectory.findMany({
+        where: { id: { in: rawIds }, orgId: request.orgId },
+        select: { userId: true },
+      });
+      resolvedIds = dirRows
+        .map((r) => r.userId)
+        .filter((x): x is string => Boolean(x));
+    }
 
     const offsite = request.venue === "OFFSITE";
     const shared = {
@@ -67,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       startAt: new Date(input.startAt),
       endAt: new Date(input.endAt),
       participantIds: Array.from(
-        new Set<string>([...request.participantIds, ...(request.requesterId ? [user.id] : [])]),
+        new Set<string>([...resolvedIds, ...(request.requesterId ? [user.id] : [])]),
       ).filter((x) => x !== request.requesterId),
       guests: Array.isArray(request.guests)
         ? (request.guests as { name: string; company?: string; phone?: string }[])

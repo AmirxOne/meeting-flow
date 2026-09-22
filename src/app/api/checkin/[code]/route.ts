@@ -1,17 +1,30 @@
 import { NextRequest } from "next/server";
-import { ok, handleError } from "@/server/http";
+import { ok, fail, handleError } from "@/server/http";
 import { getGuestByCheckinCode, checkInGuest, wayfindingFromGuest } from "@/server/services/guest-checkin.service";
+import { getLoginRateLimiter } from "@/server/rate-limit/login-rate-limit";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/checkin/:code — public lookup for guest check-in page. */
+/** GET /api/checkin/:code — public lookup for guest check-in page (rate-limited). */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ code: string }> },
 ) {
   try {
+    // brute-force guard: codes are 8-hex, so throttle per IP like login
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+    const limiter = getLoginRateLimiter();
+    if (await limiter.isLimited(`checkin:${ip}`)) {
+      return fail(429, "تلاش‌های بیش از حد — کمی بعد دوباره امتحان کنید", "RATE_LIMITED");
+    }
     const { code } = await params;
-    const guest = await getGuestByCheckinCode(code);
+    let guest;
+    try {
+      guest = await getGuestByCheckinCode(code);
+    } catch (e) {
+      await limiter.recordFailure(`checkin:${ip}`).catch(() => {});
+      throw e;
+    }
     return ok({
       guest: {
         id: guest.id,

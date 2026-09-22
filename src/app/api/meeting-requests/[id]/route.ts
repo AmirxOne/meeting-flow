@@ -31,7 +31,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const action = (body.action ?? "") as string;
     const adminNote = typeof body.adminNote === "string" ? body.adminNote.slice(0, 500) : null;
 
-    const request = await prisma.meetingRequest.findUnique({ where: { id } });
+    // org-scoped: a request in another organization must be invisible (404)
+    const request = await prisma.meetingRequest.findFirst({ where: { id, orgId: user.orgId } });
     if (!request) return fail(404, "درخواست یافت نشد", "NOT_FOUND");
 
     if (action === "reject") {

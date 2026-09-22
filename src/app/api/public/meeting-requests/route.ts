@@ -5,20 +5,31 @@ import { ok, handleError, audit } from "@/server/http";
 
 export const dynamic = "force-dynamic";
 
-/** Simple in-memory rate limit for the public endpoint (per IP). */
-const hits = new Map<string, number[]>();
+/** Rate limit for the public endpoint (per IP) — Redis-backed when available
+ *  (multi-instance safe), in-memory fallback for dev. 10 requests/hour. */
+import { getLoginRateLimiter } from "@/server/rate-limit/login-rate-limit";
 const WINDOW_MS = 60 * 60 * 1000;
 const MAX = 10;
-function limited(ip: string): boolean {
-  const now = Date.now();
-  const prev = (hits.get(ip) ?? []).filter((t) => t > now - WINDOW_MS);
-  if (prev.length >= MAX) {
+const hits = new Map<string, number[]>();
+async function limited(ip: string): Promise<boolean> {
+  try {
+    const limiter = getLoginRateLimiter();
+    // sliding window with hour scale: reuse the login limiter but wider quota is
+    // enforced by checking attempts; recordFailure pushes the attempt.
+    if (await limiter.isLimited(`pubreq:${ip}`)) return true;
+    await limiter.recordFailure(`pubreq:${ip}`);
+    return false;
+  } catch {
+    const now = Date.now();
+    const prev = (hits.get(ip) ?? []).filter((t) => t > now - WINDOW_MS);
+    if (prev.length >= MAX) {
+      hits.set(ip, prev);
+      return true;
+    }
+    prev.push(now);
     hits.set(ip, prev);
-    return true;
+    return false;
   }
-  prev.push(now);
-  hits.set(ip, prev);
-  return false;
 }
 
 const guestSchema = z.object({
@@ -56,7 +67,7 @@ const guestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get("x-forwarded-for") ?? "local";
-    if (limited(ip)) {
+    if (await limited(ip)) {
       return Response.json(
         { ok: false, error: { message: "تعداد درخواست‌ها زیاد است — بعداً تلاش کنید", code: "RATE_LIMITED" } },
         { status: 429 },

@@ -55,15 +55,19 @@ function assertKnownPermissions(keys: string[]) {
   }
 }
 
-export async function listRoles() {
+/** Org-scoped listing: shared system roles + this org's custom roles only. */
+export async function listRoles(orgId?: string | null) {
   const roles = await prisma.role.findMany({
+    where: {
+      OR: [{ orgId: null }, ...(orgId ? [{ orgId }] : [])],
+    },
     include: roleInclude,
     orderBy: [{ isSystem: "desc" }, { name: "asc" }],
   });
   return roles.map(serializeRole);
 }
 
-export async function createRole(input: RoleCreateInput) {
+export async function createRole(input: RoleCreateInput, orgId?: string | null) {
   assertKnownPermissions(input.permissionKeys);
   const exists = await prisma.role.findUnique({ where: { key: input.key } });
   if (exists) throw new HttpError(409, "کلید نقش تکراری است", "DUPLICATE");
@@ -75,6 +79,8 @@ export async function createRole(input: RoleCreateInput) {
       name: input.name,
       description: input.description ?? null,
       isSystem: false,
+      // custom roles belong to the creating organization
+      orgId: orgId ?? null,
       permissions: { create: perms.map((p) => ({ permissionId: p.id })) },
     },
     include: roleInclude,
@@ -82,10 +88,16 @@ export async function createRole(input: RoleCreateInput) {
   return serializeRole(role);
 }
 
-export async function updateRole(roleId: string, input: RoleUpdateInput) {
+/** A role is visible to an org if it is a system role or owned by that org. */
+function roleVisibleToOrg(role: { orgId: string | null }, orgId: string | null | undefined): boolean {
+  return role.orgId === null || (orgId != null && role.orgId === orgId);
+}
+
+export async function updateRole(roleId: string, input: RoleUpdateInput, orgId?: string | null) {
   const role = await prisma.role.findUnique({ where: { id: roleId }, include: roleInclude });
   if (!role) throw new HttpError(404, "نقش یافت نشد", "NOT_FOUND");
   if (role.isSystem) throw new HttpError(403, "نقش‌های سیستمی قابل ویرایش نیستند", "SYSTEM_ROLE");
+  if (!roleVisibleToOrg(role, orgId)) throw new HttpError(404, "نقش یافت نشد", "NOT_FOUND");
 
   if (input.permissionKeys) {
     assertKnownPermissions(input.permissionKeys);
@@ -107,13 +119,14 @@ export async function updateRole(roleId: string, input: RoleUpdateInput) {
   return serializeRole(updated);
 }
 
-export async function deleteRole(roleId: string) {
+export async function deleteRole(roleId: string, orgId?: string | null) {
   const role = await prisma.role.findUnique({
     where: { id: roleId },
     include: { _count: { select: { users: true } } },
   });
   if (!role) throw new HttpError(404, "نقش یافت نشد", "NOT_FOUND");
   if (role.isSystem) throw new HttpError(403, "نقش‌های سیستمی قابل حذف نیستند", "SYSTEM_ROLE");
+  if (!roleVisibleToOrg(role, orgId)) throw new HttpError(404, "نقش یافت نشد", "NOT_FOUND");
   if (role._count.users > 0) {
     throw new HttpError(409, "این نقش به کاربران اختصاص داده شده است", "ROLE_IN_USE");
   }

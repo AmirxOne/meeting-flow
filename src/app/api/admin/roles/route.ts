@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 /** GET /api/admin/roles — list roles + permission catalog */
 export async function GET() {
   try {
-    await requirePermission("role:manage");
-    const [roles, catalog] = await Promise.all([listRoles(), Promise.resolve(getPermissionCatalog())]);
+    const actor = await requirePermission("role:manage");
+    const [roles, catalog] = await Promise.all([listRoles(actor.orgId), Promise.resolve(getPermissionCatalog())]);
     return ok({ roles, catalog });
   } catch (e) {
     return handleError(e);
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   try {
     const actor = await requirePermission("role:manage");
     const input = roleCreateSchema.parse(await req.json().catch(() => ({})));
-    const role = await createRole(input);
+    const role = await createRole(input, actor.orgId);
     await audit({
       actorId: actor.id,
       action: "CREATE",

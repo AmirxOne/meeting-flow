@@ -9,9 +9,9 @@ export const dynamic = "force-dynamic";
 /** GET /api/admin/roles/:id */
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    await requirePermission("role:manage");
+    const actor = await requirePermission("role:manage");
     const { id } = await params;
-    const role = (await listRoles()).find((r) => r.id === id);
+    const role = (await listRoles(actor.orgId)).find((r) => r.id === id);
     if (!role) throw new HttpError(404, "نقش یافت نشد", "NOT_FOUND");
     return ok({ role });
   } catch (e) {
@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const actor = await requirePermission("role:manage");
     const { id } = await params;
     const input = roleUpdateSchema.parse(await req.json().catch(() => ({})));
-    const role = await updateRole(id, input);
+    const role = await updateRole(id, input, actor.orgId);
     await audit({
       actorId: actor.id,
       action: "UPDATE",
@@ -45,7 +45,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const actor = await requirePermission("role:manage");
     const { id } = await params;
-    await deleteRole(id);
+    await deleteRole(id, actor.orgId);
     await audit({
       actorId: actor.id,
       action: "DELETE",

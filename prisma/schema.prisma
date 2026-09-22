@@ -72,6 +72,8 @@ model Role {
   key         String   @unique
   name        String   @unique
   description String?
+  /// null = system role shared by all orgs; set = org-owned custom role
+  orgId       String?
   isSystem    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

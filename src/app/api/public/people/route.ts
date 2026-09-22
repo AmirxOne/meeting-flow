@@ -12,12 +12,18 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const q = (req.nextUrl.searchParams.get("q") ?? "").trim();
-    const where = q
-      ? { OR: [{ name: { contains: q } }, { company: { contains: q } }, { jobTitle: { contains: q } }] }
-      : {};
+    const where = {
+      // pickable people must be internal members with a linked user account —
+      // external contacts cannot become system participants (CROSS_TENANT guard)
+      kind: "INTERNAL" as const,
+      userId: { not: null },
+      ...(q
+        ? { OR: [{ name: { contains: q } }, { company: { contains: q } }, { jobTitle: { contains: q } }] }
+        : {}),
+    };
     const rows = await prisma.personDirectory.findMany({
       where,
-      select: { id: true, name: true, jobTitle: true, company: true },
+      select: { id: true, name: true, jobTitle: true, company: true, kind: true },
       take: 8,
       orderBy: { name: "asc" },
     });

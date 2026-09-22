@@ -17,7 +17,8 @@ const { chromium } = require("playwright");
 
   // 1) guest request via public API (with attendeeCount + person)
   const dir = await (await fetch("http://127.0.0.1:3100/api/public/people")).json();
-  const person = dir.data.people[0];
+  // pick the first INTERNAL person (external contacts cannot be meeting participants)
+  const person = (dir.data.people ?? []).find((x) => x.kind === 'INTERNAL');
   const uniq = Date.now() % 100000;
   const g = await fetch("http://127.0.0.1:3100/api/public/meeting-requests", {
     method: "POST",
@@ -99,14 +100,15 @@ const { chromium } = require("playwright");
 
   // 5b) schedule the GUEST request (admin becomes organizer)
   const start = new Date(Date.now() + 5 * 86400000); start.setUTCHours(10, 0, 0, 0);
-  const rooms = await (await fetch("http://127.0.0.1:3100/api/rooms", { headers: { cookie } })).json();
+  const roomsResp = await (await fetch("http://127.0.0.1:3100/api/rooms", { headers: { cookie } })).json();
+  const roomList = roomsResp?.data?.rooms ?? roomsResp?.rooms ?? [];
   let schedRes, schedOk = false;
-  for (const room of rooms.rooms ?? []) {
+  for (const room of roomList) {
     schedRes = await fetch(`http://127.0.0.1:3100/api/meeting-requests/${gid}/schedule`, {
       method: "POST", headers: { "Content-Type": "application/json", cookie },
       body: JSON.stringify({ branchId: room.branchId, roomId: room.id, startAt: start.toISOString(), endAt: new Date(start.getTime() + 3600000).toISOString() }),
     });
-    if (schedRes.status === 201) { schedOk = true; break; }
+    if (schedRes.status === 201 || schedRes.status === 200) { schedOk = true; break; }
   }
   const schedJ = schedOk ? await schedRes.json() : null;
   checks.guestScheduledApi = schedOk && !!schedJ?.data?.meeting?.id;
