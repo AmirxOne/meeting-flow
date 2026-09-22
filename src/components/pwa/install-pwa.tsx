@@ -116,7 +116,7 @@ export function InstallPwaBanner() {
             <div className="mt-5 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
               <button
                 onClick={() => void install()}
-                className="flex h-12 items-center gap-2 rounded-xl bg-white px-7 text-[13.5px] font-bold text-ink shadow-[0_6px_18px_-8px_rgba(255,255,255,0.45)] transition-shadow duration-200 hover:shadow-[0_14px_34px_-10px_rgba(255,255,255,0.55)] active:shadow-none"
+                className="flex h-12 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-white px-7 text-[13.5px] font-bold text-ink shadow-[0_6px_18px_-8px_rgba(255,255,255,0.45)] transition-shadow duration-200 hover:shadow-[0_14px_34px_-10px_rgba(255,255,255,0.55)] active:shadow-none"
               >
                 <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
