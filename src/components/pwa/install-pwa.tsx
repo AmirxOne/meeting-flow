@@ -200,7 +200,6 @@ export function InstallPwaBanner() {
                 <div aria-hidden className="absolute bottom-1 left-1/2 h-[4px] w-[86px] -translate-x-1/2 rounded-full bg-ink/80" />
               </div>
             </div>
-            <p className="mt-3 text-center text-[9.5px] text-white/40">مهرسا — روی صفحه‌ی اصلی گوشی شما</p>
           </div>
         </div>
       </motion.div>
