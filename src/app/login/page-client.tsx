@@ -45,7 +45,7 @@ const BRAND_POINTS = [
 ] as const;
 
 const fieldClass =
-  "h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-right text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15";
+  "h-11 w-full rounded-xl border border-line bg-paper-soft/40 px-3.5 text-right text-[13px] outline-none transition-all focus:border-ink/40 focus:bg-white focus:ring-4 focus:ring-ink/10";
 
 export function LoginPage() {
   const router = useRouter();
@@ -189,11 +189,16 @@ export function LoginPage() {
           backgroundSize: "22px 22px",
         }}
       />
+      <div aria-hidden className="pointer-events-none absolute -top-32 right-1/4 size-[26rem] rounded-full bg-ink/[0.05] blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-36 left-1/5 size-[24rem] rounded-full bg-emerald-200/25 blur-3xl" />
 
       <FadeIn className="relative flex w-full max-w-[880px] flex-1 items-center">
         <div className="grid w-full overflow-hidden rounded-2xl border border-line bg-white shadow-[0_24px_80px_-28px_rgba(13,13,13,0.28)] md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-          <aside className="relative flex flex-col justify-between bg-ink px-8 py-9 text-white md:min-h-[560px]">
-            <div>
+          <aside className="relative flex flex-col justify-between overflow-hidden bg-ink px-8 py-9 text-white md:min-h-[560px]">
+            <div aria-hidden className="pointer-events-none absolute -left-20 -top-20 size-64 rounded-full bg-white/5 blur-2xl" />
+            <div aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 size-72 rounded-full bg-emerald-400/10 blur-3xl" />
+            <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)", backgroundSize: "20px 20px" }} />
+            <div className="relative">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
                 <Image
                   src="/logo-white.png"
@@ -216,7 +221,7 @@ export function LoginPage() {
               </p>
             </div>
 
-            <ul className="mt-10 space-y-3 md:mt-0">
+            <ul className="relative mt-10 space-y-3 md:mt-0">
               {BRAND_POINTS.map(({ icon: BrandIcon, text }) => (
                 <li key={text} className="flex items-center gap-2.5 text-[12.5px] text-white/80">
                   <span className="flex size-7 items-center justify-center rounded-lg bg-white/10">
@@ -306,7 +311,7 @@ export function LoginPage() {
               )}
 
               {error && (
-                <p className="rounded-md bg-red-50 px-3 py-2.5 text-[12px] text-red-600">{error}</p>
+                <p className="rounded-xl bg-red-50 px-3 py-2.5 text-[12px] font-medium text-red-600 ring-1 ring-red-100">{error}</p>
               )}
 
               <button
@@ -393,14 +398,17 @@ export function LoginPage() {
               </div>
 
               {error && (
-                <p className="rounded-md bg-red-50 px-3 py-2.5 text-[12px] text-red-600">{error}</p>
+                <p className="rounded-xl bg-red-50 px-3 py-2.5 text-[12px] font-medium text-red-600 ring-1 ring-red-100">{error}</p>
               )}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="h-11 w-full rounded-md bg-ink text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] disabled:opacity-50"
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
               >
+                {loading && (
+                  <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                )}
                 {loading ? "در حال ورود…" : ldapMode ? "ورود با LDAP" : "ورود"}
               </button>
             </form>
