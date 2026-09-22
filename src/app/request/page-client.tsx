@@ -211,6 +211,7 @@ export function PublicRequestForm() {
             <p className="mt-1 text-[12px] leading-6 text-ink-soft">نیاز خود را ثبت کنید — هماهنگی زمان با ما؛ فیلدهای ستاره‌دار الزامی‌اند.</p>
 
             <div className="mt-6 space-y-4">
+              <FormSection n={1} title="اطلاعات تماس" hint="برای هماهنگی زمان با شما تماس می‌گیریم">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-[12px] font-medium">نام و نام خانوادگی *</label>
@@ -232,9 +233,9 @@ export function PublicRequestForm() {
                 <label className="mb-1.5 block text-[12px] font-medium">سازمان / شرکت (اختیاری)</label>
                 <input value={guestCompany} onChange={(e) => setGuestCompany(e.target.value)} className={field} placeholder="نام سازمان شما" />
               </div>
+              </FormSection>
 
-              <hr className="border-line" />
-
+              <FormSection n={2} title="جزئیات جلسه" hint="موضوع و افراد مورد نظر شما">
               <div>
                 <label className="mb-1.5 block text-[12px] font-medium">موضوع جلسه *</label>
                 <input
@@ -259,11 +260,13 @@ export function PublicRequestForm() {
               <PublicPeoplePicker value={people} onChange={setPeople} />
 
               {/* confidential */}
-              <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-white px-3.5">
+              <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-white px-3.5 transition-colors hover:bg-paper-soft/50">
                 <input type="checkbox" checked={isPrivate} onChange={(e) => setIsPrivate(e.target.checked)} className="h-4 w-4 accent-black" />
                 <span className="text-[12px]">جلسه محرمانه — موضوع و جزئیات فقط برای من، دعوت‌شدگان و مدیریت دیده می‌شود</span>
               </label>
+              </FormSection>
 
+              <FormSection n={3} title="زمان و محل" hint="تکرار، محل برگزاری و بازه‌ی دلخواه">
               {/* recurrence */}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -401,6 +404,7 @@ export function PublicRequestForm() {
                   <GuestSelect value={durationMin} onChange={setDurationMin} options={DURATIONS} />
                 </div>
               </div>
+              </FormSection>
 
               <AnimatePresence>
                 {error && (
@@ -437,6 +441,22 @@ export function PublicRequestForm() {
         </div>
       </div>
     </div>
+  );
+}
+
+/** numbered section header — groups the form into professional steps */
+function FormSection({ n, title, hint, children }: { n: number; title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-xl border border-line/80 bg-white p-4 sm:p-5">
+      <div className="mb-4 flex items-center gap-2.5 border-b border-line/70 pb-3">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-ink text-[12px] font-bold text-white">{fa(n)}</span>
+        <div>
+          <p className="text-[13px] font-bold leading-5">{title}</p>
+          {hint && <p className="mt-0.5 text-[10.5px] text-ink-faint">{hint}</p>}
+        </div>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
   );
 }
 
