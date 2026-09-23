@@ -11,7 +11,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 
 /**
  * حضورغیاب جلسه — برگزارکننده برای هر شرکت‌کننده ثبت می‌کند:
- * حاضر / تأخیر / غایب / معذرت. بقیه فقط می‌بینند.
+ * حاضر / تأخیر / غایب / موجه. بقیه فقط می‌بینند.
  */
 
 type AttStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
@@ -20,7 +20,7 @@ const STATUS_META: Record<AttStatus, { label: string; chip: string; icon: React.
   PRESENT: { label: "حاضر", chip: "bg-emerald-600 text-white", icon: <Check className="h-3.5 w-3.5" /> },
   LATE: { label: "تأخیر", chip: "bg-amber-500 text-white", icon: <Clock className="h-3.5 w-3.5" /> },
   ABSENT: { label: "غایب", chip: "bg-red-500 text-white", icon: <X className="h-3.5 w-3.5" /> },
-  EXCUSED: { label: "معذرت", chip: "bg-gray-400 text-white", icon: <Info className="h-3.5 w-3.5" /> },
+  EXCUSED: { label: "موجه", chip: "bg-gray-400 text-white", icon: <Info className="h-3.5 w-3.5" /> },
 };
 
 interface AttendanceRow {
