@@ -59,10 +59,15 @@ export function InstallPwaBanner() {
 
   const install = async () => {
     if (deferred) {
-      await deferred.prompt();
-      const choice = await deferred.userChoice;
-      if (choice.outcome === "accepted") setHidden(true);
-      setDeferred(null);
+      try {
+        await deferred.prompt();
+        const choice = await deferred.userChoice;
+        if (choice.outcome === "accepted") setHidden(true);
+      } catch {
+        setShowManual(true); // native prompt unavailable/failed → guide the user
+      } finally {
+        setDeferred(null);
+      }
       return;
     }
     setShowManual(true); // iOS Safari / browsers without the native prompt
@@ -288,8 +293,13 @@ export function InstallPwaButton({ className }: { className?: string }) {
 
   const install = async () => {
     if (deferred) {
-      await deferred.prompt();
-      setDeferred(null);
+      try {
+        await deferred.prompt();
+      } catch {
+        setShowManual(true);
+      } finally {
+        setDeferred(null);
+      }
       return;
     }
     setShowManual(true);
@@ -329,7 +339,25 @@ export function InstallPwaButton({ className }: { className?: string }) {
               dir="rtl"
               className="w-[400px] max-w-full rounded-2xl bg-white p-6 shadow-2xl"
             >
-              <h3 className="text-[15px] font-bold">نصب مهرسا</h3>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex size-9 items-center justify-center rounded-xl bg-ink text-white">
+                    <svg viewBox="0 0 24 24" className="size-4.5" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <h3 className="text-[15px] font-bold">نصب مهرسا</h3>
+                </div>
+                <button
+                  onClick={() => setShowManual(false)}
+                  aria-label="بستن"
+                  className="flex size-8 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-paper-soft hover:text-ink"
+                >
+                  <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
               {platform === "ios" ? (
                 <ol className="mt-4 space-y-3">
                   {IOS_STEPS.map((s, i) => (
@@ -349,6 +377,9 @@ export function InstallPwaButton({ className }: { className?: string }) {
                   </p>
                 </div>
               )}
+              <p className="mt-4 text-center text-[10.5px] text-ink-faint">
+                پس از نصب، مهرسا از خانه‌ی گوشی یا دسکتاپ مثل یک اپ مستقل باز می‌شود
+              </p>
             </motion.div>
           </motion.div>
         )}
