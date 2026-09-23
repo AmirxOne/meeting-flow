@@ -2546,9 +2546,9 @@ describe("meeting attendance (حضورغیاب)", () => {
       json: {
         title: "تست حضورغیاب",
         branchId,
-        roomId: "room-b",
-        startAt: new Date(Date.now() + 26 * 3600e3).toISOString(),
-        endAt: new Date(Date.now() + 27 * 3600e3).toISOString(),
+        roomId: "room-d",
+        startAt: new Date(Date.now() + 61 * 3600e3).toISOString(),
+        endAt: new Date(Date.now() + 62 * 3600e3).toISOString(),
         meetingType: "INTERNAL",
         participantIds: [],
       },
@@ -2630,6 +2630,60 @@ describe("meeting attendance (حضورغیاب)", () => {
       json: { reason: "پاکسازی تست" },
     });
     expect([200, 400]).toContain(res.status);
+  });
+
+  it("marks external guests (حضورغیاب مهمان)", async () => {
+    // idempotency: wipe leftovers from a previous failed run
+    const prev = await api("/api/search?q=" + encodeURIComponent("تست حضورغیاب مهمان"), { cookie: organizerCookie }).catch(() => null);
+    for (const hit of prev?.body?.data?.meetings ?? []) {
+      await api(`/api/meetings/${hit.id}/cancel`, { method: "POST", cookie: organizerCookie, json: { reason: "cleanup" } }).catch(() => {});
+    }
+    // create an EXTERNAL meeting with a guest
+    const created = await api("/api/meetings", {
+      method: "POST",
+      cookie: operatorCookie,
+      json: {
+        title: "تست حضورغیاب مهمان",
+        branchId,
+        roomId: "room-d",
+        startAt: new Date(Date.now() + 63 * 3600e3).toISOString(),
+        endAt: new Date(Date.now() + 64 * 3600e3).toISOString(),
+        meetingType: "EXTERNAL",
+        participantIds: [],
+        guests: [{ name: "مهمان حضورغیاب", company: "شرکت بیرونی" }],
+      },
+    });
+    expect(created.status).toBe(201);
+    const mid = created.body.data.meeting.id;
+    // guests are not part of the create response — fetch the meeting detail
+    const detail = await api(`/api/meetings/${mid}`, { cookie: organizerCookie });
+    const guestId = (detail.body.data.meeting.guests ?? [])[0]?.id;
+    expect(guestId).toBeTruthy();
+
+    // mark the guest PRESENT
+    let res = await api(`/api/meetings/${mid}/attendance`, {
+      method: "POST",
+      cookie: operatorCookie,
+      json: { marks: [{ guestId, status: "PRESENT" }] },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.data.guests[0].attendanceStatus).toBe("PRESENT");
+
+    // GET returns guests too
+    res = await api(`/api/meetings/${mid}/attendance`, { cookie: operatorCookie });
+    expect(res.body.data.guests).toHaveLength(1);
+    expect(res.body.data.guests[0].name).toBe("مهمان حضورغیاب");
+
+    // unknown guest → 400
+    res = await api(`/api/meetings/${mid}/attendance`, {
+      method: "POST",
+      cookie: operatorCookie,
+      json: { marks: [{ guestId: "ghost-guest", status: "PRESENT" }] },
+    });
+    expect(res.status).toBe(400);
+
+    // cleanup
+    await api(`/api/meetings/${mid}/cancel`, { method: "POST", cookie: operatorCookie, json: { reason: "پاکسازی" } });
   });
 });
 

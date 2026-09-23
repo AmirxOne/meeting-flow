@@ -9,10 +9,13 @@ import { ok, handleError, audit } from "@/server/http";
  * body: { marks: [{ userId, status }] } — یک‌جا برای همه یا تک‌تک
  * status: PRESENT | LATE | ABSENT | EXCUSED (یا null برای پاک‌کردن علامت)
  */
-const markSchema = z.object({
-  userId: z.string().min(1),
-  status: z.enum(["PRESENT", "LATE", "ABSENT", "EXCUSED"]).nullish(),
-});
+const markSchema = z
+  .object({
+    userId: z.string().min(1).optional(),
+    guestId: z.string().min(1).optional(),
+    status: z.enum(["PRESENT", "LATE", "ABSENT", "EXCUSED"]).nullish(),
+  })
+  .refine((m) => Boolean(m.userId ?? m.guestId), { message: "userId یا guestId لازم است" });
 
 const bodySchema = z.object({ marks: z.array(markSchema).min(1).max(100) });
 
@@ -24,7 +27,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const meeting = await prisma.meeting.findFirst({
       where: { id, orgId: user.orgId },
-      select: { id: true, organizerId: true, status: true, participants: { select: { userId: true } } },
+      select: {
+        id: true,
+        organizerId: true,
+        status: true,
+        participants: { select: { userId: true } },
+        guests: { select: { id: true } },
+      },
     });
     if (!meeting) throw new HttpError(404, "جلسه یافت نشد", "NOT_FOUND");
 
@@ -34,22 +43,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const memberIds = new Set(meeting.participants.map((p) => p.userId));
+    const guestIds = new Set(meeting.guests.map((g) => g.id));
     for (const m of marks) {
-      if (!memberIds.has(m.userId)) {
+      if (m.userId && !memberIds.has(m.userId)) {
         throw new HttpError(400, "کاربر انتخاب‌شده شرکت‌کننده این جلسه نیست", "BAD_PARTICIPANT");
+      }
+      if (m.guestId && !guestIds.has(m.guestId)) {
+        throw new HttpError(400, "مهمان انتخاب‌شده متعلق به این جلسه نیست", "BAD_GUEST");
       }
     }
 
     const now = new Date();
     for (const m of marks) {
-      await prisma.meetingParticipant.update({
-        where: { meetingId_userId: { meetingId: id, userId: m.userId } },
-        data: {
-          attendanceStatus: m.status ?? null,
-          attendanceMarkedAt: m.status ? now : null,
-          attendanceMarkedById: m.status ? user.id : null,
-        },
-      });
+      const data = {
+        attendanceStatus: m.status ?? null,
+        attendanceMarkedAt: m.status ? now : null,
+        attendanceMarkedById: m.status ? user.id : null,
+      };
+      if (m.userId) {
+        await prisma.meetingParticipant.update({
+          where: { meetingId_userId: { meetingId: id, userId: m.userId } },
+          data,
+        });
+      } else if (m.guestId) {
+        await prisma.meetingGuest.update({ where: { id: m.guestId }, data });
+      }
     }
 
     await audit({
@@ -57,19 +75,31 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       action: "ATTENDANCE_MARK",
       entity: "Meeting",
       entityId: id,
-      newValue: { marks: marks.map((m) => ({ userId: m.userId, status: m.status })) },
+      newValue: { marks: marks.map((m) => ({ userId: m.userId, guestId: m.guestId, status: m.status })) },
     });
 
-    const participants = await prisma.meetingParticipant.findMany({
-      where: { meetingId: id },
-      select: {
-        userId: true,
-        attendanceStatus: true,
-        attendanceMarkedAt: true,
-        attendanceMarkedBy: { select: { id: true, fullName: true } },
-      },
-    });
-    return ok({ participants });
+    const [participants, guests] = await Promise.all([
+      prisma.meetingParticipant.findMany({
+        where: { meetingId: id },
+        select: {
+          userId: true,
+          attendanceStatus: true,
+          attendanceMarkedAt: true,
+          attendanceMarkedBy: { select: { id: true, fullName: true } },
+        },
+      }),
+      prisma.meetingGuest.findMany({
+        where: { meetingId: id },
+        select: {
+          id: true,
+          name: true,
+          attendanceStatus: true,
+          attendanceMarkedAt: true,
+          attendanceMarkedBy: { select: { id: true, fullName: true } },
+        },
+      }),
+    ]);
+    return ok({ participants, guests });
   } catch (e) {
     return handleError(e);
   }
@@ -89,17 +119,30 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     if (!isMember && !user.isSuperAdmin) {
       throw new HttpError(403, "دسترسی لازم را ندارید", "FORBIDDEN");
     }
-    const rows = await prisma.meetingParticipant.findMany({
-      where: { meetingId: id },
-      select: {
-        userId: true,
-        attendanceStatus: true,
-        attendanceMarkedAt: true,
-        attendanceMarkedBy: { select: { id: true, fullName: true } },
-      },
-      orderBy: { createdAt: "asc" },
-    });
-    return ok({ attendance: rows });
+    const [rows, guests] = await Promise.all([
+      prisma.meetingParticipant.findMany({
+        where: { meetingId: id },
+        select: {
+          userId: true,
+          attendanceStatus: true,
+          attendanceMarkedAt: true,
+          attendanceMarkedBy: { select: { id: true, fullName: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+      prisma.meetingGuest.findMany({
+        where: { meetingId: id },
+        select: {
+          id: true,
+          name: true,
+          attendanceStatus: true,
+          attendanceMarkedAt: true,
+          attendanceMarkedBy: { select: { id: true, fullName: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      }),
+    ]);
+    return ok({ attendance: rows, guests });
   } catch (e) {
     return handleError(e);
   }

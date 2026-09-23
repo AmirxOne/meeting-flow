@@ -906,6 +906,7 @@ export function MeetingDetailPage() {
               { userId: m.organizer.id, user: { id: m.organizer.id, fullName: m.organizer.fullName, jobTitle: m.organizer.jobTitle } },
               ...m.participants.filter((p) => p.userId !== m.organizer.id).map((p) => ({ userId: p.userId, user: { id: p.user.id, fullName: p.user.fullName, jobTitle: p.user.jobTitle ?? null } })),
             ]}
+            guests={m.guests.map((g) => ({ id: g.id, name: g.name, company: g.company }))}
             isOrganizer={isOrganizer}
           />
 

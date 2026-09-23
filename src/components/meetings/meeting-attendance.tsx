@@ -30,13 +30,23 @@ interface AttendanceRow {
   attendanceMarkedBy: { id: string; fullName: string } | null;
 }
 
+interface GuestAttendanceRow {
+  id: string;
+  name: string;
+  attendanceStatus: AttStatus | null;
+  attendanceMarkedAt: string | null;
+  attendanceMarkedBy: { id: string; fullName: string } | null;
+}
+
 export function MeetingAttendance({
   meetingId,
   participants,
+  guests = [],
   isOrganizer,
 }: {
   meetingId: string;
   participants: { userId: string; user: { id: string; fullName: string; jobTitle?: string | null } }[];
+  guests?: { id: string; name: string; company?: string | null }[];
   isOrganizer: boolean;
 }) {
   const qc = useQueryClient();
@@ -45,24 +55,26 @@ export function MeetingAttendance({
 
   const { data } = useQuery({
     queryKey: ["attendance", meetingId],
-    queryFn: () => api<{ attendance: AttendanceRow[] }>(`/api/meetings/${meetingId}/attendance`),
+    queryFn: () => api<{ attendance: AttendanceRow[]; guests: GuestAttendanceRow[] }>(`/api/meetings/${meetingId}/attendance`),
     retry: false,
   });
 
   const byUser = new Map((data?.attendance ?? []).map((a) => [a.userId, a]));
-  const marked = (data?.attendance ?? []).filter((a) => a.attendanceStatus).length;
+  const byGuest = new Map((data?.guests ?? []).map((g) => [g.id, g]));
+  const allRows = [...(data?.attendance ?? []), ...(data?.guests ?? [])];
+  const marked = allRows.filter((a) => a.attendanceStatus).length;
   const summary = { PRESENT: 0, LATE: 0, ABSENT: 0, EXCUSED: 0 } as Record<AttStatus, number>;
-  for (const a of data?.attendance ?? []) if (a.attendanceStatus) summary[a.attendanceStatus] += 1;
+  for (const a of allRows) if (a.attendanceStatus) summary[a.attendanceStatus] += 1;
 
-  async function mark(userId: string, status: AttStatus | null) {
-    // toggle off when clicking the active status
-    const current = byUser.get(userId)?.attendanceStatus ?? null;
+  async function mark(payload: { userId?: string; guestId?: string }, status: AttStatus | null) {
+    const key = payload.userId ?? payload.guestId ?? "";
+    const current = payload.userId ? (byUser.get(payload.userId)?.attendanceStatus ?? null) : (byGuest.get(payload.guestId!)?.attendanceStatus ?? null);
     const next = current === status ? null : status;
-    setMarking(userId);
+    setMarking(key);
     try {
       await api(`/api/meetings/${meetingId}/attendance`, {
         method: "POST",
-        json: { marks: [{ userId, status: next }] },
+        json: { marks: [{ ...payload, status: next }] },
       });
       await qc.invalidateQueries({ queryKey: ["attendance", meetingId] });
       if (next) push(`«${STATUS_META[next].label}» ثبت شد`, "success");
@@ -73,12 +85,14 @@ export function MeetingAttendance({
     }
   }
 
-  if (participants.length === 0) return null;
+  if (participants.length === 0 && guests.length === 0) return null;
+
+  const total = participants.length + guests.length;
 
   return (
     <Card data-testid="meeting-attendance" data-tour="meeting-attendance">
       <CardHeader
-        title={`حضورغیاب (${faNum(marked)}/${faNum(participants.length)})`}
+        title={`حضورغیاب (${faNum(marked)}/${faNum(total)})`}
         subtitle={isOrganizer ? "روی وضعیت هر نفر بزنید تا ثبت شود — دوباره بزنید پاک می‌شود" : "ثبت‌شده توسط برگزارکننده جلسه"}
       />
       <div className="px-5 pb-5">
@@ -118,7 +132,7 @@ export function MeetingAttendance({
                           type="button"
                           title={STATUS_META[s].label}
                           disabled={marking === p.userId}
-                          onClick={() => mark(p.userId, s)}
+                          onClick={() => mark({ userId: p.userId }, s)}
                           className={cn(
                             "flex h-8 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium transition-colors",
                             active ? STATUS_META[s].chip : "bg-paper-soft text-ink-soft hover:bg-line/50 hover:text-ink",
@@ -128,6 +142,61 @@ export function MeetingAttendance({
                         >
                           {STATUS_META[s].icon}
                           <span className="hidden sm:inline">{STATUS_META[s].label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  meta && (
+                    <span className={cn("flex h-8 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium", meta.chip)}>
+                      {meta.icon}
+                      {meta.label}
+                    </span>
+                  )
+                )}
+              </div>
+            );
+          })}
+          {guests.map((g) => {
+            const row = byGuest.get(g.id);
+            const st = row?.attendanceStatus ?? null;
+            const meta = st ? STATUS_META[st] : null;
+            return (
+              <div key={g.id} className="flex flex-wrap items-center gap-2.5 py-2.5" data-testid={`attendance-guest-${g.id}`}>
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-paper-soft text-[11px] font-bold text-ink-soft">
+                  {g.name.trim().charAt(0) || "؟"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium">
+                    {g.name}
+                    <span className="mr-1.5 rounded-full bg-paper-soft px-1.5 py-0.5 text-[9.5px] font-normal text-ink-faint">مهمان{g.company ? ` · ${g.company}` : ""}</span>
+                  </p>
+                  {row?.attendanceMarkedAt && (
+                    <p className="text-[10.5px] text-ink-faint">
+                      ثبت توسط {row.attendanceMarkedBy?.fullName ?? "—"} · {formatJalali(new Date(row.attendanceMarkedAt), { withTime: true })}
+                    </p>
+                  )}
+                </div>
+                {isOrganizer ? (
+                  <div className="flex items-center gap-1" role="group" aria-label={`حضورغیاب ${g.name}`}>
+                    {(["PRESENT", "LATE", "ABSENT", "EXCUSED"] as AttStatus[]).map((s2) => {
+                      const active = st === s2;
+                      return (
+                        <button
+                          key={s2}
+                          type="button"
+                          title={STATUS_META[s2].label}
+                          disabled={marking === g.id}
+                          onClick={() => mark({ guestId: g.id }, s2)}
+                          className={cn(
+                            "flex h-8 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium transition-colors",
+                            active ? STATUS_META[s2].chip : "bg-paper-soft text-ink-soft hover:bg-line/50 hover:text-ink",
+                            marking === g.id && "opacity-60",
+                          )}
+                          data-testid={`attendance-guest-${g.id}-${s2}`}
+                        >
+                          {STATUS_META[s2].icon}
+                          <span className="hidden sm:inline">{STATUS_META[s2].label}</span>
                         </button>
                       );
                     })}
