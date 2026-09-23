@@ -83,7 +83,7 @@ export function MeetingAttendance({
       />
       <div className="px-5 pb-5">
         {/* summary strip */}
-        <div className="mb-3 grid grid-cols-4 gap-2">
+        <div className="mt-3 mb-3 grid grid-cols-4 gap-2">
           {(["PRESENT", "LATE", "ABSENT", "EXCUSED"] as AttStatus[]).map((st) => (
             <div key={st} className={cn("rounded-lg px-2 py-2 text-center", marked ? STATUS_META[st].chip : "bg-paper-soft text-ink-faint")}>
               <p className="text-[15px] font-bold tabular-nums leading-5">{faNum(summary[st])}</p>
