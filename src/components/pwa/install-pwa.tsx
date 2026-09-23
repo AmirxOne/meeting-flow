@@ -310,7 +310,7 @@ export function InstallPwaBanner() {
                 <div className="mt-4 space-y-3 text-[12.5px] leading-6 text-ink-soft">
                   <p className="flex items-start gap-2.5 rounded-xl bg-paper-soft px-3 py-2.5">
                     <span className="mt-0.5">🖥</span>
-                    <span><b className="text-ink">دسکتاپ (Chrome/Edge):</b> روی آیکون نصب <span dir="ltr" className="inline-block">⊕</span> در انتهای نوار آدرس بزنید، یا منوی <span dir="ltr">⋮</span> ← «Install app / نصب برنامه».</span>
+                    <span><b className="text-ink">دسکتاپ (Chrome/Edge):</b> روی آیکون نصب <svg viewBox="0 0 24 24" className="mx-0.5 inline-block size-3.5 align-[-3px] text-ink" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" /></svg> در انتهای نوار آدرس بزنید، یا منوی <span dir="ltr">⋮</span> ← «Install app / نصب برنامه».</span>
                   </p>
                   <p className="flex items-start gap-2.5 rounded-xl bg-paper-soft px-3 py-2.5">
                     <span className="mt-0.5">🤖</span>
@@ -425,11 +425,13 @@ export function InstallPwaButton({ className }: { className?: string }) {
                 </ol>
               ) : (
                 <div className="mt-4 space-y-3 text-[12.5px] leading-6 text-ink-soft">
-                  <p className="rounded-xl bg-paper-soft px-3 py-2.5">
-                    <b className="text-ink">دسکتاپ:</b> آیکون <span dir="ltr">⊕</span> در نوار آدرس یا منوی <span dir="ltr">⋮</span> ← Install app
+                  <p className="flex items-start gap-2.5 rounded-xl bg-paper-soft px-3 py-2.5">
+                    <span className="mt-0.5">🖥</span>
+                    <span><b className="text-ink">دسکتاپ (Chrome/Edge):</b> روی آیکون نصب <svg viewBox="0 0 24 24" className="mx-0.5 inline-block size-3.5 align-[-3px] text-ink" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" /></svg> در انتهای نوار آدرس بزنید، یا منوی <span dir="ltr">⋮</span> ← «Install app / نصب برنامه».</span>
                   </p>
-                  <p className="rounded-xl bg-paper-soft px-3 py-2.5">
-                    <b className="text-ink">اندروید:</b> منوی <span dir="ltr">⋮</span> ← Add to Home screen
+                  <p className="flex items-start gap-2.5 rounded-xl bg-paper-soft px-3 py-2.5">
+                    <span className="mt-0.5">🤖</span>
+                    <span><b className="text-ink">اندروید:</b> منوی مرورگر <span dir="ltr">⋮</span> ← «Add to Home screen / افزودن به صفحه‌ی اصلی».</span>
                   </p>
                 </div>
               )}
