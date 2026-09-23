@@ -266,13 +266,22 @@ function ProductPreview() {
           {meetings.map((m) => {
             const isNow = m === current;
             return (
-              <li key={m.title} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${isNow ? "border-emerald-200 bg-emerald-50/60" : "border-line/70 bg-paper-soft/50"}`}>
-                <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg text-[9px] font-medium tabular-nums shadow-sm ${isNow ? "bg-emerald-600 text-white" : "bg-white"}`}>{faClock(m.start)}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[12px] font-medium">{m.title}</p>
-                  <p className="mt-0.5 truncate text-[10px] text-ink-faint">{m.room}</p>
+              <li key={m.title} className={`relative flex items-stretch gap-3 overflow-hidden rounded-xl border px-3 py-2.5 transition-colors ${isNow ? "border-emerald-300 bg-emerald-50/70" : "border-line/70 bg-white"}`}>
+                {isNow && <span aria-hidden className="absolute inset-y-0 right-0 w-[3px] bg-emerald-500" />}
+                <div className={`flex w-[52px] shrink-0 flex-col items-center justify-center rounded-lg border leading-none ${isNow ? "border-emerald-200 bg-emerald-600 text-white" : "border-line/70 bg-paper-soft/60 text-ink"}`}>
+                  <span className="text-[11px] font-bold tabular-nums">{faClock(m.start)}</span>
+                  <span className={`mt-1 text-[7px] ${isNow ? "text-emerald-100" : "text-ink-faint"}`}>{isNow ? "تا " + faClock(m.end) : "شروع"}</span>
                 </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-medium ${isNow ? "bg-emerald-100 text-emerald-700" : m.tone}`}>
+                <div className="flex min-w-0 flex-1 flex-col justify-center">
+                  <p className="truncate text-[12px] font-medium leading-5">{m.title}</p>
+                  <p className="mt-0.5 flex items-center gap-1 truncate text-[10px] leading-4 text-ink-faint">
+                    <svg viewBox="0 0 24 24" className="size-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M3 3v18h18M7 15v-4M12 15V8M17 15v-6" strokeLinecap="round" />
+                    </svg>
+                    {m.room}
+                  </p>
+                </div>
+                <span className={`self-center shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-medium ${isNow ? "bg-emerald-600 text-white" : m.tone}`}>
                   {isNow ? "در حال برگزاری" : m.status}
                 </span>
               </li>
