@@ -43,6 +43,18 @@ export function InstallPwaBanner() {
   const [showManual, setShowManual] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop">("desktop");
   const [hidden, setHidden] = useState(true);
+  // live status-bar clock in the phone mockup (Tehran time, Persian digits)
+  const [clock, setClock] = useState<string>("۹:۴۱");
+  useEffect(() => {
+    const tick = () => {
+      const t = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: false, timeZone: "Asia/Tehran" }).format(new Date()).replace(/\s?[AP]M/i, "");
+      const fa = t.replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
+      setClock(fa.startsWith("۲۴") ? "۰" + fa.slice(2) : fa);
+    };
+    tick();
+    const t = window.setInterval(tick, 10_000);
+    return () => window.clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (isStandalone()) return; // already installed
@@ -153,7 +165,7 @@ export function InstallPwaBanner() {
 
                 {/* status bar */}
                 <div className="flex items-center justify-between bg-ink px-5 pb-1 pt-2 text-[8px] text-white/90">
-                  <span className="tabular-nums">۹:۴۱</span>
+                  <span className="tabular-nums">{clock}</span>
                   <div className="flex items-center gap-1">
                     <span className="inline-block h-2 w-3 rounded-[2px] ring-1 ring-white/60" />
                     <span className="inline-block h-2 w-4 rounded-[2px] bg-white/70" />
