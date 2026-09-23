@@ -55,12 +55,13 @@ export function MeetingMinutes({ meetingId }: { meetingId: string }) {
   const qc = useQueryClient();
   const { me } = useAuth();
 
-  const { data } = useQuery({
+  const { data, error: minutesError, isLoading: minutesLoading } = useQuery({
     queryKey: ["minutes", meetingId],
     queryFn: () =>
       api<{ minutes: Minutes | null; access: { body: boolean; summary: boolean } }>(
         `/api/meetings/${meetingId}/minutes`,
       ),
+    retry: false,
   });
 
   const { data: topicsData } = useQuery({
@@ -82,6 +83,32 @@ export function MeetingMinutes({ meetingId }: { meetingId: string }) {
     { id: "topics" as const, label: "موضوعات مطرح‌شده", allowed: true },
     { id: "access" as const, label: "دسترسی‌ها", allowed: true },
   ].filter((t) => t.allowed);
+
+  if (minutesError) {
+    return (
+      <Card data-testid="meeting-minutes">
+        <div className="flex flex-col items-center gap-3 p-8 text-center">
+          <span className="flex size-12 items-center justify-center rounded-full bg-paper-soft text-ink-faint">
+            <Shield className="h-6 w-6" />
+          </span>
+          <div>
+            <p className="text-[14px] font-bold">دسترسی به صورت‌جلسه ندارید</p>
+            <p className="mt-1.5 text-[12px] leading-6 text-ink-faint">
+              این جلسه متعلق به سازمان دیگری است یا سطح دسترسی شما برای مشاهده‌ی صورت‌جلسه کافی نیست.
+            </p>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (minutesLoading) {
+    return (
+      <Card data-testid="meeting-minutes">
+        <div className="p-8 text-center text-[12px] text-ink-faint">در حال بارگذاری…</div>
+      </Card>
+    );
+  }
 
   return (
     <Card data-testid="meeting-minutes" data-tour="meeting-minutes">
