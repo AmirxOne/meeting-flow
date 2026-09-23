@@ -40,16 +40,24 @@ export function Select({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   // portal'd panel anchor — never clipped by ancestor overflow
-  const panelRef = useRef<HTMLUListElement>(null);
   const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const updatePos = () => {
     if (!open || !rootRef.current) return;
     const r = rootRef.current.getBoundingClientRect();
-    const ph = Math.min(panelRef.current?.offsetHeight ?? 256, 256);
+    // measure the REAL panel height; assume full 256 until first paint settles
+    const measured = listRef.current?.offsetHeight ?? 0;
+    const ph = Math.min(measured > 0 ? measured : 256, 256);
     const wh = window.innerHeight;
-    const top = r.bottom + 6 + ph > wh && r.top - 6 - ph > 0 ? r.top - 6 - ph : r.bottom + 6;
-    setPanelPos({ top: Math.max(8, top), left: r.left, width: r.width });
+    const spaceBelow = wh - 8 - r.bottom;
+    const spaceAbove = r.top - 8;
+    let top: number;
+    if (ph <= spaceBelow - 6) top = r.bottom + 6;            // fits below — flush
+    else if (ph <= spaceAbove - 6) top = r.top - 6 - ph;      // flip above — flush
+    else if (spaceBelow >= spaceAbove) top = Math.max(8, wh - 8 - ph); // clamp below
+    else top = 8;                                             // clamp above
+    setPanelPos({ top, left: r.left, width: r.width });
   };
   useLayoutEffect(() => {
     if (!open) return;
@@ -71,15 +79,13 @@ export function Select({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-  const listRef = useRef<HTMLUListElement>(null);
-
   const selected = options.find((o) => o.value === value);
 
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (panelRef.current?.contains(t)) return; // inside the portalled listbox
+      if (listRef.current?.contains(t)) return; // inside the portalled listbox
       if (rootRef.current && !rootRef.current.contains(t)) setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
@@ -87,9 +93,15 @@ export function Select({
   }, [open]);
 
   useEffect(() => {
+    // scroll INSIDE the listbox only — never scrollIntoView (it drags the whole page)
     if (!open || !listRef.current) return;
-    const el = listRef.current.children[active] as HTMLElement | undefined;
-    el?.scrollIntoView({ block: "nearest" });
+    const list = listRef.current;
+    const el = list.children[active] as HTMLElement | undefined;
+    if (!el) return;
+    const top = el.offsetTop;
+    const bottom = top + el.offsetHeight;
+    if (top < list.scrollTop) list.scrollTop = top;
+    else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight;
   }, [active, open]);
 
   function resetHighlight() {
@@ -178,7 +190,7 @@ export function Select({
         {open && (
         <motion.ul
           ref={listRef}
-          style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left, width: panelPos.width } : undefined}
+          style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left, width: panelPos.width } : { position: "fixed", top: -9999, left: 0 }}
           role="listbox"
           initial={{ opacity: 0, y: -6, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}

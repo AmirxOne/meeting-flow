@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Shield, Check, CheckCheck, ShieldCheck, Plus, Trash2, X } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum } from "@/lib";
@@ -131,6 +132,10 @@ function SummaryTab({ meetingId, minutes, onSaved }: { meetingId: string; minute
   const [text, setText] = useState(minutes?.summary ?? "");
   const [busy, setBusy] = useState(false);
   const { push } = useToast();
+  // sync draft with server data when the query resolves (initial render races the fetch)
+  useEffect(() => {
+    setText(minutes?.summary ?? "");
+  }, [minutes?.summary, minutes?.updatedAt]);
 
   async function save() {
     setBusy(true);
@@ -178,6 +183,10 @@ function BodyTab({ meetingId, minutes, onSaved }: { meetingId: string; minutes: 
   const [text, setText] = useState(minutes?.body ?? "");
   const [busy, setBusy] = useState(false);
   const { push } = useToast();
+  // sync draft with server data when the query resolves (initial render races the fetch)
+  useEffect(() => {
+    setText(minutes?.body ?? "");
+  }, [minutes?.body, minutes?.updatedAt]);
 
   async function save() {
     setBusy(true);
@@ -304,14 +313,26 @@ function TopicsTab({
     }
   }
 
-  async function remove(id: string) {
-    if (!confirm("این موضوع حذف شود؟")) return;
+  const [pendingDelete, setPendingDelete] = useState<Topic | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function confirmRemove() {
+    if (!pendingDelete) return;
+    setDeleting(true);
     try {
-      await api(`/api/meetings/${meetingId}/topics?topicId=${id}`, { method: "DELETE" });
+      await api(`/api/meetings/${meetingId}/topics?topicId=${pendingDelete.id}`, { method: "DELETE" });
+      push("موضوع حذف شد", "success");
+      setPendingDelete(null);
       onChanged();
     } catch (e) {
       push((e as Error).message || "خطا", "error");
+    } finally {
+      setDeleting(false);
     }
+  }
+
+  function remove(id: string) {
+    setPendingDelete(topics.find((t) => t.id === id) ?? null);
   }
 
   return (
@@ -400,6 +421,37 @@ function TopicsTab({
           افزودن موضوع مطرح‌شده
         </button>
       )}
+      {pendingDelete && (
+        <Modal
+          open={!!pendingDelete}
+          onClose={() => !deleting && setPendingDelete(null)}
+          title="حذف موضوع"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="ghost" onClick={() => setPendingDelete(null)} disabled={deleting}>
+                انصراف
+              </Button>
+              <Button variant="danger" onClick={confirmRemove} disabled={deleting}>
+                <Trash2 className="h-4 w-4" />
+                {deleting ? "در حال حذف…" : "حذف کن"}
+              </Button>
+            </div>
+          }
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+              <Trash2 className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[13px] leading-6 text-ink-soft">
+                موضوع <b className="text-ink">«{pendingDelete.title}»</b> برای همیشه حذف می‌شود.
+                یادداشت‌ها و تصمیمات ثبت‌شده‌ی آن هم پاک خواهند شد.
+              </p>
+              <p className="mt-2 text-[11.5px] text-ink-faint">این عمل قابل بازگشت نیست.</p>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -423,6 +475,7 @@ function AccessTab({ meetingId, onChanged }: { meetingId: string; onChanged: () 
     );
   }
 
+  const qc = useQueryClient();
   async function setLevel(section: string, level: string) {
     try {
       await api(`/api/meetings/${meetingId}/access`, {
@@ -430,6 +483,8 @@ function AccessTab({ meetingId, onChanged }: { meetingId: string; onChanged: () 
         json: { section, level, allowedUserIds: [] },
       });
       push("سطح دسترسی به‌روز شد", "success");
+      // refresh the ACL rows themselves — without this the select keeps the stale label
+      await qc.invalidateQueries({ queryKey: ["access", meetingId] });
       onChanged();
     } catch (e) {
       push((e as Error).message || "خطا", "error");
