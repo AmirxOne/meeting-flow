@@ -92,7 +92,7 @@ export function InstallPwaBanner() {
           <div className="flex min-w-0 flex-1 flex-col justify-center text-center lg:text-right">
             <p className="inline-flex items-center gap-1.5 self-center rounded-full bg-white/10 px-3 py-1 text-[10.5px] font-medium text-white/80 ring-1 ring-white/15 lg:self-start">
               <span className="size-1.5 rounded-full bg-emerald-400" />
-              وب‌اپلیکیشن — بدون نیاز به فروشگاه اپ
+              وب‌اپ‌لیکیشن — بدون نیاز به فروشگاه اپ
             </p>
             <h3 className="mt-2.5 text-[21px] font-bold leading-8 sm:text-[24px]">مهرسا را همیشه دم‌دست داشته باشید</h3>
             <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-white/70 lg:mx-0">
