@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib";
 
@@ -209,15 +210,13 @@ export function InstallPwaBanner() {
         </div>
       </motion.div>
       {/* manual instructions (iOS / no native prompt) */}
-      <AnimatePresence>
-        {showManual && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm"
-            onClick={() => setShowManual(false)}
-          >
+      {showManual && typeof document !== "undefined" && createPortal(
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowManual(false)}
+        >
             <motion.div
               initial={{ scale: 0.94, y: 10 }}
               animate={{ scale: 1, y: 0 }}
@@ -265,9 +264,9 @@ export function InstallPwaBanner() {
                 پس از نصب، مهرسا از خانه‌ی گوشی یا دسکتاپ مثل یک اپ مستقل باز می‌شود
               </p>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </motion.div>,
+        document.body
+      )}
     </>
   );
 }
@@ -322,15 +321,13 @@ export function InstallPwaButton({ className }: { className?: string }) {
         </svg>
         نصب برنامه
       </button>
-      <AnimatePresence>
-        {showManual && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm"
-            onClick={() => setShowManual(false)}
-          >
+      {showManual && typeof document !== "undefined" && createPortal(
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/70 p-4 backdrop-blur-sm"
+          onClick={() => setShowManual(false)}
+        >
             <motion.div
               initial={{ scale: 0.94, y: 10 }}
               animate={{ scale: 1, y: 0 }}
@@ -380,10 +377,10 @@ export function InstallPwaButton({ className }: { className?: string }) {
               <p className="mt-4 text-center text-[10.5px] text-ink-faint">
                 پس از نصب، مهرسا از خانه‌ی گوشی یا دسکتاپ مثل یک اپ مستقل باز می‌شود
               </p>
-            </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>,
+        document.body
+      )}
     </>
   );
 }
