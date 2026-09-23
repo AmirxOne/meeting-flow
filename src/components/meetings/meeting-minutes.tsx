@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
+import { MinutesEditor, MinutesHtml } from "@/components/meetings/minutes-editor";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum } from "@/lib";
@@ -156,14 +157,18 @@ function SummaryTab({ meetingId, minutes, onSaved }: { meetingId: string; minute
   const locked = minutes?.status === "FINAL";
   return (
     <div className="space-y-3">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        disabled={locked}
-        rows={5}
-        placeholder="خلاصه‌ای کوتاه از مباحث، نتایج و تصمیمات جلسه…"
-        className="w-full rounded-md border border-line p-3 text-[13px] leading-6 outline-none focus:border-ink focus:ring-2 focus:ring-ink/15 disabled:bg-paper-soft"
-      />
+      {locked ? (
+        text ? <MinutesHtml html={text} /> : <p className="text-[12px] text-ink-faint">خلاصه‌ای ثبت نشده است</p>
+      ) : (
+        <MinutesEditor
+          value={text}
+          onChange={setText}
+          disabled={locked}
+          placeholder="خلاصه‌ای کوتاه از مباحث، نتایج و تصمیمات جلسه…"
+          minHeight={120}
+          charLimit={2000}
+        />
+      )}
       {locked ? (
         <p className="text-[11px] text-ink-faint">صورتجلسه نهایی‌شده — قابل ویرایش نیست</p>
       ) : (
@@ -219,17 +224,22 @@ function BodyTab({ meetingId, minutes, onSaved }: { meetingId: string; minutes: 
 
   return (
     <div className="space-y-3">
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        disabled={locked}
-        rows={12}
-        placeholder="متن کامل صورت‌جلسه — مباحث، بحث‌ها، تصمیمات و اقدامات…"
-        className="w-full rounded-md border border-line p-3 text-[13px] leading-7 outline-none focus:border-ink focus:ring-2 focus:ring-ink/15 disabled:bg-paper-soft"
-      />
-      <p className="text-[11px] text-ink-faint">
-        پاراگراف‌ها با Enter جدا می‌شوند؛ ذخیره‌ی خلاصه و متن کامل مستقل از هم است
-      </p>
+      {locked ? (
+        text ? <MinutesHtml html={text} /> : <p className="text-[12px] text-ink-faint">متن کامل ثبت نشده است</p>
+      ) : (
+        <MinutesEditor
+          value={text}
+          onChange={setText}
+          disabled={locked}
+          placeholder="متن کامل صورت‌جلسه — مباحث، بحث‌ها، تصمیمات و اقدامات…"
+          minHeight={300}
+        />
+      )}
+      {!locked && (
+        <p className="text-[11px] text-ink-faint">
+          متن غنی (بولد، ایتالیک، فهرست…) پشتیبانی می‌شود؛ ذخیره‌ی خلاصه و متن کامل مستقل از هم است
+        </p>
+      )}
       {locked ? (
         <p className="rounded-md bg-emerald-50 p-2 text-[12px] text-emerald-700">
           این صورتجلسه نهایی شده است
