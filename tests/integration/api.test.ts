@@ -2525,6 +2525,114 @@ describe("meeting minutes", () => {
   });
 });
 
+
+describe("meeting attendance (حضورغیاب)", () => {
+  const branchId = "branch-niavaran";
+  let organizerCookie = "";
+  let organizerId = "";
+  let outsiderCookie = "";
+  let meetingId = "";
+
+  beforeAll(async () => {
+    // operator (BOOK_AS_ROLES) creates the meeting → organizer = operator
+    organizerCookie = operatorCookie;
+    const me = await api("/api/auth/me", { cookie: organizerCookie });
+    organizerId = me.body.data.user.id as string;
+    outsiderCookie = employeeCookie; // ali — same org, not a participant
+
+    const created = await api("/api/meetings", {
+      method: "POST",
+      cookie: organizerCookie,
+      json: {
+        title: "تست حضورغیاب",
+        branchId,
+        roomId: "room-b",
+        startAt: new Date(Date.now() + 26 * 3600e3).toISOString(),
+        endAt: new Date(Date.now() + 27 * 3600e3).toISOString(),
+        meetingType: "INTERNAL",
+        participantIds: [],
+      },
+    });
+    expect(created.status).toBe(201);
+    meetingId = created.body.data.meeting.id;
+  });
+
+  it("rejects non-organizer from marking attendance", async () => {
+    const res = await api(`/api/meetings/${meetingId}/attendance`, {
+      method: "POST",
+      cookie: outsiderCookie,
+      json: { marks: [{ userId: organizerId, status: "PRESENT" }] },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it("organizer marks self present, then late, then clears", async () => {
+    let res = await api(`/api/meetings/${meetingId}/attendance`, {
+      method: "POST",
+      cookie: organizerCookie,
+      json: { marks: [{ userId: organizerId, status: "PRESENT" }] },
+    });
+    expect(res.status).toBe(200);
+
+    res = await api(`/api/meetings/${meetingId}/attendance`, { cookie: organizerCookie });
+    expect(res.body.data.attendance[0].attendanceStatus).toBe("PRESENT");
+    expect(res.body.data.attendance[0].attendanceMarkedBy.fullName).toBeTruthy();
+
+    // switch to LATE
+    res = await api(`/api/meetings/${meetingId}/attendance`, {
+      method: "POST",
+      cookie: organizerCookie,
+      json: { marks: [{ userId: organizerId, status: "LATE" }] },
+    });
+    expect(res.status).toBe(200);
+    res = await api(`/api/meetings/${meetingId}/attendance`, { cookie: organizerCookie });
+    expect(res.body.data.attendance[0].attendanceStatus).toBe("LATE");
+
+    // clear with null
+    res = await api(`/api/meetings/${meetingId}/attendance`, {
+      method: "POST",
+      cookie: organizerCookie,
+      json: { marks: [{ userId: organizerId, status: null }] },
+    });
+    expect(res.status).toBe(200);
+    res = await api(`/api/meetings/${meetingId}/attendance`, { cookie: organizerCookie });
+    expect(res.body.data.attendance[0].attendanceStatus).toBeNull();
+  });
+
+  it("rejects invalid status values", async () => {
+    const res = await api(`/api/meetings/${meetingId}/attendance`, {
+      method: "POST",
+      cookie: organizerCookie,
+      json: { marks: [{ userId: organizerId, status: "MAYBE" }] },
+    });
+    expect([400, 422]).toContain(res.status);
+  });
+
+  it("rejects marking a non-participant", async () => {
+    const res = await api(`/api/meetings/${meetingId}/attendance`, {
+      method: "POST",
+      cookie: organizerCookie,
+      json: { marks: [{ userId: "nonmember-x", status: "PRESENT" }] },
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("GET 403s for an uninvolved same-org user? — public meeting: member check only gates cross-org; here ali is same-org so allow", async () => {
+    // attendance GET requires involvement OR super admin; ali is neither
+    const res = await api(`/api/meetings/${meetingId}/attendance`, { cookie: outsiderCookie });
+    expect(res.status).toBe(403);
+  });
+
+  it("cleans up", async () => {
+    const res = await api(`/api/meetings/${meetingId}/cancel`, {
+      method: "POST",
+      cookie: organizerCookie,
+      json: { reason: "پاکسازی تست" },
+    });
+    expect([200, 400]).toContain(res.status);
+  });
+});
+
 describe("tenant isolation", () => {
   const BETA_TITLE = "جلسه سازمان بتا — ایزوله";
 

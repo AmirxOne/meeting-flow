@@ -21,6 +21,7 @@ import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { GuestCheckinPanel } from "@/components/checkin/guest-checkin-panel";
 import { MeetingAttachments, type MeetingAttachmentRow } from "@/components/meetings/meeting-attachments";
+import { MeetingAttendance } from "@/components/meetings/meeting-attendance";
 import { MeetingAgenda, type MeetingAgendaItemRow } from "@/components/meetings/meeting-agenda";
 import { MeetingMinutes } from "@/components/meetings/meeting-minutes";
 import { MeetingVideoLink } from "@/components/meetings/meeting-video-link";
@@ -897,6 +898,15 @@ export function MeetingDetailPage() {
                 .filter((p) => p.userId !== m.organizer.id)
                 .map((p) => ({ id: p.userId, fullName: p.user.fullName })),
             ]}
+          />
+
+          <MeetingAttendance
+            meetingId={id}
+            participants={[
+              { userId: m.organizer.id, user: { id: m.organizer.id, fullName: m.organizer.fullName, jobTitle: m.organizer.jobTitle } },
+              ...m.participants.filter((p) => p.userId !== m.organizer.id).map((p) => ({ userId: p.userId, user: { id: p.user.id, fullName: p.user.fullName, jobTitle: p.user.jobTitle ?? null } })),
+            ]}
+            isOrganizer={isOrganizer}
           />
 
           <MeetingMinutes meetingId={id} />

@@ -57,6 +57,7 @@ model User {
   agendaItemsOwned      MeetingAgendaItem[]
   minutesPublished      MeetingMinutes[]     @relation("minutesPublished")
   minutesApproved       MeetingMinutes[]     @relation("minutesApproved")
+  attendanceMarks       MeetingParticipant[] @relation("attendanceMarkedBy")
   meetingsSecretaried   MeetingSecretary[]   @relation("meetingsSecretaried")
   topicsCreated         MeetingTopic[]       @relation("topicsCreated")
   decisionsOwned        MeetingDecision[]    @relation("decisionsOwned")
@@ -500,8 +501,14 @@ model MeetingParticipant {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  /// حضورغیاب توسط برگزارکننده: PRESENT | LATE | ABSENT | EXCUSED (null = ثبت‌نشده)
+  attendanceStatus      String?
+  attendanceMarkedAt    DateTime?
+  attendanceMarkedById  String?
+
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendanceMarkedBy User? @relation("attendanceMarkedBy", fields: [attendanceMarkedById], references: [id], onDelete: SetNull)
 
   @@unique([meetingId, userId])
   @@index([userId])
