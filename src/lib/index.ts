@@ -97,19 +97,23 @@ export const EQUIPMENT_FA: Record<string, string> = {
   MICROPHONE: "میکروفون",
 };
 
+/**
+ * دسته‌بندی وضعیت جلسات (الزام کارفرما — ۵ دسته):
+ * لغو شده · تأیید شده · در حال برگزاری · در انتظار تأیید · برگزار شده
+ */
 export const STATUS_FA: Record<string, string> = {
-  DRAFT: "پیش‌نویس",
+  DRAFT: "در انتظار تأیید",
   PENDING_APPROVAL: "در انتظار تأیید",
   APPROVED: "تأیید شده",
-  CONFIRMED: "قطعی شده",
-  REJECTED: "رد شده",
+  CONFIRMED: "تأیید شده",
+  REJECTED: "لغو شده",
   CANCELLED: "لغو شده",
-  RESCHEDULED: "زمان‌بندی مجدد",
+  RESCHEDULED: "در انتظار تأیید",
   IN_PROGRESS: "در حال برگزاری",
-  COMPLETED: "پایان یافته",
-  NO_SHOW: "غیبت",
-  WAITLISTED: "لیست انتظار",
-  WAITLIST_OFFERED: "پیشنهاد اتاق",
+  COMPLETED: "برگزار شده",
+  NO_SHOW: "برگزار شده",
+  WAITLISTED: "در انتظار تأیید",
+  WAITLIST_OFFERED: "در انتظار تأیید",
 };
 
 export const TYPE_FA: Record<string, string> = {
