@@ -49,6 +49,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { me, loaded, refresh, logout, can } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
+
+  // close the user menu on route change, Esc, and when the tab loses focus
+  // (reported bug: menu stayed open when navigating to another page)
+  useEffect(() => {
+    setUserMenu(false);
+  }, [pathname]);
+  useEffect(() => {
+    if (!userMenu) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setUserMenu(false);
+    const onBlur = () => setUserMenu(false);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [userMenu]);
   const unread = useUnreadCount();
   const { orgName, logoUrl } = useOrgBranding();
 
