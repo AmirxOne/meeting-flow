@@ -33,7 +33,7 @@ interface PeopleDirectoryPageProps {
   variant?: "default" | "admin";
 }
 
-export function PeopleDirectoryPage({ variant = "default" }: PeopleDirectoryPageProps) {
+export function PeopleDirectoryPage({ variant = "default", embedded = false }: PeopleDirectoryPageProps & { embedded?: boolean }) {
   const qc = useQueryClient();
   const { push } = useToast();
   const [q, setQ] = useState("");
@@ -125,19 +125,30 @@ export function PeopleDirectoryPage({ variant = "default" }: PeopleDirectoryPage
       : "دایرکتوری اعضای شرکت و ارتباط‌های خارجی — هنگام ساخت جلسه از همین لیست انتخاب می‌شود";
 
   return (
-    <div className="space-y-4 p-4 lg:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold">{title}</h1>
-          <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">{subtitle}</p>
+    <div className={embedded ? "space-y-4" : "space-y-4 p-4 lg:p-6"}>
+      {!embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold">{title}</h1>
+            <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">{subtitle}</p>
+          </div>
+          <Button size="sm" onClick={openCreate} data-tour="people-add">
+            <UserPlus className="h-4 w-4" />
+            فرد جدید
+          </Button>
         </div>
-        <Button size="sm" onClick={openCreate} data-tour="people-add">
-          <UserPlus className="h-4 w-4" />
-          فرد جدید
-        </Button>
-      </div>
+      )}
+      {embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[12px] leading-6 text-ink-soft">{subtitle}</p>
+          <Button size="sm" onClick={openCreate} data-tour="people-add">
+            <UserPlus className="h-4 w-4" />
+            فرد جدید
+          </Button>
+        </div>
+      )}
 
-      {variant !== "admin" && (
+      {variant !== "admin" && !embedded && (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-line bg-paper-soft/50 px-4 py-2.5 text-[11.5px] leading-6 text-ink-soft">
           <span className="font-medium text-ink">تفاوت با «کاربران»؟</span>
           فرد = مخاطبی که در جلسات دعوت می‌شود (حتی مهمان بیرونی بدون لاگین) ·

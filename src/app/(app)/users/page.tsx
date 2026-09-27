@@ -1,5 +1,5 @@
-import { UsersPage } from "./page-client";
-
-export default function Page() {
-  return <UsersPage />;
+import { UsersTabsPage } from "./tabs-page";
+
+export default function Page() {
+  return <UsersTabsPage />;
 }

@@ -1,5 +1,5 @@
-import { PeopleDirectoryPage } from "@/components/people/people-directory-page";
-
-export default function PeoplePage() {
-  return <PeopleDirectoryPage />;
+import { redirect } from "next/navigation";
+
+export default function PeoplePage() {
+  redirect("/users");
 }

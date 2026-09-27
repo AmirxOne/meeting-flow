@@ -700,7 +700,7 @@ function tourForPath(pathname: string): string | null {
   if (pathname.startsWith("/admin/policies")) return "admin-policies";
   if (pathname.startsWith("/admin/settings")) return "admin-settings";
   if (pathname.startsWith("/admin")) return "admin";
-  if (pathname.startsWith("/people")) return "people";
+  
   if (pathname.startsWith("/rooms")) return "rooms";
   if (pathname.startsWith("/availability")) return "availability";
   if (pathname.startsWith("/reports")) return "reports";

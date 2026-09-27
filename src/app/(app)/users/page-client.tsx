@@ -25,7 +25,7 @@ import {
 } from "@/lib/colleague-directory";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
-export function UsersPage() {
+export function UsersPage({ embedded = false }: { embedded?: boolean }) {
   const { me, can } = useAuth();
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState({ branchId: "", roleKey: "", department: "" });
@@ -53,24 +53,28 @@ export function UsersPage() {
   const branchCount = new Set(users.map((u) => u.branch?.id).filter(Boolean)).size;
 
   return (
-    <div className="space-y-4 p-4 lg:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold">کاربران</h1>
-          <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">
-            همکارانی که <span className="font-medium text-ink">به سامانه لاگین می‌کنند</span> — با نقش، سمت و سطح دسترسی.
-            {isAdmin && " افراد را برای اعلام زمان‌های آزاد انتخاب و زمان‌بندی کنید."}
-          </p>
+    <div className={embedded ? "space-y-4" : "space-y-4 p-4 lg:p-6"}>
+      {!embedded && (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold">کاربران</h1>
+            <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">
+              همکارانی که <span className="font-medium text-ink">به سامانه لاگین می‌کنند</span> — با نقش، سمت و سطح دسترسی.
+              {isAdmin && " افراد را برای اعلام زمان‌های آزاد انتخاب و زمان‌بندی کنید."}
+            </p>
+          </div>
         </div>
-        {isAdmin && (
+      )}
+      {isAdmin && (
+        <div className="flex flex-wrap justify-end">
           <Link href="/admin/users">
             <Button size="sm" variant="outline">
               <Settings2 className="h-4 w-4" />
               مدیریت کاربران
             </Button>
           </Link>
-        )}
-      </div>
+        </div>
+      )}
 
       {!isLoading && users.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-3">
