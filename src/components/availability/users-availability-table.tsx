@@ -341,9 +341,9 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                           aria-label={isOpen ? "بستن دوره‌ها" : "نمایش دوره‌ها"}
                           aria-expanded={isOpen}
                           onClick={() => setExpanded(isOpen ? null : u.id)}
-                          className={cn("flex h-8 w-8 items-center justify-center rounded-lg border border-line text-ink-faint transition-all hover:bg-paper-soft", isOpen && "rotate-180 bg-paper-soft text-ink")}
+                          className={cn("flex h-8 w-8 items-center justify-center rounded-lg border border-line text-ink-faint transition-colors hover:bg-paper-soft", isOpen && "bg-paper-soft text-ink")}
                         >
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isOpen && "rotate-180")} />
                         </button>
                       )}
                     </div>
