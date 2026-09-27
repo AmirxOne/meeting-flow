@@ -86,7 +86,6 @@ export function AdminPage() {
       ? [{ href: "/admin/roles", label: "نقش‌ها", desc: "تعریف نقش و دسترسی‌های سفارشی", icon: Shield }]
       : []),
 
-    { href: "/admin/rooms", label: "اتاق‌ها", desc: "ساخت، ویرایش و مدیریت اتاق‌ها", icon: DoorOpen },
     { href: "/admin/policies", label: "سیاست‌ها", desc: "قواعد تأیید، محدودیت‌ها و تعطیلات سازمانی", icon: Settings },
     { href: "/admin/settings", label: "تنظیمات سازمان", desc: "نام، منطقه زمانی و لوگوی سازمان", icon: SlidersHorizontal },
     { href: "/admin/audit-logs", label: "لاگ ممیزی", desc: "تاریخچه کامل عملیات سیستم", icon: ScrollText },
@@ -130,7 +129,7 @@ export function AdminPage() {
             </Link>
           </StaggerItem>
           <StaggerItem>
-            <Link href="/admin/rooms" className="block rounded-md border border-line bg-white p-4 transition-colors hover:border-ink-faint">
+            <Link href="/rooms" className="block rounded-md border border-line bg-white p-4 transition-colors hover:border-ink-faint">
               <div className="flex items-center justify-between">
                 <DoorOpen className="h-4 w-4 text-ink-soft" />
                 <span className="text-[10px] text-ink-faint">از {faNum(data.rooms.total)}</span>

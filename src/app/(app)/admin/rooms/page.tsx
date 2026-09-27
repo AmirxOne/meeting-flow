@@ -1,5 +1,5 @@
-import { AdminRoomsPage } from "./page-client";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <AdminRoomsPage />;
+  redirect("/rooms");
 }
