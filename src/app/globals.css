@@ -36,7 +36,10 @@
 }
 
 html {
-  overflow-x: clip;
+  /* نکته: overflow-x: clip اسکرول عمودی صفحه را در Chrome می‌شکند (sticky header هم خراب می‌شود)
+     — به‌جای آن با isolation روی body جلوگیری می‌کنیم */
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {

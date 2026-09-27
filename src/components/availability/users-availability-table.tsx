@@ -176,6 +176,30 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
         </div>
       )}
 
+      {/* نوار اکشن گروهی — بالای جدول، چسبان زیر هدر؛ فقط برای ۲+ نفر */}
+      {selected.size > 1 && (
+        <div className="sticky top-16 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-ink/15 bg-white/95 px-4 py-2.5 shadow-md backdrop-blur">
+          <span className="rounded-full bg-paper-soft px-2.5 py-1 text-[11.5px] font-medium">
+            {faNum(selected.size)} نفر انتخاب‌شده
+          </span>
+          <Button size="sm" onClick={() => setModal({ userIds: [...selected] })} disabled={busy}>
+            <Settings2 className="h-3.5 w-3.5" />
+            تنظیم گروهی زمان‌بندی
+          </Button>
+          <Button size="sm" variant="ghost" onClick={removeMembers} disabled={busy}>
+            <UserX className="h-3.5 w-3.5" />
+            خروج از فرآیند
+          </Button>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="mr-auto text-[11.5px] text-ink-faint hover:text-ink"
+          >
+            لغو انتخاب
+          </button>
+        </div>
+      )}
+
       {/* ── جدول کاربران + دوره‌های ادغام‌شده ── */}
       <Card className="overflow-hidden p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
@@ -190,7 +214,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           </button>
         </div>
 
-        <div className="hidden grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_36px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
+        <div className="hidden grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_84px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
           <span />
           <span>نام</span>
           <span>سمت / واحد</span>
@@ -220,7 +244,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                 <div key={u.id} className={cn(isOpen && "bg-paper-soft/30")}>
                   <div
                     className={cn(
-                      "grid cursor-pointer grid-cols-[28px_1fr_auto_36px] items-center gap-3 px-4 py-2.5 transition-colors md:grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_36px]",
+                      "grid cursor-pointer grid-cols-[28px_1fr_auto_84px] items-center gap-3 px-4 py-2.5 transition-colors md:grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_84px]",
                       isSel ? "bg-paper-soft" : "hover:bg-paper-soft/50",
                     )}
                     onClick={() => toggle(u.id)}
@@ -343,29 +367,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           </div>
         )}
 
-        {/* نوار اکشن انتخاب */}
-        {selected.size > 0 && (
-          <div className="flex flex-wrap items-center gap-2 border-t border-line bg-white px-4 py-2.5">
-            <span className="rounded-full bg-paper-soft px-2.5 py-1 text-[11.5px] font-medium">
-              {faNum(selected.size)} نفر انتخاب‌شده
-            </span>
-            <Button size="sm" onClick={() => setModal({ userIds: [...selected] })} disabled={busy}>
-              <Settings2 className="h-3.5 w-3.5" />
-              تنظیم گروهی زمان‌بندی
-            </Button>
-            <Button size="sm" variant="ghost" onClick={removeMembers} disabled={busy}>
-              <UserX className="h-3.5 w-3.5" />
-              خروج از فرآیند
-            </Button>
-            <button
-              type="button"
-              onClick={() => setSelected(new Set())}
-              className="mr-auto text-[11.5px] text-ink-faint hover:text-ink"
-            >
-              لغو انتخاب
-            </button>
-          </div>
-        )}
+
       </Card>
 
       {/* مودال تنظیم فردی/گروهی */}
