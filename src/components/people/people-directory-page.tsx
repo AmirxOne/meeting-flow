@@ -200,21 +200,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
         </div>
       </Modal>
 
-      <div className="flex h-9 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
-          <Search className="h-4 w-4 shrink-0 text-ink-faint" />
-          <input
-            value={q}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="جستجوی نام، شرکت، سمت…"
-            className="w-full bg-transparent text-[12px] outline-none"
-          />
-          {q && (
-            <button onClick={() => setSearch("")} className="text-ink-faint hover:text-ink" aria-label="پاک کردن">
-              ✕
-            </button>
-          )}
-        </div>
-
       {isLoading ? (
         <Card className="overflow-hidden">
           <div className="border-b border-line px-5 py-4">
@@ -240,6 +225,22 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
           <CardHeader
             title={`افراد (${faNum(total)} نفر)`}
             subtitle={`صفحه ${faNum(page)} از ${faNum(totalPages)}`}
+            action={(
+              <div className="flex h-9 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
+                <Search className="h-4 w-4 shrink-0 text-ink-faint" />
+                <input
+                  value={q}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="جستجوی نام، شرکت، سمت…"
+                  className="w-full bg-transparent text-[12px] outline-none"
+                />
+                {q && (
+                  <button onClick={() => setSearch("")} className="text-ink-faint hover:text-ink" aria-label="پاک کردن">
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
           />
           <div className="overflow-x-auto [contain:paint]">
             <table className="w-full text-right text-[12px]">
