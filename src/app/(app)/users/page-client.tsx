@@ -30,7 +30,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 export function UsersPage({ embedded = false }: { embedded?: boolean }) {
   const { me, can } = useAuth();
   const [q, setQ] = useState("");
-  const [filters, setFilters] = useState({ branchId: "", roleKey: "", department: "" });
+  const [filters, setFilters] = useState({ branchId: "", roleKey: "", department: "", accountStatus: "", jobTitle: "" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["colleagues"],
@@ -46,6 +46,8 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
         branchId: filters.branchId,
         roleKey: filters.roleKey,
         department: filters.department,
+        accountStatus: filters.accountStatus,
+        jobTitle: filters.jobTitle,
       }),
     [users, q, filters],
   );
@@ -96,6 +98,20 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
               label: "واحد",
               options: [{ value: "", label: "همه" }, ...options.departments],
             },
+            {
+              key: "jobTitle",
+              label: "سمت",
+              options: [{ value: "", label: "همه" }, ...options.jobTitles],
+            },
+            {
+              key: "accountStatus",
+              label: "وضعیت حساب",
+              options: [
+                { value: "", label: "همه" },
+                { value: "active", label: "فعال" },
+                { value: "inactive", label: "غیرفعال" },
+              ],
+            },
           ]}
           value={filters}
           onChange={(next) =>
@@ -103,6 +119,8 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
               branchId: next.branchId ?? "",
               roleKey: next.roleKey ?? "",
               department: next.department ?? "",
+              accountStatus: next.accountStatus ?? "",
+              jobTitle: next.jobTitle ?? "",
             })
           }
         >

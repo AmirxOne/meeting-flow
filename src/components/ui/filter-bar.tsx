@@ -125,48 +125,36 @@ export function FilterBar({
   );
 
   return (
-    <div className={cn("rounded-md border border-line bg-paper-soft/40 px-4 py-3", className)}>
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-ink-soft" />
-          <span className="text-[12px] font-bold">فیلترها</span>
-          {activeCount > 0 && (
-            <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-white">
-              {activeCount} فعال
-            </span>
-          )}
+    <div className={cn("flex flex-wrap items-center gap-1.5", className)}>
+      {groups.map((g) => (
+        <FilterDropdown
+          key={g.key}
+          group={g}
+          selected={value[g.key] ?? ""}
+          onSelect={(v) => onChange({ ...value, [g.key]: v })}
+        />
+      ))}
+
+      {activeCount > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            const cleared: Record<string, string> = {};
+            for (const g of groups) cleared[g.key] = "";
+            onChange(cleared);
+          }}
+          className="mr-1 flex h-9 items-center gap-1 rounded-md px-2.5 text-[11.5px] text-ink-faint transition-colors hover:bg-red-50 hover:text-red-600"
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          پاک کردن ({activeCount})
+        </button>
+      )}
+
+      {children && (
+        <div className="flex min-w-0 max-w-full flex-[1_1_16rem] flex-wrap items-center gap-2">
+          {children}
         </div>
-        {activeCount > 0 && (
-          <button
-            type="button"
-            onClick={() => {
-              const cleared: Record<string, string> = {};
-              for (const g of groups) cleared[g.key] = "";
-              onChange(cleared);
-            }}
-            className="text-[11px] text-ink-soft underline underline-offset-2 hover:text-ink"
-          >
-            پاک کردن همه
-          </button>
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        {groups.map((g) => (
-          <FilterDropdown
-            key={g.key}
-            group={g}
-            selected={value[g.key] ?? ""}
-            onSelect={(v) => onChange({ ...value, [g.key]: v })}
-          />
-        ))}
-
-        {children && (
-          <div className="flex min-w-0 max-w-full flex-[1_1_20rem] flex-wrap items-center gap-2">
-            {children}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

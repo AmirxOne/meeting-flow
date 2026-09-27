@@ -6,6 +6,7 @@ import {
   matchesColleagueQuery,
   uniqueColleagueOptions,
   type Colleague,
+  NO_JOB_TITLE,
 } from "@/lib/colleague-directory";
 
 const ali: Colleague = {
@@ -24,6 +25,16 @@ const hossein: Colleague = {
   department: null,
   branch: { id: "vanak", name: "شعبه ونک" },
   roles: [{ role: { key: "BRANCH_MANAGER", name: "مدیر شعبه" } }],
+};
+
+const reza: Colleague = {
+  id: "reza",
+  fullName: "رضا احمدی",
+  jobTitle: "کارشناس فروش",
+  department: "فروش",
+  branch: { id: "niavaran", name: "شعبه نیاوران" },
+  roles: [{ role: { key: "EMPLOYEE", name: "کارمند" } }],
+  isActive: false,
 };
 
 describe("colleague directory", () => {
@@ -46,6 +57,30 @@ describe("colleague directory", () => {
     expect(
       filterColleagues(all, { q: "", branchId: "", roleKey: "", department: NO_DEPARTMENT }),
     ).toEqual([hossein]);
+  });
+
+  it("filters by account status", () => {
+    const all = [ali, reza];
+    expect(
+      filterColleagues(all, { q: "", branchId: "", roleKey: "", department: "", accountStatus: "active" }),
+    ).toEqual([ali]);
+    expect(
+      filterColleagues(all, { q: "", branchId: "", roleKey: "", department: "", accountStatus: "inactive" }),
+    ).toEqual([reza]);
+    expect(
+      filterColleagues(all, { q: "", branchId: "", roleKey: "", department: "", accountStatus: "" }),
+    ).toHaveLength(2);
+  });
+
+  it("filters by job title and includes بدون سمت option", () => {
+    const all = [ali, hossein, reza];
+    expect(
+      filterColleagues(all, { q: "", branchId: "", roleKey: "", department: "", jobTitle: "مدیر شعبه ونک" }),
+    ).toEqual([hossein]);
+    expect(filterColleagues(all, { q: "", branchId: "", roleKey: "", department: "", jobTitle: NO_JOB_TITLE })).toEqual([]);
+    const opts = uniqueColleagueOptions([hossein, { ...ali, jobTitle: null } as Colleague]);
+    expect(opts.jobTitles.some((t) => t.value === NO_JOB_TITLE && t.label === "بدون سمت")).toBe(true);
+    expect(opts.jobTitles.some((t) => t.value === "مدیر شعبه ونک")).toBe(true);
   });
 
   it("groups by branch with unlabeled last", () => {
