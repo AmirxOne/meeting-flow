@@ -52,9 +52,22 @@ function useSeenTours(userId: string | undefined) {
 function useTourScrollLock(active: boolean) {
   useEffect(() => {
     // باگ nextstepjs: بعد از پایان/رد کردن تور، اوورلی prevent-click در DOM می‌ماند و
-    // کلیک‌های موس روی مودال‌ها/جدول را می‌بلعد — با کلاس body و CSS مخفی می‌کنیم
-    // (حذف DOM کافی نیست چون React دوباره رندرش می‌کند)
-    document.body.classList.toggle('no-tour', !active);
+    // کلیک‌های موس روی مودال‌ها/جدول را می‌بلعد. isNextStepVisible هم هرگز false نمی‌شود،
+    // پس حضور واقعی کارت تور را با MutationObserver رصد می‌کنیم و کلاس body را سنکرون می‌کنیم.
+    const sync = () => {
+      const cardVisible = !!document.querySelector('[data-name^="nextstep"] .rounded-xl');
+      document.body.classList.toggle("no-tour", !cardVisible);
+    };
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      mo.disconnect();
+      document.body.classList.remove("no-tour");
+    };
+  }, []);
+
+  useEffect(() => {
     if (!active) return;
 
     // block user wheel/touch only — programmatic scrolls (ours) still pass

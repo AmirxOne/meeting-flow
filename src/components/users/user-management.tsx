@@ -270,7 +270,7 @@ export function useUserManagement() {
           </div>
         }
       >
-        <input dir="rtl" type="password" placeholder="رمز جدید (حداقل ۶ کاراکتر)" value={newPassword ? withRtlMark(newPassword) : ""} onChange={(e) => setNewPassword(stripBidiMarks(e.target.value))} className="h-10 w-full rounded-md border border-line px-3 text-right text-[12px] outline-none focus:border-ink" />
+        <input dir="rtl" type="password" name="new-password" autoComplete="new-password" placeholder="رمز جدید (حداقل ۶ کاراکتر)" value={newPassword ? withRtlMark(newPassword) : ""} onChange={(e) => setNewPassword(stripBidiMarks(e.target.value))} className="h-10 w-full rounded-md border border-line px-3 text-right text-[12px] outline-none focus:border-ink" />
       </Modal>
     </>
   );

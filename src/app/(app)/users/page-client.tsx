@@ -117,6 +117,8 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
+              autoComplete="off"
+              name="user-search"
               placeholder="جستجوی نام…"
               className="w-full bg-transparent text-right text-[12px] outline-none"
             />

@@ -71,6 +71,8 @@ export function Modal({
             className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
             onClick={(e) => { if (e.target === e.currentTarget) backdropGuard(e); }}
           >
+            {/* کشیدن برای بستن فقط روی دستگاه لمسی — روی دسکتاپ با حرکت سریع موس
+                هنگام کلیک، مودال ناگهان بسته می‌شد */}
             <motion.div
               role="dialog"
               aria-modal="true"
@@ -79,7 +81,7 @@ export function Modal({
               animate={{ y: 0 }}
               exit={{ y: "100%", transition: { duration: 0.18, ease: [0.32, 0, 0.67, 0] } }}
               transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-              drag="y"
+              drag={typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches ? "y" : false}
               dragConstraints={{ top: 0, bottom: 0 }}
               dragElastic={{ top: 0, bottom: 0.6 }}
               onDragEnd={(_, info) => {
