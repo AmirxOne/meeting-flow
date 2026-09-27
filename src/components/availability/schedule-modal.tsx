@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, type SelectOption } from "@/components/ui/select";
 import { TimePicker } from "@/components/ui/jalali-date-picker";
 import { faNum } from "@/lib";
+import { CalendarClock } from "@/components/ui/icon";
 
 /**
  * مودال تنظیم زمان‌بندی اعلام زمان آزاد — فردی یا گروهی.
@@ -14,6 +15,13 @@ import { faNum } from "@/lib";
  */
 
 const DAYS_FA = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+
+const PERIOD_FA: Record<string, string> = {
+  THIS_WEEK: "هفته‌ی جاری",
+  NEXT_WEEK: "هفته‌ی آینده",
+  THIS_MONTH: "ماه جاری",
+  NEXT_MONTH: "ماه آینده",
+};
 
 const PERIOD_OPTIONS: SelectOption[] = [
   { value: "NEXT_WEEK", label: "هفته‌ی آینده", hint: "شنبه تا جمعه‌ی بعدی" },
@@ -36,6 +44,7 @@ export function ScheduleModal({
   onClose,
   targetNames,
   orgDefaults,
+  memberCount,
   current,
   busy,
   onSave,
@@ -44,6 +53,8 @@ export function ScheduleModal({
   onClose: () => void;
   targetNames: string[];
   orgDefaults: { createDay: number; periodKind: string; deadlineDayOffset: number; deadlineMinutes: number };
+  /** تعداد کل مشمولان فرآیند — برای بج «ن نفر مشمول» */
+  memberCount?: number;
   current: MemberOverrideValue | null;
   busy: boolean;
   onSave: (v: MemberOverrideValue) => Promise<void>;
@@ -114,6 +125,16 @@ export function ScheduleModal({
         </div>
       }
     >
+      {/* تنظیم پیش‌فرض سازمان به‌عنوان راهنما */}
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-paper-soft/50 px-4 py-2.5 text-[11.5px] leading-6 text-ink-soft">
+        <CalendarClock className="h-4 w-4 text-ink-faint" />
+        <span className="font-medium text-ink">پیش‌فرض سازمان:</span>
+        هر {DAYS_FA[orgDefaults.createDay]} · اعلام {PERIOD_FA[orgDefaults.periodKind] ?? "هفته‌ی آینده"} · مهلت {faNum(orgDefaults.deadlineDayOffset)} روز بعد
+        <span className="mr-auto rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700">
+          {faNum(memberCount ?? targetNames.length)} نفر مشمول
+        </span>
+      </div>
+
       <label className="mb-4 flex cursor-pointer items-center gap-2.5 rounded-xl border border-line bg-paper-soft/40 p-3">
         <input
           type="checkbox"

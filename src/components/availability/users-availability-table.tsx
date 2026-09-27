@@ -11,7 +11,7 @@ import { ContextMenuOpen, type ContextMenuItem } from "@/components/ui/context-m
 import { useToast } from "@/components/ui/toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn, faNum } from "@/lib";
-import { CalendarClock, CalendarDays, Check, ChevronDown, Clock, KeyRound, Menu as MoreVertical, Pencil, Power, Settings2, UserPlus, UserX } from "@/components/ui/icon";
+import { CalendarDays, Check, ChevronDown, Clock, KeyRound, Menu as MoreVertical, Pencil, Power, Settings2, UserPlus, UserX } from "@/components/ui/icon";
 import type { Colleague } from "@/lib/colleague-directory";
 
 /**
@@ -48,10 +48,6 @@ const STATUS_FA: Record<string, { label: string; cls: string }> = {
 
 const DAYS_FA = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
 
-const PERIOD_FA: Record<string, string> = {
-  NEXT_WEEK: "هفته‌ی آینده", THIS_WEEK: "هفته‌ی جاری",
-  NEXT_MONTH: "ماه آینده", THIS_MONTH: "ماه جاری",
-};
 
 function faDate(iso: string): string {
   return new Date(iso + (iso.length === 10 ? "T12:00:00Z" : "")).toLocaleDateString("fa-IR", { month: "long", day: "numeric" });
@@ -205,18 +201,6 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
 
   return (
     <div className="space-y-4">
-      {/* خلاصه‌ی تنظیم سازمان — فقط یک خط؛ تنظیم فردی/گروهی از مودال‌هاست */}
-      {config && (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-paper-soft/50 px-4 py-2.5 text-[11.5px] leading-6 text-ink-soft">
-          <CalendarClock className="h-4 w-4 text-ink-faint" />
-          <span className="font-medium text-ink">پیش‌فرض سازمان:</span>
-          هر {DAYS_FA[config.createDay]} · اعلام {PERIOD_FA[config.periodKind] ?? "هفته‌ی آینده"} · مهلت {faNum(config.deadlineDayOffset)} روز بعد
-          <span className="mr-auto rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700">
-            {faNum(memberIds.size)} نفر مشمول
-          </span>
-        </div>
-      )}
-
       {/* نوار اکشن — بالای جدول، چسبان زیر هدر؛ تنظیم گروهی فقط برای ۲+ نفر */}
       {selected.size > 0 && (
         <div className="sticky top-16 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-ink/15 bg-white/95 px-4 py-2.5 shadow-md backdrop-blur">
@@ -457,6 +441,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           onClose={() => setModal(null)}
           targetNames={modal.userIds.map((id) => users.find((u) => u.id === id)?.fullName ?? "").filter(Boolean)}
           orgDefaults={orgDefaults}
+          memberCount={memberIds.size}
           current={modal.userIds.length === 1 ? memberOverrideOf(modal.userIds[0]) : null}
           busy={busy}
           onSave={async (v) => { await saveSchedule(modal.userIds, v); }}
