@@ -180,16 +180,18 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
         </div>
       )}
 
-      {/* نوار اکشن گروهی — بالای جدول، چسبان زیر هدر؛ فقط برای ۲+ نفر */}
-      {selected.size > 1 && (
+      {/* نوار اکشن — بالای جدول، چسبان زیر هدر؛ تنظیم گروهی فقط برای ۲+ نفر */}
+      {selected.size > 0 && (
         <div className="sticky top-16 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-ink/15 bg-white/95 px-4 py-2.5 shadow-md backdrop-blur">
           <span className="rounded-full bg-paper-soft px-2.5 py-1 text-[11.5px] font-medium">
             {faNum(selected.size)} نفر انتخاب‌شده
           </span>
-          <Button size="sm" onClick={() => setModal({ userIds: [...selected] })} disabled={busy}>
-            <Settings2 className="h-3.5 w-3.5" />
-            تنظیم گروهی زمان‌بندی
-          </Button>
+          {selected.size > 1 && (
+            <Button size="sm" onClick={() => setModal({ userIds: [...selected] })} disabled={busy}>
+              <Settings2 className="h-3.5 w-3.5" />
+              تنظیم گروهی زمان‌بندی
+            </Button>
+          )}
           <Button size="sm" variant="ghost" onClick={removeMembers} disabled={busy}>
             <UserX className="h-3.5 w-3.5" />
             خروج از فرآیند
