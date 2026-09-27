@@ -68,20 +68,7 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
           </div>
         </div>
       )}
-      {isAdmin && (
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button size="sm" onClick={um.openCreate}>
-            <UserPlus className="h-4 w-4" />
-            کاربر جدید
-          </Button>
-          <Link href="/admin/users">
-            <Button size="sm" variant="outline">
-              <Settings2 className="h-4 w-4" />
-              مدیریت کاربران
-            </Button>
-          </Link>
-        </div>
-      )}
+
 
       {!isLoading && users.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-3">
