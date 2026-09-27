@@ -115,10 +115,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
   }
 
   const title = variant === "admin" ? "مدیریت دایرکتوری افراد" : "افراد";
-  const subtitle =
-    variant === "admin"
-      ? "دایرکتوری اعضای شرکت و ارتباط‌های خارجی — از پنل مدیریت سیستم"
-      : "دایرکتوری اعضای شرکت و ارتباط‌های خارجی — هنگام ساخت جلسه از همین لیست انتخاب می‌شود";
 
   return (
     <div className={embedded ? "space-y-4" : "space-y-4 p-4 lg:p-6"}>
@@ -126,7 +122,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold">{title}</h1>
-            <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">{subtitle}</p>
           </div>
           <Button size="sm" onClick={openCreate} data-tour="people-add">
             <UserPlus className="h-4 w-4" />
@@ -135,8 +130,7 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
         </div>
       )}
       {embedded && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-[12px] leading-6 text-ink-soft">{subtitle}</p>
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <Button size="sm" onClick={openCreate} data-tour="people-add">
             <UserPlus className="h-4 w-4" />
             فرد جدید
