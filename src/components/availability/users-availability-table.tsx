@@ -233,13 +233,25 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
             <UserX className="h-3.5 w-3.5" />
             خروج از فرآیند
           </Button>
-          <button
-            type="button"
-            onClick={() => setSelected(new Set())}
-            className="mr-auto text-[11.5px] text-ink-faint hover:text-ink"
-          >
-            لغو انتخاب
-          </button>
+          <div className="mr-auto flex items-center gap-2">
+            {um.canCreate && (
+              <button
+                type="button"
+                onClick={um.openCreate}
+                className="flex items-center gap-1.5 rounded-md bg-ink px-2.5 py-1.5 text-[11.5px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                کاربر جدید
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-[11.5px] text-ink-faint hover:text-ink"
+            >
+              لغو انتخاب
+            </button>
+          </div>
         </div>
       )}
 
@@ -255,16 +267,6 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           >
             {allSelected ? "لغو انتخاب همه" : "انتخاب همه"}
           </button>
-          {um.canCreate && (
-            <button
-              type="button"
-              onClick={um.openCreate}
-              className="mr-auto flex items-center gap-1.5 rounded-md bg-ink px-2.5 py-1.5 text-[11.5px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              کاربر جدید
-            </button>
-          )}
         </div>
 
         <div className="hidden grid-cols-[28px_28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
