@@ -5,17 +5,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type ApiError } from "@/lib/api";
 import { Card, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, type SelectOption } from "@/components/ui/select";
-import { TimePicker } from "@/components/ui/jalali-date-picker";
+import { ScheduleModal, type MemberOverrideValue } from "./schedule-modal";
 import { useToast } from "@/components/ui/toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn, faNum } from "@/lib";
-import { CalendarDays, CalendarClock, Check, Clock, Plus, UserX, X } from "@/components/ui/icon";
+import { CalendarClock, CalendarDays, Check, ChevronDown, Clock, Settings2, UserX } from "@/components/ui/icon";
 import type { Colleague } from "@/lib/colleague-directory";
 
 /**
- * جدول حرفه‌ای «کاربران + اعلام زمان‌های آزاد» برای ادمین:
- * نوار تنظیم زمان‌بندی + جدول انتخاب‌پذیر (تک/چند/همه) + دوره‌های ثبت‌شده.
+ * جدول «کاربران + اعلام زمان‌های آزاد» برای ادمین:
+ * ستون آخر هر ردیف آیکون تنظیم فردی (مودال)؛ انتخاب چند نفر → دکمه‌ی تنظیم گروهی؛
+ * دوره‌های ثبت‌شده داخل همان جدول با ردیف بازشو.
  */
 
 interface Config {
@@ -30,7 +30,12 @@ interface Req {
   submittedBy: { id: string; fullName: string } | null;
   slots?: Slot[];
 }
-interface Member { id: string; user: { id: string; fullName: string; email: string } }
+interface Member {
+  id: string;
+  createDay: number | null; periodKind: string | null;
+  deadlineDayOffset: number | null; deadlineMinutes: number | null;
+  user: { id: string; fullName: string; email: string };
+}
 
 const STATUS_FA: Record<string, { label: string; cls: string }> = {
   PENDING: { label: "در انتظار ثبت", cls: "bg-amber-50 text-amber-700" },
@@ -41,21 +46,19 @@ const STATUS_FA: Record<string, { label: string; cls: string }> = {
 
 const DAYS_FA = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
 
-const PERIOD_OPTIONS: SelectOption[] = [
-  { value: "NEXT_WEEK", label: "هفته‌ی آینده", hint: "شنبه تا جمعه‌ی بعدی" },
-  { value: "THIS_WEEK", label: "هفته‌ی جاری", hint: "همین هفته" },
-  { value: "NEXT_MONTH", label: "ماه آینده", hint: "کل ماه شمسیِ بعد" },
-  { value: "THIS_MONTH", label: "ماه جاری", hint: "کل همین ماه شمسی" },
-];
+const PERIOD_FA: Record<string, string> = {
+  NEXT_WEEK: "هفته‌ی آینده", THIS_WEEK: "هفته‌ی جاری",
+  NEXT_MONTH: "ماه آینده", THIS_MONTH: "ماه جاری",
+};
 
 function faDate(iso: string): string {
   return new Date(iso + (iso.length === 10 ? "T12:00:00Z" : "")).toLocaleDateString("fa-IR", { month: "long", day: "numeric" });
 }
 function faDateTime(iso: string): string {
-  return new Date(iso).toLocaleDateString("fa-IR", { month: "long", day: "numeric" }) + " ساعت " +
+  return new Date(iso).toLocaleDateString("fa-IR", { month: "long", day: "numeric" }) + "، " +
     new Date(iso).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
 }
-function dayNameFa(dateIso: string): string {
+function dayShortFa(dateIso: string): string {
   const wd = new Date(dateIso + "T12:00:00Z").getUTCDay();
   return `${DAYS_FA[(wd + 1) % 7]} ${faDate(dateIso)}`;
 }
@@ -65,6 +68,8 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
   const { push } = useToast();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null); // userId ردیف باز
+  const [modal, setModal] = useState<{ userIds: string[] } | null>(null);
 
   const { data, isLoading: cfgLoading } = useQuery({
     queryKey: ["availability-admin"],
@@ -72,11 +77,21 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
     retry: false,
   });
 
-  const memberIds = useMemo(() => new Set((data?.members ?? []).map((m) => m.user.id)), [data]);
+  const memberById = useMemo(() => new Map((data?.members ?? []).map((m) => [m.user.id, m])), [data]);
+  const memberIds = useMemo(() => new Set(memberById.keys()), [memberById]);
   const requests = data?.requests ?? [];
   const config = data?.config;
 
-  // آخرین وضعیت هر کاربر (برای ستون وضعیت جدول)
+  // همه‌ی درخواست‌های هر کاربر (برای ردیف بازشو)
+  const requestsByUser = useMemo(() => {
+    const map = new Map<string, Req[]>();
+    for (const r of requests) {
+      map.set(r.user.id, [...(map.get(r.user.id) ?? []), r]);
+    }
+    return map;
+  }, [requests]);
+
+  // آخرین وضعیت هر کاربر (ستون وضعیت)
   const latestByUser = useMemo(() => {
     const map = new Map<string, Req>();
     for (const r of requests) {
@@ -95,16 +110,22 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
   }
 
   const allSelected = users.length > 0 && selected.size === users.length;
+  const orgDefaults = {
+    createDay: config?.createDay ?? 3,
+    periodKind: config?.periodKind ?? "NEXT_WEEK",
+    deadlineDayOffset: config?.deadlineDayOffset ?? 1,
+    deadlineMinutes: config?.deadlineMinutes ?? 900,
+  };
 
-  async function applyMembers(remove = false) {
+  async function removeMembers() {
     if (selected.size === 0) return;
     setBusy(true);
     try {
-      const res = await api<{ changed: number }>("/api/availability-mgmt", {
+      await api("/api/availability-mgmt", {
         method: "POST",
-        json: { userIds: [...selected], remove },
+        json: { userIds: [...selected], remove: true },
       });
-      push(remove ? "از فرآیند خارج شدند" : `${faNum(res.changed)} نفر مشمول شدند`, "success");
+      push("از فرآیند خارج شدند", "success");
       setSelected(new Set());
       await qc.invalidateQueries({ queryKey: ["availability-admin"] });
     } catch (e) {
@@ -114,11 +135,15 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
     }
   }
 
-  async function saveConfig(cfg: Partial<Config>) {
+  async function saveSchedule(userIds: string[], v: MemberOverrideValue) {
     setBusy(true);
     try {
-      await api("/api/availability-mgmt", { method: "POST", json: cfg });
-      push("تنظیمات زمان‌بندی ذخیره شد", "success");
+      await api("/api/availability-mgmt", {
+        method: "POST",
+        json: { userIds, remove: false, override: v },
+      });
+      push(`${faNum(userIds.length)} نفر با زمان‌بندی انتخابی مشمول شدند`, "success");
+      setSelected(new Set());
       await qc.invalidateQueries({ queryKey: ["availability-admin"] });
     } catch (e) {
       push((e as ApiError).message, "error");
@@ -127,18 +152,32 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
     }
   }
 
+  function memberOverrideOf(userId: string): MemberOverrideValue | null {
+    const m = memberById.get(userId);
+    if (!m) return null;
+    if (m.createDay === null && m.periodKind === null && m.deadlineDayOffset === null && m.deadlineMinutes === null) return null;
+    return {
+      createDay: m.createDay, periodKind: m.periodKind,
+      deadlineDayOffset: m.deadlineDayOffset, deadlineMinutes: m.deadlineMinutes,
+    };
+  }
+
   return (
     <div className="space-y-4">
-      {/* ── نوار تنظیم زمان‌بندی ── */}
-      {cfgLoading ? (
-        <Card className="p-4"><SkeletonBlock className="h-11 w-full" /></Card>
-      ) : config ? (
-        <ScheduleBar config={config} busy={busy} onSave={saveConfig} memberCount={memberIds.size} />
-      ) : null}
+      {/* خلاصه‌ی تنظیم سازمان — فقط یک خط؛ تنظیم فردی/گروهی از مودال‌هاست */}
+      {config && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-paper-soft/50 px-4 py-2.5 text-[11.5px] leading-6 text-ink-soft">
+          <CalendarClock className="h-4 w-4 text-ink-faint" />
+          <span className="font-medium text-ink">پیش‌فرض سازمان:</span>
+          هر {DAYS_FA[config.createDay]} · اعلام {PERIOD_FA[config.periodKind] ?? "هفته‌ی آینده"} · مهلت {faNum(config.deadlineDayOffset)} روز بعد
+          <span className="mr-auto rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700">
+            {faNum(memberIds.size)} نفر مشمول
+          </span>
+        </div>
+      )}
 
-      {/* ── جدول کاربران ── */}
+      {/* ── جدول کاربران + دوره‌های ادغام‌شده ── */}
       <Card className="overflow-hidden p-0">
-        {/* هدر جدول */}
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
           <p className="text-[13px] font-bold">افراد</p>
           <span className="text-[11px] text-ink-faint">{faNum(users.length)} نفر</span>
@@ -151,16 +190,16 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           </button>
         </div>
 
-        {/* ستون‌ها */}
-        <div className="hidden grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
+        <div className="hidden grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_36px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
           <span />
           <span>نام</span>
           <span>سمت / واحد</span>
           <span>شعبه</span>
           <span>اعلام زمان آزاد</span>
+          <span />
         </div>
 
-        {isLoading ? (
+        {isLoading || cfgLoading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 4 }).map((_, i) => <SkeletonBlock key={i} className="h-12 w-full" />)}
           </div>
@@ -169,51 +208,133 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
         ) : (
           <div className="divide-y divide-line">
             {users.map((u) => {
+              const member = memberById.get(u.id);
               const isMember = memberIds.has(u.id);
               const latest = latestByUser.get(u.id);
               const st = latest ? (STATUS_FA[latest.status] ?? STATUS_FA.PENDING) : null;
               const isSel = selected.has(u.id);
+              const isOpen = expanded === u.id;
+              const myReqs = requestsByUser.get(u.id) ?? [];
+              const hasCustom = member && (member.createDay !== null || member.periodKind !== null);
               return (
-                <div
-                  key={u.id}
-                  className={cn(
-                    "grid cursor-pointer grid-cols-[28px_1fr_auto] items-center gap-3 px-4 py-2.5 transition-colors md:grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr]",
-                    isSel ? "bg-paper-soft" : "hover:bg-paper-soft/50",
-                  )}
-                  onClick={() => toggle(u.id)}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSel}
-                    onChange={() => toggle(u.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="size-4 accent-black"
-                    aria-label={`انتخاب ${u.fullName}`}
-                  />
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <UserAvatar name={u.fullName} src={u.avatarUrl} size="sm" variant="soft" />
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium">{u.fullName}</p>
-                      <p className="truncate text-[10.5px] text-ink-faint md:hidden">
-                        {[u.jobTitle, u.branch?.name].filter(Boolean).join(" · ") || "—"}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="hidden truncate text-[12px] text-ink-soft md:block">
-                    {[u.jobTitle, u.department].filter(Boolean).join(" · ") || "—"}
-                  </p>
-                  <p className="hidden truncate text-[12px] text-ink-soft md:block">{u.branch?.name ?? "—"}</p>
-                  <div className="flex items-center justify-end gap-1.5">
-                    {isMember ? (
-                      <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700">
-                        <Check className="h-3 w-3" />
-                        مشمول
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-paper-soft px-2 py-0.5 text-[10.5px] text-ink-faint">غیرمشمول</span>
+                <div key={u.id} className={cn(isOpen && "bg-paper-soft/30")}>
+                  <div
+                    className={cn(
+                      "grid cursor-pointer grid-cols-[28px_1fr_auto_36px] items-center gap-3 px-4 py-2.5 transition-colors md:grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_36px]",
+                      isSel ? "bg-paper-soft" : "hover:bg-paper-soft/50",
                     )}
-                    {st && <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-medium", st.cls)}>{st.label}</span>}
+                    onClick={() => toggle(u.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSel}
+                      onChange={() => toggle(u.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="size-4 accent-black"
+                      aria-label={`انتخاب ${u.fullName}`}
+                    />
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <UserAvatar name={u.fullName} src={u.avatarUrl} size="sm" variant="soft" />
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-medium">{u.fullName}</p>
+                        <p className="truncate text-[10.5px] text-ink-faint md:hidden">
+                          {[u.jobTitle, u.branch?.name].filter(Boolean).join(" · ") || "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="hidden truncate text-[12px] text-ink-soft md:block">
+                      {[u.jobTitle, u.department].filter(Boolean).join(" · ") || "—"}
+                    </p>
+                    <p className="hidden truncate text-[12px] text-ink-soft md:block">{u.branch?.name ?? "—"}</p>
+                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                      {isMember ? (
+                        <>
+                          <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700">
+                            <Check className="h-3 w-3" />
+                            مشمول
+                          </span>
+                          {hasCustom && (
+                            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10.5px] font-medium text-sky-700">زمان‌بندی خاص</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="rounded-full bg-paper-soft px-2 py-0.5 text-[10.5px] text-ink-faint">غیرمشمول</span>
+                      )}
+                      {st && <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-medium", st.cls)}>{st.label}</span>}
+                      {myReqs.length > 0 && (
+                        <button
+                          type="button"
+                          aria-label={isOpen ? "بستن دوره‌ها" : "نمایش دوره‌ها"}
+                          aria-expanded={isOpen}
+                          onClick={(e) => { e.stopPropagation(); setExpanded(isOpen ? null : u.id); }}
+                          className={cn("flex h-6 w-6 items-center justify-center rounded-md border border-line text-ink-faint transition-all hover:bg-paper-soft", isOpen && "rotate-180 bg-paper-soft text-ink")}
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                    {/* آیکون تنظیم فردی — انتهای ردیف */}
+                    <button
+                      type="button"
+                      aria-label={`تنظیم زمان‌بندی ${u.fullName}`}
+                      title={isMember ? "تنظیم زمان‌بندی این فرد" : "مشمول کردن با تنظیم دلخواه"}
+                      onClick={(e) => { e.stopPropagation(); setModal({ userIds: [u.id] }); }}
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
+                        isMember ? "border-line bg-white text-ink-soft hover:border-ink/40 hover:text-ink" : "border-dashed border-line text-ink-faint hover:border-ink/40 hover:text-ink",
+                      )}
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </button>
                   </div>
+
+                  {/* ردیف بازشو: دوره‌های اعلام‌شده‌ی همین فرد */}
+                  {isOpen && (
+                    <div className="border-t border-line/60 bg-paper-soft/20 px-4 py-3">
+                      {myReqs.length === 0 ? (
+                        <p className="text-[12px] text-ink-faint">هنوز درخواستی برای این فرد ساخته نشده</p>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {myReqs.map((r) => {
+                            const rst = STATUS_FA[r.status] ?? STATUS_FA.PENDING;
+                            const days = slotsByDay(r.slots ?? []);
+                            return (
+                              <div key={r.id} className="rounded-xl border border-line bg-white p-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <CalendarDays className="h-3.5 w-3.5 text-ink-faint" />
+                                  <p className="text-[12px] font-bold">{faDate(r.periodStart.slice(0, 10))} تا {faDate(r.periodEnd.slice(0, 10))}</p>
+                                  <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-medium", rst.cls)}>{rst.label}</span>
+                                  <span className="flex items-center gap-1 text-[10.5px] text-ink-faint">
+                                    <Clock className="h-3 w-3" />
+                                    مهلت: {faDateTime(r.deadline)}
+                                  </span>
+                                  {r.submittedAt && (
+                                    <span className="text-[10.5px] text-ink-faint">
+                                      ثبت: {faDateTime(r.submittedAt)} توسط {r.submittedBy?.fullName ?? r.user.fullName}
+                                    </span>
+                                  )}
+                                </div>
+                                {days.length > 0 ? (
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {days.map(({ day, slots }) => (
+                                      <span key={day} className="flex items-center gap-1.5 rounded-lg border border-line bg-paper-soft/40 px-2 py-1 text-[10.5px]">
+                                        <span className="font-medium text-ink">{dayShortFa(day)}</span>
+                                        <span dir="ltr" className="tabular-nums text-ink-soft">
+                                          {slots.map((s) => `${s.startTime}-${s.endTime}`).join(" · ")}
+                                        </span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="mt-1.5 text-[11px] text-ink-faint">هنوز زمانی ثبت نشده</p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -226,162 +347,39 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
             <span className="rounded-full bg-paper-soft px-2.5 py-1 text-[11.5px] font-medium">
               {faNum(selected.size)} نفر انتخاب‌شده
             </span>
-            <Button size="sm" onClick={() => applyMembers(false)} disabled={busy}>
-              <Plus className="h-3.5 w-3.5" />
-              مشمول اعلام زمان کن
+            <Button size="sm" onClick={() => setModal({ userIds: [...selected] })} disabled={busy}>
+              <Settings2 className="h-3.5 w-3.5" />
+              تنظیم گروهی زمان‌بندی
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => applyMembers(true)} disabled={busy}>
+            <Button size="sm" variant="ghost" onClick={removeMembers} disabled={busy}>
               <UserX className="h-3.5 w-3.5" />
               خروج از فرآیند
             </Button>
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="mr-auto flex items-center gap-1 text-[11.5px] text-ink-faint hover:text-ink"
+              className="mr-auto text-[11.5px] text-ink-faint hover:text-ink"
             >
-              <X className="h-3.5 w-3.5" />
               لغو انتخاب
             </button>
           </div>
         )}
       </Card>
 
-      {/* ── دوره‌های ثبت‌شده ── */}
-      {requests.length > 0 && (
-        <Card className="overflow-hidden p-0">
-          <div className="flex items-center gap-2 border-b border-line px-4 py-3">
-            <p className="text-[13px] font-bold">دوره‌های اعلام‌شده</p>
-            <span className="text-[11px] text-ink-faint">{faNum(requests.length)} درخواست</span>
-          </div>
-          <div className="divide-y divide-line">
-            {groupRequestsByPeriod(requests).map((g) => (
-              <div key={`${g.start}__${g.end}`}>
-                <div className="flex flex-wrap items-center gap-2 bg-paper-soft/60 px-4 py-2">
-                  <CalendarDays className="h-3.5 w-3.5 text-ink-faint" />
-                  <p className="text-[12px] font-bold">
-                    {faDate(g.start)} تا {faDate(g.end)}
-                  </p>
-                  <span className="text-[10.5px] text-ink-faint">({faNum(g.items.length)} نفر)</span>
-                  <span className="mr-auto flex items-center gap-1 text-[10.5px] text-ink-faint">
-                    <Clock className="h-3 w-3" />
-                    مهلت: {faDateTime(g.items[0].deadline)}
-                  </span>
-                </div>
-                {g.items.map((r) => {
-                  const st = STATUS_FA[r.status] ?? STATUS_FA.PENDING;
-                  const mySlots = slotsByDay(r.slots ?? []);
-                  return (
-                    <div key={r.id} className="border-t border-line/60 px-4 py-2.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-[12.5px] font-medium">{r.user.fullName}</p>
-                        {r.submittedBy && r.submittedBy.id !== r.user.id && (
-                          <span className="rounded-full bg-ink/5 px-1.5 py-0.5 text-[10px] text-ink-soft">ثبت توسط {r.submittedBy.fullName}</span>
-                        )}
-                        <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-medium", st.cls)}>{st.label}</span>
-                      </div>
-                      {mySlots.length > 0 && (
-                        <div className="mt-1.5 flex flex-wrap gap-1.5">
-                          {mySlots.map(({ day, slots }) => (
-                            <span key={day} className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-2 py-1 text-[10.5px]">
-                              <span className="font-medium text-ink">{dayNameFa(day)}</span>
-                              <span dir="ltr" className="tabular-nums text-ink-soft">
-                                {slots.map((s) => `${s.startTime}-${s.endTime}`).join(" · ")}
-                              </span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </Card>
+      {/* مودال تنظیم فردی/گروهی */}
+      {modal && config && (
+        <ScheduleModal
+          open
+          onClose={() => setModal(null)}
+          targetNames={modal.userIds.map((id) => users.find((u) => u.id === id)?.fullName ?? "").filter(Boolean)}
+          orgDefaults={orgDefaults}
+          current={modal.userIds.length === 1 ? memberOverrideOf(modal.userIds[0]) : null}
+          busy={busy}
+          onSave={async (v) => { await saveSchedule(modal.userIds, v); }}
+        />
       )}
     </div>
   );
-}
-
-/* ───────── نوار تنظیم زمان‌بندی (فشرده) ───────── */
-function ScheduleBar({ config, busy, onSave, memberCount }: {
-  config: Config; busy: boolean; onSave: (cfg: Partial<Config>) => Promise<void>; memberCount: number;
-}) {
-  const [createDay, setCreateDay] = useState(String(config.createDay));
-  const [periodKind, setPeriodKind] = useState(config.periodKind);
-  const [deadlineDay, setDeadlineDay] = useState(String(config.deadlineDayOffset));
-  const [deadlineTime, setDeadlineTime] = useState(`${String(Math.floor(config.deadlineMinutes / 60)).padStart(2, "0")}:${String(config.deadlineMinutes % 60).padStart(2, "0")}`);
-  const [saving, setSaving] = useState(false);
-
-  const deadlineDayOptions: SelectOption[] = [
-    { value: "0", label: "همان روز", hint: "روزِ ایجاد درخواست" },
-    { value: "1", label: "۱ روز بعد" },
-    { value: "2", label: "۲ روز بعد" },
-    { value: "3", label: "۳ روز بعد" },
-    { value: "7", label: "۱ هفته بعد" },
-  ];
-
-  async function save() {
-    const [h, m] = deadlineTime.split(":").map(Number);
-    if (Number.isNaN(h) || Number.isNaN(m)) return;
-    setSaving(true);
-    try {
-      await onSave({
-        cadence: "WEEKLY", createDay: Number(createDay), periodKind,
-        deadlineDayOffset: Number(deadlineDay), deadlineMinutes: h * 60 + m, isActive: true,
-      });
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Card className="p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <CalendarClock className="h-4 w-4 text-ink-faint" />
-        <p className="text-[13px] font-bold">زمان‌بندی اعلام زمان‌های آزاد</p>
-        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700">
-          {faNum(memberCount)} نفر مشمول
-        </span>
-        <span className="text-[11px] leading-5 text-ink-faint">
-          هر هفته در روزِ انتخاب‌شده، به‌صورت خودکار برای افراد مشمول درخواست ساخته می‌شود
-        </span>
-      </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1.5 text-[11px] text-ink-faint">
-          روز ایجاد درخواست
-          <div className="w-36"><Select value={createDay} onChange={setCreateDay} options={DAYS_FA.map((d, i) => ({ value: String(i), label: `هر ${d}` }))} /></div>
-        </label>
-        <label className="flex flex-col gap-1.5 text-[11px] text-ink-faint">
-          افراد زمان‌های آزادِ چه بازه‌ای را اعلام کنند؟
-          <div className="w-48"><Select value={periodKind} onChange={setPeriodKind} options={PERIOD_OPTIONS} /></div>
-        </label>
-        <label className="flex flex-col gap-1.5 text-[11px] text-ink-faint">
-          مهلت ثبت
-          <div className="w-40"><Select value={deadlineDay} onChange={setDeadlineDay} options={deadlineDayOptions} /></div>
-        </label>
-        <label className="flex flex-col gap-1.5 text-[11px] text-ink-faint">
-          ساعت مهلت
-          <div className="h-11"><TimePicker value={deadlineTime} onChange={setDeadlineTime} className="grid-cols-2 [&>div>button]:h-11" /></div>
-        </label>
-        <Button size="sm" onClick={save} disabled={busy || saving}>
-          {saving ? "در حال ذخیره…" : "ذخیره"}
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function groupRequestsByPeriod(requests: Req[]): { start: string; end: string; items: Req[] }[] {
-  const map = new Map<string, { start: string; end: string; items: Req[] }>();
-  for (const r of requests) {
-    const start = r.periodStart.slice(0, 10);
-    const end = r.periodEnd.slice(0, 10);
-    const g = map.get(`${start}__${end}`) ?? { start, end, items: [] };
-    g.items.push(r);
-    map.set(`${start}__${end}`, g);
-  }
-  return [...map.values()].sort((a, b) => b.start.localeCompare(a.start));
 }
 
 function slotsByDay(slots: Slot[]): { day: string; slots: Slot[] }[] {

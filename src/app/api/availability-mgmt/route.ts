@@ -59,6 +59,13 @@ const configSchema = z.object({
 const membersSchema = z.object({
   userIds: z.array(z.string().min(1)).min(1).max(200),
   remove: z.boolean().default(false),
+  /// تنظیم فردی — اگر داده شود فقط برای همین افراد اعمال می‌شود (null = ارث‌بری)
+  override: z.object({
+    createDay: z.number().int().min(0).max(6).nullable().optional(),
+    periodKind: z.enum(["THIS_WEEK", "NEXT_WEEK", "THIS_MONTH", "NEXT_MONTH"]).nullable().optional(),
+    deadlineDayOffset: z.number().int().min(0).max(30).nullable().optional(),
+    deadlineMinutes: z.number().int().min(0).max(1439).nullable().optional(),
+  }).optional(),
 });
 
 /** POST /api/availability-mgmt — تنظیمات یا اعضا (admin) */
@@ -72,11 +79,11 @@ export async function POST(req: NextRequest) {
 
     if ("userIds" in body) {
       const input = membersSchema.parse(body);
-      const res = await setMembers(user.orgId!, user.id, input.userIds, input.remove);
+      const res = await setMembers(user.orgId!, user.id, input.userIds, input.remove, input.override);
       await audit({
         actorId: user.id, action: "AVAILABILITY_MEMBERS", entity: "AvailabilityConfig",
         entityId: res.config.id,
-        newValue: { userIds: input.userIds, remove: input.remove },
+        newValue: { userIds: input.userIds, remove: input.remove, override: input.override ?? null },
       });
       return ok({ changed: res.changed });
     }

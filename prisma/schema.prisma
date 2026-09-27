@@ -887,6 +887,11 @@ model AvailabilityMember {
   addedById String
   createdAt DateTime  @default(now())
   removedAt DateTime?
+  /// تنظیم فردی — null یعنی از تنظیم سازمان پیروی کن
+  createDay         Int?
+  periodKind        String?
+  deadlineDayOffset Int?
+  deadlineMinutes   Int?
 
   user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   org      Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)

@@ -166,7 +166,20 @@ export async function getOrCreateConfig(orgId: string) {
   return prisma.availabilityConfig.create({ data: { orgId } });
 }
 
-export async function setMembers(orgId: string, actorId: string, userIds: string[], remove: boolean) {
+export interface MemberOverride {
+  createDay?: number | null;
+  periodKind?: string | null;
+  deadlineDayOffset?: number | null;
+  deadlineMinutes?: number | null;
+}
+
+export async function setMembers(
+  orgId: string,
+  actorId: string,
+  userIds: string[],
+  remove: boolean,
+  override?: MemberOverride,
+) {
   const config = await getOrCreateConfig(orgId);
   if (remove) {
     await prisma.availabilityMember.updateMany({
@@ -181,10 +194,18 @@ export async function setMembers(orgId: string, actorId: string, userIds: string
     select: { id: true },
   });
   for (const u of users) {
+    const ov = override
+      ? {
+          createDay: override.createDay ?? null,
+          periodKind: override.periodKind ?? null,
+          deadlineDayOffset: override.deadlineDayOffset ?? null,
+          deadlineMinutes: override.deadlineMinutes ?? null,
+        }
+      : {};
     await prisma.availabilityMember.upsert({
       where: { orgId_userId: { orgId, userId: u.id } },
-      create: { orgId, userId: u.id, addedById: actorId, configId: config.id },
-      update: { removedAt: null, configId: config.id },
+      create: { orgId, userId: u.id, addedById: actorId, configId: config.id, ...ov },
+      update: { removedAt: null, configId: config.id, ...(override ? ov : {}) },
     });
   }
   return { config, changed: users.length };
@@ -215,19 +236,20 @@ export async function processAvailability(): Promise<AvailabilityTickResult> {
   const todayWd = tehranWeekday(today);
 
   for (const config of configs) {
-    // فقط در روزِ تعیین‌شده — WEEKLY: روز هفته | MONTHLY: روزِ ماه
-    if (config.cadence === "MONTHLY") {
-      const dom = Number(today.slice(8, 10)); // روز ماه میلادیِ تهران ≈ روز شمسی برای اسکجول روز ۱/۵/۱۰/۱۵/۲۵؟ نه — دقیق‌تر:
-      const jToday = monthOf(today);
-      const jDay = Number(new Intl.DateTimeFormat("en-US-u-ca-persian", { timeZone: "UTC", day: "numeric" }).format(new Date(today + "T12:00:00Z")).replace(/[^0-9]/g, ""));
-      void dom; void jToday;
-      if (jDay !== config.createDay) continue;
-    } else if (todayWd !== config.createDay) continue;
-    const period = periodFor(today, config.periodKind, config.cadence, config.createDay);
-    const deadline = computeDeadline(today, config.deadlineDayOffset, config.deadlineMinutes);
-
     for (const member of config.members) {
       if (!member.user.isActive) continue; // کاربر غیرفعال → رد
+
+      // تنظیم فردی بر تنظیم سازمان مقدم است (null = ارث‌بری از سازمان)
+      const createDay = member.createDay ?? config.createDay;
+      const periodKind = member.periodKind ?? config.periodKind;
+      const deadlineDayOffset = member.deadlineDayOffset ?? config.deadlineDayOffset;
+      const deadlineMinutes = member.deadlineMinutes ?? config.deadlineMinutes;
+
+      // فقط در روزِ تعیین‌شده‌ی همان فرد
+      if (todayWd !== createDay) continue;
+      const period = periodFor(today, periodKind);
+      const deadline = computeDeadline(today, deadlineDayOffset, deadlineMinutes);
+
       // idempotency: یک request به‌ازای user+period
       const existing = await prisma.availabilityRequest.findFirst({
         where: { userId: member.userId, periodStart: isoToUtc(period.start), periodEnd: isoToUtc(period.end) },
