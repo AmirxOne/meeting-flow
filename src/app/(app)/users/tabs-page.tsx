@@ -25,7 +25,7 @@ export function UsersTabsPage() {
     <div className="p-4 lg:p-6">
       {/* هدر صفحه */}
       <div className="mb-4">
-        <h1 className="text-lg font-bold">کاربران و افراد</h1>
+        <h1 className="text-lg font-bold">اعضا</h1>
         <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">
           اعضای شرکت با حساب لاگین و نقش‌ها · اعضای خارجی = مهمان‌ها و ارتباط‌های بیرونی که در جلسات دعوت می‌شوند
         </p>

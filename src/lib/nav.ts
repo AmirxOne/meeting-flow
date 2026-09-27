@@ -58,7 +58,7 @@ export const NAV: NavItemDef[] = [
   },
   {
     href: "/users",
-    label: "کاربران و افراد",
+    label: "اعضا",
     icon: UsersRound,
     perm: "user:update",
     group: "org",
