@@ -34,6 +34,19 @@ function HeaderActions() {
   );
 }
 
+
+/** دکمه «فرد جدید» تب خارجی — از طریق ایونت به مودال PeopleDirectory وصل می‌شود */
+function ExternalAddButton() {
+  return (
+    <div className="mr-auto flex shrink-0 items-center gap-2">
+      <Button size="sm" onClick={() => window.dispatchEvent(new CustomEvent("mehrsa:people-add"))}>
+        <UserPlus className="h-4 w-4" />
+        فرد جدید
+      </Button>
+    </div>
+  );
+}
+
 const TABS_LIST = [
   { id: "company" as const, label: "اعضای شرکت", icon: UsersRound },
   { id: "external" as const, label: "اعضای خارجی", icon: UserRound },
@@ -59,7 +72,7 @@ export function UsersTabsPage() {
         <SegmentedTabs items={TABS_LIST} value={tab} onChange={setTab} className="shrink-0" />
 
         {/* دکمه‌های مدیریتی — انتهای چپ ردیف */}
-        {tab === "company" && <HeaderActions />}
+        {tab === "company" ? <HeaderActions /> : <ExternalAddButton />}
       </div>
 
       {/* محتوای تب */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState , useEffect} from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserRound, Search, Pencil, Trash2, UserPlus, ChevronRight, ChevronLeft } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
@@ -57,6 +57,13 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
     setForm({ name: "", kind: "EXTERNAL", company: "", jobTitle: "", phone: "", email: "" });
     setShowForm(true);
   }
+
+  // دکمه‌ی «فرد جدید» در ردیف تب‌های صفحه‌ی اعضا از طریق ایونت این مودال را باز می‌کند
+  useEffect(() => {
+    const h = () => openCreate();
+    window.addEventListener("mehrsa:people-add", h);
+    return () => window.removeEventListener("mehrsa:people-add", h);
+  }, []);
 
   function openEdit(p: Person) {
     setEditing(p);
@@ -129,14 +136,7 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
           </Button>
         </div>
       )}
-      {embedded && (
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          <Button size="sm" onClick={openCreate} data-tour="people-add">
-            <UserPlus className="h-4 w-4" />
-            فرد جدید
-          </Button>
-        </div>
-      )}
+
 
       {variant !== "admin" && !embedded && (
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-line bg-paper-soft/50 px-4 py-2.5 text-[11.5px] leading-6 text-ink-soft">
