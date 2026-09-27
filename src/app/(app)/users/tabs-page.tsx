@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { UserRound, UsersRound, UserPlus, Settings2 } from "@/components/ui/icon";
+import { UserRound, UsersRound, UserPlus } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { useUserManagement } from "@/components/users/user-management";
 import { useAuth } from "@/lib/auth-store";
-import Link from "next/link";
 import { cn } from "@/lib";
 import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { UsersPage } from "./page-client";
@@ -23,12 +22,6 @@ function HeaderActions() {
         <UserPlus className="h-4 w-4" />
         کاربر جدید
       </Button>
-      <Link href="/admin/users">
-        <Button size="sm" variant="outline">
-          <Settings2 className="h-4 w-4" />
-          مدیریت کاربران
-        </Button>
-      </Link>
       {um.modals}
     </div>
   );

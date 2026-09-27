@@ -1,5 +1,5 @@
-import { AdminUsersPage } from "./page-client";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <AdminUsersPage />;
+  redirect("/users");
 }

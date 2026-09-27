@@ -91,9 +91,7 @@ export const NAV: NavItemDef[] = [
     children: [
       { href: "/meeting-requests/queue", label: "هماهنگی درخواست‌ها" },
       { href: "/meetings/new", label: "ثبت مستقیم جلسه", perm: "meeting:create" },
-      { href: "/admin/users", label: "کاربران" },
       { href: "/admin/rooms", label: "اتاق‌ها" },
-      { href: "/admin/people", label: "افراد" },
       { href: "/admin/policies", label: "سیاست‌ها" },
       { href: "/admin/roles", label: "نقش‌ها", perm: "role:manage" },
       { href: "/admin/settings", label: "تنظیمات" },

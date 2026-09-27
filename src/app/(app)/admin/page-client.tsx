@@ -81,11 +81,11 @@ export function AdminPage() {
   });
 
   const items = [
-    { href: "/admin/users", label: "کاربران", desc: "کاربران سیستم، نقش‌ها و دسترسی‌ها", icon: Users },
+
     ...(can("role:manage")
       ? [{ href: "/admin/roles", label: "نقش‌ها", desc: "تعریف نقش و دسترسی‌های سفارشی", icon: Shield }]
       : []),
-    { href: "/admin/people", label: "افراد", desc: "دایرکتوری اعضا و ارتباط‌های خارجی", icon: Contact },
+
     { href: "/admin/rooms", label: "اتاق‌ها", desc: "ساخت، ویرایش و مدیریت اتاق‌ها", icon: DoorOpen },
     { href: "/admin/policies", label: "سیاست‌ها", desc: "قواعد تأیید، محدودیت‌ها و تعطیلات سازمانی", icon: Settings },
     { href: "/admin/settings", label: "تنظیمات سازمان", desc: "نام، منطقه زمانی و لوگوی سازمان", icon: SlidersHorizontal },
@@ -120,7 +120,7 @@ export function AdminPage() {
       ) : (
         <StaggerList className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
           <StaggerItem>
-            <Link href="/admin/users" className="block rounded-md border border-line bg-white p-4 transition-colors hover:border-ink-faint">
+            <Link href="/users" className="block rounded-md border border-line bg-white p-4 transition-colors hover:border-ink-faint">
               <div className="flex items-center justify-between">
                 <Users className="h-4 w-4 text-ink-soft" />
                 <span className="text-[10px] text-ink-faint">{faNum(data.users.disabled)} غیرفعال</span>
@@ -165,7 +165,7 @@ export function AdminPage() {
             </div>
           </StaggerItem>
           <StaggerItem>
-            <Link href="/admin/people" className="block rounded-md border border-line bg-white p-4 transition-colors hover:border-ink-faint">
+            <Link href="/users" className="block rounded-md border border-line bg-white p-4 transition-colors hover:border-ink-faint">
               <Contact className="h-4 w-4 text-ink-soft" />
               <p className="mt-2 text-xl font-bold">{faNum(data.directorySize)}</p>
               <p className="text-[11px] text-ink-soft">فرد در دایرکتوری</p>
