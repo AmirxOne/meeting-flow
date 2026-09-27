@@ -1,13 +1,14 @@
 "use client";
 
 /**
- * Product: colleague directory (read-only) for all authenticated users.
- * Admin CRUD lives at /admin/users — this page never shows email or account status.
+ * Product: colleague directory for all authenticated users.
+ * Admin view: professional users table with availability multi-select + schedule bar.
+ * Others: read-only colleague cards. Admin CRUD lives at /admin/users.
  */
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { AvailabilityAdminPanel } from "@/components/availability/availability-admin-panel";
+import { UsersAvailabilityTable } from "@/components/availability/users-availability-table";
 import { Briefcase, Building2, Search, Settings2, UsersRound } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, SkeletonBlock, EmptyState } from "@/components/ui/card";
@@ -46,6 +47,7 @@ export function UsersPage() {
       }),
     [users, q, filters],
   );
+  const isAdmin = can("user:update");
   const groups = useMemo(() => groupColleaguesByBranch(visible), [visible]);
   const departmentCount = new Set(users.map((u) => u.department).filter(Boolean)).size;
   const branchCount = new Set(users.map((u) => u.branch?.id).filter(Boolean)).size;
@@ -57,28 +59,10 @@ export function UsersPage() {
           <h1 className="text-lg font-bold">کاربران</h1>
           <p className="mt-0.5 text-[12px] leading-6 text-ink-soft">
             همکارانی که <span className="font-medium text-ink">به سامانه لاگین می‌کنند</span> — با نقش، سمت و سطح دسترسی.
-            مدیریت کاربران از بخش مدیریت سیستم انجام می‌شود.
+            {isAdmin && " افراد را برای اعلام زمان‌های آزاد انتخاب و زمان‌بندی کنید."}
           </p>
         </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-line bg-paper-soft/50 px-4 py-2.5 text-[11.5px] leading-6 text-ink-soft">
-        <span className="font-medium text-ink">تفاوت با «افراد»؟</span>
-        کاربر = حساب لاگین و دسترسی‌ها ·
-        <a href="/people" className="font-medium text-ink underline underline-offset-4">
-          افراد
-        </a>
-        = دفترچه‌ی مخاطبین جلسات (شامل مهمان‌های بیرونی بدون لاگین)
-      </div>
-
-      {can("user:update") && (
-        <AvailabilityAdminPanel
-          users={users.map((u) => ({ id: u.id, fullName: u.fullName, email: "" }))}
-        />
-      )}
-
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div />
-        {can("user:update") && (
+        {isAdmin && (
           <Link href="/admin/users">
             <Button size="sm" variant="outline">
               <Settings2 className="h-4 w-4" />
@@ -169,7 +153,11 @@ export function UsersPage() {
               : "هنوز کاربری در سیستم ثبت نشده است"}
           />
         </Card>
+      ) : isAdmin ? (
+        /* ادمین: جدول حرفه‌ای + تنظیمات + دوره‌ها */
+        <UsersAvailabilityTable users={visible} isLoading={isLoading} />
       ) : (
+        /* بقیه: کارت‌های همکار */
         <div className="space-y-6">
           <p className="text-[11px] text-ink-faint">
             {faNum(visible.length)} نفر
