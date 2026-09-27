@@ -37,18 +37,18 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
   const qc = useQueryClient();
   const { push } = useToast();
   const [q, setQ] = useState("");
-  const [kindFilter, setKindFilter] = useState("");
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Person | null>(null);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({ name: "", kind: "EXTERNAL", company: "", jobTitle: "", phone: "", email: "" });
 
+  /// تب «اعضای خارجی» فقط مخاطبین EXTERNAL را می‌گیرد — اعضای داخلی به تب شرکت منتقل شده‌اند
   const { data, isLoading } = useQuery({
-    queryKey: ["people-page", q, kindFilter, page],
+    queryKey: ["people-page", q, page],
     queryFn: () =>
       api<{ people: Person[]; total: number }>(
-        `/api/people?q=${encodeURIComponent(q)}${kindFilter ? `&kind=${kindFilter}` : ""}&take=${PAGE_SIZE}&skip=${(page - 1) * PAGE_SIZE}`,
+        `/api/people?q=${encodeURIComponent(q)}&kind=EXTERNAL&take=${PAGE_SIZE}&skip=${(page - 1) * PAGE_SIZE}`,
       ),
   });
 
@@ -109,10 +109,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const internalCount = people.filter((p) => p.kind === "INTERNAL").length;
 
-  function setFilterKind(v: string) {
-    setKindFilter(v);
-    setPage(1);
-  }
   function setSearch(v: string) {
     setQ(v);
     setPage(1);
@@ -163,7 +159,7 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
         open={showForm}
         onClose={() => setShowForm(false)}
         title={editing ? `ویرایش ${editing.name}` : "افزودن فرد"}
-        subtitle="اعضای شرکت و ارتباط‌های خارجی — هنگام ساخت جلسه از همین لیست انتخاب می‌شوند"
+        subtitle="مهمان‌ها و ارتباط‌های بیرونی — هنگام ساخت جلسه از همین لیست انتخاب می‌شوند"
         footer={
           <div className="flex justify-end gap-2">
             <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
@@ -186,7 +182,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
             value={form.kind}
             onChange={(v) => setForm({ ...form, kind: v })}
             options={[
-              { value: "INTERNAL", label: "عضو شرکت" },
               { value: "EXTERNAL", label: "خارجی (مهمان / ارتباط)" },
             ]}
           />
@@ -218,22 +213,7 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
         </div>
       </Modal>
 
-      <FilterBar
-        groups={[
-          {
-            key: "kind",
-            label: "نوع",
-            options: [
-              { value: "", label: "همه" },
-              { value: "INTERNAL", label: "اعضای شرکت" },
-              { value: "EXTERNAL", label: "افراد خارجی" },
-            ],
-          },
-        ]}
-        value={{ kind: kindFilter }}
-        onChange={(v) => setFilterKind(v.kind)}
-      >
-        <div className="flex h-9 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
+      <div className="flex h-9 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
           <Search className="h-4 w-4 shrink-0 text-ink-faint" />
           <input
             value={q}
@@ -247,7 +227,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
             </button>
           )}
         </div>
-      </FilterBar>
 
       {isLoading ? (
         <Card className="overflow-hidden">
@@ -273,7 +252,7 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
         <Card className="overflow-hidden">
           <CardHeader
             title={`افراد (${faNum(total)} نفر)`}
-            subtitle={`صفحه ${faNum(page)} از ${faNum(totalPages)} — در این صفحه: ${faNum(internalCount)} عضو شرکت · ${faNum(people.length - internalCount)} خارجی`}
+            subtitle={`صفحه ${faNum(page)} از ${faNum(totalPages)}`}
           />
           <div className="overflow-x-auto [contain:paint]">
             <table className="w-full text-right text-[12px]">
