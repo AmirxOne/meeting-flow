@@ -315,7 +315,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                       {[u.jobTitle, u.department].filter(Boolean).join(" · ") || "—"}
                     </p>
                     <p className="hidden truncate text-[12px] text-ink-soft md:block">{u.branch?.name ?? "—"}</p>
-                    <div className="flex flex-wrap items-center justify-end gap-1.5">
+                    <div className="flex flex-wrap items-center justify-start gap-1.5">
                       {u.isActive === false ? (
                         <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10.5px] font-medium text-red-500">حساب غیرفعال</span>
                       ) : isMember ? (
