@@ -7,11 +7,20 @@ export async function runWorkerTick(): Promise<{
   sent: number;
   completed: number;
   waitlist: number;
+  availability?: { created: number; notified: number; expired: number };
 }> {
   const sent = await processDueReminders();
   const completed = await processMeetingLifecycle();
   const waitlist = await processWaitlistOffers();
-  return { sent, completed, waitlist };
+  // اعلام زمان‌های آزاد — هر خطا فقط همین بخش را متوقف کند
+  let availability: { created: number; notified: number; expired: number } | undefined;
+  try {
+    const { processAvailability } = await import("./availability-mgmt.service");
+    availability = await processAvailability();
+  } catch (e) {
+    console.error("[worker] availability tick error:", e);
+  }
+  return { sent, completed, waitlist, availability };
 }
 
 /** Run tick and persist heartbeat for admin / health checks. */

@@ -58,7 +58,8 @@ export type NotificationType =
   | "MINUTES_PUBLISHED"
   | "WAITLIST_JOINED"
   | "WAITLIST_OFFERED"
-  | "WAITLIST_EXPIRED";
+  | "WAITLIST_EXPIRED"
+  | "AVAILABILITY_REQUESTED";
 
 async function faDateTime(d: Date): Promise<string> {
   const tz = await getOrgTimezone();
@@ -395,6 +396,22 @@ export const notificationService = {
       `مهلت قطعی کردن «${meeting.title}» تمام شد`,
       "نوبت به نفر بعد رسید. اگر اتاق دوباره آزاد شود دوباره خبر می‌دهیم.",
       { meetingId: meeting.id },
+      "always",
+    );
+  },
+
+  /** اعلام زمان‌های آزاد — درخواست دوره‌ای برای کاربران مشمول */
+  async availabilityRequested(
+    userId: string,
+    period: { start: string; end: string },
+    deadline: Date,
+  ) {
+    await notifyUsers(
+      [userId],
+      "AVAILABILITY_REQUESTED",
+      "اعلام زمان‌های آزاد",
+      `زمان‌های آزاد خود را برای بازه‌ی ${period.start} تا ${period.end} ثبت کنید.`,
+      { availabilityDeadline: deadline.toISOString(), kind: "availability" },
       "always",
     );
   },

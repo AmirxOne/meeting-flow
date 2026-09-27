@@ -10,58 +10,63 @@ datasource db {
 // ============================ RBAC ============================
 
 model User {
-  sentRequests  MeetingRequest[] @relation("MeetingRequestRequester")
-  id           String    @id @default(cuid())
-  email        String    @unique
-  phone        String?   @unique
+  sentRequests MeetingRequest[] @relation("MeetingRequestRequester")
+  id           String           @id @default(cuid())
+  email        String           @unique
+  phone        String?          @unique
   fullName     String
   passwordHash String
   avatarUrl    String?
   jobTitle     String?
   department   String?
-  isActive     Boolean   @default(true)
-  isSuperAdmin Boolean   @default(false)
+  isActive     Boolean          @default(true)
+  isSuperAdmin Boolean          @default(false)
   orgId        String?
   branchId     String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
-  org             Organization?        @relation(fields: [orgId], references: [id], onDelete: SetNull)
-  branch          Branch?              @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
-  roles           UserRole[]
-  sessions        Session[]
-  meetings           Meeting[]            @relation("organizer")
-  createdMeetings    Meeting[]            @relation("meetingCreatedBy")
-  organizedSeries    MeetingSeries[]      @relation("seriesOrganizer")
-  delegatesAppointed Delegate[]           @relation("DelegateManager")
-  delegateOf         Delegate[]           @relation("DelegateAssistant")
-  participations  MeetingParticipant[]
-  approvals       MeetingApproval[]
-  auditLogs       AuditLog[]
-  notifications   Notification[]
-  reminders       MeetingReminder[]
-  managedBranches Branch[]             @relation("branchManager")
-  managedRooms    MeetingRoom[]        @relation("roomManager")
-  calendarFeedTokenHash String?  @unique
+  org                   Organization?         @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  branch                Branch?               @relation("UserBranch", fields: [branchId], references: [id], onDelete: SetNull)
+  roles                 UserRole[]
+  sessions              Session[]
+  meetings              Meeting[]             @relation("organizer")
+  createdMeetings       Meeting[]             @relation("meetingCreatedBy")
+  organizedSeries       MeetingSeries[]       @relation("seriesOrganizer")
+  delegatesAppointed    Delegate[]            @relation("DelegateManager")
+  delegateOf            Delegate[]            @relation("DelegateAssistant")
+  participations        MeetingParticipant[]
+  approvals             MeetingApproval[]
+  auditLogs             AuditLog[]
+  notifications         Notification[]
+  reminders             MeetingReminder[]
+  managedBranches       Branch[]              @relation("branchManager")
+  managedRooms          MeetingRoom[]         @relation("roomManager")
+  calendarFeedTokenHash String?               @unique
   calendarFeedCreatedAt DateTime?
   calendarSyncs         MeetingCalendarSync[]
   passwordResetTokens   PasswordResetToken[]
   totpChallenges        TwoFactorChallenge[]
   totpSecretEnc         String?
-  totpEnabled           Boolean  @default(false)
+  totpEnabled           Boolean               @default(false)
   totpEnabledAt         DateTime?
-  totpRecoveryHashes    String[] @default([])
-  /** Per-event channel opt-out. Null = org REMINDER_CHANNELS defaults (all on). */
+  totpRecoveryHashes    String[]              @default([])
+  /**
+   * Per-event channel opt-out. Null = org REMINDER_CHANNELS defaults (all on).
+   */
   notificationPrefs     Json?
   uploadedAttachments   MeetingAttachment[]
   agendaItemsOwned      MeetingAgendaItem[]
-  minutesPublished      MeetingMinutes[]     @relation("minutesPublished")
-  minutesApproved       MeetingMinutes[]     @relation("minutesApproved")
-  attendanceMarks       MeetingParticipant[] @relation("attendanceMarkedBy")
-  guestAttendanceMarks  MeetingGuest[]       @relation("guestAttendanceMarkedBy")
-  meetingsSecretaried   MeetingSecretary[]   @relation("meetingsSecretaried")
-  topicsCreated         MeetingTopic[]       @relation("topicsCreated")
-  decisionsOwned        MeetingDecision[]    @relation("decisionsOwned")
+  minutesPublished      MeetingMinutes[]      @relation("minutesPublished")
+  minutesApproved       MeetingMinutes[]      @relation("minutesApproved")
+  attendanceMarks       MeetingParticipant[]  @relation("attendanceMarkedBy")
+  availabilitySubmitted AvailabilityRequest[] @relation("availabilitySubmittedBy")
+  guestAttendanceMarks  MeetingGuest[]        @relation("guestAttendanceMarkedBy")
+  availabilityMember    AvailabilityMember[]
+  availabilityRequests  AvailabilityRequest[]
+  meetingsSecretaried   MeetingSecretary[]    @relation("meetingsSecretaried")
+  topicsCreated         MeetingTopic[]        @relation("topicsCreated")
+  decisionsOwned        MeetingDecision[]     @relation("decisionsOwned")
   pushSubscriptions     PushSubscription[]
 
   @@index([branchId])
@@ -85,8 +90,8 @@ model Role {
 }
 
 model Permission {
-  id    String   @id @default(cuid())
-  key   String   @unique
+  id    String @id @default(cuid())
+  key   String @unique
   name  String
   group String
 
@@ -169,29 +174,32 @@ model TwoFactorChallenge {
 // ======================= Organization =======================
 
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  legalName String?
-  timezone  String   @default("Asia/Tehran")
-  logoUrl   String?
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  legalName      String?
+  timezone       String   @default("Asia/Tehran")
+  logoUrl        String?
   /// door-tablet display boards — admin toggle (per org)
-  displayEnabled Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  displayEnabled Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  branches      Branch[]
-  policies      MeetingPolicy[]
-  holidays      OrgHoliday[]
-  users         User[]
-  rooms         MeetingRoom[]
-  meetings      Meeting[]
-  series        MeetingSeries[]
-  people        PersonDirectory[]
-  delegates     Delegate[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  sessions      Session[]
+  branches             Branch[]
+  policies             MeetingPolicy[]
+  holidays             OrgHoliday[]
+  users                User[]
+  rooms                MeetingRoom[]
+  meetings             Meeting[]
+  series               MeetingSeries[]
+  people               PersonDirectory[]
+  delegates            Delegate[]
+  auditLogs            AuditLog[]
+  notifications        Notification[]
+  sessions             Session[]
+  availabilityConfig   AvailabilityConfig?
+  availabilityMembers  AvailabilityMember[]
+  availabilityRequests AvailabilityRequest[]
 }
 
 /// Org-wide closed / holiday calendar days (ISO YYYY-MM-DD in the org timezone).
@@ -228,28 +236,28 @@ model Delegate {
 }
 
 model Branch {
-  id              String  @id @default(cuid())
-  orgId           String
-  name            String
-  address         String?
-  phone           String?
-  latitude        Float?
-  longitude       Float?
-  isActive        Boolean @default(true)
-  managerId       String?
-  wayfindingText  String?
-  mapStorageKey   String?
-  mapMimeType     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  orgId          String
+  name           String
+  address        String?
+  phone          String?
+  latitude       Float?
+  longitude      Float?
+  isActive       Boolean  @default(true)
+  managerId      String?
+  wayfindingText String?
+  mapStorageKey  String?
+  mapMimeType    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  org       Organization @relation(fields: [orgId], references: [id])
-  manager   User?        @relation("branchManager", fields: [managerId], references: [id], onDelete: SetNull)
-  users     User[]       @relation("UserBranch")
-  floors    Floor[]
-  rooms     MeetingRoom[]
-  meetings  Meeting[]
-  series    MeetingSeries[]
+  org      Organization    @relation(fields: [orgId], references: [id])
+  manager  User?           @relation("branchManager", fields: [managerId], references: [id], onDelete: SetNull)
+  users    User[]          @relation("UserBranch")
+  floors   Floor[]
+  rooms    MeetingRoom[]
+  meetings Meeting[]
+  series   MeetingSeries[]
 
   @@index([orgId])
   @@index([managerId])
@@ -266,7 +274,7 @@ model Floor {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  branch Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
   rooms  MeetingRoom[]
 
   @@unique([branchId, number])
@@ -274,33 +282,33 @@ model Floor {
 }
 
 model MeetingRoom {
-  id              String   @id @default(cuid())
-  orgId           String
-  branchId        String
-  name            String
-  capacity        Int
-  description     String?
-  color           String?
-  isActive        Boolean  @default(true)
-  isVip           Boolean  @default(false)
+  id                    String    @id @default(cuid())
+  orgId                 String
+  branchId              String
+  name                  String
+  capacity              Int
+  description           String?
+  color                 String?
+  isActive              Boolean   @default(true)
+  isVip                 Boolean   @default(false)
   displayTokenHash      String?   @unique
   displayCode           String?   @unique
   displayTokenCreatedAt DateTime?
-  minDurationMin  Int      @default(15)
-  maxDurationMin  Int      @default(480)
-  minLeadTimeMin  Int      @default(0)
-  maxAdvanceDays  Int      @default(60)
-  openTime        String?
-  closeTime       String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  minDurationMin        Int       @default(15)
+  maxDurationMin        Int       @default(480)
+  minLeadTimeMin        Int       @default(0)
+  maxAdvanceDays        Int       @default(60)
+  openTime              String?
+  closeTime             String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   org        Organization    @relation(fields: [orgId], references: [id], onDelete: Restrict)
   branch     Branch          @relation(fields: [branchId], references: [id])
   floorId    String?
-  floor     Floor?  @relation(fields: [floorId], references: [id], onDelete: SetNull)
-  managerId String?
-  manager   User?   @relation("roomManager", fields: [managerId], references: [id], onDelete: SetNull)
+  floor      Floor?          @relation(fields: [floorId], references: [id], onDelete: SetNull)
+  managerId  String?
+  manager    User?           @relation("roomManager", fields: [managerId], references: [id], onDelete: SetNull)
   meetings   Meeting[]
   equipment  RoomEquipment[]
   exclusions RoomExclusion[]
@@ -339,50 +347,49 @@ model RoomExclusion {
   @@index([roomId, startAt, endAt])
 }
 
-
 // ======================= Meeting Requests (employee asks, admin schedules) =======================
 
 model MeetingRequest {
-  id          String   @id @default(cuid())
-  orgId       String
+  id             String    @id @default(cuid())
+  orgId          String
   /// null = guest request (submitted via the public page, no login)
-  requesterId String?
+  requesterId    String?
   /// guest contact info when requesterId is null
-  guestName    String?
-  guestPhone   String?
-  guestCompany String?
-  title        String
-  description String?
+  guestName      String?
+  guestPhone     String?
+  guestCompany   String?
+  title          String
+  description    String?
   /// ASAP or a preferred window
-  urgency     String   @default("NORMAL") // URGENT | NORMAL | FLEXIBLE
-  prefFrom    DateTime?
-  prefTo      DateTime?
+  urgency        String    @default("NORMAL") // URGENT | NORMAL | FLEXIBLE
+  prefFrom       DateTime?
+  prefTo         DateTime?
   /// requested participants (internal users)
-  participantIds String[] @default([])
+  participantIds String[]  @default([])
   /// total head-count the requester expects (excl. themselves)
-  attendeeCount Int?
+  attendeeCount  Int?
   /// requester asked for a confidential meeting (title/details masked for others)
-  isPrivate    Boolean  @default(false)
+  isPrivate      Boolean   @default(false)
   /// requested recurrence (admin creates a series at scheduling time)
   /// { freq: DAILY|WEEKLY|MONTHLY, count?: 1..52 }
-  recReq       Json?
+  recReq         Json?
   /// where the meeting should take place
   /// ONSITE = our company's rooms · OFFSITE = at the other org (e.g. همراه اول)
-  venue        String   @default("ONSITE") // ONSITE | OFFSITE
+  venue          String    @default("ONSITE") // ONSITE | OFFSITE
   /// target organization name when OFFSITE (e.g. «همراه اول»)
-  offsiteOrg   String?
+  offsiteOrg     String?
   /// optional address/note for the offsite venue
-  offsiteNote  String?
+  offsiteNote    String?
   /// requested external guests (name/company/phone)
-  guests      Json?
+  guests         Json?
   /// approximate duration in minutes the requester wants
-  durationMin Int      @default(60)
-  status      String   @default("OPEN") // OPEN | SCHEDULED | REJECTED | CANCELLED
+  durationMin    Int       @default(60)
+  status         String    @default("OPEN") // OPEN | SCHEDULED | REJECTED | CANCELLED
   /// the meeting created from this request (once admin fixes it)
-  meetingId   String?
-  adminNote   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  meetingId      String?
+  adminNote      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   requester User?    @relation("MeetingRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
   meeting   Meeting? @relation(fields: [meetingId], references: [id], onDelete: SetNull)
@@ -394,48 +401,50 @@ model MeetingRequest {
 // ======================= Meetings =======================
 
 model Meeting {
-  id           String   @id @default(cuid())
-  orgId        String
-  title        String
-  fromRequests MeetingRequest[]
-  description  String?
-  organizerId  String
-  branchId     String?
-  roomId       String?
-  startAt      DateTime
-  endAt        DateTime
-  status       String   @default("DRAFT")
-  meetingType  String   @default("INTERNAL")
-  priority     String   @default("NORMAL")
-  cancelReason String?
-  cancelNote   String?
-  meetingCode  String   @unique @default(cuid())
-  isPrivate    Boolean  @default(false)
-  seriesId        String?
-  originalStartAt DateTime?
-  isException     Boolean  @default(false)
-  videoProvider   String?
-  videoUrl        String?
-  /** Real submitter when a delegate booked on behalf of organizerId. Null = organizer booked themselves. */
-  createdById     String?
-  waitlistQueuedAt DateTime?
-  waitlistOfferedAt DateTime?
+  id                     String           @id @default(cuid())
+  orgId                  String
+  title                  String
+  fromRequests           MeetingRequest[]
+  description            String?
+  organizerId            String
+  branchId               String?
+  roomId                 String?
+  startAt                DateTime
+  endAt                  DateTime
+  status                 String           @default("DRAFT")
+  meetingType            String           @default("INTERNAL")
+  priority               String           @default("NORMAL")
+  cancelReason           String?
+  cancelNote             String?
+  meetingCode            String           @unique @default(cuid())
+  isPrivate              Boolean          @default(false)
+  seriesId               String?
+  originalStartAt        DateTime?
+  isException            Boolean          @default(false)
+  videoProvider          String?
+  videoUrl               String?
+  /**
+   * Real submitter when a delegate booked on behalf of organizerId. Null = organizer booked themselves.
+   */
+  createdById            String?
+  waitlistQueuedAt       DateTime?
+  waitlistOfferedAt      DateTime?
   waitlistOfferExpiresAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
 
-  org       Organization        @relation(fields: [orgId], references: [id], onDelete: Restrict)
-  organizer User                @relation("organizer", fields: [organizerId], references: [id])
-  createdBy User?               @relation("meetingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  branch    Branch?             @relation(fields: [branchId], references: [id])
-  room      MeetingRoom?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  participants MeetingParticipant[]
-  guests       MeetingGuest[]
-  approvals    MeetingApproval[]
-  events       MeetingEvent[]
-  reminders    MeetingReminder[]
+  org           Organization          @relation(fields: [orgId], references: [id], onDelete: Restrict)
+  organizer     User                  @relation("organizer", fields: [organizerId], references: [id])
+  createdBy     User?                 @relation("meetingCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  branch        Branch?               @relation(fields: [branchId], references: [id])
+  room          MeetingRoom?          @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  participants  MeetingParticipant[]
+  guests        MeetingGuest[]
+  approvals     MeetingApproval[]
+  events        MeetingEvent[]
+  reminders     MeetingReminder[]
   calendarSyncs MeetingCalendarSync[]
-  series        MeetingSeries?       @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  series        MeetingSeries?        @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   attachments   MeetingAttachment[]
   agendaItems   MeetingAgendaItem[]
   secretaries   MeetingSecretary[]
@@ -456,27 +465,27 @@ model Meeting {
 }
 
 model MeetingSeries {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   orgId         String
   organizerId   String
   branchId      String
   roomId        String?
   title         String
   description   String?
-  meetingType   String   @default("INTERNAL")
-  priority      String   @default("NORMAL")
-  isPrivate     Boolean  @default(false)
+  meetingType   String    @default("INTERNAL")
+  priority      String    @default("NORMAL")
+  isPrivate     Boolean   @default(false)
   videoProvider String?
   videoUrl      String?
   freq          String
-  interval      Int      @default(1)
-  byWeekday     Int[]    @default([])
+  interval      Int       @default(1)
+  byWeekday     Int[]     @default([])
   until         DateTime?
   count         Int?
   durationMin   Int
   dtstart       DateTime
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Restrict)
   organizer User         @relation("seriesOrganizer", fields: [organizerId], references: [id])
@@ -490,26 +499,26 @@ model MeetingSeries {
 }
 
 model MeetingParticipant {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   meetingId      String
   userId         String
-  role           String   @default("ATTENDEE")
-  required       Boolean  @default(true)
-  responseStatus String   @default("PENDING")
+  role           String    @default("ATTENDEE")
+  required       Boolean   @default(true)
+  responseStatus String    @default("PENDING")
   respondedAt    DateTime?
   joinedAt       DateTime?
   leftAt         DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   /// حضورغیاب توسط برگزارکننده: PRESENT | LATE | ABSENT | EXCUSED (null = ثبت‌نشده)
-  attendanceStatus      String?
-  attendanceMarkedAt    DateTime?
-  attendanceMarkedById  String?
+  attendanceStatus     String?
+  attendanceMarkedAt   DateTime?
+  attendanceMarkedById String?
 
-  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  attendanceMarkedBy User? @relation("attendanceMarkedBy", fields: [attendanceMarkedById], references: [id], onDelete: SetNull)
+  meeting            Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendanceMarkedBy User?   @relation("attendanceMarkedBy", fields: [attendanceMarkedById], references: [id], onDelete: SetNull)
 
   @@unique([meetingId, userId])
   @@index([userId])
@@ -543,24 +552,24 @@ model PersonDirectory {
 
 /// Minutes (صورتجلسه) recorded after the meeting is in progress or completed.
 model MeetingMinutes {
-  id            String   @id @default(cuid())
-  meetingId     String   @unique
+  id            String    @id @default(cuid())
+  meetingId     String    @unique
   body          String
   /// خلاصه جلسه — independent field, editing it never touches body
   summary       String?
   /// DRAFT | PENDING_APPROVAL | FINAL
-  status        String   @default("DRAFT")
+  status        String    @default("DRAFT")
   approverId    String?
   approvedAt    DateTime?
   finalizedAt   DateTime?
-  publishedAt   DateTime @default(now())
+  publishedAt   DateTime  @default(now())
   publishedById String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  meeting     Meeting            @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  publishedBy User               @relation("minutesPublished", fields: [publishedById], references: [id], onDelete: Restrict)
-  approver    User?              @relation("minutesApproved", fields: [approverId], references: [id], onDelete: SetNull)
+  meeting     Meeting           @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  publishedBy User              @relation("minutesPublished", fields: [publishedById], references: [id], onDelete: Restrict)
+  approver    User?             @relation("minutesApproved", fields: [approverId], references: [id], onDelete: SetNull)
   decisions   MeetingDecision[]
   topics      MeetingTopic[]
 }
@@ -580,29 +589,29 @@ model MeetingSecretary {
 
 /// موضوعات مطرح‌شده در جلسه — recorded by the secretary, NOT inferred from agenda
 model MeetingTopic {
-  id          String   @id @default(cuid())
-  meetingId   String
+  id             String   @id @default(cuid())
+  meetingId      String
   /// null = raised in-session (not on the original agenda); set = linked agenda item
-  agendaItemId String?
-  title       String
+  agendaItemId   String?
+  title          String
   /// COVERED | PARTIAL | SKIPPED
-  reviewStatus String  @default("COVERED")
-  notes       String?
+  reviewStatus   String   @default("COVERED")
+  notes          String?
   /// تصمیمات اتخاذشده
-  decisions   String?
+  decisions      String?
   /// اقدامات موردنیاز
-  actions     String?
-  sortOrder   Int      @default(0)
+  actions        String?
+  sortOrder      Int      @default(0)
   /// OPEN = all participants; RESTRICTED = only allowedUserIds (+ section admins)
-  visibility  String   @default("OPEN")
+  visibility     String   @default("OPEN")
   allowedUserIds String[] @default([])
-  createdById String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  meeting  Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meeting   Meeting         @relation(fields: [meetingId], references: [id], onDelete: Cascade)
   createdBy User            @relation("topicsCreated", fields: [createdById], references: [id], onDelete: Restrict)
-  minutes  MeetingMinutes?  @relation(fields: [minutesId], references: [id], onDelete: SetNull)
+  minutes   MeetingMinutes? @relation(fields: [minutesId], references: [id], onDelete: SetNull)
   minutesId String?
 
   @@index([meetingId, sortOrder])
@@ -610,15 +619,15 @@ model MeetingTopic {
 
 /// Section-level confidentiality: which parts of a meeting's content are open/restricted
 model MeetingContentAcl {
-  id        String   @id @default(cuid())
-  meetingId String
+  id             String   @id @default(cuid())
+  meetingId      String
   /// AGENDA | TOPICS | SUMMARY | BODY
-  section   String
+  section        String
   /// ALL_PARTICIPANTS | RESTRICTED | ORGANIZER_ONLY
-  level     String   @default("ALL_PARTICIPANTS")
+  level          String   @default("ALL_PARTICIPANTS")
   allowedUserIds String[] @default([])
-  updatedById String?
-  updatedAt DateTime @updatedAt
+  updatedById    String?
+  updatedAt      DateTime @updatedAt
 
   meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
@@ -680,25 +689,25 @@ model MeetingAttachment {
 }
 
 model MeetingGuest {
-  id           String    @id @default(cuid())
-  meetingId    String
-  name         String
-  company      String?
-  phone        String?
-  email        String?
-  notes        String?
-  hostId       String?
-  arrivedAt    DateTime?
-  leftAt       DateTime?
-  checkinCode  String?
+  id                   String    @id @default(cuid())
+  meetingId            String
+  name                 String
+  company              String?
+  phone                String?
+  email                String?
+  notes                String?
+  hostId               String?
+  arrivedAt            DateTime?
+  leftAt               DateTime?
+  checkinCode          String?
   /// حضورغیاب مهمان (PRESENT | LATE | ABSENT | EXCUSED — null = ثبت‌نشده)
   attendanceStatus     String?
   attendanceMarkedAt   DateTime?
   attendanceMarkedById String?
-  createdAt    DateTime  @default(now())
+  createdAt            DateTime  @default(now())
 
-  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
-  attendanceMarkedBy User? @relation("guestAttendanceMarkedBy", fields: [attendanceMarkedById], references: [id], onDelete: SetNull)
+  meeting            Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  attendanceMarkedBy User?   @relation("guestAttendanceMarkedBy", fields: [attendanceMarkedById], references: [id], onDelete: SetNull)
 
   @@index([meetingId])
   @@index([email])
@@ -752,7 +761,9 @@ model MeetingCalendarSync {
 }
 
 /// Per-user Google Calendar OAuth (refresh token encrypted at rest).
-/** Browser Web Push subscription (opt-in). Endpoint uniquely identifies a device. */
+/**
+ * Browser Web Push subscription (opt-in). Endpoint uniquely identifies a device.
+ */
 model PushSubscription {
   id        String   @id @default(cuid())
   userId    String
@@ -787,7 +798,6 @@ model MeetingReminder {
   @@index([meetingId])
   @@index([userId])
 }
-
 
 model Notification {
   id        String    @id @default(cuid())
@@ -845,6 +855,88 @@ model AuditLog {
 }
 
 // Platform singleton rows (e.g. worker heartbeat) — key/value JSON.
+/// ─── اعلام زمان‌های آزاد افراد (Availability Management) ───
+
+/// تنظیمات زمان‌بندی اعلام زمان آزاد — یک رکورد به‌ازای سازمان
+model AvailabilityConfig {
+  id                String   @id @default(cuid())
+  orgId             String   @unique
+  /// WEEKLY (نسخه ۱) — بعداً: DAILY | MONTHLY
+  cadence           String   @default("WEEKLY")
+  /// روز ایجاد درخواست: 0=شنبه … 6=جمعه
+  createDay         Int      @default(3) // چهارشنبه
+  /// THIS_WEEK | NEXT_WEEK (نسخه ۱) — بعداً: THIS_MONTH | NEXT_MONTH
+  periodKind        String   @default("NEXT_WEEK")
+  /// دقیقه‌ی روزِ ددلاین نسبی به روز ایجاد (مثلاً 5*60+15*60 = پنجشنبه ۱۵:۰۰ وقتی createDay=چهارشنبه)
+  deadlineDayOffset Int      @default(1)
+  deadlineMinutes   Int      @default(900) // 15:00
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  org      Organization          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  members  AvailabilityMember[]
+  requests AvailabilityRequest[]
+}
+
+/// افراد مشمول فرآیند اعلام زمان آزاد
+model AvailabilityMember {
+  id        String    @id @default(cuid())
+  orgId     String
+  userId    String
+  addedById String
+  createdAt DateTime  @default(now())
+  removedAt DateTime?
+
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org      Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  config   AvailabilityConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  configId String
+
+  @@unique([orgId, userId])
+}
+
+/// درخواست اعلام زمان آزاد برای یک کاربر و یک بازه
+model AvailabilityRequest {
+  id            String    @id @default(cuid())
+  orgId         String
+  userId        String
+  configId      String?
+  periodStart   DateTime
+  periodEnd     DateTime
+  deadline      DateTime
+  /// PENDING | SUBMITTED | OVERDUE | CLOSED
+  status        String    @default("PENDING")
+  submittedAt   DateTime?
+  submittedById String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org         Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  submittedBy User?               @relation("availabilitySubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  config      AvailabilityConfig? @relation(fields: [configId], references: [id], onDelete: SetNull)
+  slots       AvailabilitySlot[]
+
+  @@unique([userId, periodStart, periodEnd])
+  @@index([status, deadline])
+}
+
+/// بازه‌ی زمانی آزاد اعلام‌شده برای یک روز
+model AvailabilitySlot {
+  id        String   @id @default(cuid())
+  requestId String
+  /// تاریخ روز (بدون ساعت) — ISO date
+  date      DateTime
+  startTime String // "09:00"
+  endTime   String // "12:00"
+  createdAt DateTime @default(now())
+
+  request AvailabilityRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([requestId, date])
+}
+
 model SystemMeta {
   key       String   @id
   value     Json

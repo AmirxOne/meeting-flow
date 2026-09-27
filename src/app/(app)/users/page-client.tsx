@@ -7,6 +7,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { AvailabilityAdminPanel } from "@/components/availability/availability-admin-panel";
 import { Briefcase, Building2, Search, Settings2, UsersRound } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, SkeletonBlock, EmptyState } from "@/components/ui/card";
@@ -68,6 +69,12 @@ export function UsersPage() {
         </a>
         = دفترچه‌ی مخاطبین جلسات (شامل مهمان‌های بیرونی بدون لاگین)
       </div>
+
+      {can("user:update") && (
+        <AvailabilityAdminPanel
+          users={users.map((u) => ({ id: u.id, fullName: u.fullName, email: "" }))}
+        />
+      )}
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div />
