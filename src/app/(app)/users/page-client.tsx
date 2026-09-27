@@ -14,6 +14,8 @@ import { api } from "@/lib/api";
 import { Card, SkeletonBlock, EmptyState } from "@/components/ui/card";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Button } from "@/components/ui/button";
+import { useUserManagement } from "@/components/users/user-management";
+import { UserPlus } from "@/components/ui/icon";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum } from "@/lib";
@@ -48,6 +50,7 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
     [users, q, filters],
   );
   const isAdmin = can("user:update");
+  const um = useUserManagement();
   const groups = useMemo(() => groupColleaguesByBranch(visible), [visible]);
   const departmentCount = new Set(users.map((u) => u.department).filter(Boolean)).size;
   const branchCount = new Set(users.map((u) => u.branch?.id).filter(Boolean)).size;
@@ -66,7 +69,11 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
         </div>
       )}
       {isAdmin && (
-        <div className="flex flex-wrap justify-end">
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button size="sm" onClick={um.openCreate}>
+            <UserPlus className="h-4 w-4" />
+            کاربر جدید
+          </Button>
           <Link href="/admin/users">
             <Button size="sm" variant="outline">
               <Settings2 className="h-4 w-4" />
@@ -187,6 +194,9 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
           ))}
         </div>
       )}
+
+      {/* مودال‌های مدیریت کاربر */}
+      {um.modals}
     </div>
   );
 }
