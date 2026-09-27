@@ -7,6 +7,7 @@ import { useUserManagement } from "@/components/users/user-management";
 import { useAuth } from "@/lib/auth-store";
 import Link from "next/link";
 import { cn } from "@/lib";
+import { SegmentedTabs } from "@/components/ui/segmented-tabs";
 import { UsersPage } from "./page-client";
 import { PeopleDirectoryPage } from "@/components/people/people-directory-page";
 
@@ -55,24 +56,7 @@ export function UsersTabsPage() {
       <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
 
         {/* تب‌ها */}
-        <div className="flex shrink-0 gap-1 rounded-xl border border-line bg-paper-soft/60 p-1">
-          {TABS_LIST.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12.5px] font-medium transition-all",
-                tab === t.id ? "bg-white text-ink shadow-sm" : "text-ink-faint hover:text-ink",
-              )}
-              aria-selected={tab === t.id}
-              role="tab"
-            >
-              <t.icon className="h-4 w-4" />
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedTabs items={TABS_LIST} value={tab} onChange={setTab} className="shrink-0" />
 
         {/* دکمه‌های مدیریتی — انتهای چپ ردیف */}
         {tab === "company" && <HeaderActions />}
