@@ -302,7 +302,7 @@ export async function orgRequests(orgId: string) {
     include: {
       user: { select: { id: true, fullName: true, email: true } },
       submittedBy: { select: { id: true, fullName: true } },
-      _count: { select: { slots: true } },
+      slots: { orderBy: [{ date: "asc" }, { startTime: "asc" }] },
     },
     orderBy: { periodStart: "desc" },
     take: 100,

@@ -20,12 +20,13 @@ interface Config {
   id: string; cadence: string; createDay: number; periodKind: string;
   deadlineDayOffset: number; deadlineMinutes: number; isActive: boolean;
 }
+interface Slot { date: string; startTime: string; endTime: string }
 interface Req {
   id: string; periodStart: string; periodEnd: string; deadline: string; status: string;
   submittedAt: string | null;
   user: { id: string; fullName: string; email: string };
   submittedBy: { id: string; fullName: string } | null;
-  _count: { slots: number };
+  slots?: Slot[];
 }
 interface Member { id: string; user: { id: string; fullName: string; email: string } }
 
@@ -223,35 +224,62 @@ export function AvailabilityAdminPanel({ users }: { users: { id: string; fullNam
           ))}
         </div>
 
-        {/* ── جدول وضعیت ── */}
+        {/* ── گروه‌بندی بر اساس دوره ── */}
         {requests.length === 0 ? (
           <EmptyState
             title="هنوز درخواستی ساخته نشده"
             description={`اولین درخواست در اولین ${DAYS_FA[config?.createDay ?? 3] ?? "چهارشنبه"}ِ زمان‌بندی‌شده ساخته می‌شود`}
           />
         ) : (
-          <div className="divide-y divide-line rounded-xl border border-line">
-            {requests.map((r) => {
-              const st = STATUS_FA[r.status] ?? STATUS_FA.PENDING;
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setDetail(r)}
-                  className="flex w-full flex-wrap items-center gap-2 px-3 py-2.5 text-right transition-colors hover:bg-paper-soft/50"
-                >
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{r.user.fullName}</span>
-                  <span className="flex items-center gap-1 text-[11px] text-ink-faint">
-                    <CalendarDays className="h-3.5 w-3.5" />
-                    {faDate(r.periodStart.slice(0, 10))} تا {faDate(r.periodEnd.slice(0, 10))}
+          <div className="space-y-3">
+            {groupRequestsByPeriod(requests).map((g) => (
+              <div key={`${g.start}__${g.end}`} className="overflow-hidden rounded-xl border border-line">
+                <div className="flex items-center gap-2 border-b border-line bg-paper-soft/60 px-3 py-2">
+                  <CalendarDays className="h-4 w-4 text-ink-faint" />
+                  <p className="text-[12.5px] font-bold">
+                    {faDate(g.start)} تا {faDate(g.end)}
+                  </p>
+                  <span className="text-[11px] text-ink-faint">({faNum(g.items.length)} نفر)</span>
+                  <span className="mr-auto text-[10.5px] text-ink-faint">
+                    مهلت: {faDateTime(g.items[0].deadline)}
                   </span>
-                  {r.submittedBy && r.submittedBy.id !== r.user.id && (
-                    <span className="rounded-full bg-ink/5 px-1.5 py-0.5 text-[10px] text-ink-soft">ثبت توسط {r.submittedBy.fullName}</span>
-                  )}
-                  <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", st.cls)}>{st.label}</span>
-                </button>
-              );
-            })}
+                </div>
+                <div className="divide-y divide-line">
+                  {g.items.map((r) => {
+                    const st = STATUS_FA[r.status] ?? STATUS_FA.PENDING;
+                    const mySlots = r.slots ?? [];
+                    return (
+                      <div key={r.id}>
+                        <button
+                          type="button"
+                          onClick={() => setDetail(r)}
+                          className="flex w-full flex-wrap items-center gap-2 px-3 py-2 text-right transition-colors hover:bg-paper-soft/50"
+                        >
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{r.user.fullName}</span>
+                          {r.submittedBy && r.submittedBy.id !== r.user.id && (
+                            <span className="rounded-full bg-ink/5 px-1.5 py-0.5 text-[10px] text-ink-soft">ثبت توسط {r.submittedBy.fullName}</span>
+                          )}
+                          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", st.cls)}>{st.label}</span>
+                        </button>
+                        {/* اسلات‌های ثبت‌شده‌ی این فرد در همین دوره */}
+                        {mySlots.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 bg-paper-soft/30 px-3 pb-2.5 pt-0.5">
+                            {slotsByDay(mySlots).map(({ day, slots }) => (
+                              <span key={day} className="flex items-center gap-1.5 rounded-lg border border-line bg-white px-2 py-1 text-[11px]">
+                                <span className="font-medium text-ink">{dayNameFa(day)}</span>
+                                <span dir="ltr" className="tabular-nums text-ink-soft">
+                                  {slots.map((s) => `${s.startTime}-${s.endTime}`).join(" · ")}
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -283,16 +311,7 @@ function ConfigForm({ config, busy, onSave }: { config: Config; busy: boolean; o
   ];
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <label className="flex flex-col gap-1.5 text-[11.5px] text-ink-faint">
-        تکرار
-        <Select
-          value="WEEKLY"
-          onChange={() => {}}
-          disabled
-          options={[{ value: "WEEKLY", label: "هفتگی", hint: "نسخه‌ی بعد: روزانه/ماهانه" }]}
-        />
-      </label>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <label className="flex flex-col gap-1.5 text-[11.5px] text-ink-faint">
         روز ایجاد درخواست
         <Select value={createDay} onChange={setCreateDay} options={DAYS_FA.map((d, i) => ({ value: String(i), label: `هر ${d}` }))} />
@@ -440,4 +459,33 @@ function AdminRequestDetail({ req, onClose, onSaved }: { req: Req; onClose: () =
       </div>
     </div>
   );
+}
+
+function dayNameFa(dateIso: string): string {
+  const wd = new Date(dateIso + "T12:00:00Z").getUTCDay();
+  return `${DAYS_FA[(wd + 1) % 7]} ${faDate(dateIso)}`;
+}
+
+function groupRequestsByPeriod(requests: Req[]): { start: string; end: string; items: Req[] }[] {
+  const map = new Map<string, { start: string; end: string; items: Req[] }>();
+  for (const r of requests) {
+    const start = r.periodStart.slice(0, 10);
+    const end = r.periodEnd.slice(0, 10);
+    const key = `${start}__${end}`;
+    const g = map.get(key) ?? { start, end, items: [] };
+    g.items.push(r);
+    map.set(key, g);
+  }
+  return [...map.values()].sort((a, b) => b.start.localeCompare(a.start));
+}
+
+function slotsByDay(slots: Slot[]): { day: string; slots: Slot[] }[] {
+  const map = new Map<string, Slot[]>();
+  for (const s of slots) {
+    const k = s.date.slice(0, 10);
+    map.set(k, [...(map.get(k) ?? []), s]);
+  }
+  return [...map.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([day, ss]) => ({ day, slots: ss.sort((a, b) => a.startTime.localeCompare(b.startTime)) }));
 }
