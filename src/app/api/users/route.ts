@@ -49,6 +49,7 @@ export async function GET(req: NextRequest) {
             avatarUrl: true,
             jobTitle: true,
             department: true,
+            isActive: true,
             branch: { select: { id: true, name: true } },
             roles: { include: { role: { select: { key: true, name: true } } } },
           },

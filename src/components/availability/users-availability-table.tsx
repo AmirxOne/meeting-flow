@@ -138,11 +138,15 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
   async function saveSchedule(userIds: string[], v: MemberOverrideValue) {
     setBusy(true);
     try {
-      await api("/api/availability-mgmt", {
+      const res = await api<{ changed: number }>("/api/availability-mgmt", {
         method: "POST",
         json: { userIds, remove: false, override: v },
       });
-      push(`${faNum(userIds.length)} نفر با زمان‌بندی انتخابی مشمول شدند`, "success");
+      if (res?.changed === 0) {
+        push("هیچ‌کس مشمول نشد — حساب کاربران غیرفعال است", "error");
+      } else {
+        push(`${faNum(userIds.length)} نفر با زمان‌بندی انتخابی مشمول شدند`, "success");
+      }
       setSelected(new Set());
       await qc.invalidateQueries({ queryKey: ["availability-admin"] });
     } catch (e) {
@@ -271,7 +275,9 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                     </p>
                     <p className="hidden truncate text-[12px] text-ink-soft md:block">{u.branch?.name ?? "—"}</p>
                     <div className="flex flex-wrap items-center justify-end gap-1.5">
-                      {isMember ? (
+                      {u.isActive === false ? (
+                        <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10.5px] font-medium text-red-500">حساب غیرفعال</span>
+                      ) : isMember ? (
                         <>
                           <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] font-medium text-emerald-700">
                             <Check className="h-3 w-3" />
@@ -288,6 +294,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                     </div>
                     {/* ستون آخر: اول آیکون تنظیم، بعد chevron دوره‌ها — هم‌سایز h-8 w-8 */}
                     <div className="flex items-center justify-end gap-1.5">
+                      {u.isActive === false ? <span className="text-[10px] text-ink-faint">—</span> : null}
                       <button
                         type="button"
                         aria-label={`تنظیم زمان‌بندی ${u.fullName}`}

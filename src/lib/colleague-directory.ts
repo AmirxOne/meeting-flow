@@ -6,6 +6,7 @@ export type Colleague = {
   department?: string | null;
   branch: { id: string; name: string } | null;
   roles: { role: { key: string; name: string } }[];
+  isActive?: boolean;
 };
 
 export const NO_DEPARTMENT = "__none__";
