@@ -261,31 +261,33 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                         <span className="rounded-full bg-paper-soft px-2 py-0.5 text-[10.5px] text-ink-faint">غیرمشمول</span>
                       )}
                       {st && <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-medium", st.cls)}>{st.label}</span>}
+                    </div>
+                    {/* ستون آخر: اول آیکون تنظیم، بعد chevron دوره‌ها — هم‌سایز h-8 w-8 */}
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button
+                        type="button"
+                        aria-label={`تنظیم زمان‌بندی ${u.fullName}`}
+                        title={isMember ? "تنظیم زمان‌بندی این فرد" : "مشمول کردن با تنظیم دلخواه"}
+                        onClick={(e) => { e.stopPropagation(); setModal({ userIds: [u.id] }); }}
+                        className={cn(
+                          "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
+                          isMember ? "border-line bg-white text-ink-soft hover:border-ink/40 hover:text-ink" : "border-dashed border-line text-ink-faint hover:border-ink/40 hover:text-ink",
+                        )}
+                      >
+                        <Settings2 className="h-4 w-4" />
+                      </button>
                       {myReqs.length > 0 && (
                         <button
                           type="button"
                           aria-label={isOpen ? "بستن دوره‌ها" : "نمایش دوره‌ها"}
                           aria-expanded={isOpen}
                           onClick={(e) => { e.stopPropagation(); setExpanded(isOpen ? null : u.id); }}
-                          className={cn("flex h-6 w-6 items-center justify-center rounded-md border border-line text-ink-faint transition-all hover:bg-paper-soft", isOpen && "rotate-180 bg-paper-soft text-ink")}
+                          className={cn("flex h-8 w-8 items-center justify-center rounded-lg border border-line text-ink-faint transition-all hover:bg-paper-soft", isOpen && "rotate-180 bg-paper-soft text-ink")}
                         >
-                          <ChevronDown className="h-3.5 w-3.5" />
+                          <ChevronDown className="h-4 w-4" />
                         </button>
                       )}
                     </div>
-                    {/* آیکون تنظیم فردی — انتهای ردیف */}
-                    <button
-                      type="button"
-                      aria-label={`تنظیم زمان‌بندی ${u.fullName}`}
-                      title={isMember ? "تنظیم زمان‌بندی این فرد" : "مشمول کردن با تنظیم دلخواه"}
-                      onClick={(e) => { e.stopPropagation(); setModal({ userIds: [u.id] }); }}
-                      className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
-                        isMember ? "border-line bg-white text-ink-soft hover:border-ink/40 hover:text-ink" : "border-dashed border-line text-ink-faint hover:border-ink/40 hover:text-ink",
-                      )}
-                    >
-                      <Settings2 className="h-4 w-4" />
-                    </button>
                   </div>
 
                   {/* ردیف بازشو: دوره‌های اعلام‌شده‌ی همین فرد */}
