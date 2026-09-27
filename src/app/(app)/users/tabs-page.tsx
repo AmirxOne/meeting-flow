@@ -17,7 +17,7 @@ function HeaderActions() {
   const um = useUserManagement();
   if (!isAdmin) return null;
   return (
-    <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
+    <div className="flex shrink-0 flex-wrap items-center gap-2">
       <Button size="sm" onClick={um.openCreate}>
         <UserPlus className="h-4 w-4" />
         کاربر جدید
