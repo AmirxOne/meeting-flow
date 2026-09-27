@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type ApiError } from "@/lib/api";
-import { Card, EmptyState, SkeletonBlock } from "@/components/ui/card";
+import { Card, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScheduleModal, type MemberOverrideValue } from "./schedule-modal";
 import { useUserManagement } from "@/components/users/user-management";
@@ -252,8 +252,33 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
         </div>
 
         {isLoading || cfgLoading ? (
-          <div className="space-y-2 p-4">
-            {Array.from({ length: 4 }).map((_, i) => <SkeletonBlock key={i} className="h-12 w-full" />)}
+          <div className="divide-y divide-line">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[28px_28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px] items-center gap-3 px-4 py-[9px]"
+              >
+                <div className="skeleton size-4 rounded-[4px]" />
+                <div className="skeleton mx-auto h-3 w-4" />
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="skeleton h-9 w-9 shrink-0 rounded-full" />
+                  <div className="w-full space-y-1.5">
+                    <div className="skeleton h-3.5 w-3/5" />
+                    <div className="skeleton h-2.5 w-4/5" />
+                  </div>
+                </div>
+                <div className="skeleton h-3 w-4/5" />
+                <div className="skeleton hidden h-3 w-3/5 md:block" />
+                <div className="flex gap-1.5">
+                  <div className="skeleton h-5 w-14 rounded-full" />
+                  <div className="skeleton h-5 w-16 rounded-full" />
+                </div>
+                <div className="flex items-center justify-end gap-1.5">
+                  <div className="skeleton size-8 rounded-lg" />
+                  <div className="skeleton size-8 rounded-lg" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : users.length === 0 ? (
           <EmptyState title="کاربری یافت نشد" description="فیلتر یا جستجو را عوض کنید" />

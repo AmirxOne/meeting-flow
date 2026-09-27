@@ -4,7 +4,7 @@ import { useState , useEffect} from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserRound, Search, Pencil, Trash2, UserPlus, ChevronRight, ChevronLeft } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, EmptyState, SkeletonTable } from "@/components/ui/card";
+import { Card, CardHeader, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -202,10 +202,35 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
 
       {isLoading ? (
         <Card className="overflow-hidden">
-          <div className="border-b border-line px-5 py-4">
-            <div className="skeleton h-4 w-40" />
+          <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+            <div className="skeleton h-4 w-12" />
+            <div className="skeleton h-3 w-14" />
+            <div className="skeleton mr-auto h-9 w-64 rounded-md border border-line" />
           </div>
-          <SkeletonTable rows={10} cols={6} />
+          <div className="hidden grid-cols-[28px_minmax(140px,1.4fr)_1fr_1fr_0.9fr_196px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 md:grid">
+            {Array.from({ length: 6 }).map((_, i) => <div key={i} className="skeleton h-3 flex-1" />)}
+          </div>
+          <div className="divide-y divide-line">
+            {Array.from({ length: 8 }).map((_, r) => (
+              <div key={r} className="grid grid-cols-[28px_minmax(140px,1.4fr)_1fr_1fr_0.9fr_196px] items-center gap-3 px-4 py-3">
+                <div className="skeleton mx-auto h-3 w-4" />
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="skeleton h-9 w-9 shrink-0 rounded-full" />
+                  <div className="w-full space-y-1.5">
+                    <div className="skeleton h-3.5 w-3/5" />
+                    <div className="skeleton h-2.5 w-2/5" />
+                  </div>
+                </div>
+                <div className="skeleton h-3 w-4/5" />
+                <div className="skeleton h-3 w-3/5" />
+                <div className="skeleton h-3 w-4/5" />
+                <div className="flex items-center justify-end gap-1">
+                  <div className="skeleton size-7 rounded-md" />
+                  <div className="skeleton size-7 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       ) : people.length === 0 ? (
         <Card>
