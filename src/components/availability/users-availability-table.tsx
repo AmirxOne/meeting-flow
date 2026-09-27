@@ -7,11 +7,11 @@ import { Card, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScheduleModal, type MemberOverrideValue } from "./schedule-modal";
 import { useUserManagement } from "@/components/users/user-management";
-import { IconTipButton } from "@/components/ui/tooltip";
+import { ContextMenuOpen, type ContextMenuItem } from "@/components/ui/context-menu";
 import { useToast } from "@/components/ui/toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn, faNum } from "@/lib";
-import { CalendarClock, CalendarDays, Check, ChevronDown, Clock, KeyRound, Pencil, Power, Settings2, UserPlus, UserX } from "@/components/ui/icon";
+import { CalendarClock, CalendarDays, Check, ChevronDown, Clock, KeyRound, Menu as MoreVertical, Pencil, Power, Settings2, UserPlus, UserX } from "@/components/ui/icon";
 import type { Colleague } from "@/lib/colleague-directory";
 
 /**
@@ -72,7 +72,41 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null); // userId ردیف باز
   const [modal, setModal] = useState<{ userIds: string[] } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; user: Colleague } | null>(null);
   const um = useUserManagement();
+
+  /** آیتم‌های منوی راست‌کلیک / سه‌نقطه هر ردیف */
+  function rowMenuItems(u: Colleague, isMember: boolean, hasPeriods: boolean): ContextMenuItem[] {
+    const self = um.isSelf(u.id);
+    const items: ContextMenuItem[] = [];
+    if (um.canEdit && !self) {
+      items.push(
+        { label: "ویرایش اطلاعات", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => um.openEdit(u) },
+        { label: "بازنشانی رمز عبور", icon: <KeyRound className="h-3.5 w-3.5" />, onClick: () => um.openReset(u), disabled: !um.canReset },
+        {
+          label: u.isActive !== false ? "غیرفعال‌سازی حساب" : "فعال‌سازی حساب",
+          icon: <Power className="h-3.5 w-3.5" />,
+          onClick: () => um.toggleActive(u),
+          danger: u.isActive !== false,
+        },
+      );
+    }
+    items.push(
+      {
+        label: isMember ? "تنظیم زمان‌بندی اعلام زمان" : "مشمول کردن با تنظیم دلخواه",
+        icon: <Settings2 className="h-3.5 w-3.5" />,
+        onClick: () => setModal({ userIds: [u.id] }),
+        separatorBefore: items.length > 0,
+      },
+      {
+        label: hasPeriods ? (expanded === u.id ? "بستن دوره‌های اعلام‌شده" : "نمایش دوره‌های اعلام‌شده") : "دوره‌ای ثبت نشده",
+        icon: <CalendarDays className="h-3.5 w-3.5" />,
+        disabled: !hasPeriods,
+        onClick: () => setExpanded(expanded === u.id ? null : u.id),
+      },
+    );
+    return items;
+  }
 
   const { data, isLoading: cfgLoading } = useQuery({
     queryKey: ["availability-admin"],
@@ -267,6 +301,10 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                       isSel ? "bg-paper-soft" : "hover:bg-paper-soft/50",
                     )}
                     onClick={() => toggle(u.id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setMenu({ x: e.clientX, y: e.clientY, user: u });
+                    }}
                   >
                     <input
                       type="checkbox"
@@ -307,42 +345,26 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                       )}
                       {st && <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-medium", st.cls)}>{st.label}</span>}
                     </div>
-                    {/* ستون آخر: ابزارهای مدیریتی + تنظیم زمان + chevron دوره‌ها */}
+                    {/* ستون آخر: یک دکمه‌ی سه‌نقطه (منوی کامل) + chevron دوره‌ها */}
                     <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      {um.canEdit && !um.isSelf(u.id) && (
-                        <>
-                          <IconTipButton tip="ویرایش" onClick={() => um.openEdit(u)} className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink">
-                            <Pencil className="h-3.5 w-3.5" />
-                          </IconTipButton>
-                          {um.canReset && (
-                            <IconTipButton tip="بازنشانی رمز" onClick={() => um.openReset(u)} className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink">
-                              <KeyRound className="h-3.5 w-3.5" />
-                            </IconTipButton>
-                          )}
-                          <IconTipButton tip={u.isActive !== false ? "غیرفعال‌سازی" : "فعال‌سازی"} onClick={() => um.toggleActive(u)} className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink">
-                            <Power className="h-3.5 w-3.5" />
-                          </IconTipButton>
-                        </>
-                      )}
-                      {u.isActive === false ? <span className="text-[10px] text-ink-faint">—</span> : null}
                       <button
                         type="button"
-                        aria-label={`تنظیم زمان‌بندی ${u.fullName}`}
-                        title={isMember ? "تنظیم زمان‌بندی این فرد" : "مشمول کردن با تنظیم دلخواه"}
-                        onClick={() => setModal({ userIds: [u.id] })}
-                        className={cn(
-                          "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
-                          isMember ? "border-line bg-white text-ink-soft hover:border-ink/40 hover:text-ink" : "border-dashed border-line text-ink-faint hover:border-ink/40 hover:text-ink",
-                        )}
+                        aria-label={"گزینه‌های " + u.fullName}
+                        title="گزینه‌ها (یا راست‌کلیک روی ردیف)"
+                        onClick={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          setMenu({ x: Math.max(8, r.left - 200), y: r.bottom + 4, user: u });
+                        }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
                       >
-                        <Settings2 className="h-4 w-4" />
+                        <MoreVertical className="h-4 w-4" />
                       </button>
                       {myReqs.length > 0 && (
                         <button
                           type="button"
                           aria-label={isOpen ? "بستن دوره‌ها" : "نمایش دوره‌ها"}
                           aria-expanded={isOpen}
-                          onClick={(e) => { e.stopPropagation(); setExpanded(isOpen ? null : u.id); }}
+                          onClick={() => setExpanded(isOpen ? null : u.id)}
                           className={cn("flex h-8 w-8 items-center justify-center rounded-lg border border-line text-ink-faint transition-all hover:bg-paper-soft", isOpen && "rotate-180 bg-paper-soft text-ink")}
                         >
                           <ChevronDown className="h-4 w-4" />
@@ -406,6 +428,20 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
 
 
       </Card>
+
+      {/* منوی راست‌کلیک / سه‌نقطه‌ی ردیف */}
+      {menu && (
+        <ContextMenuOpen
+          x={menu.x}
+          y={menu.y}
+          items={rowMenuItems(
+            menu.user,
+            memberIds.has(menu.user.id),
+            (requestsByUser.get(menu.user.id) ?? []).length > 0,
+          )}
+          onClose={() => setMenu(null)}
+        />
+      )}
 
       {/* مودال‌های مدیریت کاربر (ساخت/ویرایش/بازنشانی رمز) */}
       {um.modals}
