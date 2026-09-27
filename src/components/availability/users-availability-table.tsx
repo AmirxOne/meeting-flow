@@ -201,44 +201,6 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
 
   return (
     <div className="space-y-4">
-      {/* نوار اکشن — بالای جدول، چسبان زیر هدر؛ تنظیم گروهی فقط برای ۲+ نفر */}
-      {selected.size > 0 && (
-        <div className="sticky top-16 z-30 flex flex-wrap items-center gap-2 rounded-xl border border-ink/15 bg-white/95 px-4 py-2.5 shadow-md backdrop-blur">
-          <span className="rounded-full bg-paper-soft px-2.5 py-1 text-[11.5px] font-medium">
-            {faNum(selected.size)} نفر انتخاب‌شده
-          </span>
-          {selected.size > 1 && (
-            <Button size="sm" onClick={() => setModal({ userIds: [...selected] })} disabled={busy}>
-              <Settings2 className="h-3.5 w-3.5" />
-              تنظیم گروهی زمان‌بندی
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={removeMembers} disabled={busy}>
-            <UserX className="h-3.5 w-3.5" />
-            خروج از فرآیند
-          </Button>
-          <div className="mr-auto flex items-center gap-2">
-            {um.canCreate && (
-              <button
-                type="button"
-                onClick={um.openCreate}
-                className="flex items-center gap-1.5 rounded-md bg-ink px-2.5 py-1.5 text-[11.5px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
-              >
-                <UserPlus className="h-3.5 w-3.5" />
-                کاربر جدید
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setSelected(new Set())}
-              className="text-[11.5px] text-ink-faint hover:text-ink"
-            >
-              لغو انتخاب
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── جدول کاربران + دوره‌های ادغام‌شده ── */}
       <Card className="overflow-hidden p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
@@ -251,6 +213,32 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           >
             {allSelected ? "لغو انتخاب همه" : "انتخاب همه"}
           </button>
+
+          {/* اکشن‌های انتخاب — داخل هدر جدول، فقط وقتی کسی انتخاب شده */}
+          {selected.size > 0 && (
+            <div className="mr-auto flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-paper-soft px-2.5 py-1 text-[11.5px] font-medium">
+                {faNum(selected.size)} نفر انتخاب‌شده
+              </span>
+              {selected.size > 1 && (
+                <Button size="sm" onClick={() => setModal({ userIds: [...selected] })} disabled={busy}>
+                  <Settings2 className="h-3.5 w-3.5" />
+                  تنظیم گروهی زمان‌بندی
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={removeMembers} disabled={busy}>
+                <UserX className="h-3.5 w-3.5" />
+                خروج از فرآیند
+              </Button>
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="text-[11.5px] text-ink-faint hover:text-ink"
+              >
+                لغو انتخاب
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="hidden grid-cols-[28px_28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
