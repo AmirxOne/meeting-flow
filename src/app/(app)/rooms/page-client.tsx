@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DoorOpen, Plus, Pencil, Trash2, Power, Wrench, Search } from "@/components/ui/icon";
+import { DoorOpen, Plus, Pencil, Trash2, Power, Wrench, Search, Menu as MoreVertical } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { Card, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { FaInput } from "@/components/ui/fa-input";
 import { useAuth } from "@/lib/auth-store";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { IconTipButton } from "@/components/ui/tooltip";
+import { ContextMenuOpen, type ContextMenuItem } from "@/components/ui/context-menu";
 
 interface RoomWithLive {
   id: string;
@@ -118,6 +119,9 @@ export function RoomsPage() {
     description: "",
     managerId: "",
   });
+
+  // منوی راست‌کلیک / سه‌نقطه‌ی ردیف
+  const [menu, setMenu] = useState<{ x: number; y: number; room: RoomWithLive } | null>(null);
 
   // مودال تعمیر/غیرفعال‌سازی موقت
   const [exclusionRoom, setExclusionRoom] = useState<RoomWithLive | null>(null);
@@ -305,6 +309,24 @@ export function RoomsPage() {
   const activeBranchId = editing?.branchId ?? form.branchId;
   const floorOptions = branches.find((b) => b.id === activeBranchId)?.floors ?? [];
 
+  function rowMenuItems(r: RoomWithLive): ContextMenuItem[] {
+    return [
+      { label: "ویرایش اتاق", icon: <Pencil className="h-3.5 w-3.5" />, onClick: () => openEdit(r) },
+      {
+        label: r.isActive ? "غیرفعال‌سازی اتاق" : "فعال‌سازی اتاق",
+        icon: <Power className="h-3.5 w-3.5" />,
+        onClick: () => toggleActive(r),
+      },
+      {
+        label: "تعمیر / غیرفعال موقت",
+        icon: <Wrench className="h-3.5 w-3.5" />,
+        onClick: () => openExclusions(r),
+      },
+      { label: "مشاهده جزئیات", icon: <DoorOpen className="h-3.5 w-3.5" />, onClick: () => { window.location.href = "/rooms/" + r.id; } },
+      { label: "حذف اتاق", icon: <Trash2 className="h-3.5 w-3.5" />, danger: true, separatorBefore: true, onClick: () => remove(r) },
+    ];
+  }
+
   return (
     <div className="space-y-4 p-4 lg:p-6">
       {/* هدر: عنوان/توضیح — دکمه اتاق جدید (ادمین) */}
@@ -438,7 +460,15 @@ export function RoomsPage() {
                   const st = statuses?.[r.id];
                   const meta = STATUS_META[st?.status ?? (r.isActive ? "AVAILABLE" : "DISABLED")];
                   return (
-                    <tr key={r.id} className={cn("transition-colors hover:bg-paper-soft/40", !r.isActive && "opacity-50")}>
+                    <tr
+                      key={r.id}
+                      className={cn("transition-colors hover:bg-paper-soft/40", !r.isActive && "opacity-50")}
+                      onContextMenu={(e) => {
+                        if (!isAdmin) return;
+                        e.preventDefault();
+                        setMenu({ x: e.clientX, y: e.clientY, room: r });
+                      }}
+                    >
                       <td className="px-3 py-3 text-center text-[11px] text-ink-faint">{faNum(idx + 1)}</td>
                       <td className="px-4 py-3">
                         <Link href={`/rooms/${r.id}`} className="font-medium hover:underline">
@@ -489,36 +519,18 @@ export function RoomsPage() {
                       </td>
                       {isAdmin && (
                         <td className="px-4 py-3">
-                          <div className="flex justify-end gap-1">
-                            <IconTipButton
-                              tip="تعمیر / غیرفعال موقت"
-                              onClick={() => openExclusions(r)}
-                              className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                            >
-                              <Wrench className="h-3.5 w-3.5" />
-                            </IconTipButton>
-                            <IconTipButton
-                              tip="ویرایش"
-                              onClick={() => openEdit(r)}
-                              className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </IconTipButton>
-                            <IconTipButton
-                              tip={r.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-                              onClick={() => toggleActive(r)}
-                              className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                            >
-                              <Power className="h-3.5 w-3.5" />
-                            </IconTipButton>
-                            <IconTipButton
-                              tip="حذف"
-                              onClick={() => remove(r)}
-                              className="rounded-md p-1.5 text-ink-faint hover:bg-red-50 hover:text-red-600"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </IconTipButton>
-                          </div>
+                          <button
+                            type="button"
+                            aria-label={"گزینه‌های " + r.name}
+                            title="گزینه‌ها (یا راست‌کلیک روی ردیف)"
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setMenu({ x: Math.max(8, rect.left - 200), y: rect.bottom + 4, room: r });
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-line bg-white text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
                         </td>
                       )}
                     </tr>
@@ -528,6 +540,11 @@ export function RoomsPage() {
             </table>
           </div>
         </Card>
+      )}
+
+      {/* منوی راست‌کلیک / سه‌نقطه‌ی ردیف */}
+      {menu && isAdmin && (
+        <ContextMenuOpen x={menu.x} y={menu.y} items={rowMenuItems(menu.room)} onClose={() => setMenu(null)} />
       )}
 
       {/* مودال ساخت/ویرایش اتاق — فقط ادمین */}
