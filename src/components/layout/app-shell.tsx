@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState , useRef} from "react";
 import {
   Bell,
   MessageQuestion,
@@ -18,6 +18,23 @@ import { api } from "@/lib/api";
 import { replayCurrentTour } from "@/components/guided-tours";
 import { OrgBrandMark, BrandLogoSkeleton } from "@/components/layout/org-brand-mark";
 import { UserAvatar } from "@/components/ui/user-avatar";
+
+/** بستن منوی کاربر با کلیک بیرون — روی document چون stacking context های
+ *  صفحه (transform/framer-motion) z-index backdrop را بی‌اثر می‌کنند */
+function UserMenuCloser({ menuRef, close }: { menuRef: React.RefObject<HTMLDivElement | null>; close: () => void }) {
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (menuRef.current && e.target instanceof Node && menuRef.current.contains(e.target)) return;
+      // کلیک روی خود دکمه‌ی بازکننده هم toggle می‌کند — نادیده بگیر
+      const btn = menuRef.current?.parentElement?.querySelector("button");
+      if (btn && e.target instanceof Node && btn.contains(e.target)) return;
+      close();
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [menuRef, close]);
+  return null;
+}
 import { easeOut } from "@/components/ui/motion";
 import { Tooltip } from "@/components/ui/tooltip";
 
@@ -49,6 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { me, loaded, refresh, logout, can } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
 
   // close the user menu on route change, Esc, and when the tab loses focus
   // (reported bug: menu stayed open when navigating to another page)
@@ -222,8 +240,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
             {userMenu && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setUserMenu(false)} />
-                <div dir="rtl" className="absolute left-0 z-20 mt-2 w-52 rounded-md border border-line bg-white p-1.5 shadow-lg">
+                <UserMenuCloser menuRef={userMenuRef} close={() => setUserMenu(false)} />
+                <div ref={userMenuRef} dir="rtl" className="absolute left-0 z-50 mt-2 w-52 rounded-md border border-line bg-white p-1.5 shadow-lg">
                   <div className="border-b border-line px-3 py-2">
                     <p className="text-[12px] font-medium">{me.fullName}</p>
                     <p className="text-[11px] text-ink-faint" dir="ltr">{me.email}</p>
