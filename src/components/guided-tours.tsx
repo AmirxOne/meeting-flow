@@ -51,6 +51,10 @@ function useSeenTours(userId: string | undefined) {
  *  Uses position:fixed so nextstepjs scrollIntoView cannot jump the page (e.g. to h1). */
 function useTourScrollLock(active: boolean) {
   useEffect(() => {
+    // باگ nextstepjs: بعد از پایان/رد کردن تور، اوورلی prevent-click در DOM می‌ماند و
+    // کلیک‌های موس روی مودال‌ها/جدول را می‌بلعد — با کلاس body و CSS مخفی می‌کنیم
+    // (حذف DOM کافی نیست چون React دوباره رندرش می‌کند)
+    document.body.classList.toggle('no-tour', !active);
     if (!active) return;
 
     // block user wheel/touch only — programmatic scrolls (ours) still pass

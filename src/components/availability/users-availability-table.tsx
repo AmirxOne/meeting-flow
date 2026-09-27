@@ -267,8 +267,9 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           )}
         </div>
 
-        <div className="hidden grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
+        <div className="hidden grid-cols-[28px_28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
           <span />
+          <span className="text-center">ردیف</span>
           <span>نام</span>
           <span>سمت / واحد</span>
           <span>شعبه</span>
@@ -284,7 +285,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           <EmptyState title="کاربری یافت نشد" description="فیلتر یا جستجو را عوض کنید" />
         ) : (
           <div className="divide-y divide-line">
-            {users.map((u) => {
+            {users.map((u, rowIdx) => {
               const member = memberById.get(u.id);
               const isMember = memberIds.has(u.id);
               const latest = latestByUser.get(u.id);
@@ -297,7 +298,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                 <div key={u.id} className={cn(isOpen && "bg-paper-soft/30")}>
                   <div
                     className={cn(
-                      "grid cursor-pointer grid-cols-[28px_1fr_auto_84px] items-center gap-3 px-4 py-2.5 transition-colors md:grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px]",
+                      "grid cursor-pointer grid-cols-[28px_1fr_auto_84px] items-center gap-3 px-4 py-2.5 transition-colors md:grid-cols-[28px_28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px]",
                       isSel ? "bg-paper-soft" : "hover:bg-paper-soft/50",
                     )}
                     onClick={() => toggle(u.id)}
@@ -314,6 +315,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                       className="size-4 accent-black"
                       aria-label={`انتخاب ${u.fullName}`}
                     />
+                    <span className="text-center text-[11px] text-ink-faint md:block">{faNum(rowIdx + 1)}</span>
                     <div className="flex min-w-0 items-center gap-2.5">
                       <UserAvatar name={u.fullName} src={u.avatarUrl} size="sm" variant="soft" />
                       <div className="min-w-0">

@@ -178,13 +178,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
           />
-          <Select
-            value={form.kind}
-            onChange={(v) => setForm({ ...form, kind: v })}
-            options={[
-              { value: "EXTERNAL", label: "خارجی (مهمان / ارتباط)" },
-            ]}
-          />
           <input
             placeholder="شرکت / سازمان"
             value={form.company}
@@ -260,7 +253,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
                 <tr>
                   <th className="w-10 px-2 py-2.5 text-center font-medium">ردیف</th>
                   <th className="px-4 py-2.5 font-medium">نام</th>
-                  <th className="px-4 py-2.5 font-medium">نوع</th>
                   <th className="hidden px-4 py-2.5 font-medium md:table-cell">شرکت</th>
                   <th className="hidden px-4 py-2.5 font-medium md:table-cell">سمت</th>
                   <th className="hidden px-4 py-2.5 font-medium lg:table-cell">تلفن</th>
@@ -284,11 +276,6 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
                         />
                         <span className="font-medium">{p.name}</span>
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cn("badge", p.kind === "INTERNAL" ? "badge-gray" : "badge-amber")}>
-                        {p.kind === "INTERNAL" ? "عضو شرکت" : "خارجی"}
-                      </span>
                     </td>
                     <td className="hidden px-4 py-3 text-ink-soft md:table-cell">{p.company ?? "—"}</td>
                     <td className="hidden px-4 py-3 text-ink-soft md:table-cell">{p.jobTitle ?? "—"}</td>

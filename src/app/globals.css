@@ -127,3 +127,10 @@ body {
 [id^="day-hour-"] {
   outline: none;
 }
+
+/* باگ nextstepjs: اوورلی prevent-click بعد از پایان تور در DOM می‌ماند و کلیک‌ها را می‌بلعد.
+   وقتی تور فعال نیست (بدون کلاس tour-active) مخفی/غیرفعال می‌شود. */
+body.no-tour [data-name^='nextstep-prevent-click-overlay'],
+body.no-tour [data-name='nextstep-overlay'] {
+  display: none !important;
+}

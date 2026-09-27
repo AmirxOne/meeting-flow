@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -57,13 +57,30 @@ export function ContextMenuOpen({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
-  const [adjusted, setAdjusted] = useState({ x, y });
+  // رندر اول در جای خام ولی نامرئی — بعد از اندازه‌گیری clamp و نمایش
+  const [adjusted, setAdjusted] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => setMounted(true), []);
 
-  // بستن با کلیک بیرون / Esc / اسکرول
+  // clamp بعد از رندر نامرئی — useLayoutEffect تا قبل از paint دیده شود
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || adjusted) return;
+    const r = el.getBoundingClientRect();
+    let nx = x;
+    let ny = y;
+    if (x + r.width > window.innerWidth - 8) nx = Math.max(8, window.innerWidth - r.width - 8);
+    if (y + r.height > window.innerHeight - 8) ny = Math.max(8, window.innerHeight - r.height - 8);
+    setAdjusted({ x: nx, y: ny });
+  });
+
+  // بستن با کلیک بیرون / Esc / اسکرول — mousedown داخل خود منو نادیده گرفته می‌شود
+  // (وگرنه منو قبل از رسیدن click به آیتم بسته می‌شود)
   useEffect(() => {
-    const close = () => onClose();
+    const close = (e: Event) => {
+      if (ref.current && e.target instanceof Node && ref.current.contains(e.target)) return;
+      onClose();
+    };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("mousedown", close);
     window.addEventListener("wheel", close, { passive: true });
@@ -77,17 +94,7 @@ export function ContextMenuOpen({
     };
   }, [onClose]);
 
-  // جای‌گذاری داخل viewport
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    let nx = x;
-    let ny = y;
-    if (x + r.width > window.innerWidth - 8) nx = Math.max(8, window.innerWidth - r.width - 8);
-    if (y + r.height > window.innerHeight - 8) ny = Math.max(8, window.innerHeight - r.height - 8);
-    setAdjusted({ x: nx, y: ny });
-  }, [x, y]);
+
 
   if (typeof document === "undefined" || !mounted) return null;
 
@@ -96,7 +103,7 @@ export function ContextMenuOpen({
       ref={ref}
       dir="rtl"
       role="menu"
-      style={{ position: "fixed", top: adjusted.y, left: adjusted.x, zIndex: 100 }}
+      style={{ position: "fixed", top: (adjusted ?? { x, y }).y, left: (adjusted ?? { x, y }).x, zIndex: 10000, visibility: adjusted ? undefined : "hidden" }}
       className="min-w-52 overflow-hidden rounded-xl border border-line bg-white p-1.5 shadow-2xl"
       onContextMenu={(e) => e.preventDefault()}
     >
