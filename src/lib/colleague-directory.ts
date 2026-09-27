@@ -1,6 +1,8 @@
 export type Colleague = {
   id: string;
   fullName: string;
+  email?: string | null;
+  phone?: string | null;
   avatarUrl?: string | null;
   jobTitle?: string | null;
   department?: string | null;

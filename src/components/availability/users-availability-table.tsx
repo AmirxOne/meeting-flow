@@ -6,10 +6,12 @@ import { api, type ApiError } from "@/lib/api";
 import { Card, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScheduleModal, type MemberOverrideValue } from "./schedule-modal";
+import { useUserManagement } from "@/components/users/user-management";
+import { IconTipButton } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn, faNum } from "@/lib";
-import { CalendarClock, CalendarDays, Check, ChevronDown, Clock, Settings2, UserX } from "@/components/ui/icon";
+import { CalendarClock, CalendarDays, Check, ChevronDown, Clock, KeyRound, Pencil, Power, Settings2, UserPlus, UserX } from "@/components/ui/icon";
 import type { Colleague } from "@/lib/colleague-directory";
 
 /**
@@ -70,6 +72,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null); // userId ردیف باز
   const [modal, setModal] = useState<{ userIds: string[] } | null>(null);
+  const um = useUserManagement();
 
   const { data, isLoading: cfgLoading } = useQuery({
     queryKey: ["availability-admin"],
@@ -214,13 +217,23 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           <button
             type="button"
             onClick={() => setSelected(allSelected ? new Set() : new Set(users.map((u) => u.id)))}
-            className="mr-auto rounded-md border border-line px-2.5 py-1 text-[11.5px] text-ink-soft transition-colors hover:bg-paper-soft"
+            className="rounded-md border border-line px-2.5 py-1 text-[11.5px] text-ink-soft transition-colors hover:bg-paper-soft"
           >
             {allSelected ? "لغو انتخاب همه" : "انتخاب همه"}
           </button>
+          {um.canCreate && (
+            <button
+              type="button"
+              onClick={um.openCreate}
+              className="mr-auto flex items-center gap-1.5 rounded-md bg-ink px-2.5 py-1.5 text-[11.5px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              کاربر جدید
+            </button>
+          )}
         </div>
 
-        <div className="hidden grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_84px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
+        <div className="hidden grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px] items-center gap-3 border-b border-line bg-paper-soft/50 px-4 py-2 text-[11px] font-medium text-ink-faint md:grid">
           <span />
           <span>نام</span>
           <span>سمت / واحد</span>
@@ -250,7 +263,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                 <div key={u.id} className={cn(isOpen && "bg-paper-soft/30")}>
                   <div
                     className={cn(
-                      "grid cursor-pointer grid-cols-[28px_1fr_auto_84px] items-center gap-3 px-4 py-2.5 transition-colors md:grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_84px]",
+                      "grid cursor-pointer grid-cols-[28px_1fr_auto_84px] items-center gap-3 px-4 py-2.5 transition-colors md:grid-cols-[28px_minmax(140px,1.4fr)_1fr_0.8fr_1fr_196px]",
                       isSel ? "bg-paper-soft" : "hover:bg-paper-soft/50",
                     )}
                     onClick={() => toggle(u.id)}
@@ -294,14 +307,29 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
                       )}
                       {st && <span className={cn("rounded-full px-2 py-0.5 text-[10.5px] font-medium", st.cls)}>{st.label}</span>}
                     </div>
-                    {/* ستون آخر: اول آیکون تنظیم، بعد chevron دوره‌ها — هم‌سایز h-8 w-8 */}
-                    <div className="flex items-center justify-end gap-1.5">
+                    {/* ستون آخر: ابزارهای مدیریتی + تنظیم زمان + chevron دوره‌ها */}
+                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {um.canEdit && !um.isSelf(u.id) && (
+                        <>
+                          <IconTipButton tip="ویرایش" onClick={() => um.openEdit(u)} className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </IconTipButton>
+                          {um.canReset && (
+                            <IconTipButton tip="بازنشانی رمز" onClick={() => um.openReset(u)} className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink">
+                              <KeyRound className="h-3.5 w-3.5" />
+                            </IconTipButton>
+                          )}
+                          <IconTipButton tip={u.isActive !== false ? "غیرفعال‌سازی" : "فعال‌سازی"} onClick={() => um.toggleActive(u)} className="rounded-md p-1.5 text-ink-soft hover:bg-paper-soft hover:text-ink">
+                            <Power className="h-3.5 w-3.5" />
+                          </IconTipButton>
+                        </>
+                      )}
                       {u.isActive === false ? <span className="text-[10px] text-ink-faint">—</span> : null}
                       <button
                         type="button"
                         aria-label={`تنظیم زمان‌بندی ${u.fullName}`}
                         title={isMember ? "تنظیم زمان‌بندی این فرد" : "مشمول کردن با تنظیم دلخواه"}
-                        onClick={(e) => { e.stopPropagation(); setModal({ userIds: [u.id] }); }}
+                        onClick={() => setModal({ userIds: [u.id] })}
                         className={cn(
                           "flex h-8 w-8 items-center justify-center rounded-lg border transition-colors",
                           isMember ? "border-line bg-white text-ink-soft hover:border-ink/40 hover:text-ink" : "border-dashed border-line text-ink-faint hover:border-ink/40 hover:text-ink",
@@ -378,6 +406,9 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
 
 
       </Card>
+
+      {/* مودال‌های مدیریت کاربر (ساخت/ویرایش/بازنشانی رمز) */}
+      {um.modals}
 
       {/* مودال تنظیم فردی/گروهی */}
       {modal && config && (
