@@ -29,6 +29,16 @@ export function Modal({
 }) {
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
+  // جلوگیری از بسته‌شدن ناگهانی: کلیک‌هایی که در همان لحظه‌ی باز شدن مودال رخ می‌دهند
+  // (مثلاً رهاشدن دیرهنگام کلیک آیتم منو زیر مودال) روی بک‌دراپ را نادیده می‌گیریم
+  const openedAt = useRef(0);
+  useEffect(() => {
+    if (open) openedAt.current = Date.now();
+  }, [open]);
+  const backdropGuard = (e: React.MouseEvent) => {
+    if (Date.now() - openedAt.current < 350) return;
+    onClose();
+  };
 
   // Esc to close + lock body scroll while open
   useEffect(() => {
@@ -53,13 +63,13 @@ export function Modal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.15 } }}
-            onClick={onClose}
+            onClick={backdropGuard}
             className="fixed inset-0 z-50 bg-black/45"
           />
           {/* desktop: centered modal / mobile: bottom sheet */}
           <div
             className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+            onClick={(e) => { if (e.target === e.currentTarget) backdropGuard(e); }}
           >
             <motion.div
               role="dialog"
