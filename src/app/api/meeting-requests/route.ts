@@ -117,6 +117,33 @@ export async function POST(req: NextRequest) {
       entityId: item.id,
       newValue: { title: item.title, urgency: item.urgency },
     });
+    // اعلان به ادمین/اپراتورها: درخواست جدید در صف هماهنگی
+    try {
+      const operators = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          orgId: item.orgId,
+          roles: { some: { role: { key: { in: ["ADMIN", "MEETING_OPERATOR"] } } } },
+        },
+        select: { id: true },
+      });
+      if (operators.length > 0) {
+        const requesterName = user.fullName ?? "کاربر";
+        const urg = input.urgency === "URGENT" ? " · فوری" : input.urgency === "FLEXIBLE" ? " · منعطف" : "";
+        await prisma.notification.createMany({
+          data: operators.map((o) => ({
+            userId: o.id,
+            orgId: item.orgId,
+            type: "MEETING_REQUEST_CREATED",
+            title: `درخواست جلسه «${item.title}» ثبت شد`,
+            body: `${requesterName} — در انتظار هماهنگی${urg}`,
+            data: { requestId: item.id, queue: true } as object,
+          })),
+        });
+      }
+    } catch {
+      /* نوتیفیکیشن هرگز نباید ثبت درخواست را بشکند */
+    }
     return ok({ request: item }, 201);
   } catch (e) {
     return handleError(e);

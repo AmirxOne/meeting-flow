@@ -43,6 +43,7 @@ const NOTIFICATION_META: Record<
   { label: string; icon: AppIcon; tone: "neutral" | "success" | "danger" | "warn" | "info" }
 > = {
   MEETING_CREATED: { label: "دعوت جلسه", icon: CalendarPlus, tone: "info" },
+  MEETING_REQUEST_CREATED: { label: "درخواست جلسه", icon: CalendarPlus, tone: "warn" },
   MEETING_APPROVED: { label: "تأیید جلسه", icon: CheckCircle2, tone: "success" },
   MEETING_REJECTED: { label: "رد جلسه", icon: XCircle, tone: "danger" },
   MEETING_CANCELLED: { label: "لغو جلسه", icon: Ban, tone: "danger" },

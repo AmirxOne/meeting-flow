@@ -40,6 +40,18 @@ function UserMenuCloser({ menuRef, close }: { menuRef: React.RefObject<HTMLDivEl
 import { easeOut } from "@/components/ui/motion";
 import { Tooltip } from "@/components/ui/tooltip";
 
+function useQueueOpenCount() {
+  const { me, can } = useAuth();
+  const canSee = !!me && (can("user:update") || can("meeting:create"));
+  const { data } = useQuery({
+    queryKey: ["meeting-requests", "queue-count"],
+    queryFn: () => api<{ openCount: number }>("/api/meeting-requests/queue/count"),
+    refetchInterval: 30_000,
+    enabled: canSee,
+  });
+  return canSee ? (data?.openCount ?? 0) : 0;
+}
+
 function useUnreadCount() {
   const { data } = useQuery({
     queryKey: ["notifications", "count"],
@@ -87,6 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
   }, [userMenu]);
   const unread = useUnreadCount();
+  const queueOpen = useQueueOpenCount();
   const { orgName, logoUrl } = useOrgBranding();
 
   // عنوان تب مرورگر: «صفحه | نام سازمان» — از تنظیمات ادمین
@@ -183,6 +196,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         active={isNavActive(pathname, item.href, siblingHrefs)}
                         children={kids}
                         pathname={pathname}
+                        queueOpen={queueOpen}
                       />
                     );
                   }
@@ -193,7 +207,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       label={item.label}
                       icon={item.icon}
                       active={isNavActive(pathname, item.href, siblingHrefs)}
-                      unread={item.href === "/notifications" ? unread : 0}
+                      unread={item.href === "/notifications" ? unread : item.href === "/admin" ? queueOpen : 0}
                     />
                   );
                 })}
@@ -330,6 +344,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                             active={isNavActive(pathname, item.href, siblingHrefs)}
                             children={kids}
                             pathname={pathname}
+                            queueOpen={queueOpen}
                           />
                         );
                       }
@@ -340,7 +355,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           label={item.label}
                           icon={item.icon}
                           active={isNavActive(pathname, item.href, siblingHrefs)}
-                          unread={item.href === "/notifications" ? unread : 0}
+                          unread={item.href === "/notifications" ? unread : item.href === "/admin" ? queueOpen : 0}
                         />
                       );
                     })}
@@ -398,6 +413,7 @@ function SidebarNavParent({
   active,
   children,
   pathname,
+  queueOpen = 0,
 }: {
   href: string;
   label: string;
@@ -405,6 +421,7 @@ function SidebarNavParent({
   active: boolean;
   children: { href: string; label: string }[];
   pathname: string;
+  queueOpen?: number;
 }) {
   const childActive = (c: { href: string }) =>
     pathname === c.href || pathname.startsWith(`${c.href}/`);
@@ -441,6 +458,11 @@ function SidebarNavParent({
           <Icon className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1 truncate text-right">{label}</span>
+        {queueOpen > 0 && (
+          <span className="flex h-4.5 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+            {faNum(queueOpen)}
+          </span>
+        )}
         <motion.span
           animate={{ rotate: open ? 0 : 90 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
@@ -498,6 +520,11 @@ function SidebarNavParent({
                     )}
                   />
                   <span className="min-w-0 truncate">{c.label}</span>
+                  {c.href === "/meeting-requests/queue" && queueOpen > 0 && (
+                    <span className="mr-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+                      {faNum(queueOpen)}
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
