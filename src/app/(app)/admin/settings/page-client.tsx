@@ -359,17 +359,21 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
         />
         <p className="text-[12.5px] font-bold">لوگوی سازمان</p>
         <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
-          روی کادر بزنید یا فایل را بکشید و رها کنید — PNG، JPG، WebP، GIF یا SVG تا ۲ مگابایت.
-          در سربرگ، صفحه‌ی لاگین و صفحه‌های عمومی اعمال می‌شود.
+          PNG، JPG، WebP، GIF یا SVG تا ۲ مگابایت — در سربرگ، صفحه‌ی لاگین، صفحه‌های عمومی و favicon اعمال می‌شود.
         </p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" loading={busy} onClick={() => inputRef.current?.click()}>
-            {logoUrl ? "تغییر لوگو" : "آپلود لوگو"}
-          </Button>
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <span className="text-[11px] text-ink-faint">
+            {busy ? "در حال بارگذاری…" : logoUrl ? "برای تغییر، روی کادر بزنید یا فایل بیندازید" : "روی کادر بزنید یا فایل را بکشید و رها کنید"}
+          </span>
           {logoUrl && (
-            <Button size="sm" variant="ghost" disabled={busy} onClick={remove}>
-              حذف
-            </Button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={remove}
+              className="text-[11px] font-medium text-red-600 underline-offset-4 transition-colors hover:underline disabled:opacity-50"
+            >
+              حذف لوگو
+            </button>
           )}
         </div>
       </div>
