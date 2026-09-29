@@ -45,6 +45,7 @@ export async function getGuestByCheckinCode(code: string) {
       meeting: {
         select: {
           id: true,
+          orgId: true,
           title: true,
           startAt: true,
           endAt: true,

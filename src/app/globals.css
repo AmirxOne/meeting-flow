@@ -129,8 +129,16 @@ body {
 }
 
 /* باگ nextstepjs: اوورلی prevent-click بعد از پایان تور در DOM می‌ماند و کلیک‌ها را می‌بلعد.
-   وقتی تور فعال نیست (بدون کلاس tour-active) مخفی/غیرفعال می‌شود. */
+   وقتی کارت تور واقعی (پورتال‌شده به body) در صفحه نیست، کل اوورلی مخفی می‌شود. */
 body.no-tour [data-name^='nextstep-prevent-click-overlay'],
 body.no-tour [data-name='nextstep-overlay'] {
   display: none !important;
+}
+/* دومین لایه‌ی باگ‌مانده: وقتی کلاس no-tour هم درست سنکرون نشده باشد،
+   اوورلی بدون کارت تور باید pointer-events نداشته باشد (کلیک رد شود). */
+body:not(.tour-open) [data-name='nextstep-overlay'] {
+  pointer-events: none !important;
+}
+body.tour-open [data-name='nextstep-overlay'] {
+  pointer-events: auto !important;
 }

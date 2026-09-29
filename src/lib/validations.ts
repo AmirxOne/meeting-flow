@@ -357,6 +357,8 @@ export const organizationUpdateSchema = z.object({
   timezone: z.string().trim().min(1).max(64).optional(),
   logoUrl: z.string().url("آدرس لوگو نامعتبر است").optional().or(z.literal("")),
   displayEnabled: z.boolean().optional(),
+  attendanceEnabled: z.boolean().optional(),
+  qrCheckinEnabled: z.boolean().optional(),
 });
 export type OrganizationUpdateInput = z.infer<typeof organizationUpdateSchema>;
 

@@ -55,13 +55,14 @@ function useTourScrollLock(active: boolean) {
     // کلیک‌های موس روی مودال‌ها/جدول را می‌بلعد. isNextStepVisible هم هرگز false نمی‌شود،
     // پس حضور واقعی کارت تور را با MutationObserver رصد می‌کنیم و کلاس body را سنکرون می‌کنیم.
     const sync = () => {
-      // کارت تور به body پورتال شده؛ سلکتور قبلی دیگر آن را نمی‌دید و
-      // body همیشه no-tour می‌ماند → اوورلی تاریک تور مخفی می‌شد.
+      // کارت تور به body پورتال شده؛ سلکتور قبلی دیگر آن را نمی‌دید.
       // حالا: کارت پورتال‌شده با data-attr، یا کلاس tour-active خود nextstepjs.
       const cardVisible =
         !!document.querySelector('[data-mehrsa-tour-card]') ||
         !!document.querySelector('.tour-active');
       document.body.classList.toggle("no-tour", !cardVisible);
+      // tour-open: اوورلی nextstep فقط وقتی تور واقعاً باز است کلیک را ببلعد
+      document.body.classList.toggle("tour-open", cardVisible);
     };
     sync();
     const mo = new MutationObserver(sync);

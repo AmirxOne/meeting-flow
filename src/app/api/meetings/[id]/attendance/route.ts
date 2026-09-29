@@ -23,6 +23,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const user = await requireUser();
     const { id } = await params;
+
+    // فلگ مرکزی ادمین — حضور و غیاب
+    const orgAtt = await prisma.organization.findUnique({ where: { id: user.orgId }, select: { attendanceEnabled: true } });
+    if (!orgAtt?.attendanceEnabled) {
+      throw new HttpError(403, "بخش حضور و غیاب توسط مدیریت غیرفعال شده است", "FEATURE_DISABLED");
+    }
     const { marks } = bodySchema.parse(await req.json().catch(() => ({})));
 
     const meeting = await prisma.meeting.findFirst({
@@ -110,6 +116,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const user = await requireUser();
     const { id } = await params;
+
+    // فلگ مرکزی ادمین — حضور و غیاب
+    const orgAtt = await prisma.organization.findUnique({ where: { id: user.orgId }, select: { attendanceEnabled: true } });
+    if (!orgAtt?.attendanceEnabled) {
+      throw new HttpError(403, "بخش حضور و غیاب توسط مدیریت غیرفعال شده است", "FEATURE_DISABLED");
+    }
     const meeting = await prisma.meeting.findFirst({
       where: { id, orgId: user.orgId },
       select: { id: true, organizerId: true, participants: { select: { userId: true } } },

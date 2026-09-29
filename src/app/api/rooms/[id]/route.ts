@@ -54,7 +54,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const next = meetings.find((m) => m.startAt > now) ?? null;
     const status = !room.isActive ? "DISABLED" : current ? "OCCUPIED" : next ? "RESERVED" : "AVAILABLE";
 
-    return ok({ room, meetings, status, current, next });
+    const org = await prisma.organization.findUnique({
+      where: { id: user.orgId },
+      select: { qrCheckinEnabled: true },
+    });
+    return ok({ room, meetings, status, current, next, features: { qrCheckin: org?.qrCheckinEnabled ?? false } });
   } catch (e) {
     return handleError(e);
   }

@@ -181,7 +181,11 @@ model Organization {
   timezone       String   @default("Asia/Tehran")
   logoUrl        String?
   /// door-tablet display boards — admin toggle (per org)
-  displayEnabled Boolean  @default(true)
+  displayEnabled Boolean  @default(false)
+  /// attendance card in meeting details — admin toggle (per org)
+  attendanceEnabled Boolean @default(false)
+  /// room QR / guest check-in — admin toggle (per org)
+  qrCheckinEnabled Boolean @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

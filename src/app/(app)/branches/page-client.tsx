@@ -528,9 +528,8 @@ export function BranchesPage() {
                   <div className="mt-4 flex flex-wrap gap-1.5">
                     <span className="badge badge-gray">{faNum(b._count.rooms)} اتاق</span>
                     <span className="badge badge-gray">{faNum(b._count.users)} کاربر</span>
-                    <span className="badge badge-gray">{faNum(b._count.meetings)} جلسه</span>
                     {b.floors.map((f) => (
-                      <span key={f.id} className="badge badge-gray">{f.name}</span>
+                      <span key={f.id} className="badge badge-gray">طبقه {faNum(f.number)}</span>
                     ))}
                   </div>
                 </div>

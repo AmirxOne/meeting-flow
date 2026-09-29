@@ -23,6 +23,8 @@ interface Organization {
   timezone: string;
   logoUrl: string | null;
   displayEnabled: boolean;
+  attendanceEnabled: boolean;
+  qrCheckinEnabled: boolean;
   updatedAt: string;
 }
 
@@ -183,14 +185,34 @@ export function AdminSettingsPage() {
             </label>
           </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-line bg-paper-soft/40 p-3.5">
-            <div className="min-w-0">
-              <p className="text-[12.5px] font-bold">نمایشگر تبلت کنار در</p>
+          {/* امکانات جانبی — کنترل مرکزی ادمین */}
+          <div className="rounded-lg border border-line bg-paper-soft/40">
+            <div className="border-b border-line px-3.5 py-3">
+              <p className="text-[13px] font-bold">امکانات جانبی</p>
               <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
-                برد اطلاعاتی جلسات که روی تبلتِ کنار در هر اتاق نمایش داده می‌شود — با خاموش کردن، همه‌ی نمایشگرها پیام «غیرفعال» می‌بینند
+                فعال/غیرفعال‌سازی مرکزی — همه‌ی بخش‌های سامانه از این‌جا دستور می‌گیرند. پیش‌فرض همه خاموش است.
               </p>
             </div>
-            <DoorDisplayToggle initial={org.displayEnabled} />
+            <div className="divide-y divide-line">
+              <FeatureToggleRow
+                title="حضور و غیاب"
+                desc="ثبت حاضرین جلسه در صفحه‌ی جزئیات جلسه"
+                field="attendanceEnabled"
+                initial={org.attendanceEnabled}
+              />
+              <FeatureToggleRow
+                title="نمایشگر تبلت کنار در"
+                desc="برد اطلاعاتی جلسات که روی تبلتِ کنار در هر اتاق نمایش داده می‌شود — با خاموش کردن، همه‌ی نمایشگرها پیام «غیرفعال» می‌بینند"
+                field="displayEnabled"
+                initial={org.displayEnabled}
+              />
+              <FeatureToggleRow
+                title="QR Code اتاق جلسه"
+                desc="دانلود پوستر QR و چک‌این مهمان‌ها با اسکن — در صفحه‌ی جزئیات اتاق و جلسه"
+                field="qrCheckinEnabled"
+                initial={org.qrCheckinEnabled}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end pt-2">
@@ -214,8 +236,18 @@ export function AdminSettingsPage() {
 }
 
 
-/** Instant on/off switch for door-tablet display boards. */
-function DoorDisplayToggle({ initial }: { initial: boolean }) {
+/** سوییچ آنی برای امکانات جانبی — ذخیره‌ی فوری و مرکزی */
+function FeatureToggleRow({
+  title,
+  desc,
+  field,
+  initial,
+}: {
+  title: string;
+  desc: string;
+  field: "attendanceEnabled" | "displayEnabled" | "qrCheckinEnabled";
+  initial: boolean;
+}) {
   const { push } = useToast();
   const qc = useQueryClient();
   const [on, setOn] = useState(initial);
@@ -228,9 +260,9 @@ function DoorDisplayToggle({ initial }: { initial: boolean }) {
     try {
       await api("/api/admin/organization", {
         method: "PATCH",
-        json: { displayEnabled: next },
+        json: { [field]: next },
       });
-      push(next ? "نمایشگر اتاق‌ها فعال شد" : "نمایشگر اتاق‌ها غیرفعال شد", "success");
+      push(next ? `«${title}» فعال شد` : `«${title}» غیرفعال شد`, "success");
       qc.invalidateQueries({ queryKey: ["organization"] });
     } catch (e) {
       setOn(!next); // revert
@@ -245,7 +277,7 @@ function DoorDisplayToggle({ initial }: { initial: boolean }) {
       type="button"
       role="switch"
       aria-checked={on}
-      aria-label="نمایشگر تبلت کنار در"
+      aria-label={title}
       disabled={busy}
       onClick={toggle}
       className={

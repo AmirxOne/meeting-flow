@@ -115,7 +115,15 @@ export async function GET(
       throw new HttpError(403, "دسترسی به این جلسه ندارید", "FORBIDDEN");
     }
 
-    return ok({ meeting, waitlist: await waitlistMeta(meeting) });
+    const org = await prisma.organization.findUnique({
+      where: { id: user.orgId },
+      select: { attendanceEnabled: true, qrCheckinEnabled: true },
+    });
+    return ok({
+      meeting,
+      waitlist: await waitlistMeta(meeting),
+      features: { attendance: org?.attendanceEnabled ?? false, qrCheckin: org?.qrCheckinEnabled ?? false },
+    });
   } catch (e) {
     return handleError(e);
   }

@@ -182,7 +182,7 @@ export function MeetingDetailPage() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["meeting", id],
-    queryFn: () => api<{ meeting: MeetingDetail; waitlist: WaitlistInfo | null }>(`/api/meetings/${id}`),
+    queryFn: () => api<{ meeting: MeetingDetail; waitlist: WaitlistInfo | null; features?: { attendance: boolean; qrCheckin: boolean } }>(`/api/meetings/${id}`),
   });
 
   const { data: roomsData } = useQuery({
@@ -869,7 +869,7 @@ export function MeetingDetailPage() {
                         : ""}
                     </p>
                   </div>
-                  {canManageGuests ? (
+                  {canManageGuests && (data?.features?.qrCheckin ?? false) ? (
                     <GuestCheckinPanel
                       checkinCode={g.checkinCode}
                       arrivedAt={g.arrivedAt}
@@ -909,6 +909,7 @@ export function MeetingDetailPage() {
             initialDecisions={(m.minutes as { decisions?: { id: string; text: string; owner?: { fullName: string } | null; dueAt?: string | null }[] } | null)?.decisions ?? []}
           />
 
+          {(data?.features?.attendance ?? false) && (
           <MeetingAttendance
             meetingId={id}
             participants={[
@@ -918,6 +919,7 @@ export function MeetingDetailPage() {
             guests={m.guests.map((g) => ({ id: g.id, name: g.name, company: g.company }))}
             isOrganizer={isOrganizer}
           />
+          )}
 
           {/* History */}
           <Card>

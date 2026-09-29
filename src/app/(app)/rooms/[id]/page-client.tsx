@@ -64,9 +64,10 @@ export function RoomDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["room", id],
-    queryFn: () => api<RoomDetail>(`/api/rooms/${id}`),
+    queryFn: () => api<RoomDetail & { features?: { qrCheckin: boolean } }>(`/api/rooms/${id}`),
     refetchInterval: 30_000,
   });
+  const qrEnabled = data?.features?.qrCheckin ?? false;
 
   if (isLoading || !data) {
     return (
@@ -179,7 +180,7 @@ export function RoomDetailPage() {
               ویرایش اتاق
             </button>
           )}
-          <RoomQrPanel slug={room.publicSlug ?? null} name={room.name} compact />
+          <RoomQrPanel slug={room.publicSlug ?? null} name={room.name} compact enabled={qrEnabled} />
         </div>
       </div>
 
@@ -431,10 +432,10 @@ function Row({ label, value }: { label: string; value: string }) {
 
 
 /** QR panel — printable poster: scan to see this room's live agenda (no login). */
-function RoomQrPanel({ slug, name, compact: _compact = false }: { slug: string | null; name: string; compact?: boolean }) {
+function RoomQrPanel({ slug, name, compact: _compact = false, enabled = false }: { slug: string | null; name: string; compact?: boolean; enabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  if (!slug) return null;
+  if (!slug || !enabled) return null;
   const url = typeof window !== "undefined" ? `${window.location.origin}/r/${slug}` : `/r/${slug}`;
 
   function downloadPng() {

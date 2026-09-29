@@ -25,6 +25,15 @@ export async function GET(
       await limiter.recordFailure(`checkin:${ip}`).catch(() => {});
       throw e;
     }
+
+    // فلگ مرکزی ادمین — QR / چک‌این مهمان
+    const orgQr = await (await import("@/server/db")).prisma.organization.findUnique({
+      where: { id: guest.meeting.orgId },
+      select: { qrCheckinEnabled: true },
+    });
+    if (!orgQr?.qrCheckinEnabled) {
+      return fail(403, "چک‌این مهمان توسط مدیریت غیرفعال شده است", "FEATURE_DISABLED");
+    }
     return ok({
       guest: {
         id: guest.id,
@@ -57,6 +66,14 @@ export async function POST(
   try {
     const { code } = await params;
     const guest = await getGuestByCheckinCode(code);
+    // فلگ مرکزی ادمین — QR / چک‌این مهمان
+    const orgQrPost = await (await import("@/server/db")).prisma.organization.findUnique({
+      where: { id: guest.meeting.orgId },
+      select: { qrCheckinEnabled: true },
+    });
+    if (!orgQrPost?.qrCheckinEnabled) {
+      return fail(403, "چک‌این مهمان توسط مدیریت غیرفعال شده است", "FEATURE_DISABLED");
+    }
     const result = await checkInGuest({
       meetingId: guest.meetingId,
       guestId: guest.id,
