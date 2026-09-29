@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Building2, CheckCircle2, DoorOpen, MessageQuestion, User } from "@/components/ui/icon";
 import { FadeIn } from "@/components/ui/motion";
 import { api, type ApiError } from "@/lib/api";
 import { faNum, faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
 import { proposeOrgSlug, normalizeOrgSlug } from "@/lib/org-slug";
+import { useOrgName } from "@/lib/org-branding";
+import { BrandLogo } from "@/components/ui/brand-logo";
 
 const STEPS = [
   { id: 1, title: "سازمان", icon: Building2 },
@@ -19,6 +20,7 @@ const fieldClass =
   "h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-right text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15";
 
 export function OrgSetupPage() {
+  const brandName = useOrgName();
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -129,7 +131,7 @@ export function OrgSetupPage() {
       <FadeIn className="relative mx-auto w-full max-w-[720px]">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Image src="/logo-white.png" alt="مهرسا" width={36} height={36} className="rounded-xl bg-ink p-1.5" />
+            <BrandLogo size={36} className="rounded-xl bg-ink p-1.5" alt={brandName} priority />
             <div>
               <h1 className="text-[20px] font-bold">شروع برای سازمان من</h1>
               <p className="text-[12px] text-ink-soft">راه‌اندازی اولیه — بدون seed دستی</p>

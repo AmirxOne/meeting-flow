@@ -5,6 +5,7 @@ import {
   resolveSmtpConfig,
   getEmailProvider,
 } from "@/server/services/email-provider";
+import { serverOrgName } from "@/lib/server-org-name";
 
 export type EmailAdminStatus = {
   provider: "mock" | "smtp";
@@ -81,12 +82,13 @@ export async function getEmailAdminStatus(orgId: string): Promise<EmailAdminStat
 
 /** Send a pilot test email to one address. */
 export async function sendEmailTest(to: string): Promise<{ ok: true; provider: string; to: string }> {
+  const orgName = await serverOrgName();
   const provider = getEmailProvider();
-  const html = '<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;line-height:1.8"><p>این یک ایمیل آزمایشی از سامانه‌ی <b>مهرسا</b> است.</p><p style="color:#777">اگر آن را دریافت کرده‌اید، تنظیمات SMTP درست است.</p></div>';
+  const html = `<div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;line-height:1.8"><p>این یک ایمیل آزمایشی از سامانه‌ی <b>${orgName}</b> است.</p><p style="color:#777">اگر آن را دریافت کرده‌اید، تنظیمات SMTP درست است.</p></div>`;
   await provider.send(
     to,
-    "مهرسا — ایمیل آزمایشی",
-    "این یک ایمیل آزمایشی از سامانه‌ی مهرسا است. اگر آن را دریافت کرده‌اید، تنظیمات SMTP درست است.",
+    `${orgName} — ایمیل آزمایشی`,
+    `این یک ایمیل آزمایشی از سامانه‌ی ${orgName} است. اگر آن را دریافت کرده‌اید، تنظیمات SMTP درست است.`,
     html,
   );
   return { ok: true, provider: provider.name, to };

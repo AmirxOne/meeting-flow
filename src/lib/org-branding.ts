@@ -62,9 +62,49 @@ export function useOrgDocumentTitle(pageTitle?: string) {
   }, [orgName, pageTitle]);
 }
 
-/** invalidate کش پس از ذخیره‌ی تنظیمات برندینگ. */
+
+// ── لوگوی سازمان (عمومی) ──────────────────────────────────────────
+
+let logoCache: { url: string | null; ts: number } | null = null;
+const logoListeners = new Set<(url: string | null) => void>();
+
+async function loadLogo(): Promise<string | null> {
+  try {
+    const r = await fetch("/api/public/organization/logo", { cache: "no-store" });
+    if (!r.ok) return null;
+    const ct = r.headers.get("content-type") || "";
+    if (ct.startsWith("image/")) return "/api/public/organization/logo";
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** آدرس لوگوی سازمان — عمومی (بدون لاگین)، کش‌شده. null = لوگو ندارد (پیش‌فرض). */
+export function useOrgLogoUrl(): string | null {
+  const [url, setUrl] = useState<string | null>(logoCache?.url ?? null);
+  useEffect(() => {
+    let alive = true;
+    loadLogo().then((u) => {
+      if (!alive) return;
+      logoCache = { url: u, ts: Date.now() };
+      setUrl(u);
+      logoListeners.forEach((l) => l(u));
+    });
+    const onChange = (u: string | null) => alive && setUrl(u);
+    logoListeners.add(onChange);
+    return () => {
+      alive = false;
+      logoListeners.delete(onChange);
+    };
+  }, []);
+  return url;
+}
+
+/** invalidate کش پس از ذخیره‌ی تنظیمات برندینگ (نام + لوگو). */
 export function invalidateOrgBranding() {
   cache = null;
+  logoCache = null;
 }
 
 /** displayName سرور-عاملی برای ایمیل/پیامک — از DB مستقیم. */

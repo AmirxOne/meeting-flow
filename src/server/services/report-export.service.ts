@@ -9,6 +9,7 @@ import PDFDocument from "pdfkit";
 import type { MeetingRow } from "./report.service";
 import { formatJalali } from "@/lib/jalali";
 import { faNum } from "@/lib/fa";
+import { serverOrgName } from "@/lib/server-org-name";
 
 const STATUS_FA: Record<string, string> = {
   PENDING_APPROVAL: "در انتظار تأیید",
@@ -36,7 +37,7 @@ export interface ExportMeta {
 
 export async function meetingsXlsx(rows: MeetingRow[], meta: ExportMeta): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "مهرسا";
+  wb.creator = await serverOrgName();
   wb.created = new Date();
 
   const ws = wb.addWorksheet("جلسات", { views: [{ rightToLeft: true, state: "frozen", ySplit: 1 }] });
@@ -98,6 +99,7 @@ export async function meetingsXlsx(rows: MeetingRow[], meta: ExportMeta): Promis
 const FONTS_DIR = path.join(process.cwd(), "assets", "fonts");
 
 export async function meetingsPdf(rows: MeetingRow[], meta: ExportMeta): Promise<Buffer> {
+  const orgName = await serverOrgName();
   return new Promise<Buffer>((resolve, reject) => {
     try {
       const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 36, lang: "fa" });
@@ -116,7 +118,7 @@ export async function meetingsPdf(rows: MeetingRow[], meta: ExportMeta): Promise
 
       // header
       doc.font("vazir-bold").fontSize(16).fillColor("#0d0d0d");
-      doc.text(rtl("گزارش جلسات — مهرسا"), 36, 36, { width: W, align: "right" });
+      doc.text(rtl(`گزارش جلسات — ${orgName}`), 36, 36, { width: W, align: "right" });
       doc.font("vazir").fontSize(9).fillColor("#52525b");
       const range = `${meta.from ? formatJalali(meta.from, { monthName: true }) : "—"} تا ${meta.to ? formatJalali(meta.to, { monthName: true }) : "—"}`;
       doc.text(rtl(`بازه: ${range} · ${faNum(rows.length)} جلسه · تهیه: ${formatJalali(new Date(), { monthName: true, withTime: true })}`), { width: W, align: "right" });

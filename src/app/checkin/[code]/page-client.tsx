@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
 import { api, type ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CheckinQrCode } from "@/components/checkin/checkin-qr-code";
 import { faNum, faStr, formatJalali } from "@/lib";
+import { useOrgName } from "@/lib/org-branding";
+import { BrandLogo } from "@/components/ui/brand-logo";
 
 interface CheckinInfo {
   guest: {
@@ -36,6 +37,7 @@ interface CheckinInfo {
 }
 
 export function PublicCheckinPage() {
+  const orgName = useOrgName();
   const rawCode = useParams<{ code: string }>().code;
   const code = rawCode.toUpperCase();
   const [info, setInfo] = useState<CheckinInfo | null>(null);
@@ -87,17 +89,10 @@ export function PublicCheckinPage() {
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-28 pt-6 sm:px-6 sm:pb-8 sm:pt-10">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-ink shadow-sm">
-            <Image
-              src="/logo-white.png"
-              alt="مهرسا"
-              width={36}
-              height={36}
-              className="h-9 w-9 object-contain"
-              priority
-            />
+            <BrandLogo size={36} className="h-9 w-9 object-contain" alt={orgName} priority />
           </div>
           <h1 className="text-xl font-bold sm:text-2xl">ثبت حضور مهمان</h1>
-          <p className="text-[13px] text-ink-soft">مهرسا — مدیریت جلسات سازمانی</p>
+          <p className="text-[13px] text-ink-soft">{orgName} — مدیریت جلسات سازمانی</p>
         </div>
 
         <div className="flex-1 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-6">

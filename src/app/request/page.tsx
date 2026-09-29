@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: { absolute: "درخواست جلسه بدون ورود — مهرسا" },
+export async function generateMetadata(): Promise<Metadata> {
+  const orgName = await serverOrgName();
+  return {
+  title: { absolute: `درخواست جلسه بدون ورود — ${orgName}` },
   description:
     "مهمان هستید؟ بدون نیاز به حساب کاربری، درخواست جلسه بدهید: انتخاب بازه‌ی دلخواه با تقویم شمسی، جلسه‌ی حضوری در شرکت یا بیرونی، و پیگیری وضعیت با کد رهگیری.",
   keywords: ["درخواست جلسه", "رزرو جلسه بدون ثبت‌نام", "فرم جلسه مهمان"],
@@ -13,9 +15,11 @@ export const metadata: Metadata = {
     locale: "fa_IR",
     siteName: "مهرسا",
   },
-};
+  };
+}
 
 import { PublicRequestForm } from "./page-client";
+import { serverOrgName } from "@/lib/server-org-name";
 
 export default function Page() {
   return <PublicRequestForm />;

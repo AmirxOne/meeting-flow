@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { cn, faNum, formatJalali } from "@/lib";
+import { useOrgName } from "@/lib/org-branding";
 
 type Meeting = {
   id: string;
@@ -33,6 +34,7 @@ export function RoomBoardClient({
 }: {
   room: { name: string; capacity: number; branch: string; org: string; slug: string };
 }) {
+  const orgName = useOrgName();
   const [meetings, setMeetings] = useState<Meeting[] | null>(null);
   const [now, setNow] = useState<Date>(new Date());
   const [err, setErr] = useState<string | null>(null);
@@ -301,7 +303,7 @@ export function RoomBoardClient({
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-5 py-3 sm:px-10">
           <p className="flex items-center gap-1.5 text-[11px] text-white/35">
             <span className="size-1.5 animate-pulse rounded-full bg-emerald-400/70" />
-            هر ۳۰ ثانیه به‌روزرسانی می‌شود · مهرسا
+            هر ۳۰ ثانیه به‌روزرسانی می‌شود · {orgName}
           </p>
           <p className="text-[11px] text-white/35">برای دسترسی همیشگی، کد را اسکن کنید</p>
         </div>

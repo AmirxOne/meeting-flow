@@ -34,7 +34,9 @@ export function wrapRtlEmailHtml(input: {
   heading: string;
   paragraphs: string[];
   cta?: { label: string; href: string };
+  orgName?: string;
 }): string {
+  const orgName = input.orgName ?? "مهرسا";
   const blocks = input.paragraphs
     .filter((p) => p.trim())
     .map(
@@ -55,7 +57,7 @@ export function wrapRtlEmailHtml(input: {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 12px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:8px;padding:28px 24px;text-align:right;direction:rtl;">
-        <tr><td style="padding:0 0 16px;font-size:12px;color:#71717a;">مهرسا</td></tr>
+        <tr><td style="padding:0 0 16px;font-size:12px;color:#71717a;">${escapeHtml(orgName)}</td></tr>
         <tr><td style="padding:0 0 16px;font-size:18px;font-weight:700;color:#0d0d0d;">${escapeHtml(input.heading)}</td></tr>
         ${blocks}
         ${cta}

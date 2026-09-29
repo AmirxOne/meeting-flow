@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import { formatJalali } from "@/lib/jalali";
 import { faStr as toFaDigits } from "@/lib/fa";
 import Link from "next/link";
@@ -30,6 +29,8 @@ import {
 import { FadeIn, StaggerItem, StaggerList } from "@/components/ui/motion";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { InstallPwaBanner, InstallPwaButton } from "@/components/pwa/install-pwa";
+import { useOrgName } from "@/lib/org-branding";
+import { BrandLogo } from "@/components/ui/brand-logo";
 
 /* ───────────────────────── content ───────────────────────── */
 
@@ -152,6 +153,7 @@ const FOOTER_COLS = [
 /* ───────────────────────── pieces ───────────────────────── */
 
 function BrandMark({ dark = false }: { dark?: boolean }) {
+  const orgName = useOrgName();
   return (
     <div className="flex items-center gap-2.5">
       <div
@@ -161,10 +163,10 @@ function BrandMark({ dark = false }: { dark?: boolean }) {
             : "flex h-9 w-9 items-center justify-center rounded-lg bg-ink"
         }
       >
-        <Image src="/logo-white.png" alt="مهرسا" width={24} height={24} className="h-6 w-6 object-contain" priority />
+        <BrandLogo size={24} className="h-6 w-6 object-contain" alt={orgName} priority />
       </div>
       <div>
-        <p className={dark ? "text-[14px] font-bold text-white" : "text-[14px] font-bold"}>مهرسا</p>
+        <p className={dark ? "text-[14px] font-bold text-white" : "text-[14px] font-bold"}>{orgName}</p>
         <p className={dark ? "text-[10px] text-white/50" : "text-[10px] text-ink-faint"}>مدیریت جلسات سازمانی</p>
       </div>
     </div>
@@ -307,6 +309,7 @@ function ProductPreview() {
 /* ───────────────────────── page ───────────────────────── */
 
 export function LandingPage() {
+  const orgName = useOrgName();
   return (
     <div dir="rtl" className="min-h-screen bg-white">
       {/* ── header: sticky glass ── */}
@@ -353,7 +356,7 @@ export function LandingPage() {
                 به <span className="relative inline-block">نظم<span aria-hidden className="absolute inset-x-0 bottom-1 -z-10 h-2.5 rounded-sm bg-emerald-200/60" /></span> تبدیل کنید
               </h1>
               <p className="mt-4 max-w-lg text-[14px] leading-8 text-ink-soft">
-                مهرسا کل چرخه‌ی جلسه را پوشش می‌دهد: درخواست، هماهنگی، دعوت‌نامه‌ی پیامک و ایمیل،
+                {orgName} کل چرخه‌ی جلسه را پوشش می‌دهد: درخواست، هماهنگی، دعوت‌نامه‌ی پیامک و ایمیل،
                 برگزاری با QR اتاق، صورت‌جلسه‌ی محرمانه و گزارش مدیریتی — همه فارسی، راست‌چین و با تقویم شمسی.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -543,7 +546,7 @@ export function LandingPage() {
             ))}
           </div>
           <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-line pt-6 sm:flex-row sm:items-center">
-            <p className="text-[11px] text-ink-faint">© مهرسا — سامانه مدیریت جلسات سازمانی</p>
+            <p className="text-[11px] text-ink-faint">© {orgName} — سامانه مدیریت جلسات سازمانی</p>
             <LegalFooterLinks className="justify-start sm:justify-end" />
           </div>
         </div>

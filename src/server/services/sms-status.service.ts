@@ -10,6 +10,7 @@ import {
   normalizeSmsPhone,
   type SmsRuntimeStatus,
 } from "./sms-provider";
+import { serverOrgName } from "@/lib/server-org-name";
 
 export type SmsLastSend = {
   ok: boolean;
@@ -112,7 +113,7 @@ export async function sendSmsTest(phone: string): Promise<{
 
   const provider = getSmsProvider();
   try {
-    await provider.send(receptor, "پیام آزمایشی مهرسا — پایلوت پیامک", {
+    await provider.send(receptor, `پیام آزمایشی ${await serverOrgName()} — پایلوت پیامک`, {
       token: "1",
       token2: "آزمایش",
     });

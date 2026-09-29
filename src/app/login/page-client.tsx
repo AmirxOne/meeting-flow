@@ -68,6 +68,7 @@ export function LoginPage() {
   const [useRecovery, setUseRecovery] = useState(false);
   const [orgSlug, setOrgSlug] = useState<string | null>(null);
   const [orgName, setOrgName] = useState<string | null>(null);
+  const [orgLogo, setOrgLogo] = useState<string | null>(null);
   // in-place forgot-password mode — same page, same layout, no navigation
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
@@ -139,6 +140,11 @@ export function LoginPage() {
         if (org?.name) setOrgName(org.name);
         if (org?.slug && !slug) setOrgSlug(org.slug);
       })
+      .catch(() => {});
+    // لوگوی سازمان از نقطه‌ی مرکزی
+    fetch("/api/public/organization/logo")
+      .then((r) => (r.headers.get("content-type") || "").startsWith("image/") ? r : null)
+      .then((r) => { if (r) setOrgLogo("/api/public/organization/logo"); })
       .catch(() => {});
     if (challenge || params.get("sso")) {
       window.history.replaceState({}, "", slug ? `/login?org=${encodeURIComponent(slug)}` : "/login");
@@ -230,14 +236,19 @@ export function LoginPage() {
             <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)", backgroundSize: "20px 20px" }} />
             <div className="relative">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
-                <Image
-                  src="/logo-white.png"
-                  alt="مهرسا"
-                  width={30}
-                  height={30}
-                  className="h-[30px] w-[30px] object-contain"
-                  priority
-                />
+                {orgLogo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={orgLogo} alt={orgName || "سازمان"} className="h-[30px] w-[30px] rounded-md object-contain" />
+                ) : (
+                  <Image
+                    src="/logo-white.png"
+                    alt="مهرسا"
+                    width={30}
+                    height={30}
+                    className="h-[30px] w-[30px] object-contain"
+                    priority
+                  />
+                )}
               </div>
               <p className="mt-6 text-[11px] font-medium tracking-wide text-white/55">
                 سیستم مدیریت جلسات سازمانی

@@ -9,6 +9,7 @@ import { getSmsProvider } from "./sms-provider";
 import { getOrgTimezone } from "./org-timezone.service";
 import { formatDateTimeInTz } from "@/lib/timezone";
 import { guestInviteEmailTemplate } from "@/lib/email-templates";
+import { serverOrgName } from "@/lib/server-org-name";
 
 export type GuestInviteResult = {
   guestId: string;
@@ -18,12 +19,12 @@ export type GuestInviteResult = {
   error?: string;
 };
 
-function guestSmsText(meeting: Meeting, when: string, place: string): string {
+async function guestSmsText(meeting: Meeting, when: string, place: string): Promise<string> {
   return [
     `دعوت به جلسه «${meeting.title}»`,
     when,
     place,
-    `درخواست‌دهنده: سامانه مهرسا`,
+    `درخواست‌دهنده: سامانه ${await serverOrgName()}`,
   ]
     .filter(Boolean)
     .join("\n")
@@ -66,7 +67,7 @@ export async function sendGuestInvites(
     };
     if (g.phone) {
       try {
-        await sms.send(g.phone, guestSmsText(meeting, when, place));
+        await sms.send(g.phone, await guestSmsText(meeting, when, place));
         res.phoneSent = true;
       } catch (e) {
         res.error = String((e as Error).message ?? e).slice(0, 200);

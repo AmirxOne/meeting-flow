@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { HttpError } from "@/server/auth/session";
 import { isLdapAuthEnabled } from "@/server/auth/auth-config";
 import { parseLoginIdentifier } from "@/lib/login-identifier";
+import { serverOrgName } from "@/lib/server-org-name";
 import { faNum, toEnDigits, stripBidiMarks } from "@/lib/fa";
 import { parseEmailProviderKind, createEmailProvider, type EmailProvider } from "./email-provider";
 import {
@@ -26,15 +27,17 @@ export function buildPasswordResetEmail(opts: {
   resetUrl: string;
   code: string;
   ttlMinutes: number;
+  orgName?: string;
 }): { subject: string; body: string } {
+  const orgName = opts.orgName ?? "مهرسا";
   const minutes = faNum(opts.ttlMinutes);
   const codeFa = faNum(opts.code);
   return {
-    subject: "بازنشانی رمز عبور مهرسا",
+    subject: `بازنشانی رمز عبور ${orgName}`,
     body: [
       `${opts.fullName} عزیز،`,
       "",
-      "درخواست بازنشانی رمز عبور مهرسا ثبت شد.",
+      `درخواست بازنشانی رمز عبور ${orgName} ثبت شد.`,
       `این لینک تا ${minutes} دقیقه اعتبار دارد:`,
       opts.resetUrl,
       "",
@@ -100,6 +103,7 @@ export async function requestPasswordReset(
     resetUrl,
     code,
     ttlMinutes: Math.round(ttl / 60000),
+    orgName: await serverOrgName(),
   });
 
   try {

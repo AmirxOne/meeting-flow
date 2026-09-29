@@ -1,11 +1,14 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { LegalDocument } from "@/lib/legal-content";
 import { faStr } from "@/lib/fa";
 import { LegalFooterLinks } from "./legal-footer-links";
+import { useOrgName } from "@/lib/org-branding";
+import { BrandLogo } from "@/components/ui/brand-logo";
 
 /** Shared professional shell for privacy / terms / data-retention pages. */
 export function LegalPageShell({ doc }: { doc: LegalDocument }) {
+  const orgName = useOrgName();
+  const docBranded: LegalDocument = orgName === "مهرسا" ? doc : JSON.parse(JSON.stringify(doc, (k: string, v: unknown) => typeof v === "string" ? v.replaceAll("مهرسا", orgName) : v));
   const firstLetter = doc.title.trim().charAt(0);
   return (
     <div dir="rtl" className="min-h-screen bg-paper-soft">
@@ -13,8 +16,8 @@ export function LegalPageShell({ doc }: { doc: LegalDocument }) {
       <header className="sticky top-0 z-30 border-b border-line/70 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-3">
           <Link href="/" className="flex items-center gap-2.5 text-ink transition hover:opacity-80">
-            <Image src="/logo-white.png" alt="" width={28} height={28} className="rounded-lg bg-ink p-1" />
-            <span className="text-[14px] font-bold">مهرسا</span>
+            <BrandLogo size={28} className="rounded-lg bg-ink p-1" alt={orgName} />
+            <span className="text-[14px] font-bold">{orgName}</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link
@@ -49,10 +52,10 @@ export function LegalPageShell({ doc }: { doc: LegalDocument }) {
             <div className="min-w-0">
               <p className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1 text-[10.5px] font-medium text-ink-soft shadow-sm">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
-                سند رسمی مهرسا
+                سند رسمی {orgName}
               </p>
-              <h1 className="mt-3 text-[26px] font-bold leading-snug sm:text-[30px]">{doc.title}</h1>
-              <p className="mt-2 max-w-2xl text-[13px] leading-7 text-ink-soft">{doc.subtitle}</p>
+              <h1 className="mt-3 text-[26px] font-bold leading-snug sm:text-[30px]">{docBranded.title}</h1>
+              <p className="mt-2 max-w-2xl text-[13px] leading-7 text-ink-soft">{docBranded.subtitle}</p>
               <p className="mt-3 text-[11px] text-ink-faint">آخرین به‌روزرسانی: {faStr(doc.updatedAt)}</p>
             </div>
           </div>
@@ -66,7 +69,7 @@ export function LegalPageShell({ doc }: { doc: LegalDocument }) {
           <aside className="hidden lg:block">
             <nav className="sticky top-20 space-y-1 border-r border-line pr-4">
               <p className="mb-2 text-[11px] font-bold text-ink-faint">فهرست مطالب</p>
-              {doc.sections.map((s) => (
+              {docBranded.sections.map((s) => (
                 <a
                   key={s.id ?? s.title}
                   href={s.id ? `#${s.id}` : undefined}
@@ -79,7 +82,7 @@ export function LegalPageShell({ doc }: { doc: LegalDocument }) {
           </aside>
 
           <article className="space-y-4">
-            {doc.sections.map((section, i) => (
+            {docBranded.sections.map((section, i) => (
               <section
                 key={section.id ?? section.title}
                 id={section.id}

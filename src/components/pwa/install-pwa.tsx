@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib";
+import { useOrgName } from "@/lib/org-branding";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -29,7 +30,7 @@ function detectPlatform(): "ios" | "android" | "desktop" {
 const IOS_STEPS = [
   "دکمه‌ی Share (اشتراک‌گذاری □↑) را در نوار پایین Safari بزنید",
   "گزینه‌ی «Add to Home Screen / افزودن به صفحه‌ی اصلی» را انتخاب کنید",
-  "با «Add» تأیید کنید — مهرسا مثل یک اپ مستقل نصب می‌شود",
+  "با «Add» تأیید کنید — مثل یک اپ مستقل نصب می‌شود",
 ];
 
 /**
@@ -39,6 +40,7 @@ const IOS_STEPS = [
  * otherwise. Dismiss remembered for 7 days.
  */
 export function InstallPwaBanner() {
+  const orgName = useOrgName();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop">("desktop");
@@ -106,9 +108,9 @@ export function InstallPwaBanner() {
               <span className="size-1.5 rounded-full bg-emerald-400" />
               وب‌اپ‌لیکیشن — بدون نیاز به فروشگاه اپ
             </p>
-            <h3 className="mt-2.5 text-[21px] font-bold leading-8 sm:text-[24px]">مهرسا را همیشه دم‌دست داشته باشید</h3>
+            <h3 className="mt-2.5 text-[21px] font-bold leading-8 sm:text-[24px]">{orgName} را همیشه دم‌دست داشته باشید</h3>
             <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-white/70 lg:mx-0">
-              روی گوشی یا دسکتاپ نصب کنید تا مهرسا مثل یک اپ‌لیکیشن مستقل، سریع و بدون مرورگر باز شود.
+              روی گوشی یا دسکتاپ نصب کنید تا {orgName} مثل یک اپ‌لیکیشن مستقل، سریع و بدون مرورگر باز شود.
             </p>
             <ul className="mx-auto mt-4 grid max-w-md gap-2 text-right sm:grid-cols-2 lg:mx-0">
               {[
@@ -285,7 +287,7 @@ export function InstallPwaBanner() {
               className="w-[400px] max-w-full rounded-2xl bg-white p-6 shadow-2xl"
             >
               <div className="flex items-start justify-between">
-                <h3 className="text-[15px] font-bold">نصب مهرسا</h3>
+                <h3 className="text-[15px] font-bold">نصب {orgName}</h3>
                 <button
                   onClick={() => setShowManual(false)}
                   aria-label="بستن"
@@ -320,7 +322,7 @@ export function InstallPwaBanner() {
               )}
 
               <p className="mt-4 text-center text-[10.5px] text-ink-faint">
-                پس از نصب، مهرسا از خانه‌ی گوشی یا دسکتاپ مثل یک اپ مستقل باز می‌شود
+                پس از نصب، {orgName} از خانه‌ی گوشی یا دسکتاپ مثل یک اپ مستقل باز می‌شود
               </p>
             </motion.div>
           </motion.div>,
@@ -332,6 +334,7 @@ export function InstallPwaBanner() {
 
 /** Compact header variant — shows only when installable, always clickable. */
 export function InstallPwaButton({ className }: { className?: string }) {
+  const orgName = useOrgName();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop">("desktop");
@@ -372,7 +375,7 @@ export function InstallPwaButton({ className }: { className?: string }) {
           className,
         )}
         dir="rtl"
-        title="نصب مهرسا روی گوشی یا دسکتاپ"
+        title={`نصب ${orgName} روی گوشی یا دسکتاپ`}
       >
         <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8">
           <rect x="5" y="2" width="14" height="20" rx="2" />
@@ -402,7 +405,7 @@ export function InstallPwaButton({ className }: { className?: string }) {
                       <path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </span>
-                  <h3 className="text-[15px] font-bold">نصب مهرسا</h3>
+                  <h3 className="text-[15px] font-bold">نصب {orgName}</h3>
                 </div>
                 <button
                   onClick={() => setShowManual(false)}
@@ -436,7 +439,7 @@ export function InstallPwaButton({ className }: { className?: string }) {
                 </div>
               )}
               <p className="mt-4 text-center text-[10.5px] text-ink-faint">
-                پس از نصب، مهرسا از خانه‌ی گوشی یا دسکتاپ مثل یک اپ مستقل باز می‌شود
+                پس از نصب، {orgName} از خانه‌ی گوشی یا دسکتاپ مثل یک اپ مستقل باز می‌شود
               </p>
           </motion.div>
         </motion.div>,

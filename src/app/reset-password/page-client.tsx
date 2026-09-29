@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Eye, EyeOff } from "@/components/ui/icon";
 import { Tooltip } from "@/components/ui/tooltip";
 import { api, type ApiError } from "@/lib/api";
 import { faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
 import { FadeIn } from "@/components/ui/motion";
+import { useOrgName } from "@/lib/org-branding";
+import { BrandLogo } from "@/components/ui/brand-logo";
 
 const fieldClass =
   "h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-right text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15";
 
 export function ResetPasswordPage() {
+  const orgName = useOrgName();
   const router = useRouter();
   const [token, setToken] = useState("");
   const [identifier, setIdentifier] = useState("");
@@ -72,23 +74,17 @@ export function ResetPasswordPage() {
         <div className="overflow-hidden rounded-2xl border border-line bg-white px-6 py-8 shadow-[0_24px_80px_-28px_rgba(13,13,13,0.28)] sm:px-8">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink">
-              <Image
-                src="/logo-white.png"
-                alt="مهرسا"
-                width={26}
-                height={26}
-                className="h-[26px] w-[26px] object-contain"
-              />
+              <BrandLogo size={26} className="h-[26px] w-[26px] object-contain" alt={orgName} priority />
             </div>
             <div>
               <h1 className="text-[18px] font-bold">رمز جدید</h1>
-              <p className="text-[12px] text-ink-soft">مهرسا</p>
+              <p className="text-[12px] text-ink-soft">{orgName}</p>
             </div>
           </div>
 
           {ldapBlocked ? (
             <p className="rounded-md bg-paper-soft px-3 py-3 text-[13px] leading-7 text-ink">
-              در حالت ورود سازمانی (LDAP) بازنشانی رمز از طریق مهرسا ممکن نیست.
+              در حالت ورود سازمانی (LDAP) بازنشانی رمز از طریق {orgName} ممکن نیست.
             </p>
           ) : (
             <form onSubmit={submit} className="space-y-4">

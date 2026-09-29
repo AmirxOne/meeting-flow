@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { prisma } from "@/server/db";
 import { RoomBoardClient } from "./board-client";
 import { notFound } from "next/navigation";
+import { serverOrgName } from "@/lib/server-org-name";
 
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const orgName = await serverOrgName();
   const { slug } = await params;
   return {
-    title: `برد زنده‌ی اتاق — ${slug} | مهرسا`,
+    title: `برد زنده‌ی اتاق — ${slug} | ${orgName}`,
     description: "صفحه‌ی زنده‌ی اتاق جلسه: برنامه‌ی امروز، جلسه‌ی در حال برگزاری و وضعیت اتاق — بدون نیاز به ورود.",
     robots: { index: false, follow: false },
   };

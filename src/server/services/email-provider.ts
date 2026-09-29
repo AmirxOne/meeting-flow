@@ -3,6 +3,7 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 import { wrapRtlEmailHtml } from "@/lib/email-templates";
+import { serverOrgName } from "@/lib/server-org-name";
 
 export type EmailProviderKind = "mock" | "smtp";
 
@@ -103,6 +104,7 @@ export class SmtpEmailProvider implements EmailProvider {
       wrapRtlEmailHtml({
         heading: subject,
         paragraphs: body ? [body] : [],
+        orgName: await serverOrgName(),
       });
     await this.transporter.sendMail({
       from: this.from,

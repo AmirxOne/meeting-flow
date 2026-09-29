@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, CheckCircle2, ChevronDown, Search, X, UserRound, Plus } from "@/components/ui/icon";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
+import { useOrgName } from "@/lib/org-branding";
+import { BrandLogo } from "@/components/ui/brand-logo";
 
 const URGENCY_FA: Record<string, string> = {
   URGENT: "فوری — در اسرع وقت",
@@ -23,6 +25,7 @@ type PubPerson = { id: string; name: string; jobTitle?: string | null; company?:
 
 /** PUBLIC (no login) meeting-request form for guests. */
 export function PublicRequestForm() {
+  const orgName = useOrgName();
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestCompany, setGuestCompany] = useState("");
@@ -117,10 +120,10 @@ export function PublicRequestForm() {
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo-white.png" alt="مهرسا" className="h-7 w-7 object-contain" />
+                <BrandLogo size={28} className="h-7 w-7 object-contain" alt={orgName} />
               </div>
               <div>
-                <p className="text-[15px] font-bold">مهرسا</p>
+                <p className="text-[15px] font-bold">{orgName}</p>
                 <p className="text-[10.5px] text-white/60">سامانه‌ی مدیریت جلسات سازمانی</p>
               </div>
             </div>
@@ -162,10 +165,10 @@ export function PublicRequestForm() {
         <div className="mb-5 flex items-center gap-3 lg:hidden">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-ink">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-white.png" alt="مهرسا" className="h-7 w-7 object-contain" />
+            <BrandLogo size={28} className="h-7 w-7 object-contain" alt={orgName} />
           </div>
           <div>
-            <p className="text-[15px] font-bold">مهرسا</p>
+            <p className="text-[15px] font-bold">{orgName}</p>
             <p className="text-[11px] text-ink-faint">درخواست جلسه — بدون نیاز به ورود</p>
           </div>
         </div>

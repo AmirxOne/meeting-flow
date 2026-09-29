@@ -149,7 +149,7 @@ export function buildVEvent(event: IcsEvent, tz = ICS_TZID): string {
 
 export function buildIcsCalendar(input: IcsCalendarInput): string {
   const tz = input.tz ?? ICS_TZID;
-  const name = input.calendarName ?? "جلسات مهرسا";
+  const name = input.calendarName ?? "جلسات";
   const header = crlf([
     "BEGIN:VCALENDAR",
     "VERSION:2.0",

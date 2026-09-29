@@ -3,6 +3,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { PwaRegister } from "@/components/pwa-register";
 import { ConnectivityToast } from "@/components/pwa/connectivity-toast";
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
+import { serverOrgName } from "@/lib/server-org-name";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -11,23 +13,26 @@ export const viewport: Viewport = {
   themeColor: "#0d0d0d",
 };
 
+const orgName = await serverOrgName();
+
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3100"),
   title: {
-    default: "مهرسا — سامانه‌ی فارسی مدیریت جلسات سازمانی",
-    template: "%s | مهرسا",
+    default: `${orgName} — سامانه‌ی فارسی مدیریت جلسات سازمانی`,
+    template: `%s | ${orgName}`,
   },
-  description: "سیستم مدیریت جلسات مهرسا — اتاق‌ها، زمان‌بندی و تأییدها",
-  applicationName: "مهرسا",
+  description: `سیستم مدیریت جلسات ${orgName} — اتاق‌ها، زمان‌بندی و تأییدها`,
+  applicationName: orgName,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "مهرسا",
+    title: orgName,
   },
   formatDetection: { telephone: false },
   icons: {
     apple: "/icons/apple-touch-icon.png",
     icon: [
+      { url: "/icon.png", sizes: "any" }, // لوگوی سازمان از تنظیمات — داینامیک
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],

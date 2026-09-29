@@ -9,6 +9,7 @@ import {
 } from "@/lib/ics";
 import { formatAgendaPlain, mergeDescriptionWithAgenda } from "@/lib/agenda";
 import { mergeTextWithVideoLink } from "@/lib/video-link";
+import { serverOrgName } from "@/lib/server-org-name";
 
 const FEED_PAST_MS = 60 * 86400000;
 const FEED_FUTURE_MS = 400 * 86400000;
@@ -180,7 +181,7 @@ export async function buildOwnMeetingsIcs(
   ]);
   return buildIcsCalendar({
     events: meetings.map((m) => meetingToIcsEvent(m, opts?.origin)),
-    calendarName: opts?.calendarName ?? "جلسات مهرسا",
+    calendarName: opts?.calendarName ?? `جلسات ${await serverOrgName()}`,
     tz,
   });
 }

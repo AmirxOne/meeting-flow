@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
+import { serverOrgName } from "@/lib/server-org-name";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const orgName = await serverOrgName();
   return {
-    name: "مهرسا — مدیریت جلسات سازمانی",
-    short_name: "مهرسا",
+    name: `${orgName} — مدیریت جلسات سازمانی`,
+    short_name: orgName,
     description: "جلسات من، پاسخ دعوت و زمان‌بندی سازمانی",
     start_url: "/meetings",
     scope: "/",

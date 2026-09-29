@@ -9,6 +9,7 @@ import {
   verifyTotp,
 } from "@/lib/totp";
 import { stripBidiMarks, toEnDigits } from "@/lib/fa";
+import { serverOrgName } from "@/lib/server-org-name";
 
 export const TOTP_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 export const RECOVERY_CODE_COUNT = 10;
@@ -50,7 +51,7 @@ export async function startTwoFactorSetup(user: { id: string; email: string }) {
   }
 
   const secret = generateTotpSecret();
-  const otpauthUrl = totpOtpauthUrl({ secret, account: user.email });
+  const otpauthUrl = totpOtpauthUrl({ secret, account: user.email, issuer: await serverOrgName() });
   await prisma.user.update({
     where: { id: user.id },
     data: { totpSecretEnc: sealSecret(secret), totpEnabled: false },
