@@ -12,6 +12,9 @@ import { StatusBadge } from "@/components/ui/badges";
 import { cn, faNum, faStr, formatJalali, EQUIPMENT_FA, pad2 } from "@/lib";
 import { Tooltip } from "@/components/ui/tooltip";
 import { RoomDisplaySetup } from "@/components/rooms/room-display-setup";
+import { RoomFormModal } from "@/components/rooms/room-form-modal";
+import { useAuth } from "@/lib/auth-store";
+import { Pencil } from "@/components/ui/icon";
 import { QRCodeSVG } from "qrcode.react";
 
 interface RoomDetail {
@@ -55,6 +58,9 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function RoomDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { can } = useAuth();
+  const isAdmin = can("room:update");
+  const [editOpen, setEditOpen] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["room", id],
     queryFn: () => api<RoomDetail>(`/api/rooms/${id}`),
@@ -144,6 +150,16 @@ export function RoomDetailPage() {
         >
           {STATUS_LABEL[data.status]}
         </span>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="flex h-8 items-center gap-1.5 rounded-md border border-line bg-white px-2.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+            ویرایش اتاق
+          </button>
+        )}
         <RoomQrPanel slug={room.publicSlug ?? null} name={room.name} />
       </div>
 
@@ -317,6 +333,27 @@ export function RoomDetailPage() {
         <RoomDisplaySetup roomId={room.id} />
         </div>
       </div>
+
+      {isAdmin && (
+        <RoomFormModal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          editing={{
+            id: room.id,
+            name: room.name,
+            capacity: room.capacity,
+            isVip: room.isVip,
+            isActive: room.isActive,
+            branchId: room.branch.id,
+            openTime: room.openTime,
+            closeTime: room.closeTime,
+            description: room.description,
+            floor: room.floor ? { id: String(room.floor.number), name: room.floor.name } : null,
+            manager: room.manager ? { id: room.manager.fullName, fullName: room.manager.fullName } as { id: string; fullName: string } : null,
+            equipment: room.equipment,
+          }}
+        />
+      )}
     </div>
   );
 }
