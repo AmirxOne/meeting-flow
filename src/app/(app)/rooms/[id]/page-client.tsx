@@ -139,17 +139,7 @@ export function RoomDetailPage() {
             {room.manager ? ` · مدیر اتاق: ${room.manager.fullName}` : ""}
           </p>
         </div>
-        <span
-          className={cn(
-            "badge",
-            data.status === "AVAILABLE" && "badge-green",
-            data.status === "OCCUPIED" && "badge-red",
-            data.status === "RESERVED" && "badge-amber",
-            data.status === "DISABLED" && "badge-gray",
-          )}
-        >
-          {STATUS_LABEL[data.status]}
-        </span>
+        <LiveStatusPill status={data.status} current={data.current} next={data.next} />
         {isAdmin && (
           <button
             type="button"
@@ -357,6 +347,48 @@ export function RoomDetailPage() {
     </div>
   );
 }
+
+/** نشانگر وضعیت زنده‌ی اتاق — نقطه‌ی تپنده + جلسه‌ی جاری/بعدی با ساعت */
+function LiveStatusPill({
+  status,
+  current,
+  next,
+}: {
+  status: string;
+  current: { id: string; title: string; endAt: string } | null;
+  next: { id: string; title: string; startAt: string } | null;
+}) {
+  const meta = STATUS_VISUAL[status] ?? STATUS_VISUAL.AVAILABLE;
+  return (
+    <div className={cn("flex min-w-0 items-center gap-2.5 rounded-xl border px-3 py-2", meta.boxCls)}>
+      <span className="relative flex size-2.5 shrink-0">
+        <span className={cn("absolute inline-flex size-full animate-ping rounded-full opacity-60", meta.dot)} />
+        <span className={cn("relative inline-flex size-2.5 rounded-full", meta.dot)} />
+      </span>
+      <div className="min-w-0 leading-tight">
+        <p className={cn("text-[12.5px] font-bold", meta.textCls)}>{STATUS_LABEL[status]}</p>
+        {current ? (
+          <p className="max-w-44 truncate text-[10.5px] text-ink-soft">
+            تا {faStr(current.endAt.slice(11, 16))}: {current.title}
+          </p>
+        ) : next ? (
+          <p className="max-w-44 truncate text-[10.5px] text-ink-soft">
+            از {faStr(next.startAt.slice(11, 16))}: {next.title}
+          </p>
+        ) : (
+          <p className="text-[10.5px] text-ink-faint">جلسه‌ای در صف نیست</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const STATUS_VISUAL: Record<string, { dot: string; boxCls: string; textCls: string }> = {
+  AVAILABLE: { dot: "bg-emerald-500", boxCls: "border-emerald-200 bg-emerald-50/70", textCls: "text-emerald-700" },
+  OCCUPIED: { dot: "bg-red-500", boxCls: "border-red-200 bg-red-50/70", textCls: "text-red-600" },
+  RESERVED: { dot: "bg-amber-500", boxCls: "border-amber-200 bg-amber-50/70", textCls: "text-amber-700" },
+  DISABLED: { dot: "bg-zinc-400", boxCls: "border-line bg-paper-soft/60", textCls: "text-ink-soft" },
+};
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
