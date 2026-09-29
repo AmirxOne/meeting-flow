@@ -20,7 +20,6 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { GuestCheckinPanel } from "@/components/checkin/guest-checkin-panel";
-import { MeetingAttachments, type MeetingAttachmentRow } from "@/components/meetings/meeting-attachments";
 import { MeetingAttendance } from "@/components/meetings/meeting-attendance";
 import { AgendaTemplate, MinutesTemplate, type AgendaTemplateRow } from "@/components/meetings/meeting-doc-template";
 import { MeetingVideoLink } from "@/components/meetings/meeting-video-link";
@@ -98,7 +97,6 @@ interface MeetingDetail {
     title: string;
     isPrivate: boolean;
   } | null;
-  attachments?: MeetingAttachmentRow[];
   secretaries?: { userId: string }[];
   agendaItems?: { id: string; sortOrder: number; title: string; durationMin: number | null; owner?: { fullName: string } | null }[];
   minutes?: unknown | null;
@@ -919,12 +917,6 @@ export function MeetingDetailPage() {
             ]}
             guests={m.guests.map((g) => ({ id: g.id, name: g.name, company: g.company }))}
             isOrganizer={isOrganizer}
-          />
-
-          <MeetingAttachments
-            meetingId={id}
-            attachments={m.attachments ?? []}
-            canManage={isOrganizer || (can("meeting:update") && can("meeting:view-all"))}
           />
 
           {/* History */}
