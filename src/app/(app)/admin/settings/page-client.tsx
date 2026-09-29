@@ -273,24 +273,30 @@ function FeatureToggleRow({
   }
 
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={title}
-      disabled={busy}
-      onClick={toggle}
-      className={
-        "relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 " +
-        (on ? "bg-ink" : "bg-[#d9d9e0]")
-      }
-    >
-      <span
+    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+      <div className="min-w-0">
+        <p className="text-[12.5px] font-bold">{title}</p>
+        <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">{desc}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={title}
+        disabled={busy}
+        onClick={toggle}
         className={
-          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all " +
-          (on ? "right-0.5" : "right-[calc(100%-1.375rem)]")
+          "relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-60 " +
+          (on ? "bg-ink" : "bg-[#d9d9e0]")
         }
-      />
-    </button>
+      >
+        <span
+          className={
+            "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all " +
+            (on ? "right-0.5" : "right-[calc(100%-1.375rem)]")
+          }
+        />
+      </button>
+    </div>
   );
 }
