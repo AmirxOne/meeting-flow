@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2 } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
@@ -173,16 +173,13 @@ export function AdminSettingsPage() {
               />
             </label>
 
-            <label className="block space-y-1.5">
-              <span className="text-[12px] font-medium text-ink-soft">آدرس لوگو (URL)</span>
-              <input
-                dir="ltr"
-                value={form.logoUrl}
-                onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-                placeholder="https://example.com/logo.png"
-                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+            <div className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">لوگوی سازمان</span>
+              <OrgLogoUploader
+                initial={org.logoUrl}
+                onChanged={(url) => setForm((f) => ({ ...f, logoUrl: url }))}
               />
-            </label>
+            </div>
           </div>
 
           {/* امکانات جانبی — کنترل مرکزی ادمین */}
@@ -235,6 +232,95 @@ export function AdminSettingsPage() {
   );
 }
 
+
+/** آپلودر لوگوی سازمان — انتخاب فایل با قواعد (فقط تصویر، سقف ۲MB) + پیش‌نمایش + حذف */
+function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onChanged: (url: string) => void }) {
+  const { push } = useToast();
+  const qc = useQueryClient();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [logoUrl, setLogoUrl] = useState(initial);
+  const [busy, setBusy] = useState(false);
+
+  async function upload(file: File) {
+    if (file.size > 2 * 1024 * 1024) {
+      push("حجم لوگو حداکثر ۲ مگابایت است", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/organization/logo", { method: "POST", body: fd, credentials: "include" });
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.ok) throw new Error(payload?.error?.message || "خطا در آپلود لوگو");
+      setLogoUrl(payload.data.logoUrl);
+      onChanged(payload.data.logoUrl);
+      push("لوگوی سازمان به‌روزرسانی شد", "success");
+      qc.invalidateQueries({ queryKey: ["organization"] });
+    } catch (e) {
+      push((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove() {
+    setBusy(true);
+    try {
+      await api("/api/admin/organization/logo", { method: "DELETE" });
+      setLogoUrl(null);
+      onChanged("");
+      push("لوگو حذف شد — لوگوی پیش‌فرض نمایش داده می‌شود", "success");
+      qc.invalidateQueries({ queryKey: ["organization"] });
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const isLocal = logoUrl?.startsWith("/api/public/organization/logo");
+
+  return (
+    <div className="flex items-center gap-3">
+      {/* پیش‌نمایش */}
+      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-paper-soft">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={isLocal ? "/api/public/organization/logo" : logoUrl} alt="لوگو" className="max-h-full max-w-full object-contain" />
+        ) : (
+          <span className="text-[10px] text-ink-faint">بدون لوگو</span>
+        )}
+      </div>
+      <div className="min-w-0 flex-1">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) upload(f);
+            if (inputRef.current) inputRef.current.value = "";
+          }}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" loading={busy} onClick={() => inputRef.current?.click()}>
+            {logoUrl ? "تغییر لوگو" : "آپلود لوگو"}
+          </Button>
+          {logoUrl && (
+            <Button size="sm" variant="ghost" disabled={busy} onClick={remove}>
+              حذف
+            </Button>
+          )}
+        </div>
+        <p className="mt-1.5 text-[10.5px] leading-4 text-ink-faint">
+          PNG، JPG، WebP، GIF یا SVG — سقف ۲ مگابایت — در سربرگ، صفحه‌ی لاگین و صفحه‌های عمومی اعمال می‌شود
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /** سوییچ آنی برای امکانات جانبی — ذخیره‌ی فوری و مرکزی */
 function FeatureToggleRow({
