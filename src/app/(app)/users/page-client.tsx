@@ -9,11 +9,12 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { UsersAvailabilityTable } from "@/components/availability/users-availability-table";
-import { Briefcase, Building2, Search, Settings2, UsersRound } from "@/components/ui/icon";
+import { Briefcase, Building2, Search, Settings2, UsersRound, ChevronDown, Phone, MessageCircle } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, SkeletonBlock, EmptyState } from "@/components/ui/card";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { useUserManagement } from "@/components/users/user-management";
 import { UserPlus } from "@/components/ui/icon";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
@@ -30,6 +31,10 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 export function UsersPage({ embedded = false }: { embedded?: boolean }) {
   const { me, can } = useAuth();
   const [q, setQ] = useState("");
+  const [phoneQ, setPhoneQ] = useState("");
+  const [emailQ, setEmailQ] = useState("");
+  const [hasAvatar, setHasAvatar] = useState("");
+  const [sort, setSort] = useState("name-asc");
   const [filters, setFilters] = useState({ branchId: "", roleKey: "", department: "", accountStatus: "", jobTitle: "" });
 
   const { data, isLoading } = useQuery({
@@ -39,18 +44,38 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
 
   const users = data?.users ?? [];
   const options = useMemo(() => uniqueColleagueOptions(users), [users]);
-  const visible = useMemo(
-    () =>
-      filterColleagues(users, {
-        q,
-        branchId: filters.branchId,
-        roleKey: filters.roleKey,
-        department: filters.department,
-        accountStatus: filters.accountStatus,
-        jobTitle: filters.jobTitle,
-      }),
-    [users, q, filters],
-  );
+  const visible = useMemo(() => {
+    let list = filterColleagues(users, {
+      q,
+      branchId: filters.branchId,
+      roleKey: filters.roleKey,
+      department: filters.department,
+      accountStatus: filters.accountStatus,
+      jobTitle: filters.jobTitle,
+    });
+    // فیلترهای تکمیلی
+    if (phoneQ.trim()) {
+      const n = phoneQ.replace(/\D/g, "");
+      list = list.filter((u) => (u.phone ?? "").replace(/\D/g, "").includes(n));
+    }
+    if (emailQ.trim()) {
+      const n = emailQ.trim().toLowerCase();
+      list = list.filter((u) => (u.email ?? "").toLowerCase().includes(n));
+    }
+    if (hasAvatar === "yes") list = list.filter((u) => !!u.avatarUrl);
+    if (hasAvatar === "no") list = list.filter((u) => !u.avatarUrl);
+    // مرتب‌سازی
+    const byName = (a: Colleague, b: Colleague) => a.fullName.localeCompare(b.fullName, "fa");
+    switch (sort) {
+      case "name-desc": list = [...list].sort((a, b) => byName(b, a)); break;
+      case "branch": list = [...list].sort((a, b) => (a.branch?.name ?? "zz").localeCompare(b.branch?.name ?? "zz", "fa") || byName(a, b)); break;
+      case "role": list = [...list].sort((a, b) => (a.roles[0]?.role.name ?? "zz").localeCompare(b.roles[0]?.role.name ?? "zz", "fa") || byName(a, b)); break;
+      case "dept": list = [...list].sort((a, b) => (a.department ?? "zz").localeCompare(b.department ?? "zz", "fa") || byName(a, b)); break;
+      case "inactive-first": list = [...list].sort((a, b) => Number(a.isActive === false ? 0 : 1) - Number(b.isActive === false ? 0 : 1) || byName(a, b)); break;
+      default: list = [...list].sort(byName);
+    }
+    return list;
+  }, [users, q, phoneQ, emailQ, hasAvatar, sort, filters]);
   const isAdmin = can("user:update");
   const um = useUserManagement();
   const groups = useMemo(() => groupColleaguesByBranch(visible), [visible]);
@@ -81,66 +106,107 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
       )}
 
       <div data-tour="users-filters">
-        <FilterBar
-          groups={[
-            {
-              key: "branchId",
-              label: "شعبه",
-              options: [{ value: "", label: "همه" }, ...options.branches],
-            },
-            {
-              key: "roleKey",
-              label: "نقش",
-              options: [{ value: "", label: "همه" }, ...options.roles],
-            },
-            {
-              key: "department",
-              label: "واحد",
-              options: [{ value: "", label: "همه" }, ...options.departments],
-            },
-            {
-              key: "jobTitle",
-              label: "سمت",
-              options: [{ value: "", label: "همه" }, ...options.jobTitles],
-            },
-            {
-              key: "accountStatus",
-              label: "وضعیت حساب",
-              options: [
-                { value: "", label: "همه" },
-                { value: "active", label: "فعال" },
-                { value: "inactive", label: "غیرفعال" },
-              ],
-            },
-          ]}
-          value={filters}
-          onChange={(next) =>
-            setFilters({
-              branchId: next.branchId ?? "",
-              roleKey: next.roleKey ?? "",
-              department: next.department ?? "",
-              accountStatus: next.accountStatus ?? "",
-              jobTitle: next.jobTitle ?? "",
-            })
-          }
-        >
-          <div className="flex h-10 min-w-48 flex-1 items-center gap-2 rounded-md border border-line bg-white px-3">
-            <Search className="h-4 w-4 shrink-0 text-ink-faint" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              autoComplete="off"
-              name="user-search"
-              placeholder="جستجوی نام…"
-              className="w-full bg-transparent text-right text-[12px] outline-none"
+        <Card className="overflow-hidden">
+          {/* ردیف ۱: جستجوی اصلی + مرتب‌سازی + شمارنده */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+            <div className="flex h-10 min-w-52 flex-1 items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-md">
+              <Search className="h-4 w-4 shrink-0 text-ink-faint" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                autoComplete="off"
+                name="user-search"
+                placeholder="جستجوی نام، سمت، واحد، شعبه…"
+                className="w-full bg-transparent text-right text-[12px] outline-none"
+              />
+              {q && (
+                <button onClick={() => setQ("")} className="text-ink-faint hover:text-ink" aria-label="پاک کردن">✕</button>
+              )}
+            </div>
+            <Select
+              value={sort}
+              onChange={setSort}
+              placeholder="مرتب‌سازی"
+              className="w-44"
+              options={[
+                { value: "name-asc", label: "نام (الف → ی)" },
+                { value: "name-desc", label: "نام (ی → الف)" },
+                { value: "branch", label: "شعبه" },
+                { value: "role", label: "نقش" },
+                { value: "dept", label: "واحد سازمانی" },
+                { value: "inactive-first", label: "غیرفعال‌ها اول" },
+              ]}
             />
-            {q && (
-              <button onClick={() => setQ("")} className="text-ink-faint hover:text-ink" aria-label="پاک کردن">
-                ✕
-              </button>
-            )}
+            <div className="mr-auto flex items-center gap-2 text-[11px] text-ink-soft">
+              <span className="rounded-full bg-paper-soft px-2.5 py-1 font-medium">
+                {faNum(visible.length)} از {faNum(users.length)} نفر
+              </span>
+            </div>
           </div>
-        </FilterBar>
+
+          {/* ردیف ۲: فیلترهای گروهی */}
+          <div className="px-4 py-3">
+            <FilterBar
+              groups={[
+                { key: "branchId", label: "شعبه", options: [{ value: "", label: "همه" }, ...options.branches] },
+                { key: "roleKey", label: "نقش", options: [{ value: "", label: "همه" }, ...options.roles] },
+                { key: "department", label: "واحد", options: [{ value: "", label: "همه" }, ...options.departments] },
+                { key: "jobTitle", label: "سمت", options: [{ value: "", label: "همه" }, ...options.jobTitles] },
+                { key: "accountStatus", label: "وضعیت", options: [{ value: "", label: "همه" }, { value: "active", label: "فعال" }, { value: "inactive", label: "غیرفعال" }] },
+                { key: "hasAvatar", label: "آواتار", options: [{ value: "", label: "همه" }, { value: "yes", label: "دارد" }, { value: "no", label: "ندارد" }] },
+              ]}
+              value={{ ...filters, hasAvatar }}
+              onChange={(next) => {
+                setFilters({
+                  branchId: next.branchId ?? "",
+                  roleKey: next.roleKey ?? "",
+                  department: next.department ?? "",
+                  accountStatus: next.accountStatus ?? "",
+                  jobTitle: next.jobTitle ?? "",
+                });
+                setHasAvatar(next.hasAvatar ?? "");
+              }}
+            />
+          </div>
+
+          {/* ردیف ۳: جستجوی پیشرفته (تلفن/ایمیل) — بازشو */}
+          <details className="group border-t border-line">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 px-4 py-2.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:text-ink">
+              <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" />
+              جستجوی پیشرفته (تلفن / ایمیل)
+              {(phoneQ || emailQ) && (
+                <span className="rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-bold text-white">فعال</span>
+              )}
+            </summary>
+            <div className="grid gap-2 px-4 pb-3.5 sm:grid-cols-2">
+              <div className="flex h-10 items-center gap-2 rounded-md border border-line bg-white px-3">
+                <Phone className="h-4 w-4 shrink-0 text-ink-faint" />
+                <input
+                  value={phoneQ}
+                  onChange={(e) => setPhoneQ(e.target.value)}
+                  inputMode="tel"
+                  autoComplete="off"
+                  placeholder="جستجوی شماره تلفن…"
+                  className="w-full bg-transparent text-right text-[12px] outline-none"
+                />
+                {phoneQ && <button onClick={() => setPhoneQ("")} className="text-ink-faint hover:text-ink">✕</button>}
+              </div>
+              <div className="flex h-10 items-center gap-2 rounded-md border border-line bg-white px-3">
+                <MessageCircle className="h-4 w-4 shrink-0 text-ink-faint" />
+                <input
+                  value={emailQ}
+                  onChange={(e) => setEmailQ(e.target.value)}
+                  inputMode="email"
+                  autoComplete="off"
+                  dir="ltr"
+                  placeholder="جستجوی ایمیل…"
+                  className="w-full bg-transparent text-left text-[12px] outline-none"
+                />
+                {emailQ && <button onClick={() => setEmailQ("")} className="text-ink-faint hover:text-ink">✕</button>}
+              </div>
+            </div>
+          </details>
+        </Card>
       </div>
 
       {isLoading ? (
