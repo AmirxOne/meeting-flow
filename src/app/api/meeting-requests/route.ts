@@ -22,6 +22,11 @@ const requestSchema = z.object({
   offsiteNote: z.string().trim().max(300).optional(),
   prefFrom: z.string().datetime().optional(),
   prefTo: z.string().datetime().optional(),
+  // بازه‌های پیشنهادی چندگانه: [{from,to}] — درخواست‌دهنده می‌تواند چند گزینه بدهد
+  prefSlots: z
+    .array(z.object({ from: z.string().datetime(), to: z.string().datetime() }))
+    .max(10)
+    .optional(),
   participantIds: z.array(z.string()).max(50).default([]),
   guests: z
     .array(
@@ -96,6 +101,9 @@ export async function POST(req: NextRequest) {
         offsiteNote: input.venue === "OFFSITE" ? (input.offsiteNote ?? null) : null,
         prefFrom: input.prefFrom ? new Date(input.prefFrom) : null,
         prefTo: input.prefTo ? new Date(input.prefTo) : null,
+        prefSlots: input.prefSlots?.length
+          ? (JSON.parse(JSON.stringify({ slots: input.prefSlots })) as object)
+          : undefined,
         participantIds: input.participantIds,
         guests: input.guests ?? undefined,
         durationMin: input.durationMin,

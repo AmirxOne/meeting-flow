@@ -30,6 +30,7 @@ type Req = {
   participantIds: string[];
   attendeeCount: number | null;
   prefFrom: string | null;
+  prefSlots?: { slots?: { from: string; to: string }[] } | null;
   prefTo: string | null;
   venue: string;
   recReq: { freq?: string; count?: number } | null;
@@ -137,13 +138,28 @@ export function RequestQueuePage() {
                           <span className="text-ink-faint">· اتاق لازم ندارد؛ ساعت را هماهنگ کنید</span>
                         </p>
                       )}
-                      {(r.prefFrom || r.prefTo) && (
+                      {(r.prefSlots?.slots?.length ?? 0) > 1 ? (
+                        <div className="mt-2 rounded-md border border-dashed border-ink/30 bg-amber-50/60 px-2.5 py-2">
+                          <p className="flex items-center gap-1.5 text-[11px] font-bold text-amber-800">
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
+                            {faNum(r.prefSlots!.slots!.length)} بازه‌ی پیشنهادی:
+                          </p>
+                          <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {r.prefSlots!.slots!.map((sl, i) => (
+                              <span key={i} className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-amber-900 ring-1 ring-amber-200">
+                                گزینه‌ی {faNum(i + 1)}: {formatJalali(new Date(sl.from), { withTime: true })}
+                                {` تا ${formatJalali(new Date(sl.to), { withTime: true }).split(" — ")[1] ?? formatJalali(new Date(sl.to), { withTime: true })}`}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (r.prefFrom || r.prefTo) ? (
                         <p className="mt-2 flex items-center gap-1.5 rounded-md border border-dashed border-ink/30 bg-amber-50/60 px-2.5 py-1.5 text-[11.5px] font-medium text-amber-800">
                           <Clock className="h-3.5 w-3.5 shrink-0" />
                           بازه‌ی درخواستی: {formatJalali(new Date(r.prefFrom!), { withTime: true })}
                           {r.prefTo ? ` تا ${formatJalali(new Date(r.prefTo), { withTime: true }).split(" — ")[1] ?? formatJalali(new Date(r.prefTo), { withTime: true })}` : ""}
                         </p>
-                      )}
+                      ) : null}
                       {r.description && (
                         <p className="mt-2 rounded-md bg-paper-soft p-2 text-[12px] leading-5 text-ink-soft">
                           {r.description}

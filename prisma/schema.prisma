@@ -364,6 +364,8 @@ model MeetingRequest {
   urgency        String    @default("NORMAL") // URGENT | NORMAL | FLEXIBLE
   prefFrom       DateTime?
   prefTo         DateTime?
+  /// proposed time slots (multiple): [{from,to}] ISO strings — requester can offer several windows
+  prefSlots      Json?
   /// requested participants (internal users)
   participantIds String[]  @default([])
   /// total head-count the requester expects (excl. themselves)

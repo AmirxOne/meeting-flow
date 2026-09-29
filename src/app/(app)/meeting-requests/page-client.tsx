@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clock, ArrowLeft } from "@/components/ui/icon";
+import { Clock, ArrowLeft, Plus, X } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,10 +41,10 @@ export function MeetingRequestForm() {
   const [participants, setParticipants] = useState<PickedPerson[]>([]);
   const [busy, setBusy] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
-  // preferred window (optional): day + from-hour/to-hour
-  const [prefDay, setPrefDay] = useState("");
-  const [prefFrom, setPrefFrom] = useState("");
-  const [prefTo, setPrefTo] = useState("");
+  // بازه‌های دلخواه (اختیاری): چند روز/ساعت پیشنهادی — با + اضافه می‌شوند
+  const [prefSlots, setPrefSlots] = useState<{ day: string; from: string; to: string }[]>([
+    { day: "", from: "", to: "" },
+  ]);
   // ONSITE = in our rooms · OFFSITE = at another org (e.g. همراه اول)
   const [venue, setVenue] = useState("ONSITE");
   const [recFreq, setRecFreq] = useState("NONE");
@@ -57,6 +57,9 @@ export function MeetingRequestForm() {
     queryKey: ["meeting-requests", "mine"],
     queryFn: () => api<{ items: MyRequest[]; total: number }>("/api/meeting-requests"),
   });
+
+  // بازه‌های کامل‌شده (روز+از‌ساعت)
+  const filledSlots = prefSlots.filter((sl) => sl.day && sl.from);
 
   async function submit() {
     if (title.trim().length < 2) {
@@ -81,12 +84,27 @@ export function MeetingRequestForm() {
           venue,
           ...(venue === "OFFSITE" ? { offsiteOrg: offsiteOrg.trim() } : {}),
           ...(venue === "OFFSITE" && offsiteNote.trim() ? { offsiteNote: offsiteNote.trim() } : {}),
-          ...(prefDay && prefFrom
+          ...(filledSlots.length === 1
             ? {
-                prefFrom: tehranToIso(prefDay, prefFrom),
-                ...(prefTo ? { prefTo: tehranToIso(prefDay, prefTo) } : {}),
+                prefFrom: tehranToIso(filledSlots[0].day, filledSlots[0].from),
+                ...(filledSlots[0].to ? { prefTo: tehranToIso(filledSlots[0].day, filledSlots[0].to) } : {}),
+                prefSlots: [
+                  {
+                    from: tehranToIso(filledSlots[0].day, filledSlots[0].from),
+                    ...(filledSlots[0].to ? { to: tehranToIso(filledSlots[0].day, filledSlots[0].to) } : { to: tehranToIso(filledSlots[0].day, filledSlots[0].from) }),
+                  },
+                ],
               }
-            : {}),
+            : filledSlots.length > 1
+              ? {
+                  prefFrom: tehranToIso(filledSlots[0].day, filledSlots[0].from),
+                  ...(filledSlots[0].to ? { prefTo: tehranToIso(filledSlots[0].day, filledSlots[0].to) } : {}),
+                  prefSlots: filledSlots.map((sl) => ({
+                    from: tehranToIso(sl.day, sl.from),
+                    to: sl.to ? tehranToIso(sl.day, sl.to) : tehranToIso(sl.day, sl.from),
+                  })),
+                }
+              : {}),
           participantIds: participants
             .filter((p) => p.ref.startsWith("user:"))
             .map((p) => p.ref.slice(5)),
@@ -96,9 +114,7 @@ export function MeetingRequestForm() {
       setTitle("");
       setDescription("");
       setParticipants([]);
-      setPrefDay("");
-      setPrefFrom("");
-      setPrefTo("");
+      setPrefSlots([{ day: "", from: "", to: "" }]);
       setVenue("ONSITE");
       setOffsiteOrg("");
       setOffsiteNote("");
@@ -274,18 +290,48 @@ export function MeetingRequestForm() {
             <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
               روز و ساعتی که برایتان مناسب است را بگویید — مدیریت سعی می‌کند جلسه را در همین بازه بگیرد
             </p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-ink-soft">روز</label>
-                <JalaliDatePicker value={prefDay} onChange={(v) => setPrefDay(v)} />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
-                <TimePicker value={prefFrom} onChange={(v) => setPrefFrom(v)} />
-              </div>
-              <div>
-                <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
-                <TimePicker value={prefTo} onChange={(v) => setPrefTo(v)} />
+            <div className="mt-3 space-y-2.5">
+              {prefSlots.map((sl, i) => (
+                <div key={i} className="flex items-end gap-2">
+                  <div className="min-w-0 flex-1">
+                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">
+                      روز {prefSlots.length > 1 ? `(${faNum(i + 1)})` : ""}
+                    </label>
+                    <JalaliDatePicker value={sl.day} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, day: v } : x)))} />
+                  </div>
+                  <div className="w-[92px] shrink-0">
+                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
+                    <TimePicker value={sl.from} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, from: v } : x)))} />
+                  </div>
+                  <div className="w-[92px] shrink-0">
+                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
+                    <TimePicker value={sl.to} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, to: v } : x)))} />
+                  </div>
+                  {prefSlots.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label={`حذف بازه ${faNum(i + 1)}`}
+                      onClick={() => setPrefSlots((arr) => arr.filter((_, j) => j !== i))}
+                      className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint transition hover:border-danger/40 hover:text-danger"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <div className="flex items-center justify-between pt-0.5">
+                <button
+                  type="button"
+                  onClick={() => prefSlots.length < 10 && setPrefSlots((arr) => [...arr, { day: "", from: "", to: "" }])}
+                  disabled={prefSlots.length >= 10}
+                  className="flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-[11.5px] font-medium text-ink-soft transition hover:border-accent/50 hover:text-accent disabled:opacity-40"
+                >
+                  <Plus className="h-4 w-4" />
+                  افزودن بازه‌ی پیشنهادی دیگر {prefSlots.length > 1 ? `(${faNum(prefSlots.length)}/۱۰)` : ""}
+                </button>
+                {prefSlots.length > 1 && (
+                  <span className="text-[11px] text-ink-faint">مدیریت از بین {faNum(prefSlots.length)} بازه‌ی پیشنهادی بهترین را انتخاب می‌کند</span>
+                )}
               </div>
             </div>
           </div>
