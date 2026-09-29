@@ -131,27 +131,56 @@ export function RoomDetailPage() {
 
   return (
     <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold">{room.name}</h1>
-          <p className="mt-0.5 text-[12px] text-ink-soft">
-            {room.branch.name}
-            {room.floor ? ` · ${room.floor.name}` : ""}
-            {room.manager ? ` · مدیر اتاق: ${room.manager.fullName}` : ""}
-          </p>
+      {/* هدر جزئیات اتاق — راست: عنوان+وضعیت / چپ: اکشن‌های گروه‌بسته */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-2xl border border-line bg-paper-soft/40 px-4 py-3.5 lg:px-5">
+        <div className="flex min-w-0 items-center gap-3.5">
+          {/* آواتار اتاق */}
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-ink text-[15px] font-black text-white">
+            {room.name.replace(/اتاق|جلسه/g, "").trim().slice(0, 1) || "ر"}
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <h1 className="text-[17px] font-bold leading-tight">{room.name}</h1>
+              {room.capacity != null && (
+                <span className="rounded-full bg-paper ring-1 ring-line px-2 py-0.5 text-[10.5px] font-medium text-ink-soft">
+                  {faNum(room.capacity)} نفر
+                </span>
+              )}
+            </div>
+            <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11.5px] text-ink-faint">
+              <span>{room.branch.name}</span>
+              {room.floor && (
+                <>
+                  <span aria-hidden className="text-line">·</span>
+                  <span>{room.floor.name}</span>
+                </>
+              )}
+              {room.manager && (
+                <>
+                  <span aria-hidden className="text-line">·</span>
+                  <span>مدیر اتاق: {room.manager.fullName}</span>
+                </>
+              )}
+            </p>
+          </div>
         </div>
-        <LiveStatusPill status={data.status} current={data.current} next={data.next} />
-        {isAdmin && (
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="flex h-8 items-center gap-1.5 rounded-md border border-line bg-white px-2.5 text-[11.5px] font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-            ویرایش اتاق
-          </button>
-        )}
-        <RoomQrPanel slug={room.publicSlug ?? null} name={room.name} />
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <LiveStatusPill status={data.status} current={data.current} next={data.next} />
+          {/* جداکننده‌ی بصری بین وضعیت و اکشن‌ها */}
+          {(room.publicSlug || isAdmin) && <span aria-hidden className="hidden h-8 w-px bg-line sm:block" />}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3.5 text-[12px] font-medium text-white transition-colors hover:bg-ink/85"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              ویرایش اتاق
+            </button>
+          )}
+          <RoomQrPanel slug={room.publicSlug ?? null} name={room.name} compact />
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -402,7 +431,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 
 /** QR panel — printable poster: scan to see this room's live agenda (no login). */
-function RoomQrPanel({ slug, name }: { slug: string | null; name: string }) {
+function RoomQrPanel({ slug, name, compact: _compact = false }: { slug: string | null; name: string; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   if (!slug) return null;
@@ -431,26 +460,26 @@ function RoomQrPanel({ slug, name }: { slug: string | null; name: string }) {
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+          aria-label="صفحه‌ی نمایش اتاق"
+          className="flex size-9 items-center justify-center rounded-lg border border-line bg-white text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
           title={`نمایش صفحه‌ی عمومی این اتاق — ${url}`}
         >
-          <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
             <circle cx="12" cy="12" r="3" />
           </svg>
-          صفحه‌ی نمایش اتاق
         </a>
         <button
           onClick={() => setOpen(true)}
-          className="flex h-9 items-center gap-1.5 rounded-md border border-line px-3 text-[12px] font-medium text-ink-soft transition-colors hover:bg-paper-soft"
+          aria-label="QR اتاق"
+          className="flex size-9 items-center justify-center rounded-lg border border-line bg-white p-2 text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
         >
           <QRCodeSVG value={url} size={14} level="M" />
-          QR اتاق
         </button>
       </div>
       {open && (
