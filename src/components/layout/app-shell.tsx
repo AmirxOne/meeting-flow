@@ -3,12 +3,8 @@
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState , useRef} from "react";
-import {
-  Bell,
-  MessageQuestion,
-  Search, LogOut, Menu, X, Plus, ChevronDown, UserCircle,
-} from "@/components/ui/icon";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bell, ChevronDown, Loader2, LogOut, Menu, MessageQuestion, Plus, Search, UserCircle, X } from "@/components/ui/icon";
 import type { AppIcon } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
 import { groupedVisibleNav, isNavActive, isMobileNavActive, MOBILE_NAV, visibleChildren, isParentActive } from "@/lib/nav";
@@ -592,9 +588,11 @@ function SidebarNavLink({
 function GlobalSearch() {
   const router = useRouter();
   const [q, setQ] = useState("");
+  const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
-  const { data } = useQuery({
-    queryKey: ["search", q],
+  const [active, setActive] = useState(0);
+  const { data, isFetching } = useQuery({
+    queryKey: ["search", debounced],
     queryFn: () =>
       api<{
         results: {
@@ -604,13 +602,50 @@ function GlobalSearch() {
           guests: { id: string; name: string }[];
           branches: { id: string; name: string }[];
         };
-      }>(`/api/search?q=${encodeURIComponent(q)}`),
-    enabled: q.trim().length >= 2,
+      }>(`/api/search?q=${encodeURIComponent(debounced)}`),
+    enabled: debounced.trim().length >= 2,
+    staleTime: 60_000,
   });
 
+  // debounce ۲۵۰ms — فقط آخرین تایپ به سرور می‌رود
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(q), 250);
+    return () => clearTimeout(t);
+  }, [q]);
+
   const r = data?.results;
-  const hasResults =
-    r && (r.meetings.length || r.users.length || r.rooms.length || r.guests.length || r.branches.length);
+  const flat = useMemo(() => {
+    if (!r) return [] as { key: string; label: string; hint?: string; href: string }[];
+    return [
+      ...r.meetings.map((m) => ({ key: `m-${m.id}`, label: m.title, hint: "جلسه", href: `/meetings/${m.id}` })),
+      ...r.users.map((u) => ({ key: `u-${u.id}`, label: u.fullName, hint: u.jobTitle || "عضو", href: `/users` })),
+      ...r.rooms.map((room) => ({ key: `r-${room.id}`, label: room.name, hint: "اتاق", href: `/rooms/${room.id}` })),
+      ...r.guests.map((g) => ({ key: `g-${g.id}`, label: g.name, hint: "مهمان", href: `/meetings` })),
+      ...r.branches.map((b) => ({ key: `b-${b.id}`, label: b.name, hint: "شعبه", href: `/branches` })),
+    ];
+  }, [r]);
+  const hasResults = flat.length > 0;
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActive((a) => (flat.length ? (a + 1) % flat.length : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActive((a) => (flat.length ? (a - 1 + flat.length) % flat.length : 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const item = flat[active];
+      if (item) {
+        setOpen(false);
+        router.push(item.href);
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  }
+
+  const isOpen = open && debounced.trim().length >= 2;
 
   return (
     <div data-tour="search" className="relative w-full max-w-xl">
@@ -621,52 +656,75 @@ function GlobalSearch() {
           onChange={(e) => {
             setQ(e.target.value);
             setOpen(true);
+            setActive(0);
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls="global-search-listbox"
+          aria-activedescendant={isOpen && flat[active] ? flat[active].key : undefined}
           placeholder="جستجوی جلسه، فرد، اتاق…"
           className="w-full bg-transparent text-[13px] outline-none placeholder:text-ink-faint"
         />
+        {isFetching && q.trim().length >= 2 && (
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-ink-faint" />
+        )}
+        {q && (
+          <button
+            type="button"
+            onClick={() => { setQ(""); setDebounced(""); setActive(0); }}
+            className="text-ink-faint hover:text-ink"
+            aria-label="پاک کردن جستجو"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
-      {open && q.trim().length >= 2 && (
+      {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute inset-x-0 top-12 z-20 max-h-96 overflow-y-auto rounded-md border border-line bg-white p-2 shadow-lg">
-            {!r && <p className="p-3 text-[12px] text-ink-faint">در حال جستجو…</p>}
-            {r && !hasResults && (
+          <div
+            id="global-search-listbox"
+            role="listbox"
+            className="absolute inset-x-0 top-12 z-20 max-h-96 overflow-y-auto rounded-md border border-line bg-white p-2 shadow-lg"
+          >
+            {isFetching && !r && <p className="p-3 text-[12px] text-ink-faint">در حال جستجو…</p>}
+            {!isFetching && r && !hasResults && (
               <p className="p-3 text-[12px] text-ink-faint">نتیجه‌ای یافت نشد</p>
             )}
             {r?.meetings.length ? (
               <Section title="جلسات">
                 {r.meetings.map((m) => (
-                  <ResultRow key={m.id} onClick={() => { setOpen(false); router.push(`/meetings/${m.id}`); }} label={m.title} />
+                  <ResultRow key={m.id} onClick={() => { setOpen(false); router.push(`/meetings/${m.id}`); }} label={m.title} hint="جلسه" active={flat[active]?.key === `m-${m.id}`} onHover={() => setActive(flat.findIndex((f) => f.key === `m-${m.id}`))} />
                 ))}
               </Section>
             ) : null}
             {r?.users.length ? (
               <Section title="افراد">
                 {r.users.map((u) => (
-                  <ResultRow key={u.id} onClick={() => setOpen(false)} label={u.fullName} hint={u.jobTitle ?? ""} />
+                  <ResultRow key={u.id} onClick={() => { setOpen(false); router.push("/users"); }} label={u.fullName} hint={u.jobTitle ?? "عضو"} active={flat[active]?.key === `u-${u.id}`} onHover={() => setActive(flat.findIndex((f) => f.key === `u-${u.id}`))} />
                 ))}
               </Section>
             ) : null}
             {r?.rooms.length ? (
               <Section title="اتاق‌ها">
                 {r.rooms.map((room) => (
-                  <ResultRow key={room.id} onClick={() => { setOpen(false); router.push(`/rooms/${room.id}`); }} label={room.name} />
+                  <ResultRow key={room.id} onClick={() => { setOpen(false); router.push(`/rooms/${room.id}`); }} label={room.name} hint="اتاق" active={flat[active]?.key === `r-${room.id}`} onHover={() => setActive(flat.findIndex((f) => f.key === `r-${room.id}`))} />
                 ))}
               </Section>
             ) : null}
             {r?.guests.length ? (
               <Section title="مهمان‌ها">
                 {r.guests.map((g) => (
-                  <ResultRow key={g.id} onClick={() => setOpen(false)} label={g.name} />
+                  <ResultRow key={g.id} onClick={() => { setOpen(false); router.push("/meetings"); }} label={g.name} hint="مهمان" active={flat[active]?.key === `g-${g.id}`} onHover={() => setActive(flat.findIndex((f) => f.key === `g-${g.id}`))} />
                 ))}
               </Section>
             ) : null}
             {r?.branches.length ? (
               <Section title="شعب">
                 {r.branches.map((b) => (
-                  <ResultRow key={b.id} onClick={() => { setOpen(false); router.push("/branches"); }} label={b.name} />
+                  <ResultRow key={b.id} onClick={() => { setOpen(false); router.push("/branches"); }} label={b.name} hint="شعبه" active={flat[active]?.key === `b-${b.id}`} onHover={() => setActive(flat.findIndex((f) => f.key === `b-${b.id}`))} />
                 ))}
               </Section>
             ) : null}
@@ -686,14 +744,33 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ResultRow({ label, hint, onClick }: { label: string; hint?: string; onClick: () => void }) {
+function ResultRow({
+  label,
+  hint,
+  onClick,
+  active,
+  onHover,
+}: {
+  label: string;
+  hint?: string;
+  onClick: () => void;
+  active?: boolean;
+  onHover?: () => void;
+}) {
   return (
     <button
+      type="button"
+      role="option"
+      aria-selected={active}
       onClick={onClick}
-      className="flex w-full items-center justify-between rounded-md px-3 py-2 text-right text-[13px] hover:bg-paper-soft"
+      onMouseEnter={onHover}
+      className={cn(
+        "flex w-full items-center justify-between gap-2 rounded-md px-3 py-2 text-right text-[13px] transition-colors",
+        active ? "bg-paper-soft font-medium" : "hover:bg-paper-soft",
+      )}
     >
       <span className="truncate">{label}</span>
-      {hint && <span className="shrink-0 text-[11px] text-ink-faint">{hint}</span>}
+      {hint && <span className="shrink-0 rounded-full bg-paper-deep px-2 py-0.5 text-[10px] text-ink-soft">{hint}</span>}
     </button>
   );
 }
