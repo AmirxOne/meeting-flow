@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2 } from "@/components/ui/icon";
+import {
+  Building2,
+  UserCheck,
+  Settings,
+  MessageQuestion,
+  DoorOpen,
+} from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { invalidateOrgBranding } from "@/lib/org-branding";
 import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
@@ -10,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
-import { formatJalali } from "@/lib";
+import { cn, formatJalali } from "@/lib";
 import { SsoSettingsCard } from "./sso-card";
 import { SmsPilotCard } from "./sms-pilot-card";
 import { EmailPilotCard } from "./email-pilot-card";
@@ -79,7 +85,7 @@ export function AdminSettingsPage() {
       push("اطلاعات سازمان ذخیره شد", "success");
       qc.invalidateQueries({ queryKey: ["organization"] });
       qc.invalidateQueries({ queryKey: ["organization-branding"] });
-      invalidateOrgBranding(); // عنوان تب و همه‌ی استفاده‌های نام سازمان تازه شود
+      invalidateOrgBranding();
     } catch (e) {
       push((e as ApiError).message, "error");
     } finally {
@@ -131,38 +137,67 @@ export function AdminSettingsPage() {
     );
   }
 
+  const inputCls = "h-10 w-full rounded-md border border-line bg-white px-3 text-[12px] outline-none transition-colors focus:border-ink focus:ring-2 focus:ring-ink/10";
+  const dirty =
+    form.name.trim() !== org.name ||
+    form.legalName.trim() !== (org.legalName ?? "") ||
+    form.timezone !== org.timezone ||
+    form.logoUrl.trim() !== (org.logoUrl ?? "");
+
   return (
-    <div className="space-y-4 p-4 lg:p-6">
-      <div>
-        <h1 className="text-lg font-bold">تنظیمات سازمان</h1>
-        <p className="mt-0.5 text-[12px] text-ink-soft">
-          نام، منطقه زمانی، ورود سازمانی (SSO) و پایلوت پیامک — آخرین به‌روزرسانی: {formatJalali(new Date(org.updatedAt))}
-        </p>
+    <div className="space-y-5 p-4 lg:p-6">
+      {/* ── هدر ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 items-center justify-center rounded-xl bg-ink text-white">
+            <Settings className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold leading-6">تنظیمات سازمان</h1>
+            <p className="mt-0.5 text-[12px] text-ink-soft">
+              پروفایل، برندینگ، امکانات و یکپارچه‌سازی‌ها در یک نگاه
+            </p>
+          </div>
+        </div>
+        <span className="rounded-full bg-paper-soft px-3 py-1 text-[11px] text-ink-faint ring-1 ring-line">
+          آخرین به‌روزرسانی: {formatJalali(new Date(org.updatedAt))}
+        </span>
       </div>
 
-      <Card>
-        <CardHeader title="مشخصات سازمان" subtitle="تغییرات در لاگ ممیزی ثبت می‌شود" />
-        <CardBody className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <label className="block space-y-1.5">
-              <span className="text-[12px] font-medium text-ink-soft">نام نمایشی *</span>
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="نام سازمان"
-                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+      {/* ── ردیف ۱: هویت + امکانات ── */}
+      <div className="grid items-start gap-4 xl:grid-cols-5">
+        {/* هویت و برندینگ */}
+        <Card className="xl:col-span-3">
+          <CardHeader title="هویت و برندینگ" subtitle="نام سازمان، لوگو و منطقه‌ی زمانی — در سراسر سامانه اعمال می‌شود" />
+          <CardBody className="space-y-4">
+            {/* لوگو — ردیف برجسته */}
+            <div className="rounded-xl border border-line bg-paper-soft/40 p-4">
+              <OrgLogoUploader
+                initial={org.logoUrl}
+                onChanged={(url) => setForm((f) => ({ ...f, logoUrl: url }))}
               />
-            </label>
+            </div>
 
-            <label className="block space-y-1.5">
-              <span className="text-[12px] font-medium text-ink-soft">نام حقوقی</span>
-              <input
-                value={form.legalName}
-                onChange={(e) => setForm({ ...form, legalName: e.target.value })}
-                placeholder="نام ثبت‌شده / حقوقی"
-                className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-              />
-            </label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="text-[12px] font-medium text-ink-soft">نام نمایشی *</span>
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="نام سازمان"
+                  className={inputCls}
+                />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="text-[12px] font-medium text-ink-soft">نام حقوقی</span>
+                <input
+                  value={form.legalName}
+                  onChange={(e) => setForm({ ...form, legalName: e.target.value })}
+                  placeholder="نام ثبت‌شده / حقوقی"
+                  className={inputCls}
+                />
+              </label>
+            </div>
 
             <label className="block space-y-1.5">
               <span className="text-[12px] font-medium text-ink-soft">منطقه زمانی</span>
@@ -173,65 +208,63 @@ export function AdminSettingsPage() {
               />
             </label>
 
-            <div className="block space-y-1.5">
-              <span className="text-[12px] font-medium text-ink-soft">لوگوی سازمان</span>
-              <OrgLogoUploader
-                initial={org.logoUrl}
-                onChanged={(url) => setForm((f) => ({ ...f, logoUrl: url }))}
-              />
-            </div>
-          </div>
-
-          {/* امکانات جانبی — کنترل مرکزی ادمین */}
-          <div className="rounded-lg border border-line bg-paper-soft/40">
-            <div className="border-b border-line px-3.5 py-3">
-              <p className="text-[13px] font-bold">امکانات جانبی</p>
-              <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
-                فعال/غیرفعال‌سازی مرکزی — همه‌ی بخش‌های سامانه از این‌جا دستور می‌گیرند. پیش‌فرض همه خاموش است.
+            <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
+              <p className={cn("text-[11px]", dirty ? "font-medium text-amber-600" : "text-ink-faint")}>
+                {dirty ? "تغییرات ذخیره‌نشده دارید" : "همه‌چیز ذخیره است"}
               </p>
+              <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2 || !dirty}>
+                ذخیره تغییرات
+              </Button>
             </div>
-            <div className="divide-y divide-line">
-              <FeatureToggleRow
-                title="حضور و غیاب"
-                desc="ثبت حاضرین جلسه در صفحه‌ی جزئیات جلسه"
-                field="attendanceEnabled"
-                initial={org.attendanceEnabled}
-              />
-              <FeatureToggleRow
-                title="نمایشگر تبلت کنار در"
-                desc="برد اطلاعاتی جلسات که روی تبلتِ کنار در هر اتاق نمایش داده می‌شود — با خاموش کردن، همه‌ی نمایشگرها پیام «غیرفعال» می‌بینند"
-                field="displayEnabled"
-                initial={org.displayEnabled}
-              />
-              <FeatureToggleRow
-                title="QR Code اتاق جلسه"
-                desc="دانلود پوستر QR و چک‌این مهمان‌ها با اسکن — در صفحه‌ی جزئیات اتاق و جلسه"
-                field="qrCheckinEnabled"
-                initial={org.qrCheckinEnabled}
-              />
-            </div>
-          </div>
+          </CardBody>
+        </Card>
 
-          <div className="flex justify-end pt-2">
-            <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
-              ذخیره تغییرات
-            </Button>
+        {/* امکانات جانبی */}
+        <Card className="xl:col-span-2">
+          <CardHeader title="امکانات جانبی" subtitle="کنترل مرکزی — همه‌ی بخش‌ها از این‌جا دستور می‌گیرند" />
+          <div className="divide-y divide-line">
+            <FeatureToggleRow
+              icon={<UserCheck className="h-4 w-4" />}
+              title="حضور و غیاب"
+              desc="ثبت حاضرین جلسه در صفحه‌ی جزئیات جلسه"
+              field="attendanceEnabled"
+              initial={org.attendanceEnabled}
+            />
+            <FeatureToggleRow
+              icon={<DoorOpen className="h-4 w-4" />}
+              title="نمایشگر تبلت کنار در"
+              desc="برد اطلاعاتی جلسات روی تبلتِ کنار در هر اتاق"
+              field="displayEnabled"
+              initial={org.displayEnabled}
+            />
+            <FeatureToggleRow
+              icon={<MessageQuestion className="h-4 w-4" />}
+              title="QR Code اتاق جلسه"
+              desc="پوستر QR و چک‌این مهمان‌ها با اسکن"
+              field="qrCheckinEnabled"
+              initial={org.qrCheckinEnabled}
+            />
           </div>
-        </CardBody>
-      </Card>
+          <div className="border-t border-line bg-paper-soft/40 px-5 py-3">
+            <p className="text-[11px] leading-5 text-ink-faint">
+              تغییرات بی‌درنگ اعمال می‌شود و نیازی به «ذخیره» ندارد. پیش‌فرض همه خاموش است.
+            </p>
+          </div>
+        </Card>
+      </div>
 
-      {/* integrations & ops — two-column on wide screens */}
-      <div className="grid gap-4 items-start lg:grid-cols-2">
+      {/* ── ردیف ۲: زیرساخت و پیام‌رسانی ── */}
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <WorkerStatusCard />
         <SmsPilotCard />
         <EmailPilotCard />
       </div>
 
+      {/* ── ردیف ۳: امنیت ── */}
       <SsoSettingsCard />
     </div>
   );
 }
-
 
 /** آپلودر لوگوی سازمان — انتخاب فایل با قواعد (فقط تصویر، سقف ۲MB) + پیش‌نمایش + حذف */
 function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onChanged: (url: string) => void }) {
@@ -240,6 +273,7 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
   const inputRef = useRef<HTMLInputElement>(null);
   const [logoUrl, setLogoUrl] = useState(initial);
   const [busy, setBusy] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   async function upload(file: File) {
     if (file.size > 2 * 1024 * 1024) {
@@ -282,16 +316,35 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
   const isLocal = logoUrl?.startsWith("/api/public/organization/logo");
 
   return (
-    <div className="flex items-center gap-3">
-      {/* پیش‌نمایش */}
-      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-paper-soft">
+    <div className="flex flex-wrap items-center gap-4">
+      {/* پیش‌نمایش بزرگ */}
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const f = e.dataTransfer.files?.[0];
+          if (f) upload(f);
+        }}
+        className={cn(
+          "flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors",
+          dragOver ? "border-ink bg-paper-soft" : "border-line bg-white hover:border-ink/40",
+        )}
+        onClick={() => inputRef.current?.click()}
+        title="کلیک یا فایل را این‌جا رها کنید"
+      >
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={isLocal ? "/api/public/organization/logo" : logoUrl} alt="لوگو" className="max-h-full max-w-full object-contain" />
+          <img src={isLocal ? "/api/public/organization/logo" : logoUrl} alt="لوگو" className="max-h-full max-w-full object-contain p-1" />
         ) : (
-          <span className="text-[10px] text-ink-faint">بدون لوگو</span>
+          <span className="flex flex-col items-center gap-1 text-ink-faint">
+            <Building2 className="h-6 w-6" />
+            <span className="text-[10px]">بدون لوگو</span>
+          </span>
         )}
       </div>
+
       <div className="min-w-0 flex-1">
         <input
           ref={inputRef}
@@ -304,7 +357,12 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
             if (inputRef.current) inputRef.current.value = "";
           }}
         />
-        <div className="flex flex-wrap items-center gap-2">
+        <p className="text-[12.5px] font-bold">لوگوی سازمان</p>
+        <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
+          روی کادر بزنید یا فایل را بکشید و رها کنید — PNG، JPG، WebP، GIF یا SVG تا ۲ مگابایت.
+          در سربرگ، صفحه‌ی لاگین و صفحه‌های عمومی اعمال می‌شود.
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <Button size="sm" variant="outline" loading={busy} onClick={() => inputRef.current?.click()}>
             {logoUrl ? "تغییر لوگو" : "آپلود لوگو"}
           </Button>
@@ -314,9 +372,6 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
             </Button>
           )}
         </div>
-        <p className="mt-1.5 text-[10.5px] leading-4 text-ink-faint">
-          PNG، JPG، WebP، GIF یا SVG — سقف ۲ مگابایت — در سربرگ، صفحه‌ی لاگین و صفحه‌های عمومی اعمال می‌شود
-        </p>
       </div>
     </div>
   );
@@ -324,11 +379,13 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
 
 /** سوییچ آنی برای امکانات جانبی — ذخیره‌ی فوری و مرکزی */
 function FeatureToggleRow({
+  icon,
   title,
   desc,
   field,
   initial,
 }: {
+  icon?: React.ReactNode;
   title: string;
   desc: string;
   field: "attendanceEnabled" | "displayEnabled" | "qrCheckinEnabled";
@@ -359,10 +416,32 @@ function FeatureToggleRow({
   }
 
   return (
-    <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-      <div className="min-w-0">
-        <p className="text-[12.5px] font-bold">{title}</p>
-        <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">{desc}</p>
+    <div className="flex items-center justify-between gap-3 px-5 py-4">
+      <div className="flex min-w-0 items-start gap-3">
+        {icon && (
+          <span
+            className={cn(
+              "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors",
+              on ? "bg-ink text-white" : "bg-paper-soft text-ink-faint ring-1 ring-line",
+            )}
+          >
+            {icon}
+          </span>
+        )}
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-[12.5px] font-bold">
+            {title}
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[9.5px] font-medium",
+                on ? "bg-emerald-50 text-emerald-700" : "bg-paper-soft text-ink-faint ring-1 ring-line",
+              )}
+            >
+              {on ? "فعال" : "غیرفعال"}
+            </span>
+          </p>
+          <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">{desc}</p>
+        </div>
       </div>
       <button
         type="button"
