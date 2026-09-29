@@ -8,8 +8,7 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import { useOrgName } from "@/lib/org-branding";
-import { cn, faNum, formatJalali } from "@/lib";
+import { faNum, formatJalali } from "@/lib";
 
 /* ═══════════════════════════════════════════════════════════
    تمپلیت رسمی شرکت — دستور جلسه و صورت‌جلسه
@@ -30,69 +29,6 @@ export interface DecisionTemplateRow {
   due: string; // مهلت — دستی مثل ۱۴۰۵/۰۷/۰۱
 }
 
-function TemplateHeader({
-  title,
-  meetingTitle,
-  place,
-  dateFa,
-  time,
-  footerNote,
-  logoUrl,
-  orgName,
-}: {
-  title: string;
-  meetingTitle: string;
-  place?: string;
-  dateFa?: string;
-  time?: string;
-  footerNote?: string;
-  logoUrl?: string | null;
-  orgName: string;
-}) {
-  return (
-    <div className="mb-5">
-      {/* سربرگ دو-ستونه مثل تمپلیت: لوگو+نام شرکت / عنوان سند */}
-      <div className="flex items-start justify-between gap-4 border-b-2 border-ink pb-3">
-        <div className="flex items-center gap-2.5">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={logoUrl} alt={orgName} className="h-10 w-auto object-contain" />
-          ) : (
-            <span className="flex size-10 items-center justify-center rounded-lg bg-ink text-[15px] font-black text-white">
-              {orgName.slice(0, 1)}
-            </span>
-          )}
-          <div>
-            <p className="text-[13px] font-black leading-4">{orgName}</p>
-            <p className="mt-0.5 text-[10px] text-ink-faint">سامانه مدیریت جلسات مهرسا</p>
-          </div>
-        </div>
-        <div className="text-left">
-          <p className="text-[15px] font-black">{title}</p>
-          {footerNote ? <p className="mt-0.5 text-[10px] text-ink-faint">{footerNote}</p> : null}
-        </div>
-      </div>
-      {/* باکس مشخصات مثل تمپلیت: مکان / تاریخ / ساعت / عنوان جلسه */}
-      <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4">
-        <HeaderField label="محل برگزاری" value={place || "—"} />
-        <HeaderField label="تاریخ" value={dateFa || "—"} />
-        <HeaderField label="ساعت" value={time || "—"} />
-        <HeaderField label="عنوان جلسه" value={meetingTitle} strong />
-      </div>
-    </div>
-  );
-}
-
-function HeaderField({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <p className="text-[10px] text-ink-faint">{label}</p>
-      <p className={cn("truncate text-[12px]", strong ? "font-bold" : "font-medium")} title={value}>
-        {value}
-      </p>
-    </div>
-  );
-}
 
 /* ───────────────────────── دستور جلسه (تمپلیت) ───────────────────────── */
 
@@ -111,8 +47,6 @@ export function AgendaTemplate({
   canEdit: boolean;
   items: { id: string; sortOrder: number; title: string; durationMin: number | null; owner?: { fullName: string } | null }[];
 }) {
-  const orgName = useOrgName();
-  const logoUrl: string | null = null;
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [rows, setRows] = useState<AgendaTemplateRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -204,15 +138,6 @@ export function AgendaTemplate({
         }
       />
       <div className="p-5">
-        <TemplateHeader
-          title="دستور جلسه"
-          meetingTitle={meetingTitle}
-          place={place}
-          dateFa={formatJalali(d, { withTime: false })}
-          time={`${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`}
-          logoUrl={logoUrl}
-          orgName={orgName}
-        />
 
         {mode === "view" ? (
           <table className="w-full border-collapse text-right">
@@ -319,8 +244,6 @@ export function MinutesTemplate({
   people: { id: string; fullName: string }[];
   initialDecisions: { id: string; text: string; owner?: { fullName: string } | null; dueAt?: string | null }[];
 }) {
-  const orgName = useOrgName();
-  const logoUrl: string | null = null;
   const [mode, setMode] = useState<"view" | "edit">("view");
   const [rows, setRows] = useState<DecisionTemplateRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -403,15 +326,6 @@ export function MinutesTemplate({
         }
       />
       <div className="p-5">
-        <TemplateHeader
-          title="صورت‌جلسه"
-          meetingTitle={meetingTitle}
-          place={place}
-          dateFa={formatJalali(d, { withTime: false })}
-          time={`${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`}
-          logoUrl={logoUrl}
-          orgName={orgName}
-        />
 
         {mode === "view" ? (
           <table className="w-full border-collapse text-right">
