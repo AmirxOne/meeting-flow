@@ -382,7 +382,7 @@ export function AgendaTemplate({
         <div>
           <SectionHeader label="پیوست" />
           <div className="rounded-b-lg border border-t-0 border-line bg-white p-3">
-            <TemplateAttachments meetingId={meetingId} kind="AGENDA" canManage={canEdit} />
+            <TemplateAttachments meetingId={meetingId} kind="AGENDA" canManage={canEdit && !view} />
           </div>
         </div>
       </div>
@@ -585,7 +585,7 @@ export function MinutesTemplate({
         <div>
           <SectionHeader label="پیوست" />
           <div className="rounded-b-lg border border-t-0 border-line bg-white p-3">
-            <TemplateAttachments meetingId={meetingId} kind="MINUTES" canManage={canEdit} />
+            <TemplateAttachments meetingId={meetingId} kind="MINUTES" canManage={canEdit && !view} />
           </div>
         </div>
       </div>
