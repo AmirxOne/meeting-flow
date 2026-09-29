@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarPlus, XCircle, Users, Pencil, CheckCircle2, Clock, Building2 } from "@/components/ui/icon";
@@ -397,6 +397,34 @@ function ScheduleForm({ r, onDone, onCancel }: { r: Req; onDone: () => void; onC
   const [startIso, setStartIso] = useState("");
   const [startTime, setStartTime] = useState("");
   const [busy, setBusy] = useState(false);
+  // چک تعارض بازه‌های پیشنهادی با برنامه‌ها
+  const proposedSlots = (r.prefSlots?.slots ?? []).map((sl) => ({ from: sl.from, to: sl.to }));
+  const [slotChecks, setSlotChecks] = useState<{ from: string; to: string; ok: boolean; reasons: string[] }[] | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  async function checkProposedSlots(roomIdForCheck?: string) {
+    if (proposedSlots.length === 0) return;
+    setChecking(true);
+    try {
+      const res = await api<{ slots: { from: string; to: string; ok: boolean; reasons: string[] }[] }>(
+        `/api/meeting-requests/${r.id}/check-slots`,
+        { method: "POST", json: { roomId: roomIdForCheck, slots: proposedSlots } },
+      );
+      setSlotChecks(res.slots);
+      // انتخاب خودکار اولین بازه‌ی آزاد
+      const firstOk = res.slots.find((x) => x.ok);
+      if (firstOk) {
+        const d = new Date(firstOk.from);
+        const tehran = new Date(d.getTime() + 210 * 60000);
+        setStartIso(tehran.toISOString().slice(0, 10));
+        setStartTime(String(tehran.getUTCHours()).padStart(2, "0") + ":" + String(tehran.getUTCMinutes()).padStart(2, "0"));
+      }
+    } catch {
+      setSlotChecks(null);
+    } finally {
+      setChecking(false);
+    }
+  }
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -410,6 +438,16 @@ function ScheduleForm({ r, onDone, onCancel }: { r: Req; onDone: () => void; onC
   const branchRooms = (rooms?.rooms ?? []).filter(
     (room) => !branchId || (room as { branchId?: string }).branchId === branchId,
   );
+
+  useEffect(() => {
+    void checkProposedSlots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (roomId) void checkProposedSlots(roomId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]);
 
   async function schedule() {
     const offsite = r.venue === "OFFSITE";
@@ -511,6 +549,47 @@ function ScheduleForm({ r, onDone, onCancel }: { r: Req; onDone: () => void; onC
             />
           </div>
         </div>
+        {proposedSlots.length > 0 && (
+          <div className="rounded-md border border-dashed border-line bg-paper p-2.5">
+            <p className="text-[11px] font-bold">
+              بازه‌های پیشنهادی درخواست‌کننده {checking ? "— در حال بررسی…" : slotChecks ? "" : ""}
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {proposedSlots.map((sl, i) => {
+                const chk = slotChecks?.[i];
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      const d = new Date(sl.from);
+                      const tehran = new Date(d.getTime() + 210 * 60000);
+                      setStartIso(tehran.toISOString().slice(0, 10));
+                      setStartTime(String(tehran.getUTCHours()).padStart(2, "0") + ":" + String(tehran.getUTCMinutes()).padStart(2, "0"));
+                    }}
+                    className={[
+                      "rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 transition",
+                      chk
+                        ? chk.ok
+                          ? "bg-emerald-50 text-emerald-800 ring-emerald-200 hover:bg-emerald-100"
+                          : "bg-rose-50 text-rose-700 ring-rose-200 hover:bg-rose-100"
+                        : "bg-paper-soft text-ink-soft ring-line hover:bg-paper",
+                    ].join(" ")}
+                    title={chk && !chk.ok ? chk.reasons.join(" · ") : "انتخاب این بازه"}
+                  >
+                    گزینه‌ی {faNum(i + 1)}: {formatJalali(new Date(sl.from), { withTime: true })}
+                    {chk && (chk.ok ? " ✓ آزاد" : " ✕ تداخل")}
+                  </button>
+                );
+              })}
+            </div>
+            {slotChecks && slotChecks.some((c) => !c.ok) && (
+              <p className="mt-1.5 text-[10.5px] text-ink-faint">
+                بازه‌های قرمز با برنامه‌های موجود تداخل دارند — روی بازه‌ی سبز کلیک کنید یا تاریخ را دستی انتخاب کنید
+              </p>
+            )}
+          </div>
+        )}
         <p className="text-[11px] text-ink-faint">
           مدت: {faNum(r.durationMin)} دقیقه · برگزارکننده: {r.requester?.fullName ?? "شما (ادمین — درخواست مهمان)"} ·
           شرکت‌کنندگان درخواست‌شده خودکار دعوت می‌شوند
