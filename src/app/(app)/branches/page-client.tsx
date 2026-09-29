@@ -356,7 +356,6 @@ export function BranchesPage() {
                     <p className="text-[13px] font-medium">{f.name}</p>
                     <p className="text-[11px] text-ink-soft">
                       شماره {faNum(f.number)}
-                      {f.hasMap ? " · نقشه دارد" : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -423,80 +422,121 @@ export function BranchesPage() {
           <EmptyState icon={<Building2 className="h-10 w-10" />} title="شعبه‌ای ثبت نشده" description="هر شعبه اتاق‌ها و کاربران خود را دارد — اولین شعبه را بسازید" />
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {branches.map((b) => (
-            <Card key={b.id} className={cn("p-5", !b.isActive && "opacity-60")}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-[15px] font-bold">{b.name}</p>
-                    <span className={cn("badge", b.isActive ? "badge-green" : "badge-gray")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          {branches.map((b) => {
+            const floors = [...b.floors].sort((a, z) => a.number - z.number);
+            return (
+              <Card key={b.id} className={cn("overflow-hidden", !b.isActive && "opacity-60")}>
+                {/* هدر کارت */}
+                <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-ink/5 text-ink ring-1 ring-line">
+                      <Building2 className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[15px] font-bold">{b.name}</p>
+                      <p className="mt-0.5 text-[11px] text-ink-soft">
+                        {faNum(b._count.rooms)} اتاق · {faNum(b._count.users)} کاربر
+                      </p>
+                    </div>
+                    <span className={cn("badge shrink-0", b.isActive ? "badge-green" : "badge-gray")}>
                       {b.isActive ? "فعال" : "غیرفعال"}
                     </span>
                   </div>
-                  <div className="mt-2 space-y-1.5 text-[12px] text-ink-soft">
+                  {canManage && (
+                    <div className="flex shrink-0 items-center gap-1">
+                      <IconTipButton
+                        tip="ویرایش"
+                        onClick={() => openEdit(b)}
+                        className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </IconTipButton>
+                      <IconTipButton
+                        tip={b.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
+                        onClick={() => toggleActive(b)}
+                        className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
+                      >
+                        <Power className="h-4 w-4" />
+                      </IconTipButton>
+                      <IconTipButton
+                        tip="حذف"
+                        onClick={() => remove(b)}
+                        className="rounded-md p-2 text-ink-faint hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </IconTipButton>
+                    </div>
+                  )}
+                </div>
+
+                {/* اطلاعات تماس */}
+                {(b.address || b.phone || b.manager) && (
+                  <div className="space-y-1.5 border-b border-line px-5 py-3.5 text-[12px] text-ink-soft">
                     {b.address && (
-                      <p className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {b.address}
+                      <p className="flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{b.address}</span>
                       </p>
                     )}
                     {b.phone && (
-                      <p className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5" />
+                      <p className="flex items-center gap-2">
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
                         <span dir="ltr">{faStr(b.phone)}</span>
                       </p>
                     )}
                     {b.manager && (
-                      <p className="flex items-center gap-1.5">
-                        <User className="h-3.5 w-3.5" />
+                      <p className="flex items-center gap-2">
+                        <User className="h-3.5 w-3.5 shrink-0" />
                         مدیر: {b.manager.fullName}
                       </p>
                     )}
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-1.5">
-                    <span className="badge badge-gray">{faNum(b._count.rooms)} اتاق</span>
-                    <span className="badge badge-gray">{faNum(b._count.users)} کاربر</span>
-                    {b.floors.map((f) => (
-                      <span key={f.id} className="badge badge-gray">طبقه {faNum(f.number)}</span>
-                    ))}
-                  </div>
-                </div>
-                {canManage && (
-                  <div className="flex shrink-0 flex-col gap-1">
-                    <IconTipButton
-                      tip="مدیریت طبقات"
-                      onClick={() => openFloors(b)}
-                      className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                    >
-                      <Layers className="h-4 w-4" />
-                    </IconTipButton>
-                    <IconTipButton
-                      tip="ویرایش"
-                      onClick={() => openEdit(b)}
-                      className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </IconTipButton>
-                    <IconTipButton
-                      tip={b.isActive ? "غیرفعال‌سازی" : "فعال‌سازی"}
-                      onClick={() => toggleActive(b)}
-                      className="rounded-md p-2 text-ink-soft hover:bg-paper-soft hover:text-ink"
-                    >
-                      <Power className="h-4 w-4" />
-                    </IconTipButton>
-                    <IconTipButton
-                      tip="حذف"
-                      onClick={() => remove(b)}
-                      className="rounded-md p-2 text-ink-faint hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </IconTipButton>
-                  </div>
                 )}
-              </div>
-            </Card>
-          ))}
+
+                {/* طبقات — بخش اصلی کارت */}
+                <div className="px-5 py-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="flex items-center gap-1.5 text-[12px] font-bold text-ink">
+                      <Layers className="h-3.5 w-3.5 text-ink-soft" />
+                      طبقات
+                      <span className="font-medium text-ink-faint">({faNum(floors.length)})</span>
+                    </p>
+                    {canManage && (
+                      <button
+                        type="button"
+                        onClick={() => openFloors(b)}
+                        className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+                      >
+                        <Plus className="h-3 w-3" />
+                        مدیریت طبقات
+                      </button>
+                    )}
+                  </div>
+                  {floors.length === 0 ? (
+                    <p className="mt-3 rounded-lg border border-dashed border-line bg-paper-soft/40 px-3 py-3 text-center text-[11.5px] text-ink-faint">
+                      هنوز طبقه‌ای ثبت نشده
+                    </p>
+                  ) : (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {floors.map((f) => (
+                        <span
+                          key={f.id}
+                          title={f.name}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-paper-soft/50 px-2.5 py-1.5 text-[11.5px] font-medium text-ink"
+                        >
+                          <span className="flex size-5 items-center justify-center rounded-md bg-white text-[10px] font-bold text-ink-soft ring-1 ring-line">
+                            {faNum(f.number)}
+                          </span>
+                          {f.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>
