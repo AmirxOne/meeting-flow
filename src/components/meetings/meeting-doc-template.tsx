@@ -54,11 +54,10 @@ export interface DocTemplateData {
 }
 
 /* ── هدر بخش با پس‌زمینه سبزآبی مثل تمپلیت ── */
-function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
+function SectionHeader({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-t-lg bg-ink px-3 py-2">
+    <div className="flex items-center rounded-t-lg bg-ink px-3 py-2">
       <p className="text-[12px] font-bold text-white">{label}</p>
-      <span className="mr-auto flex size-5 shrink-0 items-center justify-center text-white">{icon}</span>
     </div>
   );
 }
@@ -163,7 +162,7 @@ export function AgendaTemplate({
       <div className="space-y-5 p-5">
         {/* ── اهداف جلسه ── */}
         <div>
-          <SectionHeader icon={<Info className="h-4 w-4" />} label="اهداف جلسه" />
+          <SectionHeader label="اهداف جلسه" />
           {view ? (
             <div className="min-h-14 rounded-b-lg border border-t-0 border-line bg-white p-3 text-[12px] leading-6">
               {saved?.goals || <span className="text-ink-faint">—</span>}
@@ -181,7 +180,7 @@ export function AgendaTemplate({
 
         {/* ── روند جلسه (۴ ستون) ── */}
         <div>
-          <SectionHeader icon={<ShieldCheck className="h-4 w-4" />} label="روند جلسه" />
+          <SectionHeader label="روند جلسه" />
           <div className="overflow-x-auto rounded-b-lg border border-t-0 border-line bg-white">
             <table className="w-full border-collapse text-right">
               <thead>
@@ -249,7 +248,7 @@ export function AgendaTemplate({
 
         {/* ── ابهامات و سوالات حاضرین (۳ ستون) ── */}
         <div>
-          <SectionHeader icon={<MessageQuestion className="h-4 w-4" />} label="ابهامات و سوالات حاضرین" />
+          <SectionHeader label="ابهامات و سوالات حاضرین" />
           <div className="overflow-x-auto rounded-b-lg border border-t-0 border-line bg-white">
             <table className="w-full border-collapse text-right">
               <thead>
@@ -310,7 +309,7 @@ export function AgendaTemplate({
 
         {/* ── پیشرفت مصوبات قبلی (۵ ستون) ── */}
         <div>
-          <SectionHeader icon={<Check className="h-4 w-4" />} label="پیشرفت مصوبات قبلی" />
+          <SectionHeader label="پیشرفت مصوبات قبلی" />
           <div className="overflow-x-auto rounded-b-lg border border-t-0 border-line bg-white">
             <table className="w-full border-collapse text-right">
               <thead>
@@ -381,7 +380,7 @@ export function AgendaTemplate({
 
         {/* ── پیوست (آپلود فایل) ── */}
         <div>
-          <SectionHeader icon={<Plus className="h-4 w-4" />} label="پیوست" />
+          <SectionHeader label="پیوست" />
           <div className="rounded-b-lg border border-t-0 border-line bg-white p-3">
             <TemplateAttachments meetingId={meetingId} kind="AGENDA" canManage={canEdit} />
           </div>
@@ -498,7 +497,7 @@ export function MinutesTemplate({
       <div className="space-y-5 p-5">
         {/* ── روند جلسه ── */}
         <div>
-          <SectionHeader icon={<ShieldCheck className="h-4 w-4" />} label="روند جلسه" />
+          <SectionHeader label="روند جلسه" />
           {view ? (
             <div className="min-h-16 rounded-b-lg border border-t-0 border-line bg-white p-3 text-[12px] leading-6 whitespace-pre-wrap">
               {saved?.minFlow || <span className="text-ink-faint">—</span>}
@@ -516,7 +515,7 @@ export function MinutesTemplate({
 
         {/* ── مصوبات (۴ ستون) ── */}
         <div>
-          <SectionHeader icon={<Check className="h-4 w-4" />} label="مصوبات" />
+          <SectionHeader label="مصوبات" />
           <div className="overflow-x-auto rounded-b-lg border border-t-0 border-line bg-white">
             <table className="w-full border-collapse text-right">
               <thead>
@@ -584,7 +583,7 @@ export function MinutesTemplate({
 
         {/* ── پیوست (آپلود فایل) ── */}
         <div>
-          <SectionHeader icon={<Plus className="h-4 w-4" />} label="پیوست" />
+          <SectionHeader label="پیوست" />
           <div className="rounded-b-lg border border-t-0 border-line bg-white p-3">
             <TemplateAttachments meetingId={meetingId} kind="MINUTES" canManage={canEdit} />
           </div>
