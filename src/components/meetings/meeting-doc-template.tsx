@@ -233,7 +233,7 @@ export function AgendaTemplate({
                     ))}
                     <tr>
                       <td colSpan={5} className="border border-line p-1.5">
-                        <button type="button" onClick={() => up({ flow: [...(draft?.flow ?? []), { title: "", start: "", end: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
+                        <button type="button" onClick={() => up({ flow: [...(draft?.flow ?? []), { title: "", start: "", end: "" }] })} className="mr-auto flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
                           <Plus className="h-3.5 w-3.5" />
                           افزودن ردیف
                         </button>
@@ -294,7 +294,7 @@ export function AgendaTemplate({
                     ))}
                     <tr>
                       <td colSpan={4} className="border border-line p-1.5">
-                        <button type="button" onClick={() => up({ questions: [...(draft?.questions ?? []), { title: "", asker: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
+                        <button type="button" onClick={() => up({ questions: [...(draft?.questions ?? []), { title: "", asker: "" }] })} className="mr-auto flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
                           <Plus className="h-3.5 w-3.5" />
                           افزودن سوال
                         </button>
@@ -365,7 +365,7 @@ export function AgendaTemplate({
                     ))}
                     <tr>
                       <td colSpan={6} className="border border-line p-1.5">
-                        <button type="button" onClick={() => up({ progress: [...(draft?.progress ?? []), { decision: "", owner: "", due: "", status: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
+                        <button type="button" onClick={() => up({ progress: [...(draft?.progress ?? []), { decision: "", owner: "", due: "", status: "" }] })} className="mr-auto flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
                           <Plus className="h-3.5 w-3.5" />
                           افزودن مصوبه
                         </button>
@@ -568,7 +568,7 @@ export function MinutesTemplate({
                     ))}
                     <tr>
                       <td colSpan={5} className="border border-line p-1.5">
-                        <button type="button" onClick={() => setRows((arr) => [...arr, { text: "", owner: "", due: "" }])} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
+                        <button type="button" onClick={() => setRows((arr) => [...arr, { text: "", owner: "", due: "" }])} className="mr-auto flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
                           <Plus className="h-3.5 w-3.5" />
                           افزودن مصوبه
                         </button>
