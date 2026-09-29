@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, ChevronLeft, Plus, Shield, Download } from "@/components/ui/icon";
+import { ChevronRight, ChevronLeft, Plus, Shield } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-store";
 import { useToast } from "@/components/ui/toast";
@@ -35,7 +35,6 @@ interface CalMeeting {
 }
 
 type ViewMode = "month" | "week" | "day";
-type CalMode = "jalali" | "gregorian";
 
 const WEEK_START_HOUR = 8;
 const WEEK_HOURS = 13;
@@ -94,7 +93,6 @@ function EventLabel({ meeting, className }: { meeting: CalMeeting; className?: s
 }
 
 export function CalendarPage() {
-  const [mode, setMode] = useState<CalMode>("jalali");
   const [view, setView] = useState<ViewMode>("month");
   const router = useRouter();
   const [scope, setScope] = useState<"all" | "mine">("all");
@@ -389,15 +387,11 @@ export function CalendarPage() {
     setAnchor({ jy: tj.jy, jm: tj.jm });
   }
 
-  const monthTitle =
-    mode === "jalali"
-      ? `${J_MONTHS[anchor.jm - 1]} ${faNum(anchor.jy)}`
-      : gregorianMonthLabel(anchor.jy, anchor.jm);
+  const monthTitle = `${J_MONTHS[anchor.jm - 1]} ${faNum(anchor.jy)}`;
 
   const dayLabel = (iso: string) => {
     const d = new Date(iso + "T12:00:00Z");
-    if (mode === "jalali") return formatJalali(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), { monthName: true });
-    return new Intl.DateTimeFormat("fa-IR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(d);
+    return formatJalali(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), { monthName: true });
   };
 
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -484,18 +478,6 @@ export function CalendarPage() {
               <button key={k} onClick={() => setView(k)} className={cn("flex h-10 items-center px-3 text-[12px]", view === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
             ))}
           </div>
-          <div className="flex overflow-hidden rounded-md border border-line">
-            {([["jalali", "شمسی"], ["gregorian", "میلادی"]] as const).map(([k, l]) => (
-              <button key={k} onClick={() => setMode(k)} className={cn("flex h-10 items-center px-3 text-[12px]", mode === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
-            ))}
-          </div>
-          <Link
-            href="/profile#calendar-feed"
-            className="inline-flex items-center gap-1.5 rounded-md border border-line bg-white px-3 py-1.5 text-[12px] text-ink-soft hover:bg-paper-soft"
-          >
-            <Download className="h-3.5 w-3.5" />
-            خروجی ICS
-          </Link>
         </div>
       </div>
 
@@ -568,11 +550,19 @@ export function CalendarPage() {
                         isOtherMonth && (dragId ? "opacity-100" : "opacity-40"),
                       )}
                     >
-                      <span className={cn(
-                        "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6",
-                        isToday ? "bg-ink font-bold text-white" : isFriday || holidayName ? "font-medium text-red-600" : "text-ink",
-                      )}>
-                        {mode === "jalali" ? faNum(cell.jd) : faNum(gregorianDayOf(iso))}
+                      <span className="flex items-baseline justify-end gap-1">
+                        <span className={cn(
+                          "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6",
+                          isToday ? "bg-ink font-bold text-white" : isFriday || holidayName ? "font-medium text-red-600" : "text-ink",
+                        )}>
+                          {faNum(cell.jd)}
+                        </span>
+                        <span className="hidden text-[9px] leading-none text-ink-faint sm:inline" dir="ltr">
+                          {Number(iso.slice(8, 10))}
+                        </span>
+                        <span className="hidden text-[9px] leading-none text-ink-faint/70 sm:inline" lang="ar">
+                          {arabicNum(hijriDayOf(iso))}
+                        </span>
                       </span>
                       {holidayName && (
                         <p className="mt-0.5 truncate text-[8px] font-medium text-amber-800 sm:text-[9px]">
@@ -743,7 +733,6 @@ export function CalendarPage() {
               selectedIso={selectedIso}
               todayIso={today}
               meetings={selectedDayMeetings}
-              mode={mode}
               holidayName={holidayByDate.get(selectedIso) ?? null}
               holidayMode={holidayMode}
               className="hidden lg:block"
@@ -947,7 +936,6 @@ function DayPanel({
   selectedIso,
   todayIso,
   meetings,
-  mode,
   holidayName,
   holidayMode,
   className,
@@ -955,7 +943,6 @@ function DayPanel({
   selectedIso: string;
   todayIso: string;
   meetings: CalMeeting[];
-  mode: CalMode;
   holidayName?: string | null;
   holidayMode?: "BLOCK" | "REQUIRE_APPROVAL";
   className?: string;
@@ -963,12 +950,7 @@ function DayPanel({
   const j = jalaliOfIso(selectedIso);
   const weekday = WEEKDAY_LONG[(new Date(selectedIso + "T12:00:00Z").getUTCDay() + 1) % 7];
   const friday = isFridayIso(selectedIso);
-  const dateText =
-    mode === "jalali"
-      ? `${weekday} ${faNum(j.jd)} ${J_MONTHS[j.jm - 1]}`
-      : new Intl.DateTimeFormat("fa-IR", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
-          new Date(selectedIso + "T12:00:00Z"),
-        );
+  const dateText = `${weekday} ${faNum(j.jd)} ${J_MONTHS[j.jm - 1]}`;
 
   return (
     <Card data-tour="cal-day-panel" className={cn("sticky top-4", className)}>
@@ -1184,11 +1166,20 @@ function MobileAgenda({
   );
 }
 
-function gregorianDayOf(iso: string): number {
-  return Number(iso.slice(8, 10));
+function hijriDayOf(iso: string): number {
+  try {
+    const d = new Date(iso + "T12:00:00Z");
+    const parts = new Intl.DateTimeFormat("en-US-u-ca-islamic-umalqura", {
+      day: "numeric",
+      timeZone: "UTC",
+    }).formatToParts(d);
+    return Number(parts.find((p) => p.type === "day")?.value ?? 0);
+  } catch {
+    return 0;
+  }
 }
 
-function gregorianMonthLabel(jy: number, jm: number): string {
-  const first = new Date(isoOfJalali(jy, jm, 1) + "T12:00:00Z");
-  return new Intl.DateTimeFormat("fa-IR", { month: "long", year: "numeric", timeZone: "UTC" }).format(first);
+const AR_DIGITS = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
+function arabicNum(n: number): string {
+  return String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);
 }
