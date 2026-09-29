@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 import { CalendarPlus } from "@/components/ui/icon";
 import { cn, faNum, faStr, formatJalali, isoDateInTz, EQUIPMENT_FA, TYPE_FA, TYPE_HINT_FA, isSoloMeetingType, VIDEO_PROVIDER_FA, isVideoProvider } from "@/lib";
+import { equipmentLabel } from "@/components/rooms/equipment-picker";
 import { formatClockInTz, DEFAULT_ORG_TIMEZONE } from "@/lib/timezone";
 import { J_WEEKDAYS_LONG, iranianWeekdayIndex, zonedTimeToUtc } from "@/lib/jalali";
 import {
@@ -820,7 +821,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                       <p className="text-[13px] font-medium">{r.name}</p>
                       <p className="mt-1 text-[11px] text-ink-soft">
                         ظرفیت: {faNum(r.capacity)} نفر
-                        {r.equipment.length > 0 && ` · ${r.equipment.map((e) => EQUIPMENT_FA[e] ?? e).join("، ")}`}
+                        {r.equipment.length > 0 && ` · ${r.equipment.map((e) => equipmentLabel(e)).join("، ")}`}
                       </p>
                     </button>
                   ))}

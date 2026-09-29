@@ -168,7 +168,7 @@ export function RoomFormModal({
       <div className="grid gap-3 sm:grid-cols-3">
         {!editing && (
           <div>
-            <label className="mb-1 block text-[11px] text-ink-soft">شعبه *</label>
+            <label className="mb-1 block text-[11px] font-medium text-ink-soft">شعبه *</label>
             <Select
               value={form.branchId}
               onChange={(v) => setForm({ ...form, branchId: v, floorId: "" })}
@@ -178,7 +178,7 @@ export function RoomFormModal({
           </div>
         )}
         <div>
-          <label className="mb-1 block text-[11px] text-ink-soft">طبقه</label>
+          <label className="mb-1 block text-[11px] font-medium text-ink-soft">طبقه</label>
           <Select
             value={form.floorId}
             onChange={(v) => setForm({ ...form, floorId: v })}
@@ -188,7 +188,7 @@ export function RoomFormModal({
           />
         </div>
         <div>
-          <label className="mb-1 block text-[11px] text-ink-soft">مدیر اتاق</label>
+          <label className="mb-1 block text-[11px] font-medium text-ink-soft">مدیر اتاق</label>
           <Select
             value={form.managerId}
             onChange={(v) => setForm({ ...form, managerId: v })}
@@ -196,34 +196,60 @@ export function RoomFormModal({
             options={managerOptions}
           />
         </div>
-        <input
-          placeholder="نام اتاق *"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-        />
-        <FaInput placeholder="ظرفیت" value={form.capacity} onChange={(capacity) => setForm({ ...form, capacity })} />
-        <FaInput
-          allow="time"
-          placeholder="ساعت باز"
-          value={form.openTime}
-          onChange={(openTime) => setForm({ ...form, openTime })}
-        />
-        <FaInput
-          allow="time"
-          placeholder="ساعت بسته"
-          value={form.closeTime}
-          onChange={(closeTime) => setForm({ ...form, closeTime })}
-        />
-        <label className="flex h-10 items-center gap-2 text-[12px]">
+        <div className="flex flex-col">
+          <label className="mb-1 block text-[11px] font-medium text-ink-soft">نام اتاق *</label>
           <input
+            placeholder="مثلاً اتاق جلسه آریا"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+          />
+        </div>
+        <div className="flex flex-col">
+          <label className="mb-1 block text-[11px] font-medium text-ink-soft">ظرفیت (نفر) *</label>
+          <FaInput placeholder="مثلاً ۸" value={form.capacity} onChange={(capacity) => setForm({ ...form, capacity })} />
+        </div>
+        <div className="flex h-10 items-center gap-2 self-end">
+          <input
+            id="room-is-vip"
             type="checkbox"
             checked={form.isVip}
             onChange={(e) => setForm({ ...form, isVip: e.target.checked })}
             className="h-4 w-4 accent-black"
           />
-          اتاق VIP
-        </label>
+          <label htmlFor="room-is-vip" className="cursor-pointer text-[12px] font-medium text-ink-soft">
+            اتاق VIP
+          </label>
+        </div>
+        <div className="flex flex-col">
+          <label className="mb-1 block text-[11px] font-medium text-ink-soft">ساعت باز شدن</label>
+          <FaInput
+            allow="time"
+            placeholder="۰۸:۰۰"
+            value={form.openTime}
+            onChange={(openTime) => setForm({ ...form, openTime })}
+          />
+        </div>
+        <div className="flex flex-col">
+          <label className="mb-1 block text-[11px] font-medium text-ink-soft">ساعت بسته شدن</label>
+          <FaInput
+            allow="time"
+            placeholder="۲۰:۰۰"
+            value={form.closeTime}
+            onChange={(closeTime) => setForm({ ...form, closeTime })}
+          />
+        </div>
+        <div className="flex flex-col sm:col-span-3">
+          <label className="mb-1 block text-[11px] font-medium text-ink-soft">توضیحات</label>
+          <textarea
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            rows={2}
+            maxLength={500}
+            placeholder="اختیاری — نکات خاص اتاق…"
+            className="w-full rounded-md border border-line px-3 py-2 text-[12px] outline-none focus:border-ink"
+          />
+        </div>
         <div className="sm:col-span-3">
           <EquipmentPicker
             value={form.equipment}

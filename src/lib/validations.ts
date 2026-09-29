@@ -181,9 +181,8 @@ export const roomCreateSchema = z.object({
   capacity: z.number().int().min(1, "ظرفیت حداقل ۱").max(500),
   description: z.string().trim().max(500).optional(),
   isVip: z.boolean().default(false),
-  equipment: z.array(z.enum([
-    "PROJECTOR", "TV", "WHITEBOARD", "VIDEO_CONFERENCE", "AUDIO_SYSTEM", "MICROPHONE",
-  ])).default([]),
+  // تجهیزات: کلیدهای مرسوم یا کلید سفارشی «CUSTOM:<نام>»
+  equipment: z.array(z.string().trim().min(1).max(80)).default([]),
   minDurationMin: z.number().int().min(5).max(480).default(15),
   maxDurationMin: z.number().int().min(15).max(1440).default(480),
   openTime: z.string().regex(/^\d{2}:\d{2}$/, "قالب HH:MM").optional().or(z.literal("")),

@@ -1,10 +1,12 @@
 "use client";
 
-import { cn, faNum, EQUIPMENT_LIST, EQUIPMENT_FA, type Equipment } from "@/lib";
+import { useState } from "react";
+import { cn, faNum, EQUIPMENT_LIST, EQUIPMENT_FA } from "@/lib";
 
 /**
- * انتخاب‌گر تجهیزات اتاق — کارت‌های toggle با آیکون SVG اختصاصی، حالت انتخاب
- * پررنگ با تیک، hover نرم و شمارنده‌ی انتخاب‌شده‌ها.
+ * انتخاب‌گر تجهیزات اتاق — کارت‌های toggle با آیکون برای تجهیزات مرسوم،
+ * به‌علاوه‌ی افزودن تجهیز دلخواه (دستی). مقدارها: کلید مرسوم (PROJECTOR…)
+ * یا «CUSTOM:<نام>» برای سفارشی‌ها.
  */
 
 function PresentationIcon({ className }: { className?: string }) {
@@ -66,6 +68,15 @@ function MicIcon({ className }: { className?: string }) {
   );
 }
 
+function CustomIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2.5 3" strokeLinecap="round" />
+      <path d="M12 8.5V15.5M8.5 12H15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 const EQUIPMENT_ICON: Record<string, (p: { className?: string }) => React.JSX.Element> = {
   PROJECTOR: PresentationIcon,
   TV: TvIcon,
@@ -83,6 +94,14 @@ function CheckMini() {
   );
 }
 
+const CUSTOM_PREFIX = "CUSTOM:";
+
+/** برچسب فارسی یک کلید تجهیز (مرسوم یا سفارشی) */
+export function equipmentLabel(key: string): string {
+  if (key.startsWith(CUSTOM_PREFIX)) return key.slice(CUSTOM_PREFIX.length);
+  return EQUIPMENT_FA[key] ?? key;
+}
+
 export function EquipmentPicker({
   value,
   onChange,
@@ -90,9 +109,21 @@ export function EquipmentPicker({
   value: string[];
   onChange: (next: string[]) => void;
 }) {
-  function toggle(eq: Equipment) {
-    onChange(value.includes(eq) ? value.filter((x) => x !== eq) : [...value, eq]);
+  const [draft, setDraft] = useState("");
+
+  function toggle(key: string) {
+    onChange(value.includes(key) ? value.filter((x) => x !== key) : [...value, key]);
   }
+
+  function addCustom() {
+    const name = draft.trim();
+    if (!name) return;
+    const key = CUSTOM_PREFIX + name;
+    if (!value.includes(key)) onChange([...value, key]);
+    setDraft("");
+  }
+
+  const customSelected = value.filter((k) => k.startsWith(CUSTOM_PREFIX));
 
   return (
     <div>
@@ -104,9 +135,10 @@ export function EquipmentPicker({
             value.length > 0 ? "bg-ink text-white" : "bg-paper-soft text-ink-faint",
           )}
         >
-          {faNum(value.length)} از {faNum(EQUIPMENT_LIST.length)}
+          {faNum(value.length)} انتخاب‌شده
         </span>
       </div>
+
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {EQUIPMENT_LIST.map((eq) => {
           const sel = value.includes(eq);
@@ -132,7 +164,7 @@ export function EquipmentPicker({
               >
                 <Icon className="h-4 w-4" />
               </span>
-              <span className="text-[12px] font-medium">{EQUIPMENT_FA[eq]}</span>
+              <span className="truncate text-[12px] font-medium">{EQUIPMENT_FA[eq]}</span>
               {sel && (
                 <span className="absolute left-2 top-2 flex size-4 items-center justify-center rounded-full bg-white text-ink">
                   <CheckMini />
@@ -141,6 +173,51 @@ export function EquipmentPicker({
             </button>
           );
         })}
+        {/* تجهیزات سفارشیِ انتخاب‌شده */}
+        {customSelected.map((k) => (
+          <button
+            key={k}
+            type="button"
+            aria-pressed
+            onClick={() => toggle(k)}
+            className="group relative flex items-center gap-2.5 rounded-xl border border-ink bg-ink px-3 py-2.5 text-right text-white shadow-sm transition-all"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
+              <CustomIcon className="h-4 w-4" />
+            </span>
+            <span className="truncate text-[12px] font-medium">{equipmentLabel(k)}</span>
+            <span className="absolute left-2 top-2 flex size-4 items-center justify-center rounded-full bg-white text-ink">
+              <CheckMini />
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* افزودن تجهیز دلخواه */}
+      <div className="mt-2.5 flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addCustom();
+            }
+          }}
+          placeholder="افزودن تجهیز دیگر… (مثلاً تابلو هوشمند)"
+          className="h-9 min-w-0 flex-1 rounded-lg border border-dashed border-line bg-paper-soft/40 px-3 text-[12px] outline-none transition-colors placeholder:text-ink-faint focus:border-ink/40 focus:bg-white"
+        />
+        <button
+          type="button"
+          onClick={addCustom}
+          disabled={!draft.trim()}
+          className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line bg-white px-3 text-[11.5px] font-medium text-ink-soft transition-colors hover:border-ink/40 hover:text-ink disabled:opacity-40"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          افزودن
+        </button>
       </div>
     </div>
   );

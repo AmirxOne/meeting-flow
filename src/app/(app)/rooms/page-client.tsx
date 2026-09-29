@@ -16,7 +16,7 @@ import { useAuth } from "@/lib/auth-store";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { IconTipButton } from "@/components/ui/tooltip";
 import { ContextMenuOpen, type ContextMenuItem } from "@/components/ui/context-menu";
-import { EquipmentPicker } from "@/components/rooms/equipment-picker";
+import { EquipmentPicker, equipmentLabel } from "@/components/rooms/equipment-picker";
 import { RoomFormModal } from "@/components/rooms/room-form-modal";
 
 interface RoomWithLive {
@@ -406,7 +406,7 @@ export function RoomsPage() {
                             <span className="text-ink-faint">—</span>
                           ) : (
                             r.equipment.slice(0, 3).map((e) => (
-                              <span key={e.equipment} className="badge badge-gray">{EQUIPMENT_FA[e.equipment]}</span>
+                              <span key={e.equipment} className="badge badge-gray">{equipmentLabel(e.equipment)}</span>
                             ))
                           )}
                           {r.equipment.length > 3 && (

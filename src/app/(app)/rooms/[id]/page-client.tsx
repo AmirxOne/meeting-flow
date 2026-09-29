@@ -13,6 +13,7 @@ import { cn, faNum, faStr, formatJalali, EQUIPMENT_FA, pad2 } from "@/lib";
 import { Tooltip } from "@/components/ui/tooltip";
 import { RoomDisplaySetup } from "@/components/rooms/room-display-setup";
 import { RoomFormModal } from "@/components/rooms/room-form-modal";
+import { equipmentLabel } from "@/components/rooms/equipment-picker";
 import { useAuth } from "@/lib/auth-store";
 import { Pencil } from "@/components/ui/icon";
 import { QRCodeSVG } from "qrcode.react";
@@ -307,7 +308,7 @@ export function RoomDetailPage() {
                 {room.equipment.length === 0 && <span className="text-ink-faint">—</span>}
                 {room.equipment.map((e) => (
                   <span key={e.equipment} className="badge badge-gray">
-                    {EQUIPMENT_FA[e.equipment] ?? e.equipment}
+                    {equipmentLabel(e.equipment)}
                   </span>
                 ))}
               </div>
