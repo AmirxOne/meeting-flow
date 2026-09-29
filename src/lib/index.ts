@@ -108,7 +108,7 @@ export const STATUS_FA: Record<string, string> = {
   CONFIRMED: "تأیید شده",
   REJECTED: "لغو شده",
   CANCELLED: "لغو شده",
-  RESCHEDULED: "در انتظار تأیید",
+  RESCHEDULED: "زمان‌بندی‌شده مجدد",
   IN_PROGRESS: "در حال برگزاری",
   COMPLETED: "برگزار شده",
   NO_SHOW: "برگزار شده",

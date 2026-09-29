@@ -7,7 +7,7 @@ const STATUS_STYLE: Record<string, string> = {
   CONFIRMED: "badge-green",
   REJECTED: "badge-red",
   CANCELLED: "badge-gray",
-  RESCHEDULED: "badge-blue",
+  RESCHEDULED: "badge-green",
   IN_PROGRESS: "badge-black",
   COMPLETED: "badge-gray",
   NO_SHOW: "badge-red",
