@@ -20,6 +20,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       throw new HttpError(403, "دسترسی لازم را ندارید", "FORBIDDEN");
     }
 
+    // جابه‌جایی به گذشته ممنوع — شروع جلسه نباید قبل از «الان» باشد (به وقت تهران)
+    if (input.startAt) {
+      const newStart = new Date(input.startAt).getTime();
+      const nowTehran = Date.now() + 210 * 60000;
+      if (newStart < nowTehran - 24 * 3600 * 1000) {
+        throw new HttpError(400, "جابه‌جایی جلسه به روزهای گذشته امکان‌پذیر نیست", "BAD_REQUEST");
+      }
+    }
+
     const updated = await rescheduleMeeting(
       id,
       {

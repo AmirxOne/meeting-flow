@@ -215,6 +215,11 @@ export function CalendarPage() {
       // same-day drop = no-op
       const srcIso = new Date(new Date(m.startAt).getTime() + 210 * 60000).toISOString().slice(0, 10);
       if (srcIso === iso) return;
+      // روز گذشته؟
+      if (iso < todayIso()) {
+        push("جابه‌جایی جلسه به روزهای گذشته امکان‌پذیر نیست", "error");
+        return;
+      }
       // keep the same local time-of-day and duration, move to the target day
       const startLocal = new Date(new Date(m.startAt).getTime() + 210 * 60000);
       const durMin = (new Date(m.endAt).getTime() - new Date(m.startAt).getTime()) / 60000;
@@ -261,6 +266,10 @@ export function CalendarPage() {
       if (jm < 1) { jm = 12; jy -= 1; }
       const jd = Math.min(j.jd, jMonthLen(jy, jm)); // clamp for short months
       const iso = isoOfJalali(jy, jm, jd);
+      if (iso < todayIso()) {
+        push("جابه‌جایی جلسه به روزهای گذشته امکان‌پذیر نیست", "error");
+        return;
+      }
       // reuse the same computation as a day-drop
       onDropToDay(iso, id);
     },
@@ -280,6 +289,10 @@ export function CalendarPage() {
       const newStart = new Date(newStartLocal.getTime() - 210 * 60000);
       const newEnd = new Date(newStart.getTime() + durMin * 60000);
       const iso = new Date(newStartLocal.getTime()).toISOString().slice(0, 10);
+      if (iso < todayIso()) {
+        push("جابه‌جایی جلسه به روزهای گذشته امکان‌پذیر نیست", "error");
+        return;
+      }
       setPendingDrop({ id: meetingId, title: m.isMasked ? "جلسه محرمانه" : m.title, iso, newStart, newEnd });
     },
     [meetings],
