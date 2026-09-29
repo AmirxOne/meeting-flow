@@ -48,9 +48,9 @@ export interface DocTemplateData {
 /* ── هدر بخش با پس‌زمینه سبزآبی مثل تمپلیت ── */
 function SectionHeader({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 rounded-t-lg bg-teal-700 px-3 py-2">
-      <span className="flex size-5 shrink-0 items-center justify-center text-white">{icon}</span>
+    <div className="flex items-center gap-2 rounded-t-lg bg-ink px-3 py-2">
       <p className="text-[12px] font-bold text-white">{label}</p>
+      <span className="mr-auto flex size-5 shrink-0 items-center justify-center text-white">{icon}</span>
     </div>
   );
 }
@@ -251,7 +251,7 @@ export function AgendaTemplate({
                     ))}
                     <tr>
                       <td colSpan={5} className="border border-line p-1.5">
-                        <button type="button" onClick={() => up({ flow: [...(draft?.flow ?? []), { title: "", start: "", end: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-teal-600/50 hover:text-teal-700">
+                        <button type="button" onClick={() => up({ flow: [...(draft?.flow ?? []), { title: "", start: "", end: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
                           <Plus className="h-3.5 w-3.5" />
                           افزودن ردیف
                         </button>
@@ -312,7 +312,7 @@ export function AgendaTemplate({
                     ))}
                     <tr>
                       <td colSpan={4} className="border border-line p-1.5">
-                        <button type="button" onClick={() => up({ questions: [...(draft?.questions ?? []), { title: "", asker: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-teal-600/50 hover:text-teal-700">
+                        <button type="button" onClick={() => up({ questions: [...(draft?.questions ?? []), { title: "", asker: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
                           <Plus className="h-3.5 w-3.5" />
                           افزودن سوال
                         </button>
@@ -383,7 +383,7 @@ export function AgendaTemplate({
                     ))}
                     <tr>
                       <td colSpan={6} className="border border-line p-1.5">
-                        <button type="button" onClick={() => up({ progress: [...(draft?.progress ?? []), { decision: "", owner: "", due: "", status: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-teal-600/50 hover:text-teal-700">
+                        <button type="button" onClick={() => up({ progress: [...(draft?.progress ?? []), { decision: "", owner: "", due: "", status: "" }] })} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
                           <Plus className="h-3.5 w-3.5" />
                           افزودن مصوبه
                         </button>
