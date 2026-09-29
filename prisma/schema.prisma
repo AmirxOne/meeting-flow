@@ -432,6 +432,9 @@ model Meeting {
   waitlistQueuedAt       DateTime?
   waitlistOfferedAt      DateTime?
   waitlistOfferExpiresAt DateTime?
+  /// تمپلیت رسمی شرکت — دستور جلسه و صورت‌جلسه (فرم پرشونده در صفحه جلسه)
+  /// { agenda: [{title, presenter, schedule}], decisions: [{text, owner, due}] }
+  docTemplate            Json?
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
 

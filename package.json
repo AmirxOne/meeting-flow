@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.30.3",
   "scripts": {
-    "dev": "next dev -p 3100",
+    "dev": "next dev -p 3100 --turbopack",
     "build": "next build",
     "start": "next start -p 3100",
     "lint": "next lint",

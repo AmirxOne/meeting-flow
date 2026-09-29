@@ -24,6 +24,7 @@ import { MeetingAttachments, type MeetingAttachmentRow } from "@/components/meet
 import { MeetingAttendance } from "@/components/meetings/meeting-attendance";
 import { MeetingAgenda, type MeetingAgendaItemRow } from "@/components/meetings/meeting-agenda";
 import { MeetingMinutes } from "@/components/meetings/meeting-minutes";
+import { AgendaTemplate, MinutesTemplate } from "@/components/meetings/meeting-doc-template";
 import { MeetingVideoLink } from "@/components/meetings/meeting-video-link";
 import { CANCEL_REASONS } from "@/lib";
 import {
@@ -898,6 +899,28 @@ export function MeetingDetailPage() {
                 .filter((p) => p.userId !== m.organizer.id)
                 .map((p) => ({ id: p.userId, fullName: p.user.fullName })),
             ]}
+          />
+
+          <AgendaTemplate
+            meetingId={id}
+            meetingTitle={m.title}
+            place={m.room ? `${m.branch?.name ?? ""} — ${m.room.name}` : (m.branch?.name ?? undefined)}
+            startAt={m.startAt}
+            canEdit={isOrganizer}
+            items={m.agendaItems ?? []}
+          />
+
+          <MinutesTemplate
+            meetingId={id}
+            meetingTitle={m.title}
+            place={m.room ? `${m.branch?.name ?? ""} — ${m.room.name}` : (m.branch?.name ?? undefined)}
+            startAt={m.startAt}
+            canEdit={isOrganizer}
+            people={[
+              { id: m.organizer.id, fullName: m.organizer.fullName },
+              ...m.participants.map((p) => ({ id: p.userId, fullName: p.user.fullName })),
+            ]}
+            initialDecisions={(m.minutes as { decisions?: { id: string; text: string; owner?: { fullName: string } | null; dueAt?: string | null }[] } | null)?.decisions ?? []}
           />
 
           <MeetingAttendance

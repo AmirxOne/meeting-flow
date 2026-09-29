@@ -17,7 +17,7 @@ interface DashboardData {
   pendingApprovals: number;
   rooms: { total: number; occupied: number };
   cancelledThisWeek: number;
-  weekSeries: { date: string; hours: number }[];
+  weekSeries: { date: string; hours: number; count: number }[];
   upcoming: {
     id: string;
     title: string;
@@ -105,8 +105,8 @@ export function DashboardPage() {
     );
   }
 
-  const weekTotal = data.weekSeries.reduce((a, b) => a + b.hours, 0);
-  const maxHours = Math.max(1, ...data.weekSeries.map((d) => d.hours));
+  const weekCount = data.weekSeries.reduce((a, b) => a + (b.count ?? 0), 0);
+  const maxCount = Math.max(1, ...data.weekSeries.map((d) => d.count));
   const todayIso = isoDateInTz(new Date(), "Asia/Tehran");
 
   function dayLabel(iso: string) {
@@ -155,7 +155,7 @@ export function DashboardPage() {
           <StatCard label="لغو این هفته" value={faNum(data.cancelledThisWeek)} tone={data.cancelledThisWeek > 0 ? "danger" : "default"} icon={<XCircle className="h-5 w-5" />} />
         </StaggerItem>
         <StaggerItem>
-          <StatCard label="ساعت جلسات هفته" value={faNum(weekTotal)} icon={<Users className="h-5 w-5" />} />
+          <StatCard label="جلسات این هفته" value={faNum(weekCount)} icon={<Users className="h-5 w-5" />} />
         </StaggerItem>
       </StaggerList>
 
@@ -163,10 +163,10 @@ export function DashboardPage() {
         {/* Weekly chart */}
         <Card className="lg:col-span-2">
           <CardHeader
-            title="ساعات جلسات — ۷ روز آینده"
+            title="جلسات — ۷ روز آینده"
             subtitle={
-              weekTotal > 0
-                ? `مجموع ${faStr(weekTotal.toFixed(1))} ساعت در ${faNum(data.weekSeries.filter((d) => d.hours > 0).length)} روز`
+              weekCount > 0
+                ? `مجموع ${faNum(weekCount)} جلسه در ${faNum(data.weekSeries.filter((d) => d.count > 0).length)} روز`
                 : "جلسه‌ای در این بازه ثبت نشده"
             }
           />
@@ -174,9 +174,9 @@ export function DashboardPage() {
             {data.weekSeries.map((d) => {
               const isToday = d.date === todayIso;
               const { weekday, date } = dayLabel(d.date);
-              const barPct = d.hours > 0 ? Math.max(6, (d.hours / maxHours) * 100) : 0;
+              const barPct = d.count > 0 ? Math.max(6, (d.count / maxCount) * 100) : 0;
               return (
-                <Tooltip key={d.date} content={`${weekday} ${date} — ${faStr(d.hours.toFixed(1))} ساعت`}>
+                <Tooltip key={d.date} content={`${weekday} ${date} — ${faNum(d.count)} جلسه`}>
                 <div
                   className={cn(
                     "rounded-lg px-3 py-2.5 transition-colors sm:px-4 sm:py-3",
@@ -198,17 +198,17 @@ export function DashboardPage() {
                     <span
                       className={cn(
                         "shrink-0 text-[13px] font-bold tabular-nums",
-                        d.hours > 0 ? "text-ink" : "text-ink-faint",
+                        d.count > 0 ? "text-ink" : "text-ink-faint",
                       )}
                     >
-                      {d.hours > 0 ? `${faStr(d.hours.toFixed(1))} ساعت` : "بدون جلسه"}
+                      {d.count > 0 ? `${faNum(d.count)} جلسه` : "بدون جلسه"}
                     </span>
                   </div>
                   <div className="h-3 w-full overflow-hidden rounded-full bg-line/50">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-500 ease-out",
-                        d.hours > 0 ? "bg-ink" : "bg-line/30",
+                        d.count > 0 ? "bg-ink" : "bg-line/30",
                       )}
                       style={{ width: `${barPct}%` }}
                     />
