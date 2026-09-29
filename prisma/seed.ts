@@ -19,7 +19,7 @@ const PERM = {
   SETTINGS: ["policy:manage", "org:manage"],
 };
 
-const USER_ADMIN = ["user:create", "user:update", "user:disable", "user:reset-password"];
+const USER_ADMIN = ["user:create", "user:update", "user:disable", "user:reset-password", "role:manage"];
 const ROLES: { key: string; name: string; description: string; perms: string[] }[] = [
   { key: "SUPER_ADMIN", name: "مدیر پلتفرم", description: "مدیر پلتفرم — همه سازمان‌ها (با انتخاب سازمان)", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...PERM.USER, ...PERM.REPORT, ...PERM.SETTINGS] },
   { key: "ADMIN", name: "مدیر سازمان", description: "مدیریت کامل سازمان به جز نقش‌های سیستم", perms: [...PERM.MEETING, ...PERM.ROOM, ...PERM.BRANCH, ...USER_ADMIN, ...PERM.REPORT, ...PERM.SETTINGS] },

@@ -4,7 +4,7 @@
  * ابزارهای مدیریتی کاربر — مودال‌های ساخت/ویرایش/بازنشانی رمز + اکشن‌های فعال‌سازی.
  * از /admin/users استخراج شده تا در جدول تب «اعضای شرکت» هم استفاده شود.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, type ApiError } from "@/lib/api";
 import { Modal } from "@/components/ui/modal";
@@ -15,8 +15,17 @@ import { useAuth } from "@/lib/auth-store";
 import { cn, faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
 import type { Colleague } from "@/lib/colleague-directory";
+import { Check, ChevronDown } from "@/components/ui/icon";
+import { faNum } from "@/lib";
 
-interface RoleOption { key: string; name: string }
+interface RoleOption {
+  key: string;
+  name: string;
+  description?: string | null;
+  isSystem?: boolean;
+  userCount?: number;
+  permissions?: { key: string; name: string; group: string }[];
+}
 interface BranchOption { id: string; name: string }
 
 export const emptyCreateForm = {
@@ -41,24 +50,142 @@ export function RolePicker({
   onChange: (keys: string[]) => void;
   disabled?: boolean;
 }) {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  // نقش‌ها بر اساس دسته‌ی اولین دسترسی‌شان گروه می‌شوند؛ بی‌دسترسی → «سایر»
+  const groups = useMemo(() => {
+    const g = new Map<string, RoleOption[]>();
+    for (const r of roles) {
+      const group = r.permissions?.[0]?.group ?? "سایر";
+      const list = g.get(group) ?? [];
+      list.push(r);
+      g.set(group, list);
+    }
+    return [...g.entries()];
+  }, [roles]);
+
+  function toggle(key: string) {
+    onChange(value.includes(key) ? value.filter((x) => x !== key) : [...value, key]);
+  }
+
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {roles.map((r) => {
-        const sel = value.includes(r.key);
+    <div className="space-y-2.5">
+      {groups.map(([group, groupRoles]) => {
+        // هر نقشِ انتخاب‌شده در این گروه؟
+        const allSelected = groupRoles.every((r) => value.includes(r.key));
+        const someSelected = groupRoles.some((r) => value.includes(r.key));
         return (
-          <button
-            key={r.key}
-            type="button"
-            disabled={disabled}
-            onClick={() => onChange(sel ? value.filter((x) => x !== r.key) : [...value, r.key])}
-            className={cn(
-              "rounded-full border px-3 py-1.5 text-[12px]",
-              disabled && "cursor-not-allowed opacity-50",
-              sel ? "border-ink bg-ink text-white" : "border-line text-ink-soft",
+          <div key={group} className="overflow-hidden rounded-lg border border-line">
+            {/* هدر گروه */}
+            <div className="flex items-center justify-between gap-2 bg-paper-soft/60 px-3 py-2">
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => setCollapsed((c) => ({ ...c, [group]: !c[group] }))}
+                className="flex items-center gap-1.5 text-[12px] font-bold text-ink"
+              >
+                <ChevronDown
+                  className={cn("h-3.5 w-3.5 transition-transform", collapsed[group] && "-rotate-90")}
+                />
+                {group}
+                <span className="font-medium text-ink-faint">({faNum(groupRoles.length)} نقش)</span>
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => {
+                  const keys = groupRoles.map((r) => r.key);
+                  onChange(allSelected ? value.filter((k) => !keys.includes(k)) : [...new Set([...value, ...keys])]);
+                }}
+                className={cn(
+                  "rounded-md px-2 py-1 text-[10.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                  allSelected ? "bg-ink text-white" : someSelected ? "bg-ink/10 text-ink" : "text-ink-soft hover:bg-paper-soft",
+                )}
+              >
+                {allSelected ? "انتخاب همه" : someSelected ? "تکمیل گروه" : "انتخاب گروه"}
+              </button>
+            </div>
+
+            {/* نقش‌ها */}
+            {!collapsed[group] && (
+              <div className="divide-y divide-line">
+                {groupRoles.map((r) => {
+                  const sel = value.includes(r.key);
+                  const perms = r.permissions ?? [];
+                  const isOpen = !!expanded[r.key];
+                  return (
+                    <div key={r.key} className={cn("transition-colors", sel && "bg-ink/[0.03]")}>
+                      <div className="flex items-center gap-2.5 px-3 py-2">
+                        {/* چک‌باکس */}
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={sel}
+                          disabled={disabled}
+                          onClick={() => toggle(r.key)}
+                          className={cn(
+                            "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+                            sel ? "border-ink bg-ink text-white" : "border-line bg-white hover:border-ink/40",
+                          )}
+                        >
+                          {sel && <Check className="h-3 w-3" />}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={disabled}
+                          onClick={() => toggle(r.key)}
+                          className="min-w-0 flex-1 text-right"
+                        >
+                          <span className="flex flex-wrap items-center gap-1.5">
+                            <span className={cn("text-[12.5px]", sel ? "font-bold text-ink" : "font-medium text-ink")}>
+                              {r.name}
+                            </span>
+                            {r.isSystem && (
+                              <span className="rounded-full bg-paper-soft px-1.5 py-0.5 text-[9px] text-ink-soft ring-1 ring-line">سیستمی</span>
+                            )}
+                            {!!r.userCount && (
+                              <span className="text-[10px] text-ink-faint">{faNum(r.userCount)} کاربر</span>
+                            )}
+                          </span>
+                          {r.description && (
+                            <span className="mt-0.5 block truncate text-[10.5px] text-ink-faint">{r.description}</span>
+                          )}
+                        </button>
+                        {/* نمایش دسترسی‌ها */}
+                        <button
+                          type="button"
+                          onClick={() => setExpanded((e) => ({ ...e, [r.key]: !e[r.key] }))}
+                          className="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-1 text-[10.5px] text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+                          title={isOpen ? "بستن دسترسی‌ها" : "نمایش دسترسی‌ها"}
+                        >
+                          <ChevronDown className={cn("h-3 w-3 transition-transform", !isOpen && "-rotate-90")} />
+                          {faNum(perms.length)} دسترسی
+                        </button>
+                      </div>
+                      {isOpen && (
+                        <div className="flex flex-wrap gap-1 px-3 pb-2.5 pr-9">
+                          {perms.length === 0 ? (
+                            <span className="text-[10.5px] text-ink-faint">بدون دسترسی</span>
+                          ) : (
+                            perms.map((p) => (
+                              <span
+                                key={p.key}
+                                className="rounded-full bg-paper-soft px-2 py-0.5 text-[10px] text-ink-soft ring-1 ring-line"
+                                title={p.key}
+                              >
+                                {p.name}
+                              </span>
+                              ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
-          >
-            {r.name}
-          </button>
+          </div>
         );
       })}
     </div>
