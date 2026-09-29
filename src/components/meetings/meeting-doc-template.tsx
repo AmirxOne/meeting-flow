@@ -154,30 +154,6 @@ export function AgendaTemplate({
       />
 
       <div className="space-y-5 p-5">
-        {/* ── اطلاعات اصلی: عنوان / دبیر / حاضر ── */}
-        {view ? (
-          <div className="grid gap-3 sm:grid-cols-4">
-            <ViewField label="عنوان" value={saved?.title || meetingTitle} span strong />
-            <ViewField label="دبیر" value={saved?.secretary} />
-            <ViewField label="حاضر" value={saved?.attendees} />
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-4">
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-[11px] font-medium text-ink-soft">عنوان</label>
-              <input value={draft?.title ?? ""} onChange={(e) => up({ title: e.target.value })} className="h-9 w-full rounded-md border border-line bg-white px-2.5 text-[12px] outline-none focus:border-ink" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-ink-soft">دبیر</label>
-              <input value={draft?.secretary ?? ""} onChange={(e) => up({ secretary: e.target.value })} placeholder="نام دبیر جلسه" className="h-9 w-full rounded-md border border-line bg-white px-2.5 text-[12px] outline-none focus:border-ink" />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-ink-soft">حاضر</label>
-              <input value={draft?.attendees ?? ""} onChange={(e) => up({ attendees: e.target.value })} placeholder="شرکت‌کنندگان" className="h-9 w-full rounded-md border border-line bg-white px-2.5 text-[12px] outline-none focus:border-ink" />
-            </div>
-          </div>
-        )}
-
         {/* ── اهداف جلسه ── */}
         <div>
           <SectionHeader icon={<Info className="h-4 w-4" />} label="اهداف جلسه" />
@@ -418,16 +394,6 @@ export function AgendaTemplate({
   );
 }
 
-function ViewField({ label, value, span, strong }: { label: string; value?: string; span?: boolean; strong?: boolean }) {
-  return (
-    <div className={span ? "sm:col-span-2" : ""}>
-      <p className="text-[10.5px] text-ink-faint">{label}</p>
-      <p className={`mt-0.5 flex min-h-9 items-center rounded-md border border-line bg-white px-2.5 py-1.5 text-[12px] ${strong ? "font-bold" : "font-medium"}`}>
-        {value || <span className="text-ink-faint">—</span>}
-      </p>
-    </div>
-  );
-}
 
 /* ═════════════════ صورت‌جلسه (مصوبات این جلسه) ═════════════════ */
 export function MinutesTemplate({
