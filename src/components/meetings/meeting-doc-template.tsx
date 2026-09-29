@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Pencil, X, Check, Info, MessageQuestion, ShieldCheck } from "@/components/ui/icon";
+import { TemplateAttachments } from "@/components/meetings/template-attachments";
 import { api } from "@/lib/api";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,7 +108,6 @@ export function AgendaTemplate({
             : [{ title: "", start: "", end: "" }],
       questions: saved?.questions ?? [{ title: "", asker: "" }],
       progress: saved?.progress ?? [],
-      appendix: saved?.appendix ?? "",
     };
     setDraft(base);
     setMode("edit");
@@ -379,22 +379,12 @@ export function AgendaTemplate({
           </div>
         </div>
 
-        {/* ── پیوست ── */}
+        {/* ── پیوست (آپلود فایل) ── */}
         <div>
           <SectionHeader icon={<Plus className="h-4 w-4" />} label="پیوست" />
-          {view ? (
-            <div className="min-h-16 rounded-b-lg border border-t-0 border-line bg-white p-3 text-[12px] leading-6">
-              {saved?.appendix || <span className="text-ink-faint">—</span>}
-            </div>
-          ) : (
-            <textarea
-              value={draft?.appendix ?? ""}
-              onChange={(e) => up({ appendix: e.target.value })}
-              rows={4}
-              className="w-full rounded-b-lg border border-t-0 border-line bg-white p-2.5 text-[12px] leading-6 outline-none focus:border-ink"
-              placeholder="محتوای پیوست…"
-            />
-          )}
+          <div className="rounded-b-lg border border-t-0 border-line bg-white p-3">
+            <TemplateAttachments meetingId={meetingId} kind="AGENDA" canManage={canEdit} />
+          </div>
         </div>
       </div>
     </Card>
@@ -439,7 +429,6 @@ export function MinutesTemplate({
       minOptionalAttendees: saved?.minOptionalAttendees ?? "",
       minManager: saved?.minManager ?? "",
       minFlow: saved?.minFlow ?? "",
-      minAppendix: saved?.minAppendix ?? "",
     });
     const base = (saved?.progress ?? [])
       .filter((p) => p.status === "مصوب این جلسه")
@@ -593,22 +582,12 @@ export function MinutesTemplate({
           </div>
         </div>
 
-        {/* ── پیوست ── */}
+        {/* ── پیوست (آپلود فایل) ── */}
         <div>
           <SectionHeader icon={<Plus className="h-4 w-4" />} label="پیوست" />
-          {view ? (
-            <div className="min-h-16 rounded-b-lg border border-t-0 border-line bg-white p-3 text-[12px] leading-6 whitespace-pre-wrap">
-              {saved?.minAppendix || <span className="text-ink-faint">—</span>}
-            </div>
-          ) : (
-            <textarea
-              value={minDraft?.minAppendix ?? ""}
-              onChange={(e) => up({ minAppendix: e.target.value })}
-              rows={4}
-              className="w-full rounded-b-lg border border-t-0 border-line bg-white p-2.5 text-[12px] leading-6 outline-none focus:border-ink"
-              placeholder="محتوای پیوست…"
-            />
-          )}
+          <div className="rounded-b-lg border border-t-0 border-line bg-white p-3">
+            <TemplateAttachments meetingId={meetingId} kind="MINUTES" canManage={canEdit} />
+          </div>
         </div>
       </div>
     </Card>

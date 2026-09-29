@@ -20,7 +20,8 @@ export async function GET(
     const { id } = await params;
     const meeting = await loadMeetingForAttachments(id, user.orgId);
     assertCanViewMeeting(user, meeting);
-    const attachments = await listAttachments(id);
+    const kind = _req.nextUrl.searchParams.get("kind") ?? undefined;
+    const attachments = await listAttachments(id, kind);
     return ok({ attachments });
   } catch (e) {
     return handleError(e);
@@ -39,11 +40,15 @@ export async function POST(
     if (!file || typeof file === "string") {
       throw new HttpError(400, "فایل انتخاب نشده است", "NO_FILE");
     }
+    const kindRaw = form.get("kind");
+    const kind = typeof kindRaw === "string" && ["GENERAL", "AGENDA", "MINUTES"].includes(kindRaw)
+      ? kindRaw
+      : "GENERAL";
     const buffer = Buffer.from(await file.arrayBuffer());
     const attachment = await uploadAttachment(id, user, {
       buffer,
       name: file.name || "file",
-    });
+    }, kind);
     await audit({
       actorId: user.id,
       action: "ATTACHMENT_UPLOAD",
@@ -52,6 +57,7 @@ export async function POST(
       newValue: {
         meetingId: id,
         originalName: attachment.originalName,
+        kind,
         mimeType: attachment.mimeType,
         sizeBytes: attachment.sizeBytes,
       },

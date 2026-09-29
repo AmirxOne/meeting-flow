@@ -12,6 +12,7 @@ import {
 
 const ATTACHMENT_PUBLIC = {
   id: true,
+  kind: true,
   originalName: true,
   mimeType: true,
   sizeBytes: true,
@@ -21,6 +22,7 @@ const ATTACHMENT_PUBLIC = {
 
 export type PublicAttachment = {
   id: string;
+  kind: string;
   originalName: string;
   mimeType: string;
   sizeBytes: number;
@@ -80,9 +82,9 @@ export async function loadMeetingForAttachments(meetingId: string, orgId: string
   return meeting;
 }
 
-export async function listAttachments(meetingId: string): Promise<PublicAttachment[]> {
+export async function listAttachments(meetingId: string, kind?: string): Promise<PublicAttachment[]> {
   return prisma.meetingAttachment.findMany({
-    where: { meetingId },
+    where: { meetingId, ...(kind ? { kind } : {}) },
     select: ATTACHMENT_PUBLIC,
     orderBy: { createdAt: "asc" },
   });
@@ -92,6 +94,7 @@ export async function uploadAttachment(
   meetingId: string,
   user: AuthUser,
   file: { buffer: Buffer; name: string },
+  kind: string = "GENERAL",
 ): Promise<PublicAttachment> {
   const meeting = await loadMeetingForAttachments(meetingId, user.orgId);
   assertCanManageAttachments(user, meeting);
@@ -121,6 +124,7 @@ export async function uploadAttachment(
         sizeBytes: file.buffer.length,
         storageKey,
         uploadedById: user.id,
+        kind,
       },
       select: ATTACHMENT_PUBLIC,
     });

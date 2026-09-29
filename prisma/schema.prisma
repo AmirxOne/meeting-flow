@@ -679,6 +679,7 @@ model MeetingAgendaItem {
 model MeetingAttachment {
   id           String   @id @default(cuid())
   meetingId    String
+  kind         String   @default("GENERAL")
   originalName String
   mimeType     String
   sizeBytes    Int

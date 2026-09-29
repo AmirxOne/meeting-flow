@@ -140,7 +140,27 @@ export function sniffAttachment(buf: Buffer, originalName: string): SniffedAttac
     return { mime: spec.mime, ext };
   }
 
-  throw new HttpError(400, "نوع فایل مجاز نیست", "FILE_TYPE");
+  /* ── فرمت‌های دیگر: بازگشت امن با mime عمومی ──
+     فایل‌های اجرایی/HTML بالاتر رد شدند؛ هر چیز دیگر با پسوند
+     شناخته‌شده پذیرفته می‌شود (متن، رسانه، آرشیو، …). */
+  const MISC_BY_EXT: Record<string, string> = {
+    txt: "text/plain", csv: "text/csv", md: "text/markdown", json: "application/json",
+    zip: "application/zip", "7z": "application/x-7z-compressed", rar: "application/vnd.rar",
+    gz: "application/gzip", tar: "application/x-tar",
+    mp3: "audio/mpeg", wav: "audio/wav", m4a: "audio/mp4", ogg: "audio/ogg",
+    mp4: "video/mp4", mov: "video/quicktime", avi: "video/x-msvideo", mkv: "video/x-matroska",
+    svg: "image/svg+xml", bmp: "image/bmp", ico: "image/x-icon", heic: "image/heic",
+    rtf: "application/rtf", eml: "message/rfc822", xml: "application/xml",
+  };
+  const miscMime = MISC_BY_EXT[ext];
+  if (!miscMime) {
+    throw new HttpError(400, "نوع فایل مجاز نیست", "FILE_TYPE");
+  }
+  // zip-family باید واقعاً zip باشد
+  if (["zip", "7z", "rar", "gz", "tar"].includes(ext) && startsWith(buf, MZ)) {
+    throw new HttpError(400, "پسوند با محتوای فایل هم‌خوان نیست", "FILE_TYPE");
+  }
+  return { mime: miscMime, ext };
 }
 
 export function sanitizeOriginalName(name: string): string {
