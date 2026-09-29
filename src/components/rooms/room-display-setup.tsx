@@ -42,6 +42,9 @@ export function RoomDisplaySetup({ roomId }: { roomId: string }) {
 
   if (!enabledQuery) return null;
 
+  // نمایشگر خاموش است — باکس «نمایشگر تبلت کنار در» در جزئیات اتاق نشان داده نشود
+  // (فعال‌سازی از طریق منوی اتاق یا دکمه‌ی «فعال‌سازی نمایشگر» در همین باکس هنگام روشن بودن انجام می‌شود)
+
   async function rotate() {
     setBusy(true);
     try {
@@ -82,6 +85,9 @@ export function RoomDisplaySetup({ roomId }: { roomId: string }) {
 
   const url = fresh?.url;
   const code = fresh?.displayCode ?? data?.displayCode;
+
+  // باکس فقط وقتی نمایشگر فعال (یا هنوز در حال بارگذاری وضعیت) باشد رندر شود
+  if (!isLoading && !data?.enabled && !fresh) return null;
 
   return (
     <Card data-tour="room-display">
