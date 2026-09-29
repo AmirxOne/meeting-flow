@@ -237,16 +237,6 @@ function WayfindingCard({
           </div>
         )}
       </dl>
-      {wayfinding.hasMap && (
-        // Guest map is a public API stream — native img, not next/image.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/api/checkin/${encodeURIComponent(code)}/map`}
-          alt="نقشه مسیر شعبه"
-          data-testid="checkin-map"
-          className="mx-auto max-h-56 w-full rounded-lg border border-line bg-white object-contain"
-        />
-      )}
     </div>
   );
 }

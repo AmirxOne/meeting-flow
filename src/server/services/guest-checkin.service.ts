@@ -2,8 +2,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "@/server/db";
 import { HttpError } from "@/server/auth/session";
 import { audit } from "@/server/http";
-import { buildWayfinding, preferFloorMapKey, type WayfindingDto } from "@/lib/wayfinding";
-import { readAttachmentBuffer } from "@/server/services/attachment-storage";
+import { buildWayfinding, type WayfindingDto } from "@/lib/wayfinding";
 
 const CHECKIN_STATUSES = new Set([
   "APPROVED",
@@ -88,21 +87,6 @@ export function wayfindingFromGuest(guest: CheckinGuestRow): WayfindingDto {
     floorDirections: floor?.wayfindingText ?? null,
     floorHasMap: !!floor?.mapStorageKey,
   });
-}
-
-export async function readCheckinMap(code: string): Promise<{ body: Buffer; mimeType: string }> {
-  const guest = await getGuestByCheckinCode(code);
-  const floor = guest.meeting.room?.floor ?? null;
-  const picked = preferFloorMapKey({
-    floorKey: floor?.mapStorageKey,
-    branchKey: guest.meeting.branch?.mapStorageKey,
-  });
-  if (!picked) throw new HttpError(404, "نقشه‌ای برای این جلسه ثبت نشده است", "NO_MAP");
-  const mime =
-    picked.source === "floor" ? floor?.mapMimeType : guest.meeting.branch?.mapMimeType;
-  if (!mime) throw new HttpError(404, "نقشه‌ای برای این جلسه ثبت نشده است", "NO_MAP");
-  const body = await readAttachmentBuffer(picked.storageKey);
-  return { body, mimeType: mime };
 }
 
 export interface CheckinGuestOptions {
