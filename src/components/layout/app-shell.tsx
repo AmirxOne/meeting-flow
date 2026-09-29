@@ -458,10 +458,16 @@ function SidebarNavParent({
           <Icon className="h-4 w-4" />
         </span>
         <span className="min-w-0 flex-1 truncate text-right">{label}</span>
-        {queueOpen > 0 && (
-          <span className="flex h-4.5 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+        {href === "/admin" && queueOpen > 0 && (
+          <motion.span
+            key={queueOpen}
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={easeOut}
+            className="mr-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white"
+          >
             {faNum(queueOpen)}
-          </span>
+          </motion.span>
         )}
         <motion.span
           animate={{ rotate: open ? 0 : 90 }}
@@ -521,7 +527,7 @@ function SidebarNavParent({
                   />
                   <span className="min-w-0 truncate">{c.label}</span>
                   {c.href === "/meeting-requests/queue" && queueOpen > 0 && (
-                    <span className="mr-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+                    <span className="mr-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
                       {faNum(queueOpen)}
                     </span>
                   )}
