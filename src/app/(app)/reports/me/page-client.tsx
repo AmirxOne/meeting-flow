@@ -178,9 +178,9 @@ export function MyReportsClient() {
                     return <p className="text-[12px] text-ink-faint">موضوع تکراری ندارید</p>;
                   return (
                     <div className="flex flex-wrap gap-2">
-                      {topics.map((t) => (
+                      {topics.map((t, i) => (
                         <span
-                          key={t.title}
+                          key={`topic-${i}-${t.title}`}
                           className="rounded-full border border-line bg-paper-soft px-3 py-1.5 text-[12px]"
                         >
                           {t.title} <span className="text-ink-faint">×{faNum(t.count)}</span>
