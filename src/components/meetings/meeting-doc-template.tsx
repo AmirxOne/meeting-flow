@@ -507,35 +507,6 @@ export function MinutesTemplate({
       />
 
       <div className="space-y-5 p-5">
-        {/* ── اطلاعات اصلی ── */}
-        {view ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <MinField label="موضوع / عنوان" value={saved?.minTitle || meetingTitle} span strong />
-            <MinField label="حاضرین" value={saved?.minAttendees} span />
-            <MinField label="حاضرین اختیاری" value={saved?.minOptionalAttendees} />
-            <MinField label="مدیر جلسه" value={saved?.minManager} />
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-[11px] font-medium text-ink-soft">موضوع / عنوان</label>
-              <input value={minDraft?.minTitle ?? ""} onChange={(e) => up({ minTitle: e.target.value })} className={inp} />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-[11px] font-medium text-ink-soft">حاضرین</label>
-              <input value={minDraft?.minAttendees ?? ""} onChange={(e) => up({ minAttendees: e.target.value })} placeholder="نام حاضرین" className={inp} />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-ink-soft">حاضرین اختیاری</label>
-              <input value={minDraft?.minOptionalAttendees ?? ""} onChange={(e) => up({ minOptionalAttendees: e.target.value })} className={inp} />
-            </div>
-            <div>
-              <label className="mb-1 block text-[11px] font-medium text-ink-soft">مدیر جلسه</label>
-              <input value={minDraft?.minManager ?? ""} onChange={(e) => up({ minManager: e.target.value })} className={inp} />
-            </div>
-          </div>
-        )}
-
         {/* ── روند جلسه ── */}
         <div>
           <SectionHeader icon={<ShieldCheck className="h-4 w-4" />} label="روند جلسه" />
@@ -644,13 +615,3 @@ export function MinutesTemplate({
   );
 }
 
-function MinField({ label, value, span, strong }: { label: string; value?: string; span?: boolean; strong?: boolean }) {
-  return (
-    <div className={span ? "sm:col-span-2" : ""}>
-      <p className="text-[10.5px] text-ink-faint">{label}</p>
-      <p className={`mt-0.5 flex min-h-9 items-center rounded-md border border-line bg-white px-2.5 py-1.5 text-[12px] ${strong ? "font-bold" : "font-medium"}`}>
-        {value || <span className="text-ink-faint">—</span>}
-      </p>
-    </div>
-  );
-}
