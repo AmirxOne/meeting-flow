@@ -35,6 +35,13 @@ const templateSchema = z.object({
     )
     .max(40)
     .optional(),
+  /** فرم صورت‌جلسه */
+  minTitle: z.string().trim().max(300).optional(),
+  minAttendees: z.string().trim().max(2000).optional(),
+  minOptionalAttendees: z.string().trim().max(2000).optional(),
+  minManager: z.string().trim().max(120).optional(),
+  minFlow: z.string().trim().max(8000).optional(),
+  minAppendix: z.string().trim().max(8000).optional(),
 });
 
 /** GET — فرم رسمی جلسه */

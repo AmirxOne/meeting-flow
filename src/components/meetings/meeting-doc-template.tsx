@@ -43,6 +43,13 @@ export interface DocTemplateData {
   progress?: { decision: string; owner: string; due: string; status?: string }[];
   /** پیوست */
   appendix?: string;
+  /** فرم صورت‌جلسه */
+  minTitle?: string;
+  minAttendees?: string;
+  minOptionalAttendees?: string;
+  minManager?: string;
+  minFlow?: string;
+  minAppendix?: string;
 }
 
 /* ── هدر بخش با پس‌زمینه سبزآبی مثل تمپلیت ── */
@@ -395,12 +402,11 @@ export function AgendaTemplate({
 }
 
 
-/* ═════════════════ صورت‌جلسه (مصوبات این جلسه) ═════════════════ */
+/* ═════════════════ فرم صورت‌جلسه ═════════════════ */
 export function MinutesTemplate({
   meetingId,
   meetingTitle,
   canEdit,
-  initialDecisions,
 }: {
   meetingId: string;
   meetingTitle: string;
@@ -422,10 +428,19 @@ export function MinutesTemplate({
   });
   const saved = tpl?.template;
 
-  // مصوبات این جلسه: ردیف‌هایی از progress که status «مصوب این جلسه» دارند یا مصوبات مستقل
+  const [minDraft, setMinDraft] = useState<DocTemplateData | null>(null);
   const [rows, setRows] = useState<{ text: string; owner: string; due: string }[]>([]);
 
   function startEdit() {
+    setMinDraft({
+      ...(saved ?? {}),
+      minTitle: saved?.minTitle ?? meetingTitle,
+      minAttendees: saved?.minAttendees ?? "",
+      minOptionalAttendees: saved?.minOptionalAttendees ?? "",
+      minManager: saved?.minManager ?? "",
+      minFlow: saved?.minFlow ?? "",
+      minAppendix: saved?.minAppendix ?? "",
+    });
     const base = (saved?.progress ?? [])
       .filter((p) => p.status === "مصوب این جلسه")
       .map((p) => ({ text: p.decision, owner: p.owner, due: p.due }));
@@ -434,6 +449,7 @@ export function MinutesTemplate({
   }
 
   async function save() {
+    if (!minDraft) return;
     setBusy(true);
     try {
       const previous = (saved?.progress ?? []).filter((p) => p.status !== "مصوب این جلسه");
@@ -442,9 +458,9 @@ export function MinutesTemplate({
       }));
       await api(`/api/meetings/${meetingId}/doc-template`, {
         method: "PUT",
-        json: { ...saved, progress: [...previous, ...newOnes] },
+        json: { ...saved, ...minDraft, progress: [...previous, ...newOnes] },
       });
-      push("صورت‌جلسه ذخیره شد", "success");
+      push("فرم صورت‌جلسه ذخیره شد", "success");
       setMode("view");
       await qc.invalidateQueries({ queryKey: ["doc-template", meetingId] });
     } catch (e) {
@@ -454,18 +470,22 @@ export function MinutesTemplate({
     }
   }
 
+  const up = (patch: Partial<DocTemplateData>) => setMinDraft((d) => (d ? { ...d, ...patch } : d));
+  const view = mode === "view";
   const viewRows = (saved?.progress ?? [])
     .filter((p) => p.status === "مصوب این جلسه")
     .map((p) => ({ text: p.decision, owner: p.owner, due: p.due }));
+
+  const inp = "h-9 w-full rounded-md border border-line bg-white px-2.5 text-[12px] outline-none focus:border-ink";
 
   return (
     <Card data-testid="minutes-template">
       <CardHeader
         title="صورت‌جلسه"
-        subtitle="مصوبه · مسئول · مهلت"
+        subtitle="روند جلسه · مصوبات · پیوست"
         action={
           canEdit ? (
-            mode === "view" ? (
+            view ? (
               <Button size="sm" variant="outline" data-testid="minutes-tpl-edit" onClick={startEdit}>
                 <Pencil className="h-4 w-4" />
                 پر کردن فرم
@@ -485,65 +505,152 @@ export function MinutesTemplate({
           ) : undefined
         }
       />
-      <div className="p-5">
-        {mode === "view" ? (
-          <table className="w-full border-collapse text-right">
-            <thead>
-              <tr className="bg-paper-soft">
-                <th className="w-12 border border-line px-2 py-2 text-[11px] font-bold">ردیف</th>
-                <th className="border border-line px-3 py-2 text-[11px] font-bold">مصوبه</th>
-                <th className="w-40 border border-line px-3 py-2 text-[11px] font-bold">مسئول</th>
-                <th className="w-28 border border-line px-3 py-2 text-[11px] font-bold">مهلت</th>
-              </tr>
-            </thead>
-            <tbody>
-              {viewRows.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="border border-line px-3 py-6 text-center text-[12px] text-ink-faint">
-                    هنوز مصوبه‌ای ثبت نشده — {canEdit ? "با «پر کردن فرم» جدول را تکمیل کنید" : "صورت‌جلسه هنوز تکمیل نشده است"}
-                  </td>
-                </tr>
-              ) : (
-                viewRows.map((r, i) => (
-                  <tr key={i} className="hover:bg-paper-soft/50">
-                    <td className="border border-line px-2 py-2 text-center text-[12px] font-bold">{faNum(i + 1)}</td>
-                    <td className="border border-line px-3 py-2 text-[12px]">{r.text}</td>
-                    <td className="border border-line px-3 py-2 text-[12px]">{r.owner || "—"}</td>
-                    <td className="border border-line px-3 py-2 text-[12px]">{r.due || "—"}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+
+      <div className="space-y-5 p-5">
+        {/* ── اطلاعات اصلی ── */}
+        {view ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <MinField label="موضوع / عنوان" value={saved?.minTitle || meetingTitle} span strong />
+            <MinField label="حاضرین" value={saved?.minAttendees} span />
+            <MinField label="حاضرین اختیاری" value={saved?.minOptionalAttendees} />
+            <MinField label="مدیر جلسه" value={saved?.minManager} />
+          </div>
         ) : (
-          <div className="space-y-2.5">
-            {rows.map((row, i) => (
-              <div key={i} className="flex items-end gap-2">
-                <span className="mb-2 w-6 shrink-0 text-center text-[12px] font-bold text-ink-faint">{faNum(i + 1)}</span>
-                <div className="min-w-0 flex-1">
-                  <label className="mb-1 block text-[10.5px] text-ink-faint">مصوبه</label>
-                  <input value={row.text} onChange={(e) => setRows((arr) => arr.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} placeholder="متن مصوبه" className="h-9 w-full rounded-md border border-line bg-white px-2.5 text-[12px] outline-none focus:border-ink" />
-                </div>
-                <div className="w-40 shrink-0">
-                  <label className="mb-1 block text-[10.5px] text-ink-faint">مسئول</label>
-                  <input value={row.owner} onChange={(e) => setRows((arr) => arr.map((x, j) => (j === i ? { ...x, owner: e.target.value } : x)))} placeholder="نام و نام‌خانوادگی" className="h-9 w-full rounded-md border border-line bg-white px-2.5 text-[12px] outline-none focus:border-ink" />
-                </div>
-                <div className="w-32 shrink-0">
-                  <label className="mb-1 block text-[10.5px] text-ink-faint">مهلت</label>
-                  <input value={row.due} onChange={(e) => setRows((arr) => arr.map((x, j) => (j === i ? { ...x, due: e.target.value } : x)))} placeholder="۱۴۰۵/۰۷/۰۱" className="h-9 w-full rounded-md border border-line bg-white px-2.5 text-[12px] outline-none focus:border-ink" />
-                </div>
-                <button type="button" aria-label={`حذف ردیف ${faNum(i + 1)}`} onClick={() => setRows((arr) => arr.filter((_, j) => j !== i))} className="mb-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint transition hover:border-danger/40 hover:text-danger">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <button type="button" onClick={() => setRows((arr) => [...arr, { text: "", owner: "", due: "" }])} className="flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-[11.5px] font-medium text-ink-soft transition hover:border-accent/50 hover:text-accent">
-              <Plus className="h-4 w-4" />
-              افزودن مصوبه
-            </button>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-[11px] font-medium text-ink-soft">موضوع / عنوان</label>
+              <input value={minDraft?.minTitle ?? ""} onChange={(e) => up({ minTitle: e.target.value })} className={inp} />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-[11px] font-medium text-ink-soft">حاضرین</label>
+              <input value={minDraft?.minAttendees ?? ""} onChange={(e) => up({ minAttendees: e.target.value })} placeholder="نام حاضرین" className={inp} />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-ink-soft">حاضرین اختیاری</label>
+              <input value={minDraft?.minOptionalAttendees ?? ""} onChange={(e) => up({ minOptionalAttendees: e.target.value })} className={inp} />
+            </div>
+            <div>
+              <label className="mb-1 block text-[11px] font-medium text-ink-soft">مدیر جلسه</label>
+              <input value={minDraft?.minManager ?? ""} onChange={(e) => up({ minManager: e.target.value })} className={inp} />
+            </div>
           </div>
         )}
+
+        {/* ── روند جلسه ── */}
+        <div>
+          <SectionHeader icon={<ShieldCheck className="h-4 w-4" />} label="روند جلسه" />
+          {view ? (
+            <div className="min-h-16 rounded-b-lg border border-t-0 border-line bg-white p-3 text-[12px] leading-6 whitespace-pre-wrap">
+              {saved?.minFlow || <span className="text-ink-faint">—</span>}
+            </div>
+          ) : (
+            <textarea
+              value={minDraft?.minFlow ?? ""}
+              onChange={(e) => up({ minFlow: e.target.value })}
+              rows={4}
+              className="w-full rounded-b-lg border border-t-0 border-line bg-white p-2.5 text-[12px] leading-6 outline-none focus:border-ink"
+              placeholder="روند برگزاری جلسه…"
+            />
+          )}
+        </div>
+
+        {/* ── مصوبات (۴ ستون) ── */}
+        <div>
+          <SectionHeader icon={<Check className="h-4 w-4" />} label="مصوبات" />
+          <div className="overflow-x-auto rounded-b-lg border border-t-0 border-line bg-white">
+            <table className="w-full border-collapse text-right">
+              <thead>
+                <tr className="bg-paper-soft">
+                  <th className="w-12 border border-line px-2 py-2 text-[11px] font-bold">ردیف</th>
+                  <th className="border border-line px-3 py-2 text-[11px] font-bold">مصوبه</th>
+                  <th className="w-40 border border-line px-3 py-2 text-[11px] font-bold">مسئول</th>
+                  <th className="w-28 border border-line px-3 py-2 text-[11px] font-bold">مهلت</th>
+                  {view ? null : <th className="w-10 border border-line px-1 py-2" />}
+                </tr>
+              </thead>
+              <tbody>
+                {view ? (
+                  viewRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="border border-line px-3 py-5 text-center text-[11.5px] text-ink-faint">
+                        {canEdit ? "با «پر کردن فرم» مصوبات را ثبت کنید" : "هنوز مصوبه‌ای ثبت نشده"}
+                      </td>
+                    </tr>
+                  ) : (
+                    viewRows.map((r, i) => (
+                      <tr key={i} className="hover:bg-paper-soft/50">
+                        <td className="border border-line px-2 py-2 text-center text-[12px] font-bold">{faNum(i + 1)}</td>
+                        <td className="border border-line px-3 py-2 text-[12px]">{r.text}</td>
+                        <td className="border border-line px-3 py-2 text-[12px]">{r.owner || "—"}</td>
+                        <td className="border border-line px-3 py-2 text-[12px]">{r.due || "—"}</td>
+                      </tr>
+                    ))
+                  )
+                ) : (
+                  <>
+                    {rows.map((r, i) => (
+                      <tr key={i}>
+                        <td className="border border-line px-2 py-1.5 text-center text-[12px] font-bold">{faNum(i + 1)}</td>
+                        <td className="border border-line p-1">
+                          <input value={r.text} onChange={(e) => setRows((arr) => arr.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))} className="h-8 w-full rounded border border-line bg-white px-2 text-[12px] outline-none focus:border-ink" placeholder="متن مصوبه" />
+                        </td>
+                        <td className="border border-line p-1">
+                          <input value={r.owner} onChange={(e) => setRows((arr) => arr.map((x, j) => (j === i ? { ...x, owner: e.target.value } : x)))} className="h-8 w-full rounded border border-line bg-white px-2 text-[12px] outline-none focus:border-ink" placeholder="نام و نام‌خانوادگی" />
+                        </td>
+                        <td className="border border-line p-1">
+                          <input value={r.due} onChange={(e) => setRows((arr) => arr.map((x, j) => (j === i ? { ...x, due: e.target.value } : x)))} className="h-8 w-full rounded border border-line bg-white px-2 text-[12px] outline-none focus:border-ink" placeholder="۱۴۰۵/۰۷/۰۱" />
+                        </td>
+                        <td className="border border-line px-1 py-1.5 text-center">
+                          <button type="button" aria-label={`حذف مصوبه ${faNum(i + 1)}`} onClick={() => setRows((arr) => arr.filter((_, j) => j !== i))} className="text-ink-faint transition hover:text-red-600">
+                            <Trash2 className="mx-auto h-3.5 w-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr>
+                      <td colSpan={5} className="border border-line p-1.5">
+                        <button type="button" onClick={() => setRows((arr) => [...arr, { text: "", owner: "", due: "" }])} className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
+                          <Plus className="h-3.5 w-3.5" />
+                          افزودن مصوبه
+                        </button>
+                      </td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ── پیوست ── */}
+        <div>
+          <SectionHeader icon={<Plus className="h-4 w-4" />} label="پیوست" />
+          {view ? (
+            <div className="min-h-16 rounded-b-lg border border-t-0 border-line bg-white p-3 text-[12px] leading-6 whitespace-pre-wrap">
+              {saved?.minAppendix || <span className="text-ink-faint">—</span>}
+            </div>
+          ) : (
+            <textarea
+              value={minDraft?.minAppendix ?? ""}
+              onChange={(e) => up({ minAppendix: e.target.value })}
+              rows={4}
+              className="w-full rounded-b-lg border border-t-0 border-line bg-white p-2.5 text-[12px] leading-6 outline-none focus:border-ink"
+              placeholder="محتوای پیوست…"
+            />
+          )}
+        </div>
       </div>
     </Card>
+  );
+}
+
+function MinField({ label, value, span, strong }: { label: string; value?: string; span?: boolean; strong?: boolean }) {
+  return (
+    <div className={span ? "sm:col-span-2" : ""}>
+      <p className="text-[10.5px] text-ink-faint">{label}</p>
+      <p className={`mt-0.5 flex min-h-9 items-center rounded-md border border-line bg-white px-2.5 py-1.5 text-[12px] ${strong ? "font-bold" : "font-medium"}`}>
+        {value || <span className="text-ink-faint">—</span>}
+      </p>
+    </div>
   );
 }
