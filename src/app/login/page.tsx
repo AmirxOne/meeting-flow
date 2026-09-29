@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: { absolute: "ورود به حساب — مهرسا" },
-  description: "ورود به سامانه‌ی مدیریت جلسات مهرسا با ایمیل یا شماره موبایل سازمانی.",
-  alternates: { canonical: "/login" },
-  robots: { index: false },
-};
-
+import { serverOrgName } from "@/lib/server-org-name";
 import { redirect } from "next/navigation";
 import { platformNeedsSetup } from "@/server/services/platform-setup.service";
 import { LoginPage } from "./page-client";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const org = await serverOrgName();
+  return {
+    title: { absolute: `ورود به حساب — ${org}` },
+    description: `ورود به سامانه‌ی مدیریت جلسات ${org} با ایمیل یا شماره موبایل سازمانی.`,
+    alternates: { canonical: "/login" },
+    robots: { index: false },
+  };
+}
 
 export default async function Page() {
   if (await platformNeedsSetup()) redirect("/start");

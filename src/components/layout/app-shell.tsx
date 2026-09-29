@@ -17,6 +17,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { replayCurrentTour } from "@/components/guided-tours";
 import { OrgBrandMark, BrandLogoSkeleton } from "@/components/layout/org-brand-mark";
+import { useOrgDocumentTitle } from "@/lib/org-branding";
+import { NAV } from "@/lib/nav";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
 /** بستن منوی کاربر با کلیک بیرون — روی document چون stacking context های
@@ -86,6 +88,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [userMenu]);
   const unread = useUnreadCount();
   const { orgName, logoUrl } = useOrgBranding();
+
+  // عنوان تب مرورگر: «صفحه | نام سازمان» — از تنظیمات ادمین
+  const pageTitle = (() => {
+    const exact = NAV.find((n) => "href" in n && n.href === pathname);
+    if (exact) return exact.label;
+    const prefix = NAV.filter((n) => "href" in n && pathname.startsWith(n.href + "/"))[0];
+    if (prefix) return prefix.label;
+    return undefined;
+  })();
+  useOrgDocumentTitle(pageTitle);
 
   useEffect(() => {
     if (!loaded) refresh();

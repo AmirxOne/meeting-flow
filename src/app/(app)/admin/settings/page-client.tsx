@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Building2 } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
+import { invalidateOrgBranding } from "@/lib/org-branding";
 import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -76,6 +77,7 @@ export function AdminSettingsPage() {
       push("اطلاعات سازمان ذخیره شد", "success");
       qc.invalidateQueries({ queryKey: ["organization"] });
       qc.invalidateQueries({ queryKey: ["organization-branding"] });
+      invalidateOrgBranding(); // عنوان تب و همه‌ی استفاده‌های نام سازمان تازه شود
     } catch (e) {
       push((e as ApiError).message, "error");
     } finally {

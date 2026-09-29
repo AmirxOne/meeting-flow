@@ -242,7 +242,7 @@ export function LoginPage() {
               <p className="mt-6 text-[11px] font-medium tracking-wide text-white/55">
                 سیستم مدیریت جلسات سازمانی
               </p>
-              <h1 className="mt-1.5 text-[28px] font-bold leading-tight">مهرسا</h1>
+              <h1 className="mt-1.5 text-[28px] font-bold leading-tight">{orgName || "مهرسا"}</h1>
               {orgName ? (
                 <p className="mt-1 text-[13px] text-white/80">{orgName}</p>
               ) : null}
