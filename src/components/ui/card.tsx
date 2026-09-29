@@ -87,19 +87,43 @@ export function EmptyState({
   title,
   description,
   action,
+  compact = false,
 }: {
   icon?: React.ReactNode;
   title: string;
   description?: string;
   action?: React.ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 px-6 py-14 text-center">
-      {icon && <div className="mb-1 text-ink-faint">{icon}</div>}
-      <p className="text-[14px] font-medium">{title}</p>
-      {description && <p className="max-w-sm text-[12px] text-ink-soft">{description}</p>}
-      {action && <div className="mt-2">{action}</div>}
+    <div
+      className={
+        "relative flex flex-col items-center justify-center gap-2 px-6 text-center " +
+        (compact ? "py-8" : "py-14")
+      }
+    >
+      {/* هاله‌ی نرم پشت آیکون */}
+      <div className="relative mb-3 flex items-center justify-center">
+        <div className="absolute size-16 rounded-full bg-paper-soft" />
+        <div className="absolute size-16 animate-pulse rounded-full bg-paper-soft/60" style={{ animationDuration: "3s" }} />
+        <div className="relative flex size-12 items-center justify-center rounded-2xl border border-line bg-white text-ink-faint shadow-sm">
+          {icon ?? <EmptyGlyph />}
+        </div>
+      </div>
+      <p className="text-[14px] font-semibold text-ink">{title}</p>
+      {description && <p className="max-w-sm text-[12px] leading-6 text-ink-soft">{description}</p>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
+  );
+}
+
+/** آیکون خالی پیش‌فرض — نقطه‌چین دایره‌ای با خط میانی، سبک مینیمال */
+function EmptyGlyph() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="8.25" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2.5 3" strokeLinecap="round" />
+      <path d="M8.5 12h7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
   );
 }
 

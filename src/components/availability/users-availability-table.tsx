@@ -11,7 +11,7 @@ import { ContextMenuOpen, type ContextMenuItem } from "@/components/ui/context-m
 import { useToast } from "@/components/ui/toast";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn, faNum } from "@/lib";
-import { CalendarDays, Check, ChevronDown, Clock, KeyRound, Menu as MoreVertical, Pencil, Power, Settings2, UserPlus, UserX } from "@/components/ui/icon";
+import { CalendarDays, Check, ChevronDown, Clock, KeyRound, Menu as MoreVertical, Pencil, Power, Settings2, UserPlus, UserX, UsersRound } from "@/components/ui/icon";
 import type { Colleague } from "@/lib/colleague-directory";
 
 /**
@@ -281,7 +281,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
             ))}
           </div>
         ) : users.length === 0 ? (
-          <EmptyState title="کاربری یافت نشد" description="فیلتر یا جستجو را عوض کنید" />
+          <EmptyState icon={<UsersRound className="h-6 w-6" />} title="کاربری یافت نشد" description="فیلتر یا جستجو را عوض کنید" compact />
         ) : (
           <div className="divide-y divide-line">
             {users.map((u, rowIdx) => {

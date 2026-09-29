@@ -98,7 +98,7 @@ export function MyReportsClient() {
               <CardHeader title="ساعت جلسات ماهانه" />
               <CardBody>
                 {me.series.length === 0 ? (
-                  <EmptyState title="داده‌ای نیست" description="در این بازه جلسه‌ای ثبت نشده" />
+                  <EmptyState title="داده‌ای نیست" description="در این بازه جلسه‌ای ثبت نشده" compact />
                 ) : (
                   <MonthlyBars series={me.series} />
                 )}
@@ -110,7 +110,7 @@ export function MyReportsClient() {
               <CardHeader title="بیشترین جلسات با…" />
               <CardBody>
                 {me.topPeople.length === 0 ? (
-                  <EmptyState title="همکار جلسه‌ای ندارید" description="هنوز با کسی جلسه مشترک نداشته‌اید" />
+                  <EmptyState title="همکار جلسه‌ای ندارید" description="هنوز با کسی جلسه مشترک نداشته‌اید" compact />
                 ) : (
                   <div className="space-y-2.5">
                     {me.topPeople.map((p, i) => (

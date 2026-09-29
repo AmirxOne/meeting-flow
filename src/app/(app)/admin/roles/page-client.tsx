@@ -174,7 +174,7 @@ export function AdminRolesPage() {
         <CardHeader title={`${faNum(roles.length)} نقش`} subtitle="دسترسی‌ها از کاتالوگ PERMISSIONS" />
         <CardBody className="divide-y divide-line p-0">
           {roles.length === 0 ? (
-            <EmptyState title="نقشی یافت نشد" description="با seed نقش‌های پیش‌فرض ساخته می‌شوند." />
+            <EmptyState title="نقشی یافت نشد" description="با seed نقش‌های پیش‌فرض ساخته می‌شوند." compact />
           ) : (
             roles.map((role) => (
               <div key={role.id} className="flex flex-wrap items-start gap-3 px-5 py-4">

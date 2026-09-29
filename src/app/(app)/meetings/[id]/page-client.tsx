@@ -300,7 +300,7 @@ export function MeetingDetailPage() {
     return (
       <div className="p-6">
         <Card className="p-6 text-center">
-          <EmptyState title="جلسه یافت نشد یا دسترسی ندارید" />
+          <EmptyState title="جلسه یافت نشد یا دسترسی ندارید" description="ممکن است جلسه حذف شده باشد یا لینک اشتباه باشد" />
         </Card>
       </div>
     );

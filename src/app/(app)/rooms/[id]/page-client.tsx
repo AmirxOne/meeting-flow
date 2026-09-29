@@ -1,5 +1,7 @@
 "use client";
 
+import { CalendarDays } from "@/components/ui/icon";
+
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
@@ -153,7 +155,11 @@ export function RoomDetailPage() {
           />
           <CardBody>
             {meetings.length === 0 ? (
-              <EmptyState title="امروز جلسه‌ای در این اتاق نیست" />
+              <EmptyState
+                icon={<CalendarDays className="h-6 w-6" />}
+                title="امروز جلسه‌ای در این اتاق نیست"
+                description="برنامه‌ی این اتاق برای امروز خالی است — جلسات آینده را در تقویم ببینید"
+              />
             ) : (
               <>
                 {/* Outlook-style day bar — colored blocks with titles, now-marker */}
