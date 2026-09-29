@@ -174,7 +174,7 @@ export function RoomDetailPage() {
             <button
               type="button"
               onClick={() => setEditOpen(true)}
-              className="flex h-9 items-center gap-1.5 rounded-lg bg-ink px-3.5 text-[12px] font-medium text-white transition-colors hover:bg-ink/85"
+              className="flex h-10 items-center gap-1.5 rounded-lg bg-ink px-3.5 text-[12px] font-medium text-white transition-colors hover:bg-ink/85"
             >
               <Pencil className="h-3.5 w-3.5" />
               ویرایش اتاق

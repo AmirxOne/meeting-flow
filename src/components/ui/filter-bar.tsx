@@ -32,7 +32,7 @@ function FilterDropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          "flex h-9 items-center gap-2 rounded-md border bg-white px-3 text-[12px] transition-colors",
+          "flex h-10 items-center gap-2 rounded-md border bg-white px-3 text-[12px] transition-colors",
           open
             ? "border-ink shadow-[0_0_0_3px_rgba(13,13,13,0.08)]"
             : isFiltered
@@ -143,7 +143,7 @@ export function FilterBar({
             for (const g of groups) cleared[g.key] = "";
             onChange(cleared);
           }}
-          className="mr-1 flex h-9 items-center gap-1 rounded-md px-2.5 text-[11.5px] text-ink-faint transition-colors hover:bg-red-50 hover:text-red-600"
+          className="mr-1 flex h-10 items-center gap-1 rounded-md px-2.5 text-[11.5px] text-ink-faint transition-colors hover:bg-red-50 hover:text-red-600"
         >
           <SlidersHorizontal className="h-3.5 w-3.5" />
           پاک کردن ({activeCount})

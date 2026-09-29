@@ -139,7 +139,7 @@ export function OrgSetupPage() {
             type="button"
             data-testid="setup-help-toggle"
             onClick={() => setHelpOpen((v) => !v)}
-            className="flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] text-ink-soft transition hover:text-ink"
+            className="flex h-10 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] text-ink-soft transition hover:text-ink"
           >
             <MessageQuestion className="h-4 w-4" />
             راهنما

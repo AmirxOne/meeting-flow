@@ -465,7 +465,7 @@ export function CalendarPage() {
           <JalaliDatePicker variant="icon" value={selectedIso} onChange={jumpToIso} className="shrink-0" />
           <button
             onClick={goToday}
-            className="inline-flex h-9 items-center rounded-md border border-line bg-white px-3 text-[11px] font-medium text-ink-soft hover:bg-paper-soft"
+            className="inline-flex h-10 items-center rounded-md border border-line bg-white px-3 text-[11px] font-medium text-ink-soft hover:bg-paper-soft"
           >
             امروز
           </button>
@@ -475,18 +475,18 @@ export function CalendarPage() {
           {data?.seeAll && (
             <div className="flex overflow-hidden rounded-md border border-line">
               {([["all", "شرکت"], ["mine", "من"]] as const).map(([k, l]) => (
-                <button key={k} onClick={() => setScope(k)} className={cn("px-3 py-1.5 text-[12px]", scope === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
+                <button key={k} onClick={() => setScope(k)} className={cn("flex h-10 items-center px-3 text-[12px]", scope === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
               ))}
             </div>
           )}
           <div data-tour="cal-views" className="flex overflow-hidden rounded-md border border-line">
             {([["month", "ماه"], ["week", "هفته"], ["day", "روز"]] as const).map(([k, l]) => (
-              <button key={k} onClick={() => setView(k)} className={cn("px-3 py-1.5 text-[12px]", view === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
+              <button key={k} onClick={() => setView(k)} className={cn("flex h-10 items-center px-3 text-[12px]", view === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
             ))}
           </div>
           <div className="flex overflow-hidden rounded-md border border-line">
             {([["jalali", "شمسی"], ["gregorian", "میلادی"]] as const).map(([k, l]) => (
-              <button key={k} onClick={() => setMode(k)} className={cn("px-3 py-1.5 text-[12px]", mode === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
+              <button key={k} onClick={() => setMode(k)} className={cn("flex h-10 items-center px-3 text-[12px]", mode === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>
             ))}
           </div>
           <Link

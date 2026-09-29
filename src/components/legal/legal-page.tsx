@@ -19,13 +19,13 @@ export function LegalPageShell({ doc }: { doc: LegalDocument }) {
           <div className="flex items-center gap-2">
             <Link
               href="/request"
-              className="hidden h-9 items-center rounded-lg border border-line bg-white px-4 text-[12.5px] text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink sm:flex"
+              className="hidden h-10 items-center rounded-lg border border-line bg-white px-4 text-[12.5px] text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink sm:flex"
             >
               درخواست جلسه
             </Link>
             <Link
               href="/login"
-              className="flex h-9 items-center rounded-lg bg-ink px-4 text-[12.5px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
+              className="flex h-10 items-center rounded-lg bg-ink px-4 text-[12.5px] font-medium text-white transition-colors hover:bg-[#2a2a2e]"
             >
               ورود
             </Link>

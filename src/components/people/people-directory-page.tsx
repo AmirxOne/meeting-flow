@@ -251,7 +251,7 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
             title={`افراد (${faNum(total)} نفر)`}
             subtitle={`صفحه ${faNum(page)} از ${faNum(totalPages)}`}
             action={(
-              <div className="flex h-9 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
+              <div className="flex h-10 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
                 <Search className="h-4 w-4 shrink-0 text-ink-faint" />
                 <input
                   value={q}

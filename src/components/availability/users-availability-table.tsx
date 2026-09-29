@@ -209,7 +209,7 @@ export function UsersAvailabilityTable({ users, isLoading }: { users: Colleague[
           <button
             type="button"
             onClick={() => setSelected(allSelected ? new Set() : new Set(users.map((u) => u.id)))}
-            className="rounded-md border border-line px-2.5 py-1 text-[11.5px] text-ink-soft transition-colors hover:bg-paper-soft"
+            className="h-10 rounded-md border border-line px-2.5 text-[11.5px] text-ink-soft transition-colors hover:bg-paper-soft"
           >
             {allSelected ? "لغو انتخاب همه" : "انتخاب همه"}
           </button>

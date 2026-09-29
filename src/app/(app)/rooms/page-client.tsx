@@ -289,7 +289,7 @@ export function RoomsPage() {
               options={[{ value: "", label: "همه شعبه‌ها" }, ...branchOptions]}
             />
           </div>
-          <div className="flex h-9 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:w-56">
+          <div className="flex h-10 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:w-56">
             <Search className="h-4 w-4 shrink-0 text-ink-faint" />
             <input
               value={q}

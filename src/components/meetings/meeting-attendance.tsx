@@ -134,7 +134,7 @@ export function MeetingAttendance({
                           disabled={marking === p.userId}
                           onClick={() => mark({ userId: p.userId }, s)}
                           className={cn(
-                            "flex h-8 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium transition-colors",
+                            "flex h-10 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium transition-colors",
                             active ? STATUS_META[s].chip : "bg-paper-soft text-ink-soft hover:bg-line/50 hover:text-ink",
                             marking === p.userId && "opacity-60",
                           )}
@@ -148,7 +148,7 @@ export function MeetingAttendance({
                   </div>
                 ) : (
                   meta && (
-                    <span className={cn("flex h-8 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium", meta.chip)}>
+                    <span className={cn("flex h-10 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium", meta.chip)}>
                       {meta.icon}
                       {meta.label}
                     </span>
@@ -189,7 +189,7 @@ export function MeetingAttendance({
                           disabled={marking === g.id}
                           onClick={() => mark({ guestId: g.id }, s2)}
                           className={cn(
-                            "flex h-8 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium transition-colors",
+                            "flex h-10 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium transition-colors",
                             active ? STATUS_META[s2].chip : "bg-paper-soft text-ink-soft hover:bg-line/50 hover:text-ink",
                             marking === g.id && "opacity-60",
                           )}
@@ -203,7 +203,7 @@ export function MeetingAttendance({
                   </div>
                 ) : (
                   meta && (
-                    <span className={cn("flex h-8 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium", meta.chip)}>
+                    <span className={cn("flex h-10 items-center gap-1 rounded-md px-2.5 text-[11.5px] font-medium", meta.chip)}>
                       {meta.icon}
                       {meta.label}
                     </span>

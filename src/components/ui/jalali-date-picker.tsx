@@ -147,7 +147,7 @@ export function JalaliDatePicker({
         className={cn(
           variant === "icon"
             ? "inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-line bg-white p-0 text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
-            : "flex h-11 w-full items-center justify-between gap-2 rounded-lg border bg-white px-3.5 text-[13px] text-right transition-colors",
+            : "flex h-10 w-full items-center justify-between gap-2 rounded-lg border bg-white px-3.5 text-[13px] text-right transition-colors",
           variant === "field" &&
             (disabled
               ? "cursor-not-allowed border-[#ececf1] bg-paper-soft text-ink-faint"

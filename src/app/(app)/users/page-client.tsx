@@ -124,7 +124,7 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
             })
           }
         >
-          <div className="flex h-9 min-w-48 flex-1 items-center gap-2 rounded-md border border-line bg-white px-3">
+          <div className="flex h-10 min-w-48 flex-1 items-center gap-2 rounded-md border border-line bg-white px-3">
             <Search className="h-4 w-4 shrink-0 text-ink-faint" />
             <input
               value={q}

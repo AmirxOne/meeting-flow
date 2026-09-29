@@ -111,7 +111,7 @@ function ReminderOffsetsEditor({
         variant="ghost"
         size="sm"
         disabled={busy || draft.length >= 12}
-        className="mt-2 h-8 px-2 text-[11px]"
+        className="mt-2 h-10 px-2 text-[11px]"
         data-testid="reminder-offset-add"
         onClick={() => commit([...draft, 15])}
       >

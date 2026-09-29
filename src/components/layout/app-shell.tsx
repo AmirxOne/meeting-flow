@@ -244,7 +244,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => replayCurrentTour()}
                 aria-label="راهنمای این صفحه"
-                className="hidden h-9 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line hover:bg-paper-soft hover:text-ink sm:flex"
+                className="hidden h-10 items-center gap-1.5 rounded-md border border-transparent px-2.5 text-[12px] font-medium text-ink-soft transition-colors hover:border-line hover:bg-paper-soft hover:text-ink sm:flex"
               >
                 <MessageQuestion className="h-4 w-4" />
                 راهنما

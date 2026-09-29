@@ -178,7 +178,7 @@ export function NotificationsPage() {
               type="button"
               onClick={() => setOnlyUnread(false)}
               className={cn(
-                "px-3 py-1.5 text-[12px] transition-colors",
+                "flex h-10 items-center px-3 text-[12px] transition-colors",
                 !onlyUnread ? "bg-ink text-white" : "text-ink-soft hover:bg-paper-soft",
               )}
             >
@@ -188,7 +188,7 @@ export function NotificationsPage() {
               type="button"
               onClick={() => setOnlyUnread(true)}
               className={cn(
-                "px-3 py-1.5 text-[12px] transition-colors",
+                "flex h-10 items-center px-3 text-[12px] transition-colors",
                 onlyUnread ? "bg-ink text-white" : "text-ink-soft hover:bg-paper-soft",
               )}
             >

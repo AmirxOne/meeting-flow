@@ -242,7 +242,7 @@ function MehrsaCard({
           {currentStep > 0 && (
             <button
               onClick={prevStep}
-              className="flex h-8 items-center gap-1 rounded-md border border-line px-3 text-[12px] text-ink-soft hover:bg-paper-soft"
+              className="flex h-10 items-center gap-1 rounded-md border border-line px-3 text-[12px] text-ink-soft hover:bg-paper-soft"
             >
               قبلی
               <ChevronLeft className="h-3.5 w-3.5 rotate-180" />
@@ -250,7 +250,7 @@ function MehrsaCard({
           )}
           <button
             onClick={nextStep}
-            className="flex h-8 items-center gap-1 rounded-md bg-ink px-3.5 text-[12px] font-medium text-white hover:bg-[#2a2a2e]"
+            className="flex h-10 items-center gap-1 rounded-md bg-ink px-3.5 text-[12px] font-medium text-white hover:bg-[#2a2a2e]"
           >
             {isLast ? "متوجه شدم" : "بعدی"}
             <ChevronLeft className="h-3.5 w-3.5" />

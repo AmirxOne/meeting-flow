@@ -148,7 +148,7 @@ export function Select({
     }
   }
 
-  const h = size === "sm" ? "h-9 text-[12px]" : "h-11 text-[13px]";
+  const h = size === "sm" ? "h-10 text-[12px]" : "h-10 text-[13px]";
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>

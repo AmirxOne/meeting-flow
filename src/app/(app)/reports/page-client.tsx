@@ -175,7 +175,7 @@ export function ReportsPage() {
             ] as const
           ).map((f) => (
             <a key={f.fmt} href={`/api/reports?${queryString}&format=${f.fmt}`} download>
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium hover:bg-paper-soft">
+              <button className="inline-flex h-10 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium hover:bg-paper-soft">
                 <Download className="h-4 w-4" />
                 {f.label}
               </button>
@@ -194,14 +194,14 @@ export function ReportsPage() {
             value={from}
             onChange={(iso) => { setFrom(iso); setRangePreset(""); }}
             placeholder="از تاریخ"
-            className="w-40 min-w-0 max-w-full [&>button]:h-9 [&>button]:text-[12px]"
+            className="w-40 min-w-0 max-w-full [&>button]:h-10 [&>button]:text-[12px]"
           />
           <span className="text-[11px] text-ink-faint">تا</span>
           <JalaliDatePicker
             value={to}
             onChange={(iso) => { setTo(iso); setRangePreset(""); }}
             placeholder="تا تاریخ"
-            className="w-40 min-w-0 max-w-full [&>button]:h-9 [&>button]:text-[12px]"
+            className="w-40 min-w-0 max-w-full [&>button]:h-10 [&>button]:text-[12px]"
           />
         </div>
       </FilterBar>

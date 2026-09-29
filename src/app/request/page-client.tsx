@@ -625,7 +625,7 @@ function PublicPeoplePicker({ value, onChange }: { value: PubPerson[]; onChange:
               setOpen(true);
             }}
             placeholder="جستجوی نام، سمت یا سازمان…"
-            className="h-8 min-w-24 flex-1 bg-transparent text-[13px] outline-none placeholder:text-ink-faint"
+            className="h-10 min-w-24 flex-1 bg-transparent text-[13px] outline-none placeholder:text-ink-faint"
           />
         </div>
       </div>

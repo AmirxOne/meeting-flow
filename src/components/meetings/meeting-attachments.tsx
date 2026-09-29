@@ -320,7 +320,7 @@ export function MeetingAttachments({
                   <button
                     type="button"
                     onClick={() => setPreview(row)}
-                    className="hidden h-8 items-center gap-1 rounded-md px-2 text-[12px] text-ink-soft hover:bg-paper-soft hover:text-ink sm:inline-flex"
+                    className="hidden h-10 items-center gap-1 rounded-md px-2 text-[12px] text-ink-soft hover:bg-paper-soft hover:text-ink sm:inline-flex"
                   >
                     <Eye className="h-4 w-4" />
                     پیش‌نمایش
@@ -328,7 +328,7 @@ export function MeetingAttachments({
                 )}
                 <a
                   href={attachmentUrl(row.id)}
-                  className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-[12px] text-ink-soft hover:bg-paper-soft hover:text-ink"
+                  className="inline-flex h-10 items-center gap-1 rounded-md px-2 text-[12px] text-ink-soft hover:bg-paper-soft hover:text-ink"
                   data-testid="attachment-download"
                 >
                   <Download className="h-4 w-4" />
@@ -379,7 +379,7 @@ export function MeetingAttachments({
                   <div className="flex items-center gap-2">
                     <a
                       href={attachmentUrl(preview.id)}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-[12px] hover:bg-white/20"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-[12px] hover:bg-white/20"
                     >
                       <Download className="h-4 w-4" />
                       دانلود

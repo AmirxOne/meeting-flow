@@ -324,7 +324,7 @@ export function MeetingRequestForm() {
                   type="button"
                   onClick={() => prefSlots.length < 10 && setPrefSlots((arr) => [...arr, { day: "", from: "", to: "" }])}
                   disabled={prefSlots.length >= 10}
-                  className="flex items-center gap-1.5 rounded-lg border border-dashed border-line px-3 py-1.5 text-[11.5px] font-medium text-ink-soft transition hover:border-accent/50 hover:text-accent disabled:opacity-40"
+                  className="flex h-10 items-center gap-1.5 rounded-lg border border-dashed border-line px-3 text-[11.5px] font-medium text-ink-soft transition hover:border-accent/50 hover:text-accent disabled:opacity-40"
                 >
                   <Plus className="h-4 w-4" />
                   افزودن بازه‌ی پیشنهادی دیگر {prefSlots.length > 1 ? `(${faNum(prefSlots.length)}/۱۰)` : ""}
@@ -350,7 +350,7 @@ export function MeetingRequestForm() {
         </p>
         <Link
           href="/meeting-requests/mine"
-          className="flex h-9 items-center rounded-md border border-line bg-white px-4 text-[12px] font-medium text-ink transition-colors hover:bg-paper-soft"
+          className="flex h-10 items-center rounded-md border border-line bg-white px-4 text-[12px] font-medium text-ink transition-colors hover:bg-paper-soft"
         >
           درخواست‌های من
           {mine.length > 0 && (

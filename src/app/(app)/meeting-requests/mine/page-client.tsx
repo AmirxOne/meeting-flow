@@ -50,7 +50,7 @@ export function MyRequestsPage() {
         </div>
         <Link
           href="/meeting-requests"
-          className="flex h-9 items-center rounded-md border border-line bg-white px-4 text-[12px] font-medium text-ink transition-colors hover:bg-paper-soft"
+          className="flex h-10 items-center rounded-md border border-line bg-white px-4 text-[12px] font-medium text-ink transition-colors hover:bg-paper-soft"
         >
           <ArrowLeft className="ml-1 h-3.5 w-3.5 rotate-180" />
           ثبت درخواست جدید
