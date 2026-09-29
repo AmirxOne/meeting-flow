@@ -33,6 +33,7 @@ export async function GET(
           orderBy: { createdAt: "asc" },
         },
         guests: true,
+        secretaries: { select: { userId: true } },
         approvals: {
           include: { actor: { select: { id: true, fullName: true } } },
           orderBy: { createdAt: "asc" },

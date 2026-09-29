@@ -22,9 +22,7 @@ import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { GuestCheckinPanel } from "@/components/checkin/guest-checkin-panel";
 import { MeetingAttachments, type MeetingAttachmentRow } from "@/components/meetings/meeting-attachments";
 import { MeetingAttendance } from "@/components/meetings/meeting-attendance";
-import { MeetingAgenda, type MeetingAgendaItemRow } from "@/components/meetings/meeting-agenda";
-import { MeetingMinutes } from "@/components/meetings/meeting-minutes";
-import { AgendaTemplate, MinutesTemplate } from "@/components/meetings/meeting-doc-template";
+import { AgendaTemplate, MinutesTemplate, type AgendaTemplateRow } from "@/components/meetings/meeting-doc-template";
 import { MeetingVideoLink } from "@/components/meetings/meeting-video-link";
 import { CANCEL_REASONS } from "@/lib";
 import {
@@ -101,7 +99,8 @@ interface MeetingDetail {
     isPrivate: boolean;
   } | null;
   attachments?: MeetingAttachmentRow[];
-  agendaItems?: MeetingAgendaItemRow[];
+  secretaries?: { userId: string }[];
+  agendaItems?: { id: string; sortOrder: number; title: string; durationMin: number | null; owner?: { fullName: string } | null }[];
   minutes?: unknown | null;
   videoProvider?: string | null;
   videoUrl?: string | null;
@@ -315,6 +314,7 @@ export function MeetingDetailPage() {
     setRsTime(ltStart.toISOString().slice(11, 16));
   }
   const isOrganizer = me?.id === m.organizer.id;
+  const isSecretary = (m.secretaries ?? []).some((sp) => sp.userId === me?.id);
   const myParticipation = m.participants.find(
     (p) => p.userId === me?.id && p.role !== "ORGANIZER",
   );
@@ -889,24 +889,12 @@ export function MeetingDetailPage() {
           </Card>
 
 
-          <MeetingAgenda
-            meetingId={id}
-            items={m.agendaItems ?? []}
-            canEdit={isOrganizer}
-            people={[
-              { id: m.organizer.id, fullName: m.organizer.fullName },
-              ...m.participants
-                .filter((p) => p.userId !== m.organizer.id)
-                .map((p) => ({ id: p.userId, fullName: p.user.fullName })),
-            ]}
-          />
-
           <AgendaTemplate
             meetingId={id}
             meetingTitle={m.title}
             place={m.room ? `${m.branch?.name ?? ""} — ${m.room.name}` : (m.branch?.name ?? undefined)}
             startAt={m.startAt}
-            canEdit={isOrganizer}
+            canEdit={isOrganizer || isSecretary}
             items={m.agendaItems ?? []}
           />
 
@@ -915,7 +903,7 @@ export function MeetingDetailPage() {
             meetingTitle={m.title}
             place={m.room ? `${m.branch?.name ?? ""} — ${m.room.name}` : (m.branch?.name ?? undefined)}
             startAt={m.startAt}
-            canEdit={isOrganizer}
+            canEdit={isOrganizer || isSecretary}
             people={[
               { id: m.organizer.id, fullName: m.organizer.fullName },
               ...m.participants.map((p) => ({ id: p.userId, fullName: p.user.fullName })),
@@ -932,8 +920,6 @@ export function MeetingDetailPage() {
             guests={m.guests.map((g) => ({ id: g.id, name: g.name, company: g.company }))}
             isOrganizer={isOrganizer}
           />
-
-          <MeetingMinutes meetingId={id} />
 
           <MeetingAttachments
             meetingId={id}

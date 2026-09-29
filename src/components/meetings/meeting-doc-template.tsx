@@ -140,7 +140,8 @@ export function AgendaTemplate({
             presenter: it.owner?.fullName ?? "",
             schedule: it.durationMin ? `${faNum(it.durationMin)} دقیقه` : "",
           }));
-    setRows(base);
+    // همیشه حداقل یک ردیف خالی برای شروع
+    setRows(base.length > 0 ? base : [{ title: "", presenter: "", schedule: "" }]);
     setMode("edit");
   }
 
@@ -344,7 +345,8 @@ export function MinutesTemplate({
           owner: dc.owner?.fullName ?? "",
           due: dc.dueAt ? formatJalali(new Date(dc.dueAt), { withTime: false }) : "",
         }));
-    setRows(base);
+    // همیشه حداقل یک ردیف خالی برای شروع
+    setRows(base.length > 0 ? base : [{ text: "", owner: "", due: "" }]);
     setMode("edit");
   }
 
