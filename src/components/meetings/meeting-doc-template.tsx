@@ -108,7 +108,7 @@ export function AgendaTemplate({
   return (
     <Card data-testid="agenda-template">
       <CardHeader
-        title="دستور جلسه (تمپلیت رسمی)"
+        title="دستور جلسه"
         subtitle="روند جلسه · مدت · مسئول"
         action={
           canEdit ? (
@@ -301,7 +301,7 @@ export function MinutesTemplate({
   return (
     <Card data-testid="minutes-template">
       <CardHeader
-        title="صورت‌جلسه (تمپلیت رسمی)"
+        title="صورت‌جلسه"
         subtitle="مصوبه · مسئول · مهلت"
         action={
           canEdit ? (
