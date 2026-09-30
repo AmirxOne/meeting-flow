@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, BarChart3 } from "@/components/ui/icon";
+import { BarChart3 } from "@/components/ui/icon";
 import { TrendChart, DonutChart, BarList } from "@/components/reports/charts";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { cn, faNum, faPad2, faStr, formatJalali, isoDateInTz, startOfDayUtcFromIso, STATUS_FA, TYPE_FA } from "@/lib";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { Select } from "@/components/ui/select";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -174,22 +175,20 @@ export function ReportsPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="mr-1 hidden text-[11px] text-ink-faint sm:inline">خروجی:</span>
-          {(
-            [
-              { fmt: "csv", label: "CSV" },
-              { fmt: "xlsx", label: "Excel" },
-              { fmt: "pdf", label: "PDF" },
-            ] as const
-          ).map((f) => (
-            <a key={f.fmt} href={`/api/reports?${queryString}&format=${f.fmt}`} download>
-              <button className="inline-flex h-10 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium transition-colors hover:border-ink/40 hover:bg-paper-soft">
-                <Download className="h-4 w-4" />
-                {f.label}
-              </button>
-            </a>
-          ))}
+        <div className="relative">
+          <Select
+            value=""
+            onChange={(v) => {
+              if (v) window.location.href = `/api/reports?${queryString}&format=${v}`;
+            }}
+            placeholder="دریافت خروجی"
+            className="w-40"
+            options={[
+              { value: "csv", label: "خروجی CSV" },
+              { value: "xlsx", label: "خروجی Excel" },
+              { value: "pdf", label: "خروجی PDF" },
+            ]}
+          />
         </div>
       </div>
 
@@ -301,11 +300,11 @@ export function ReportsPage() {
             <Metric label="کل جلسات" value={faNum(s.totalMeetings)} />
             <Metric label="کل ساعت‌ها" value={faStr(s.totalHours.toFixed(1))} />
             <Metric label="میانگین مدت" value={`${faNum(s.avgDurationMin)} دقیقه`} />
-            <Metric label="ساعت پیک" value={s.peakHour !== null ? faStr(String(s.peakHour).padStart(2, "0")) + ":۰۰" : "—"} />
-            <Metric label="تکمیل‌شده" value={faNum(s.completedCount)} good={s.totalMeetings > 0 && s.completedCount / s.totalMeetings >= 0.6} />
-            <Metric label="جلسات خارجی" value={faNum(s.externalCount)} />
             <Metric label="نرخ لغو" value={`٪${faNum(s.cancellationRate)}`} tone={s.cancellationRate > 15 ? "danger" : "default"} />
             <Metric label="نرخ غیبت" value={`٪${faNum(s.noShowRate)}`} tone={s.noShowRate > 10 ? "danger" : "default"} />
+            <Metric label="جلسات خارجی" value={faNum(s.externalCount)} />
+            <Metric label="تکمیل‌شده" value={faNum(s.completedCount)} />
+            <Metric label="ساعت پیک" value={s.peakHour !== null ? faStr(String(s.peakHour).padStart(2, "0")) + ":۰۰" : "—"} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -406,42 +405,11 @@ export function ReportsPage() {
   );
 }
 
-function Metric({
-  label,
-  value,
-  tone,
-  good,
-}: {
-  label: string;
-  value: string;
-  tone?: "danger" | "default";
-  good?: boolean;
-}) {
+function Metric({ label, value, tone }: { label: string; value: string; tone?: "danger" | "default" }) {
   return (
-    <Card
-      className={cn(
-        "relative overflow-hidden p-4",
-        tone === "danger" && "ring-1 ring-red-200",
-        good && "ring-1 ring-emerald-200",
-      )}
-    >
-      <p className="text-[11px] font-medium text-ink-soft">{label}</p>
-      <p
-        className={cn(
-          "mt-1 text-xl font-bold tabular-nums",
-          tone === "danger" && "text-red-600",
-          good && "text-emerald-700",
-        )}
-      >
-        {value}
-      </p>
-      <span
-        aria-hidden
-        className={cn(
-          "absolute bottom-0 right-0 h-1 w-full",
-          tone === "danger" ? "bg-red-500/70" : good ? "bg-emerald-500/70" : "bg-ink/60",
-        )}
-      />
+    <Card className={cn("p-4", tone === "danger" && "text-red-600")}>
+      <p className="text-[11px] text-ink-soft">{label}</p>
+      <p className="mt-1 text-xl font-bold">{value}</p>
     </Card>
   );
 }

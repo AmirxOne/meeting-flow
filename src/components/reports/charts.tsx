@@ -4,7 +4,7 @@
 // All text/labels are Persian; numbers rendered through the fa helpers by callers.
 
 import { useState } from "react";
-import { cn } from "@/lib";
+import { cn, faNum } from "@/lib";
 
 /* ── helpers ─────────────────────────────────────────────── */
 
@@ -40,7 +40,7 @@ export function TrendChart({ points, unit = "جلسه" }: { points: TrendPoint[]
         {ticks.map((t) => (
           <g key={t}>
             <line x1={PAD.l} x2={W - PAD.r} y1={y(t)} y2={y(t)} className="stroke-black/10" strokeWidth="1" strokeDasharray={t === 0 ? "" : "3 4"} />
-            <text x={PAD.l - 6} y={y(t) + 4} textAnchor="end" className="fill-black/40" fontSize="10">{t}</text>
+            <text x={PAD.l - 6} y={y(t) + 4} textAnchor="end" className="fill-black/40" fontSize="10">{faNum(t)}</text>
           </g>
         ))}
         <path d={area} className="fill-accent/10" />
