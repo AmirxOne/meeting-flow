@@ -105,28 +105,31 @@ export function MeetingsPage() {
 
   return (
     <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
+      {/* هدر برندینگ‌دار — راست: عنوان و توضیح · چپ: شمارنده و اکشن */}
+      <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
           <h1 className="min-w-0 text-lg font-bold">{heading}</h1>
-          <p className="mt-0.5 text-[12px] leading-5 text-ink-soft">
+          <p className="mt-0.5 max-w-2xl text-[12px] leading-5 text-ink-soft">
             {isCompact
               ? "جلسه‌های امروز و این هفته‌ی شما — برای برنامه‌ریزی روزانه"
               : "فهرست همه‌ی جلسه‌ها با جستجو و فیلتر — برای پیدا کردن جلسه، اتاق و برگزارکننده"}
           </p>
         </div>
-        {!isCompact && (
-          <span className="shrink-0 rounded-full border border-line bg-paper-soft px-3 py-1.5 text-[11px] text-ink-soft">
-            {faNum(meetings.length)} جلسه
-          </span>
-        )}
-        {can("meeting:create") && (
-          <Link href={canCreateMeeting ? "/meetings/new" : "/meeting-requests"} className="shrink-0">
-            <Button size="sm">
-              <Plus className="h-4 w-4" />
-              جلسه جدید
-            </Button>
-          </Link>
-        )}
+        <div className="flex shrink-0 items-center gap-2.5">
+          {!isCompact && (
+            <span className="tabular-nums shrink-0 rounded-full border border-line bg-paper-soft px-3 py-1.5 text-[11px] font-medium text-ink-soft">
+              {faNum(meetings.length)} جلسه
+            </span>
+          )}
+          {can("meeting:create") && (
+            <Link href={canCreateMeeting ? "/meetings/new" : "/meeting-requests"} className="shrink-0">
+              <Button size="sm">
+                <Plus className="h-4 w-4" />
+                جلسه جدید
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       {isCompact && (
