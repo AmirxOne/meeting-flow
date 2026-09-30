@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp } from "@/components/ui/icon";
+import { ChevronDown, ChevronUp, Plus, Trash2, Pencil, CheckCircle2, XCircle, History, UserRound, Activity } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, SkeletonBlock, SkeletonTable, EmptyState } from "@/components/ui/card";
 import { FilterBar } from "@/components/ui/filter-bar";
@@ -54,6 +54,35 @@ const ACTION_FA: Record<string, string> = {
   DISPLAY_TOKEN: "توکن نمایشگر اتاق",
   DISPLAY_TOKEN_REVOKE: "باطل کردن نمایشگر اتاق",
 };
+
+/** گروه معنایی هر عملیات برای رنگ و آیکون */
+type ActionKind = "create" | "update" | "delete" | "approve" | "reject" | "info";
+
+function actionKind(action: string): ActionKind {
+  if (action === "CREATE" || action.endsWith("_CREATE") || action.endsWith("_UPLOAD") || action === "PARTICIPANT_ADD") return "create";
+  if (action === "DELETE" || action.endsWith("_DELETE") || action === "PARTICIPANT_REMOVE" || action.endsWith("_REVOKE")) return "delete";
+  if (action.includes("REJECT") || action.includes("CANCEL") || action.includes("DECLINE")) return "reject";
+  if (action.includes("APPROVE") || action === "MEETING_END" || action === "MINUTES_PUBLISH" || action === "WAITLIST_CLAIM") return "approve";
+  if (action === "UPDATE" || action.endsWith("_UPDATE") || action.includes("CHANGE") || action === "MEETING_START" || action === "MEETING_EXTEND" || action === "MEETING_RESCHEDULE") return "update";
+  return "info";
+}
+
+const KIND_STYLE: Record<ActionKind, { icon: ReactNode; chip: string; iconWrap: string }> = {
+  create: { icon: <Plus className="h-3.5 w-3.5" />, chip: "bg-emerald-50 text-emerald-700 border-emerald-200", iconWrap: "bg-emerald-100 text-emerald-700" },
+  update: { icon: <Pencil className="h-3.5 w-3.5" />, chip: "bg-blue-50 text-blue-700 border-blue-200", iconWrap: "bg-blue-100 text-blue-700" },
+  delete: { icon: <Trash2 className="h-3.5 w-3.5" />, chip: "bg-paper-deep text-ink-faint border-line", iconWrap: "bg-paper-deep text-ink-faint" },
+  approve: { icon: <CheckCircle2 className="h-3.5 w-3.5" />, chip: "bg-emerald-50 text-emerald-700 border-emerald-200", iconWrap: "bg-emerald-100 text-emerald-700" },
+  reject: { icon: <XCircle className="h-3.5 w-3.5" />, chip: "bg-red-50 text-red-700 border-red-200", iconWrap: "bg-red-100 text-red-700" },
+  info: { icon: <History className="h-3.5 w-3.5" />, chip: "bg-paper-soft text-ink-soft border-line", iconWrap: "bg-paper-soft text-ink-soft" },
+};
+
+/** جمله‌ی انسانی برای هر رخداد */
+function describeLog(log: AuditRow): string {
+  const who = log.actor?.fullName ?? "سیستم";
+  const what = ACTION_FA[log.action] ?? log.action;
+  const entity = ENTITY_FA[log.entity] ?? log.entity;
+  return `${who} — ${what} (${entity})`;
+}
 
 const ENTITY_FA: Record<string, string> = {
   Meeting: "جلسه",
@@ -174,7 +203,17 @@ export function AuditLogsPage() {
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
-      <h1 className="text-lg font-bold">لاگ ممیزی</h1>
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink text-white">
+          <History className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-[17px] font-bold leading-tight">لاگ ممیزی</h1>
+          <p className="mt-0.5 text-[12px] text-ink-soft">
+            {faNum(data?.total ?? 0)} رخداد — هر تغییر مهم سیستم با جزئیات «قبلی/جدید» ثبت می‌شود
+          </p>
+        </div>
+      </div>
 
       <FilterBar
         groups={[
@@ -199,22 +238,27 @@ export function AuditLogsPage() {
         onChange={handleFilterChange}
       />
 
-      <div className="max-w-sm">
-        <label className="mb-1.5 block text-[12px] font-medium">کاربر</label>
-        <Select
-          value={actorId}
-          onChange={(v) => {
-            setActorId(v);
-            setPage(1);
-            setExpandedId(null);
-          }}
-          placeholder="همه کاربران"
-          options={[
-            { value: "", label: "همه کاربران" },
-            ...users.map((u) => ({ value: u.id, label: u.fullName })),
-          ]}
-        />
-      </div>
+      <Card className="flex flex-wrap items-center gap-3 px-4 py-3">
+        <span className="text-[11px] font-bold text-ink-soft">فیلتر کاربر:</span>
+        <div className="w-56">
+          <Select
+            value={actorId}
+            onChange={(v) => {
+              setActorId(v);
+              setPage(1);
+              setExpandedId(null);
+            }}
+            placeholder="همه کاربران"
+            options={[
+              { value: "", label: "همه کاربران" },
+              ...users.map((u) => ({ value: u.id, label: u.fullName })),
+            ]}
+          />
+        </div>
+        <span className="mr-auto text-[11px] text-ink-faint">
+          {(data?.logs ?? []).length > 0 ? `نمایش ${faNum((data?.logs ?? []).length)} رخداد در این صفحه` : ""}
+        </span>
+      </Card>
 
       {isLoading ? (
         <Card className="overflow-hidden">
@@ -227,8 +271,15 @@ export function AuditLogsPage() {
       ) : (
         <Card className="overflow-hidden">
           <CardHeader
-            title={`${faNum(data?.total ?? 0)} رخداد ثبت‌شده`}
-            subtitle="تمام عملیات مهم سیستم — برای جزئیات روی ردیف کلیک کنید"
+            title={
+              <span className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-paper-soft text-ink-soft">
+                  <Activity className="h-4 w-4" />
+                </span>
+                تایم‌لاین رخدادها
+              </span>
+            }
+            subtitle="روی ردیف‌های دارای جزئیات کلیک کنید تا تغییرات «قبلی ← جدید» را ببینید"
           />
           {(data?.logs ?? []).length === 0 ? (
             <EmptyState
@@ -236,78 +287,62 @@ export function AuditLogsPage() {
               description="فیلترها را تغییر دهید یا عملیاتی در سیستم انجام دهید تا ردپا اینجا ثبت شود"
             />
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-[12px]">
-                <thead className="border-b border-line bg-paper-soft/50 text-[11px] text-ink-soft">
-                  <tr>
-                    <th className="w-8 px-2 py-2.5" />
-                    <th className="px-4 py-2.5 font-medium">زمان</th>
-                    <th className="px-4 py-2.5 font-medium">کاربر</th>
-                    <th className="px-4 py-2.5 font-medium">عملیات</th>
-                    <th className="px-4 py-2.5 font-medium">موجودیت</th>
-                    <th className="hidden px-4 py-2.5 font-medium lg:table-cell">IP</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {(data?.logs ?? []).map((log) => {
-                    const expandable = hasAuditPayload(log);
-                    const open = expandedId === log.id;
-                    return (
-                      <Fragment key={log.id}>
-                        <tr
-                          className={cn(expandable && "cursor-pointer hover:bg-paper-soft/40")}
-                          onClick={() => {
-                            if (!expandable) return;
-                            setExpandedId(open ? null : log.id);
-                          }}
-                        >
-                          <td className="px-2 py-2.5 text-ink-faint">
-                            {expandable ? (
-                              open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                            ) : null}
-                          </td>
-                          <td className="px-4 py-2.5 text-ink-soft">
-                            {formatJalali(new Date(log.createdAt), { withTime: true })}
-                          </td>
-                          <td className="px-4 py-2.5">{log.actor?.fullName ?? "سیستم"}</td>
-                          <td className="px-4 py-2.5">
-                            <span
-                              className={cn(
-                                "badge",
-                                log.action.includes("REJECT") || log.action.includes("CANCEL")
-                                  ? "badge-red"
-                                  : "badge-gray",
-                              )}
-                            >
-                              {ACTION_FA[log.action] ?? log.action}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5 text-ink-soft">
-                            {ENTITY_FA[log.entity] ?? log.entity}
-                            {log.entityId ? (
-                              <span className="mr-1.5 text-[10px] text-ink-faint">({faStr(log.entityId.slice(0, 8))}…)</span>
-                            ) : null}
-                          </td>
-                          <td className="hidden px-4 py-2.5 text-ink-faint lg:table-cell" dir="ltr">
-                            {log.ip && log.ip !== "::1" ? faStr(log.ip) : log.ip === "::1" ? "محلی" : "—"}
-                          </td>
-                        </tr>
-                        {open && expandable && (
-                          <tr className="bg-paper-soft/20">
-                            <td colSpan={6} className="px-4 py-4">
-                              <div className="grid gap-3 sm:grid-cols-2">
-                                <AuditValueBlock title="مقدار قبلی" value={log.oldValue} />
-                                <AuditValueBlock title="مقدار جدید" value={log.newValue} />
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <ul className="divide-y divide-line">
+              {(data?.logs ?? []).map((log) => {
+                const expandable = hasAuditPayload(log);
+                const open = expandedId === log.id;
+                const kind = actionKind(log.action);
+                const style = KIND_STYLE[kind];
+                return (
+                  <Fragment key={log.id}>
+                    <li
+                      data-log={log.id}
+                      className={cn(
+                        "flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-paper-soft/40",
+                        open && "bg-paper-soft/30",
+                      )}
+                      onClick={() => {
+                        if (!expandable) return;
+                        setExpandedId(open ? null : log.id);
+                      }}
+                    >
+                      <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", style.iconWrap)}>
+                        {style.icon}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-[12.5px] font-bold">{log.actor?.fullName ?? "سیستم"}</span>
+                          <span className={cn("rounded-full border px-2 py-0.5 text-[10.5px]", style.chip)}>
+                            {ACTION_FA[log.action] ?? log.action}
+                          </span>
+                          <span className="text-[11.5px] text-ink-soft">{ENTITY_FA[log.entity] ?? log.entity}</span>
+                          {log.entityId ? (
+                            <span className="text-[10px] text-ink-faint" dir="ltr">{faStr(log.entityId.slice(0, 8))}…</span>
+                          ) : null}
+                        </div>
+                        <p className="mt-0.5 text-[10.5px] text-ink-faint">
+                          {formatJalali(new Date(log.createdAt), { withTime: true })}
+                          {log.ip && log.ip !== "::1" ? ` · ${faStr(log.ip)}` : ""}
+                        </p>
+                      </div>
+                      {expandable && (
+                        <span className="shrink-0 text-ink-faint">
+                          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </span>
+                      )}
+                    </li>
+                    {open && expandable && (
+                      <li className="bg-paper-soft/20 px-4 py-4">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <AuditValueBlock title="مقدار قبلی" value={log.oldValue} />
+                          <AuditValueBlock title="مقدار جدید" value={log.newValue} />
+                        </div>
+                      </li>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </ul>
           )}
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 border-t border-line p-3">
