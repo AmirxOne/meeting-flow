@@ -162,7 +162,7 @@ export function PublicRequestForm() {
             ))}
           </ul>
 
-          <p className="relative mt-8 text-[10px] leading-5 text-white/40">
+          <p className="relative mt-auto pt-8 text-[10px] leading-5 text-white/40">
             حریم خصوصی شما محفوظ است — اطلاعات فقط برای هماهنگی همین جلسه استفاده می‌شود.
           </p>
         </aside>
