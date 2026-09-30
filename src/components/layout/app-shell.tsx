@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, ChevronDown, Loader2, LogOut, Menu, MessageQuestion, Plus, Search, UserCircle, X } from "@/components/ui/icon";
+import { Bell, ChevronDown, LogOut, Menu, MessageQuestion, Plus, Search, UserCircle, X } from "@/components/ui/icon";
 import type { AppIcon } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
 import { groupedVisibleNav, isNavActive, isMobileNavActive, MOBILE_NAV, visibleChildren, isParentActive } from "@/lib/nav";
@@ -668,7 +668,11 @@ function GlobalSearch() {
           className="w-full bg-transparent text-[13px] outline-none placeholder:text-ink-faint"
         />
         {isFetching && q.trim().length >= 2 && (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-ink-faint" />
+          <span className="btn-dots-spinner !h-3 !gap-1 [&>span]:!size-1" aria-hidden="true" dir="ltr">
+            <span />
+            <span />
+            <span />
+          </span>
         )}
         {q && (
           <button

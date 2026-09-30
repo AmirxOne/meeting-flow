@@ -4,7 +4,7 @@ import { useState , useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Shield, Check, CheckCheck, ShieldCheck, Plus, Trash2, X } from "@/components/ui/icon";
 import { api } from "@/lib/api";
-import { Card } from "@/components/ui/card";
+import { Card, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Modal } from "@/components/ui/modal";
@@ -105,7 +105,22 @@ export function MeetingMinutes({ meetingId }: { meetingId: string }) {
   if (minutesLoading) {
     return (
       <Card data-testid="meeting-minutes">
-        <div className="p-8 text-center text-[12px] text-ink-faint">در حال بارگذاری…</div>
+        <div className="border-b border-line p-4">
+          <SkeletonBlock className="h-4 w-24" />
+        </div>
+        <div className="space-y-3 p-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-lg border border-line p-3">
+              <div className="flex items-center gap-2">
+                <SkeletonBlock className="h-8 w-8 shrink-0 rounded-full" />
+                <div className="flex-1 space-y-1.5">
+                  <SkeletonBlock className="h-3 w-1/3" />
+                  <SkeletonBlock className="h-2.5 w-1/4" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </Card>
     );
   }

@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Check, ExternalLink } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { Card, CardHeader, CardBody, SkeletonBlock } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { faStr, formatJalali } from "@/lib";
@@ -97,7 +97,7 @@ export function RoomDisplaySetup({ roomId }: { roomId: string }) {
       />
       <CardBody className="space-y-3 text-[12px]">
         {isLoading ? (
-          <p className="text-ink-faint">در حال بارگذاری…</p>
+          <div className="space-y-2"><SkeletonBlock className="h-4 w-32" /><SkeletonBlock className="h-3 w-48" /></div>
         ) : (
           <>
             <p className="leading-6 text-ink-soft">

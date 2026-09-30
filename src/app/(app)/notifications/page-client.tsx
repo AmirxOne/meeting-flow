@@ -206,7 +206,7 @@ export function NotificationsPage() {
 
       {isLoading ? (
         <Card>
-          <CardHeader title="در حال بارگذاری…" />
+          <CardHeader title={<SkeletonBlock className="h-4 w-28" />} subtitle={<SkeletonBlock className="mt-1.5 h-3 w-40" />} />
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className={i > 0 ? "border-t border-line" : ""}>
               <div className="flex gap-3 px-5 py-4">

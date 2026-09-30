@@ -22,14 +22,14 @@ export function CardHeader({
   action,
 }: {
   title: React.ReactNode;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   action?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-2 border-b border-line px-5 py-4">
       <div>
         <h3 className="text-[14px] font-bold">{title}</h3>
-        {subtitle && <p className="mt-0.5 text-[12px] text-ink-soft">{subtitle}</p>}
+        {subtitle && <div className="mt-0.5 text-[12px] text-ink-soft">{subtitle}</div>}
       </div>
       {action}
     </div>

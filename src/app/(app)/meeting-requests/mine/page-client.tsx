@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock, ArrowLeft, Bell } from "@/components/ui/icon";
 import { api } from "@/lib/api";
-import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
+import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum, formatJalali } from "@/lib";
@@ -61,7 +61,17 @@ export function MyRequestsPage() {
         <CardHeader title={`در انتظار هماهنگی (${faNum(open.length)})`} />
         <CardBody>
           {isLoading ? (
-            <p className="p-4 text-center text-[12px] text-ink-faint">در حال بارگذاری…</p>
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3 rounded-lg border border-line p-3">
+                  <div className="flex-1 space-y-1.5">
+                    <SkeletonBlock className="h-3.5 w-2/5" />
+                    <SkeletonBlock className="h-3 w-1/4" />
+                  </div>
+                  <SkeletonBlock className="h-6 w-20 rounded-full" />
+                </div>
+              ))}
+            </div>
           ) : open.length === 0 ? (
             <EmptyState
               icon={<Bell className="h-10 w-10" />}

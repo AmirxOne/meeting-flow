@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageCircle, ArrowLeft } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
-import { Card, CardHeader, CardBody } from "@/components/ui/card";
+import { Card, CardHeader, CardBody, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { faStr, formatJalali } from "@/lib";
@@ -64,8 +64,10 @@ export function EmailPilotCard() {
     return (
       <Card data-testid="email-pilot-card">
         <CardHeader title="ایمیل (SMTP)" />
-        <CardBody>
-          <p className="p-4 text-center text-[12px] text-ink-faint">در حال بارگذاری…</p>
+        <CardBody className="space-y-3">
+          <div><SkeletonBlock className="mb-1.5 h-3 w-20" /><SkeletonBlock className="h-10 w-full rounded-md" /></div>
+          <div><SkeletonBlock className="mb-1.5 h-3 w-24" /><SkeletonBlock className="h-10 w-full rounded-md" /></div>
+          <SkeletonBlock className="h-10 w-32 rounded-md" />
         </CardBody>
       </Card>
     );
