@@ -10,6 +10,7 @@ import { cn, faNum, faStr, formatJalali, isoDateInTz } from "@/lib";
 import { J_MONTHS, J_WEEKDAYS_LONG, jalaliPartsInTz } from "@/lib/jalali";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { Tooltip } from "@/components/ui/tooltip";
+import { useAuth } from "@/lib/auth-store";
 
 interface DashboardData {
   todayCount: number;
@@ -34,6 +35,8 @@ interface DashboardData {
 }
 
 export function DashboardPage() {
+  const { can } = useAuth();
+  const canCreateMeeting = can("meeting:create");
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => api<DashboardData>("/api/dashboard"),
@@ -236,7 +239,7 @@ export function DashboardPage() {
                 title="جلسه‌ای در پیش نیست"
                 action={
                   <Link
-                    href="/meetings/new"
+                    href={canCreateMeeting ? "/meetings/new" : "/meeting-requests"}
                     className="mt-1 inline-flex h-10 items-center rounded-md bg-ink px-4 text-[12px] font-medium text-white"
                   >
                     ایجاد جلسه

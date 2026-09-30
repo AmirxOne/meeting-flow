@@ -138,6 +138,7 @@ export function CalendarPage() {
   const qc = useQueryClient();
   const { push } = useToast();
   const { can, me } = useAuth();
+  const canCreateMeeting = can("meeting:create");
   const canDnD = can("meeting:reschedule") || me?.id != null; // organizer check is server-side too
   const [dragId, setDragId] = useState<string | null>(null);
   // snapshot of the dragged meeting so drops work in ANY month (the calendar
@@ -881,7 +882,7 @@ export function CalendarPage() {
       )}
 
       <Link
-        href="/meetings/new"
+        href={canCreateMeeting ? "/meetings/new" : "/meeting-requests"}
         className="fixed bottom-24 left-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-white shadow-lg transition-transform active:scale-95 lg:hidden"
         aria-label="جلسه جدید"
       >

@@ -213,7 +213,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="border-t border-line p-2.5">
           <Link
-            href="/meetings/new"
+            href={can("meeting:create") ? "/meetings/new" : "/meeting-requests"}
             className="flex h-10 items-center justify-center gap-2 rounded-lg bg-ink text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-[#2a2a2e] active:bg-black"
           >
             <Plus className="h-4 w-4" />
@@ -361,7 +361,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </nav>
             <div className="border-t border-line p-2.5">
               <Link
-                href="/meetings/new"
+                href={can("meeting:create") ? "/meetings/new" : "/meeting-requests"}
                 className="flex h-10 items-center justify-center gap-2 rounded-lg bg-ink text-[13px] font-medium text-white"
               >
                 <Plus className="h-4 w-4" />

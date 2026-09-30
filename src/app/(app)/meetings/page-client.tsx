@@ -51,6 +51,7 @@ const PERIODS: { key: MeetingPeriod; label: string }[] = [
 
 export function MeetingsPage() {
   const { can } = useAuth();
+  const canCreateMeeting = can("meeting:create");
   const compact = useCompactViewport();
   const [status, setStatus] = useState("");
   const [scope, setScope] = useState<"all" | "mine">("all");
@@ -89,7 +90,7 @@ export function MeetingsPage() {
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0 text-lg font-bold">{heading}</h1>
         {can("meeting:create") && (
-          <Link href="/meetings/new" className="shrink-0">
+          <Link href={canCreateMeeting ? "/meetings/new" : "/meeting-requests"} className="shrink-0">
             <Button size="sm">
               <Plus className="h-4 w-4" />
               جلسه جدید
@@ -208,7 +209,7 @@ export function MeetingsPage() {
                   نمایش جلسات هفته
                 </Button>
               ) : (
-                <Link href="/meetings/new">
+                <Link href={canCreateMeeting ? "/meetings/new" : "/meeting-requests"}>
                   <Button size="sm">ایجاد جلسه</Button>
                 </Link>
               )
