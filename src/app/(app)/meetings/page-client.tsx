@@ -101,9 +101,6 @@ export function MeetingsPage() {
 
   const meetings = data?.meetings ?? [];
 
-  const statusCounts = new Map<string, number>();
-  for (const m of meetings) statusCounts.set(m.status, (statusCounts.get(m.status) ?? 0) + 1);
-
   const heading = isCompact ? "جلسات من" : "جلسات";
 
   return (
@@ -257,27 +254,6 @@ export function MeetingsPage() {
               )}
             </div>
           )}
-          {/* چیپ‌های وضعیت سریع */}
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-line/70 pt-2.5">
-            {STATUS_FILTERS.map((f) => {
-              const n = f.key === "" ? meetings.length : statusCounts.get(f.key) ?? 0;
-              const active = status === f.key;
-              return (
-                <button
-                  key={f.key || "all"}
-                  type="button"
-                  onClick={() => setStatus(f.key)}
-                  className={cn(
-                    "flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11.5px] transition-colors",
-                    active ? "border-ink bg-ink text-white" : "border-line text-ink-soft hover:border-ink/40 hover:text-ink",
-                  )}
-                >
-                  {f.label}
-                  <span className={cn("text-[10px]", active ? "text-white/70" : "text-ink-faint")}>{faNum(n)}</span>
-                </button>
-              );
-            })}
-          </div>
         </Card>
       )}
       {isCompact && (
