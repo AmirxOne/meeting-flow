@@ -51,7 +51,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={cn(
-        "inline-flex select-none items-center justify-center font-medium transition-colors",
+        "relative inline-flex select-none items-center justify-center font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30",
         variants[variant],
         sizes[size],
@@ -59,8 +59,20 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
       {...rest}
     >
-      {/* در حالت لودینگ: متن محو و اسپینر وسط دکمه */}
-      {loading ? <ButtonDotsSpinner /> : children}
+      {loading ? (
+        <>
+          {/* متن نامرئی جا را حفظ می‌کند تا دکمه ذره‌ای تغییر اندازه ندهد */}
+          <span className="invisible" aria-hidden="true">
+            {children}
+          </span>
+          {/* نقاط لودینگ روی کل دکمه وسط‌چین */}
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <ButtonDotsSpinner />
+          </span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 });

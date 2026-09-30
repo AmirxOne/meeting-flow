@@ -369,14 +369,19 @@ export function LoginPage() {
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
+                  className="relative flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
                 >
                   {forgotLoading ? (
-                    <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
-                      <span />
-                      <span />
-                      <span />
-                    </span>
+                    <>
+                      <span className="invisible" aria-hidden="true">ارسال لینک بازنشانی</span>
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                        <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
+                          <span />
+                          <span />
+                          <span />
+                        </span>
+                      </span>
+                    </>
                   ) : (
                     "ارسال لینک بازنشانی"
                   )}
@@ -540,14 +545,19 @@ export function LoginPage() {
                 type="submit"
                 disabled={loading}
                 aria-busy={loading || undefined}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
+                className="relative flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
               >
                 {loading ? (
-                  <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
-                    <span />
-                    <span />
-                    <span />
-                  </span>
+                  <>
+                    <span className="invisible" aria-hidden="true">{ldapMode ? "ورود با LDAP" : "ورود"}</span>
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    </span>
+                  </>
                 ) : (
                   ldapMode ? "ورود با LDAP" : "ورود"
                 )}
