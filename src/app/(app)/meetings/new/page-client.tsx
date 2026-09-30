@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Sparkles } from "@/components/ui/icon";
+import { CheckCircle2, Sparkles, Clock, User, Users, DoorOpen, UserRound } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -783,21 +783,36 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
         <Card>
           <CardHeader title="۳. انتخاب زمان و اتاق" />
           <CardBody className="space-y-4">
-            <div className="rounded-md bg-emerald-50 p-4">
-              <p className="flex items-center gap-2 text-[13px] font-bold text-emerald-700">
-                <CheckCircle2 className="h-4 w-4" />
-                زمان پیشنهادی: {formatClockInTz(new Date(slot.start), orgTz)} تا {formatClockInTz(new Date(slot.end), orgTz)}
-              </p>
-              <p className="mt-1 pr-6 text-[11px] text-emerald-600">
-                {soloType ? "شما در این بازه آزاد هستید" : "همه افراد انتخابی در این بازه آزاد هستند"}
-              </p>
+            {/* بنر زمان تأییدشده */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                <CheckCircle2 className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[12px] font-bold text-emerald-800">زمان پیشنهادی</span>
+                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">تأیید آزادی همه</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <span dir="ltr" className="text-[15px] font-bold tabular-nums text-emerald-900">{formatClockInTz(new Date(slot.start), orgTz)}</span>
+                  <span className="text-[11px] text-emerald-600">تا</span>
+                  <span dir="ltr" className="text-[15px] font-bold tabular-nums text-emerald-900">{formatClockInTz(new Date(slot.end), orgTz)}</span>
+                  <span className="text-[11px] text-emerald-600">· {formatJalali(new Date(slot.start), { monthName: true })}</span>
+                </div>
+                <p className="mt-1 text-[11px] text-emerald-600">
+                  {soloType ? "شما در این بازه آزاد هستید" : "همه افراد انتخابی در این بازه آزاد هستند"}
+                </p>
+              </div>
             </div>
 
             <div>
               {offsite ? (
                 <p className="mb-2 text-[12px] font-medium text-amber-800">📍 جلسه در محل «{offsiteOrg.trim() || "سازمان مقصد"}» — اتاقی رزرو نمی‌شود</p>
               ) : (
-              <p className="mb-2 text-[12px] font-medium">اتاق مناسب (مرتب‌شده بر اساس ظرفیت — کمترین ظرفیت کافی در اولویت است):</p>
+              <p className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-ink-soft">
+                <DoorOpen className="h-4 w-4" />
+                انتخاب اتاق — مناسب‌ترین گزینه‌ها بر اساس اندازه‌ی جلسه، اول
+              </p>
               )}
               <div className="grid gap-2 sm:grid-cols-2">
                 {[...slot.availableRooms]
@@ -815,16 +830,40 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                       key={r.id}
                       type="button"
                       onClick={() => setRoomId(r.id)}
+                      aria-pressed={roomId === r.id}
                       className={cn(
-                        "rounded-md border p-3 text-right transition-colors",
-                        roomId === r.id ? "border-ink bg-paper-soft" : "border-line hover:border-ink-faint",
+                        "group flex items-start gap-3 rounded-xl border p-3.5 text-right transition-all",
+                        roomId === r.id
+                          ? "border-ink bg-paper-soft shadow-sm ring-1 ring-ink/10"
+                          : "border-line bg-white hover:border-ink-faint hover:bg-paper-soft/60",
                       )}
                     >
-                      <p className="text-[13px] font-medium">{r.name}</p>
-                      <p className="mt-1 text-[11px] text-ink-soft">
-                        ظرفیت: {faNum(r.capacity)} نفر
-                        {r.equipment.length > 0 && ` · ${r.equipment.map((e) => equipmentLabel(e)).join("، ")}`}
-                      </p>
+                      <span
+                        className={cn(
+                          "mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                          roomId === r.id ? "border-ink bg-ink" : "border-[#c9c9d0] bg-white group-hover:border-ink-faint",
+                        )}
+                      >
+                        {roomId === r.id && <span className="size-1.5 rounded-full bg-white" />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="truncate text-[13px] font-bold">{r.name}</span>
+                          <span
+                            className={cn(
+                              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums",
+                              roomId === r.id ? "bg-ink text-white" : "bg-paper-deep text-ink-soft",
+                            )}
+                          >
+                            {faNum(r.capacity)} نفر
+                          </span>
+                        </span>
+                        {r.equipment.length > 0 && (
+                          <span className="mt-1 block truncate text-[11px] text-ink-soft">
+                            {r.equipment.map((e) => equipmentLabel(e)).join(" · ")}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   ))}
               </div>
@@ -833,7 +872,11 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
             {/* Guests (external) */}
             {!soloType && (
             <div>
-              <p className="mb-2 text-[12px] font-medium">مهمان‌های خارجی اضافی (افراد خارجی بالا خودکار مهمان محسوب می‌شوند)</p>
+              <p className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-ink-soft">
+                <UserRound className="h-4 w-4" />
+                مهمان‌های خارجی اضافی
+                <span className="text-[10.5px] font-normal text-ink-faint">— افراد خارجیِ بالا خودکار مهمان محسوب می‌شوند</span>
+              </p>
               {guests.map((g, i) => (
                 <div key={i} className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
                   <input placeholder="نام" value={g.name} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
@@ -850,38 +893,52 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
             )}
 
             {/* Review */}
-            <div className="rounded-md border border-line bg-paper-soft p-4 text-[12px] leading-6">
-              <p className="font-bold">بازبینی نهایی</p>
-              <p>عنوان: {title}</p>
-              <p>زمان: {formatJalali(new Date(slot.start), { withTime: true, monthName: true })} تا {formatClockInTz(new Date(slot.end), orgTz)}</p>
-              <p>اتاق: {selectedRoom?.name} ({faNum(selectedRoom?.capacity ?? 0)} نفر)</p>
-              {recurrenceFreq !== "NONE" && (
-                <p>
-                  تکرار: {describeRecurrence({
-                    freq: recurrenceFreq,
-                    interval: recurrenceInterval,
-                    byWeekday: recurrenceFreq === "WEEKLY" ? recurrenceWeekdays : undefined,
-                  })}
-                  {recurrencePreview.length > 0 ? ` · ${faNum(recurrencePreview.length)} نوبت` : ""}
-                </p>
-              )}
-              <p>نوع: {TYPE_FA[meetingType] ?? meetingType}</p>
-              {videoUrl.trim() && (
-                <p>
-                  لینک ویدئو:{" "}
-                  {isVideoProvider(videoProvider) ? VIDEO_PROVIDER_FA[videoProvider] : VIDEO_PROVIDER_FA.CUSTOM}
-                  {" · "}
-                  <span dir="ltr">{videoUrl.trim()}</span>
-                </p>
-              )}
-              <p>
-                افراد:{" "}
-                {soloType
-                  ? "فقط برگزارکننده"
-                  : `${faNum(people.filter((p) => p.kind === "INTERNAL").length + 1)} نفر داخلی${people.filter((p) => p.kind === "EXTERNAL").length + guests.filter((g) => g.name).length > 0 ? ` + ${faNum(people.filter((p) => p.kind === "EXTERNAL").length + guests.filter((g) => g.name).length)} مهمان` : ""}`}
-              </p>
+            {/* بازبینی نهایی — جدول خلاصه */}
+            <div className="overflow-hidden rounded-xl border border-line">
+              <div className="flex items-center gap-2 border-b border-line bg-paper-soft px-4 py-2.5">
+                <Clock className="h-4 w-4 text-ink-soft" />
+                <p className="text-[12px] font-bold">بازبینی نهایی</p>
+              </div>
+              <dl className="divide-y divide-line/70 text-[12px]">
+                {[
+                  { k: "عنوان", v: title, icon: null },
+                  { k: "زمان", v: `${formatJalali(new Date(slot.start), { withTime: true, monthName: true })} تا ${formatClockInTz(new Date(slot.end), orgTz)}`, icon: null },
+                  ...(offsite ? [] : [{ k: "اتاق", v: `${selectedRoom?.name ?? "—"} (${faNum(selectedRoom?.capacity ?? 0)} نفر)`, icon: null }]),
+                  ...(recurrenceFreq !== "NONE"
+                    ? [{
+                        k: "تکرار",
+                        v: describeRecurrence({
+                          freq: recurrenceFreq,
+                          interval: recurrenceInterval,
+                          byWeekday: recurrenceFreq === "WEEKLY" ? recurrenceWeekdays : undefined,
+                        }) + (recurrencePreview.length > 0 ? ` · ${faNum(recurrencePreview.length)} نوبت` : ""),
+                        icon: null,
+                      }]
+                    : []),
+                  { k: "نوع", v: TYPE_FA[meetingType] ?? meetingType, icon: null },
+                  ...(videoUrl.trim()
+                    ? [{ k: "لینک ویدئو", v: `${isVideoProvider(videoProvider) ? VIDEO_PROVIDER_FA[videoProvider] : VIDEO_PROVIDER_FA.CUSTOM} · ${videoUrl.trim()}`, ltr: true, icon: null }]
+                    : []),
+                  {
+                    k: "افراد",
+                    v: soloType
+                      ? "فقط برگزارکننده"
+                      : `${faNum(people.filter((p) => p.kind === "INTERNAL").length + 1)} نفر داخلی${people.filter((p) => p.kind === "EXTERNAL").length + guests.filter((g) => g.name).length > 0 ? ` + ${faNum(people.filter((p) => p.kind === "EXTERNAL").length + guests.filter((g) => g.name).length)} مهمان` : ""}`,
+                    icon: null,
+                  },
+                ].filter((r) => r.v).map((row) => (
+                  <div key={row.k} className="flex items-start gap-3 bg-white px-4 py-2.5">
+                    <dt className="w-20 shrink-0 text-[11px] font-medium text-ink-faint">{row.k}</dt>
+                    <dd className="min-w-0 flex-1 break-words font-medium" dir={row.ltr ? "ltr" : undefined} style={row.ltr ? { textAlign: "right" } : undefined}>
+                      {row.v}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
               {(people.filter((p) => p.kind === "EXTERNAL").length > 0 || guests.filter((g) => g.name).length > 0) && (
-                <p className="mt-1 text-amber-600">⚠ این جلسه به دلیل داشتن مهمان خارجی نیازمند تأیید اپراتور است.</p>
+                <p className="border-t border-amber-100 bg-amber-50 px-4 py-2 text-[11.5px] font-medium text-amber-800">
+                  ⚠ این جلسه به دلیل داشتن مهمان خارجی نیازمند تأیید اپراتور است.
+                </p>
               )}
             </div>
 
