@@ -57,9 +57,15 @@ export interface FindSlotsInput {
  * Free Slot Finder — finds common availability of all participants AND
  * at least one bookable room, across the [from, to] window.
  */
+export interface FindSlotsResult {
+  slots: SlotSuggestion[];
+  /** چرا خالی است — برای پیام خطای شفاف به کاربر */
+  reason?: "NO_ACTIVE_ROOM" | "HOLIDAY_BLOCKED" | "NO_COMMON_TIME";
+}
+
 export async function findAvailableSlots(
   input: FindSlotsInput,
-): Promise<SlotSuggestion[]> {
+): Promise<FindSlotsResult> {
   const {
     branchId, organizerId, durationMin, from, to,
     minCapacity = 1, requiredEquipment = [], excludeMeetingId,
@@ -89,7 +95,7 @@ export async function findAvailableSlots(
     },
     include: { equipment: true },
   });
-  if (rooms.length === 0) return [];
+  if (rooms.length === 0) return { slots: [], reason: "NO_ACTIVE_ROOM" };
 
   // 2) busy intervals per room
   const roomMeetings = await prisma.meeting.findMany({
@@ -214,15 +220,19 @@ export async function findAvailableSlots(
     }
   }
 
-  return [...merged.values()]
+  const finalSlots = [...merged.values()]
     .sort((a, b) => a.start.getTime() - b.start.getTime())
     .slice(0, maxSlots);
+  return {
+    slots: finalSlots,
+    ...(finalSlots.length === 0 ? { reason: "NO_COMMON_TIME" as const } : {}),
+  };
 }
 
 /** Quick meeting: nearest free slot from now for given people, any room in branch. */
 export async function findQuickSlot(input: Omit<FindSlotsInput, "from" | "to">) {
   const now = new Date(Date.now() + 5 * 60000); // 5-min buffer
   const to = new Date(now.getTime() + 8 * 24 * 3600000); // 8 days ahead
-  const slots = await findAvailableSlots({ ...input, from: now, to });
+  const { slots } = await findAvailableSlots({ ...input, from: now, to });
   return slots[0] ?? null;
 }

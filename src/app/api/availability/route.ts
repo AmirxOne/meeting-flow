@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       ? new Date(input.to)
       : new Date(from.getTime() + 7 * 86400000);
 
-    const slots = await findAvailableSlots({
+    const { slots, reason } = await findAvailableSlots({
       orgId: user.orgId,
       branchId: input.branchId,
       organizerId,
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       minCapacity: input.minCapacity,
       requiredEquipment: input.requiredEquipment,
     });
-    return ok({ slots, quick: false });
+    return ok({ slots, reason, quick: false });
   } catch (e) {
     return handleError(e);
   }

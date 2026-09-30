@@ -21,6 +21,8 @@ interface Slot {
   availableRooms: { id: string; name: string; capacity: number }[];
 }
 
+type EmptyReason = "NO_ACTIVE_ROOM" | "HOLIDAY_BLOCKED" | "NO_COMMON_TIME" | undefined;
+
 interface Branch {
   id: string;
   name: string;
@@ -66,6 +68,7 @@ export function AvailabilityPage() {
   const [durationMin, setDurationMin] = useState(30);
   const [days, setDays] = useState(3);
   const [slots, setSlots] = useState<Slot[] | null>(null);
+  const [emptyReason, setEmptyReason] = useState<EmptyReason>(undefined);
   const [loading, setLoading] = useState(false);
   const [searchedBranchName, setSearchedBranchName] = useState("");
   const [organizerId, setOrganizerId] = useState("");
@@ -97,7 +100,7 @@ export function AvailabilityPage() {
         .filter((p) => p.ref.startsWith("dir:"))
         .map((p) => userIdByDir.get(p.ref.slice(4)))
         .filter((x): x is string => !!x);
-      const data = await api<{ slots: Slot[] }>("/api/availability", {
+      const data = await api<{ slots: Slot[]; reason?: EmptyReason }>("/api/availability", {
         method: "POST",
         json: {
           branchId,
@@ -111,8 +114,16 @@ export function AvailabilityPage() {
         },
       });
       setSlots(data.slots);
+      setEmptyReason(data.slots.length === 0 ? data.reason ?? "NO_COMMON_TIME" : undefined);
       setSearchedBranchName(pickedBranch?.name ?? "");
-      if (data.slots.length === 0) push("زمان مشترکی یافت نشد", "error");
+      if (data.slots.length === 0) {
+        push(
+          data.reason === "NO_ACTIVE_ROOM"
+            ? "این شعبه اتاق فعال ندارد — از بخش اتاق‌ها فعالش کنید"
+            : "زمان مشترکی یافت نشد",
+          "error",
+        );
+      }
     } catch (e) {
       push((e as ApiError).message, "error");
     } finally {
@@ -252,10 +263,17 @@ export function AvailabilityPage() {
 
       {slots && slots.length === 0 && (
         <Card>
-          <EmptyState
-            title="زمان مشترکی پیدا نشد"
-            description="افراد انتخابی در این بازه همگی آزاد نیستند. بازه را عوض کنید، تعداد افراد را کم کنید یا مدت جلسه را کوتاه‌تر کنید."
-          />
+          {emptyReason === "NO_ACTIVE_ROOM" ? (
+            <EmptyState
+              title="این شعبه اتاق فعالی ندارد"
+              description="جستجو بدون اتاق فعال ممکن نیست — از بخش «اتاق‌ها» اتاق این شعبه را فعال کنید یا شعبه‌ی دیگری انتخاب کنید."
+            />
+          ) : (
+            <EmptyState
+              title="زمان مشترکی پیدا نشد"
+              description="افراد انتخابی در این بازه همگی آزاد نیستند. بازه را عوض کنید، تعداد افراد را کم کنید یا مدت جلسه را کوتاه‌تر کنید."
+            />
+          )}
         </Card>
       )}
 
