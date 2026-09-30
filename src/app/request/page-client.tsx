@@ -361,17 +361,17 @@ export function PublicRequestForm() {
                 <div className="mt-3 space-y-2.5">
                   {prefSlots.map((sl, i) => (
                     <div key={i} className="flex flex-wrap items-end gap-x-2 gap-y-2 rounded-xl border border-line/70 bg-white px-2.5 py-2.5">
-                      <div className="min-w-[130px] flex-1 basis-40">
+                      <div className="min-w-[120px] flex-1 basis-36">
                         <label className="mb-1 block text-[11px] font-medium text-ink-soft">
                           {prefSlots.length > 1 ? `پیشنهاد (${fa(i + 1)}) — روز` : "روز"}
                         </label>
                         <JalaliDatePicker value={sl.day} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, day: v } : x)))} />
                       </div>
-                      <div className="w-[130px] shrink-0 sm:w-[150px]">
+                      <div className="min-w-[104px] max-w-[150px] flex-1 basis-24">
                         <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
                         <TimePicker value={sl.from} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, from: v } : x)))} />
                       </div>
-                      <div className="w-[130px] shrink-0 sm:w-[150px]">
+                      <div className="min-w-[104px] max-w-[150px] flex-1 basis-24">
                         <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
                         <TimePicker value={sl.to} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, to: v } : x)))} />
                       </div>
