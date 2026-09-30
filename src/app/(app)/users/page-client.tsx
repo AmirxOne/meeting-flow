@@ -106,9 +106,9 @@ export function UsersPage({ embedded = false }: { embedded?: boolean }) {
       )}
 
       <div data-tour="users-filters">
-        <Card className="overflow-hidden">
+        <Card>
           {/* ردیف ۱: جستجوی اصلی + مرتب‌سازی + شمارنده */}
-          <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2 rounded-t-[inherit] border-b border-line bg-white px-4 py-3">
             <div className="flex h-10 min-w-52 flex-1 items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-md">
               <Search className="h-4 w-4 shrink-0 text-ink-faint" />
               <input
