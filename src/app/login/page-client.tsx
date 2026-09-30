@@ -532,12 +532,18 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
+                aria-busy={loading || undefined}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
               >
-                {loading && (
-                  <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                {loading ? (
+                  <span className="btn-scale-spinner" aria-hidden="true" dir="ltr">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                ) : (
+                  ldapMode ? "ورود با LDAP" : "ورود"
                 )}
-                {loading ? "در حال ورود…" : ldapMode ? "ورود با LDAP" : "ورود"}
               </button>
             </form>
             ) : null}

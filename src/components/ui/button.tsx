@@ -1,7 +1,6 @@
 "use client";
 
 import { forwardRef, type ButtonHTMLAttributes } from "react";
-import { Loader2 } from "@/components/ui/icon";
 import { cn } from "@/lib";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "outline";
@@ -28,6 +27,20 @@ const sizes: Record<Size, string> = {
   icon: "h-9 w-9 rounded-md",
 };
 
+/**
+ * اسپینر بارگذاری دکمه — سه میله‌ی کش‌آمده (سبک ScaleLoader) با CSS خالص.
+ * رنگ میله‌ها از رنگ متن فعلی دکمه پیروی می‌کند (currentColor).
+ */
+function ButtonScaleSpinner() {
+  return (
+    <span className="btn-scale-spinner" aria-hidden="true" dir="ltr">
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = "primary", size = "md", loading, className, children, disabled, ...rest },
   ref,
@@ -36,6 +49,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
         "inline-flex select-none items-center justify-center font-medium transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30",
@@ -45,8 +59,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       )}
       {...rest}
     >
-      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-      {children}
+      {/* در حالت لودینگ: متن محو و اسپینر وسط دکمه */}
+      {loading ? <ButtonScaleSpinner /> : children}
     </button>
   );
 });
