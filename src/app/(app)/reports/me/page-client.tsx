@@ -95,13 +95,15 @@ export function MyReportsClient() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             {/* monthly hours chart */}
-            <Card>
+            <Card className="flex flex-col">
               <CardHeader title="ساعت جلسات ماهانه" />
-              <CardBody>
+              <CardBody className="flex flex-1 flex-col">
                 {me.series.length === 0 ? (
                   <EmptyState title="داده‌ای نیست" description="در این بازه جلسه‌ای ثبت نشده" compact />
                 ) : (
-                  <MonthlyBars series={me.series} />
+                  <div className="min-h-40 flex-1">
+                    <MonthlyBars series={me.series} />
+                  </div>
                 )}
               </CardBody>
             </Card>
@@ -279,7 +281,7 @@ function StatCard({
 function MonthlyBars({ series }: { series: { month: string; hours: number }[] }) {
   const max = Math.max(...series.map((s) => s.hours), 1);
   return (
-    <div dir="rtl" className="flex h-40 gap-2" role="img" aria-label="نمودار ساعت جلسات ماهانه">
+    <div dir="rtl" className="flex h-full min-h-40 gap-2" role="img" aria-label="نمودار ساعت جلسات ماهانه">
       {series.map((s) => (
         <div key={s.month} className="flex h-full min-w-0 flex-1 flex-col items-center gap-1.5">
           <span className="text-[10px] font-medium text-ink-soft">{faNum(s.hours)}</span>
