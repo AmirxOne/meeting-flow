@@ -371,8 +371,15 @@ export function LoginPage() {
                   disabled={forgotLoading}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
                 >
-                  {forgotLoading && <span className="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
-                  {forgotLoading ? "در حال ارسال…" : "ارسال لینک بازنشانی"}
+                  {forgotLoading ? (
+                    <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  ) : (
+                    "ارسال لینک بازنشانی"
+                  )}
                 </button>
                 <p className="text-center text-[10.5px] leading-5 text-ink-faint">
                   برای امنیت حساب، به ایمیل/موبایل دیگری اطلاعاتی داده نمی‌شود.
@@ -536,7 +543,7 @@ export function LoginPage() {
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
               >
                 {loading ? (
-                  <span className="btn-scale-spinner" aria-hidden="true" dir="ltr">
+                  <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
                     <span />
                     <span />
                     <span />

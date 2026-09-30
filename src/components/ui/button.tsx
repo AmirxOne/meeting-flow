@@ -28,12 +28,12 @@ const sizes: Record<Size, string> = {
 };
 
 /**
- * اسپینر بارگذاری دکمه — سه میله‌ی کش‌آمده (سبک ScaleLoader) با CSS خالص.
- * رنگ میله‌ها از رنگ متن فعلی دکمه پیروی می‌کند (currentColor).
+ * اسپینر بارگذاری دکمه — سه‌نقطه‌ی موجی (Dots) با CSS خالص.
+ * رنگ نقطه‌ها از رنگ متن فعلی دکمه پیروی می‌کند (currentColor).
  */
-function ButtonScaleSpinner() {
+export function ButtonDotsSpinner() {
   return (
-    <span className="btn-scale-spinner" aria-hidden="true" dir="ltr">
+    <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
       <span />
       <span />
       <span />
@@ -60,7 +60,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       {...rest}
     >
       {/* در حالت لودینگ: متن محو و اسپینر وسط دکمه */}
-      {loading ? <ButtonScaleSpinner /> : children}
+      {loading ? <ButtonDotsSpinner /> : children}
     </button>
   );
 });
