@@ -92,6 +92,7 @@ export async function GET(req: NextRequest) {
         address: b.address,
         phone: b.phone,
         isActive: b.isActive,
+        roomCount: b._count.rooms,
         manager: b.manager,
         wayfindingText: b.wayfindingText,
         hasMap: !!b.mapStorageKey,
