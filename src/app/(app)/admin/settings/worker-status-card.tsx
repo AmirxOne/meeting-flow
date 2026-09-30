@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, Clock } from "@/components/ui/icon";
+import { AlertCircle, CheckCircle2, Clock, Power } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, SkeletonBlock } from "@/components/ui/card";
 import { faNum, faStr, formatJalali } from "@/lib";
@@ -47,8 +47,24 @@ export function WorkerStatusCard() {
   return (
     <Card data-testid="worker-status-card">
       <CardHeader
-        title="وضعیت worker"
-        subtitle="تیک پس‌زمینه (یادآور، lifecycle، waitlist) — بدون worker ارسال واقعی انجام نمی‌شود"
+        title={
+          <span className="flex flex-wrap items-center gap-2">
+            <Power className="h-4 w-4 text-ink-soft" />
+            وضعیت worker
+            {data && (
+              <span
+                className={
+                  "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10.5px] font-bold " +
+                  (data.stale ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800")
+                }
+              >
+                <span className={"size-1.5 rounded-full " + (data.stale ? "bg-amber-500" : "bg-emerald-500")} />
+                {data.stale ? "متوقف" : "فعال"}
+              </span>
+            )}
+          </span>
+        }
+        subtitle="موتور پس‌زمینه: یادآورها، چرخه‌ی وضعیت جلسات و صف انتظار اتاق‌ها"
       />
       <CardBody className="space-y-4">
         {isLoading ? (
@@ -66,13 +82,26 @@ export function WorkerStatusCard() {
                 data-testid="worker-stale-alert"
               >
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="font-medium">worker بی‌فعال یا متوقف شده</p>
                   <p className="mt-1 text-amber-800/90">
                     {data.heartbeat
                       ? `آخرین تیک ${formatMinutes(data.minutesSinceTick)} پیش — بیش از ${faNum(data.staleAfterMinutes)} دقیقه بدون tick.`
-                      : `هنوز هیچ tick ثبت نشده — \`pnpm worker:dev\` یا سرویس worker در docker را اجرا کنید.`}
+                      : "هنوز هیچ تیکی ثبت نشده است."}
                   </p>
+                  <p className="mt-1.5 text-[11px] leading-6 text-amber-800/80">
+                    بدون worker، یادآورها ارسال نمی‌شوند و وضعیت جلسات به‌روز نمی‌شود. برای اجرا:
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <code className="rounded bg-amber-100 px-2 py-1 font-mono text-[11px] text-amber-900 ring-1 ring-amber-200" dir="ltr">
+                      pnpm worker:dev
+                    </code>
+                    <span className="text-[10.5px] text-amber-800/70">در توسعه</span>
+                    <code className="rounded bg-amber-100 px-2 py-1 font-mono text-[11px] text-amber-900 ring-1 ring-amber-200" dir="ltr">
+                      pnpm worker
+                    </code>
+                    <span className="text-[10.5px] text-amber-800/70">در سرور</span>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -90,14 +119,16 @@ export function WorkerStatusCard() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-line bg-paper-soft/60 px-3.5 py-3">
-                <p className="text-[11px] text-ink-soft">یادآور موفق (۲۴ ساعت)</p>
+                <p className="text-[11px] font-medium text-ink-soft">یادآور موفق</p>
                 <p className="mt-1 text-[20px] font-bold tabular-nums">{faNum(data.reminders24h.sent)}</p>
+                <p className="mt-0.5 text-[10.5px] text-ink-faint">در ۲۴ ساعت گذشته</p>
               </div>
               <div className="rounded-lg border border-line bg-paper-soft/60 px-3.5 py-3">
-                <p className="text-[11px] text-ink-soft">خطای ارسال (۲۴ ساعت)</p>
-                <p className="mt-1 text-[20px] font-bold tabular-nums text-red-600">
+                <p className="text-[11px] font-medium text-ink-soft">خطای ارسال</p>
+                <p className={"mt-1 text-[20px] font-bold tabular-nums " + (data.reminders24h.failed > 0 ? "text-red-600" : "")}>
                   {faNum(data.reminders24h.failed)}
                 </p>
+                <p className="mt-0.5 text-[10.5px] text-ink-faint">در ۲۴ ساعت گذشته</p>
               </div>
             </div>
 
