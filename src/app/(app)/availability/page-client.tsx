@@ -157,9 +157,7 @@ export function AvailabilityPage() {
             افراد را انتخاب کنید تا سیستم زمان‌های آزاد مشترک همه را با اتاق موجود پیدا کند.
           </p>
         </div>
-        <p className="hidden text-[11px] leading-5 text-ink-faint sm:block">
-          امروز {formatJalaliDayMonthInTz(new Date(), orgTz)} · به وقت {orgTz === DEFAULT_ORG_TIMEZONE ? "تهران" : orgTz}
-        </p>
+
       </div>
 
       <Card>
