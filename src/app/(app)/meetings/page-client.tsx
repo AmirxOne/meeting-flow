@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Search, CalendarX2, Users } from "@/components/ui/icon";
+import { Plus, Search, CalendarX2, Users, SlidersHorizontal } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, EmptyState } from "@/components/ui/card";
 import { StatusBadge, TypeBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { FilterBar } from "@/components/ui/filter-bar";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -57,13 +59,27 @@ export function MeetingsPage() {
   const [scope, setScope] = useState<"all" | "mine">("all");
   const [q, setQ] = useState("");
   const [period, setPeriod] = useState<MeetingPeriod>("today");
+  const [branchId, setBranchId] = useState("");
+  const [roomId, setRoomId] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [advanced, setAdvanced] = useState(false);
 
   const isCompact = compact === true;
   const effectiveScope = isCompact ? "mine" : scope;
   const range = isCompact ? meetingPeriodRange(period) : null;
 
+  const { data: filtersData } = useQuery({
+    queryKey: ["meetings-filter-options"],
+    queryFn: () =>
+      api<{ branches: { id: string; name: string }[]; rooms: { id: string; name: string; branchId: string }[] }>(
+        "/api/branches",
+      ),
+    enabled: compact === false,
+  });
+
   const { data, isLoading } = useQuery({
-    queryKey: ["meetings", status, effectiveScope, q, range?.from, range?.to],
+    queryKey: ["meetings", status, effectiveScope, q, range?.from, range?.to, branchId, roomId, from, to],
     queryFn: () => {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
@@ -72,7 +88,12 @@ export function MeetingsPage() {
       if (range) {
         params.set("from", range.from);
         params.set("to", range.to);
+      } else {
+        if (from) params.set("from", from);
+        if (to) params.set("to", to);
       }
+      if (branchId) params.set("branchId", branchId);
+      if (roomId) params.set("roomId", roomId);
       return api<{ meetings: MeetingRow[] }>(`/api/meetings?${params.toString()}`);
     },
     enabled: compact !== null,
@@ -96,6 +117,11 @@ export function MeetingsPage() {
               : "فهرست همه‌ی جلسه‌ها با جستجو و فیلتر — برای پیدا کردن جلسه، اتاق و برگزارکننده"}
           </p>
         </div>
+        {!isCompact && (
+          <span className="shrink-0 rounded-full border border-line bg-paper-soft px-3 py-1.5 text-[11px] text-ink-soft">
+            {faNum(meetings.length)} جلسه
+          </span>
+        )}
         {can("meeting:create") && (
           <Link href={canCreateMeeting ? "/meetings/new" : "/meeting-requests"} className="shrink-0">
             <Button size="sm">
@@ -131,48 +157,142 @@ export function MeetingsPage() {
         </div>
       )}
 
-      <FilterBar
-        groups={[
-          ...(!isCompact && can("meeting:view-all")
-            ? [{
-                key: "scope",
-                options: [
-                  { value: "all", label: "کل شرکت" },
-                  { value: "mine", label: "جلسات من" },
-                ],
-              }]
-            : []),
-          {
-            key: "status",
-            label: "وضعیت",
-            options: STATUS_FILTERS.map((f) => ({
-              value: f.key,
-              label: f.label,
-              count: f.key === "" ? meetings.length : statusCounts.get(f.key) ?? 0,
-            })),
-          },
-        ]}
-        value={{ scope, status }}
-        onChange={(v) => {
-          if (v.scope !== undefined && v.scope !== scope) setScope(v.scope as "all" | "mine");
-          setStatus(v.status);
-        }}
-      >
-        <div className="flex h-9 min-w-0 w-full items-center gap-2 rounded-md border border-line bg-white px-3 sm:max-w-64">
-          <Search className="h-4 w-4 shrink-0 text-ink-faint" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="جستجوی عنوان…"
-            className="min-w-0 w-full bg-transparent text-[12px] outline-none"
-          />
-          {q && (
-            <button onClick={() => setQ("")} className="shrink-0 text-ink-faint hover:text-ink" aria-label="پاک کردن">
-              ✕
+      {!isCompact && (
+        <Card data-tour="meetings-filters" className="space-y-2.5 p-4">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* جستجو */}
+            <div className="relative min-w-52 flex-1">
+              <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="جستجوی عنوان جلسه…"
+                className="h-10 w-full rounded-md border border-line bg-white pr-9 pl-3 text-[12.5px] outline-none transition-colors placeholder:text-ink-faint focus:border-ink/50"
+              />
+            </div>
+            {/* حوزه */}
+            {can("meeting:view-all") && (
+              <div className="w-40">
+                <Select
+                  value={scope}
+                  onChange={(v) => setScope(v as "all" | "mine")}
+                  placeholder="حوزه"
+                  options={[
+                    { value: "all", label: "کل شرکت" },
+                    { value: "mine", label: "جلسات من" },
+                  ]}
+                />
+              </div>
+            )}
+            {/* وضعیت */}
+            <div className="w-44">
+              <Select
+                value={status}
+                onChange={setStatus}
+                placeholder="وضعیت: همه"
+                options={STATUS_FILTERS.map((f) => ({
+                  value: f.key,
+                  label: f.key === "" ? "وضعیت: همه" : f.label,
+                }))}
+              />
+            </div>
+            {/* سوییچ پیشرفته */}
+            <button
+              type="button"
+              onClick={() => setAdvanced((a) => !a)}
+              className={cn(
+                "flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3 text-[12px] transition-colors",
+                advanced || branchId || roomId || from || to
+                  ? "border-ink/40 bg-paper-soft text-ink"
+                  : "border-line text-ink-soft hover:border-ink/40 hover:text-ink",
+              )}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              فیلتر پیشرفته
+              {(branchId || roomId || from || to) && (
+                <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-ink text-[9px] font-bold text-white">•</span>
+              )}
             </button>
+          </div>
+          {/* پنل پیشرفته */}
+          {advanced && (
+            <div className="flex flex-wrap items-center gap-2.5 border-t border-line/70 pt-2.5">
+              <div className="w-44">
+                <Select
+                  value={branchId}
+                  onChange={(v) => { setBranchId(v); setRoomId(""); }}
+                  placeholder="شعبه: همه"
+                  options={[
+                    { value: "", label: "شعبه: همه" },
+                    ...(filtersData?.branches ?? []).map((b) => ({ value: b.id, label: b.name })),
+                  ]}
+                />
+              </div>
+              <div className="w-44">
+                <Select
+                  value={roomId}
+                  onChange={setRoomId}
+                  placeholder="اتاق: همه"
+                  options={[
+                    { value: "", label: "اتاق: همه" },
+                    ...(filtersData?.rooms ?? [])
+                      .filter((r) => !branchId || r.branchId === branchId)
+                      .map((r) => ({ value: r.id, label: r.name })),
+                  ]}
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <JalaliDatePicker value={from} onChange={setFrom} placeholder="از تاریخ" className="w-[130px]" />
+                <span className="text-[11px] text-ink-faint">تا</span>
+                <JalaliDatePicker value={to} onChange={setTo} placeholder="تا تاریخ" className="w-[130px]" />
+              </div>
+              {(branchId || roomId || from || to) && (
+                <button
+                  type="button"
+                  onClick={() => { setBranchId(""); setRoomId(""); setFrom(""); setTo(""); }}
+                  className="h-10 shrink-0 rounded-md border border-dashed border-line px-3 text-[11px] text-ink-soft transition hover:border-danger/40 hover:text-danger"
+                >
+                  پاک‌کردن فیلترها
+                </button>
+              )}
+            </div>
           )}
-        </div>
-      </FilterBar>
+          {/* چیپ‌های وضعیت سریع */}
+          <div className="flex flex-wrap items-center gap-1.5 border-t border-line/70 pt-2.5">
+            {STATUS_FILTERS.map((f) => {
+              const n = f.key === "" ? meetings.length : statusCounts.get(f.key) ?? 0;
+              const active = status === f.key;
+              return (
+                <button
+                  key={f.key || "all"}
+                  type="button"
+                  onClick={() => setStatus(f.key)}
+                  className={cn(
+                    "flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11.5px] transition-colors",
+                    active ? "border-ink bg-ink text-white" : "border-line text-ink-soft hover:border-ink/40 hover:text-ink",
+                  )}
+                >
+                  {f.label}
+                  <span className={cn("text-[10px]", active ? "text-white/70" : "text-ink-faint")}>{faNum(n)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+      {isCompact && (
+        <FilterBar
+          groups={[
+            {
+              key: "status",
+              label: "وضعیت",
+              options: STATUS_FILTERS.map((f) => ({ value: f.key, label: f.label })),
+            },
+          ]}
+          value={{ status }}
+          onChange={(v) => setStatus(v.status)}
+        />
+      )}
 
       {compact === null || isLoading ? (
         <div className="space-y-3">
