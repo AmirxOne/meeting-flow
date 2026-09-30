@@ -145,7 +145,7 @@ export function PublicRequestForm() {
             </p>
           </div>
 
-          <ul className="relative mt-3 space-y-3 self-start lg:sticky lg:top-6">
+          <ul className="relative mt-3 w-full space-y-3 lg:sticky lg:top-6">
             {[
               { t: "بدون نیاز به ثبت‌نام", d: "فرم کوتاه — کمتر از یک دقیقه" },
               { t: "تقویم شمسی و بازه دلخواه", d: "روز و ساعت مورد نظرتان را مشخص کنید" },
