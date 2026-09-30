@@ -65,7 +65,8 @@ export async function GET(req: NextRequest) {
     const branches = await prisma.branch.findMany({
       where: {
         orgId: actor.orgId,
-        ...(includeInactive && canManage ? {} : { isActive: true }),
+        // مدیران همیشه همه‌ی شعبه‌ها را می‌بینند تا بتوانند غیرفعال را دوباره فعال کنند
+        ...(canManage ? {} : { isActive: true }),
       },
       include: {
         manager: { select: { id: true, fullName: true } },
