@@ -43,6 +43,7 @@ export function AdminRolesPage() {
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [deleting, setDeleting] = useState<RoleRow | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-roles"],
@@ -119,12 +120,13 @@ export function AdminRolesPage() {
     }
   }
 
-  async function remove(role: RoleRow) {
-    if (!confirm(`حذف نقش «${role.name}»؟`)) return;
+  async function remove() {
+    if (!deleting) return;
     setBusy(true);
     try {
-      await api(`/api/admin/roles/${role.id}`, { method: "DELETE" });
+      await api(`/api/admin/roles/${deleting.id}`, { method: "DELETE" });
       push("نقش حذف شد", "success");
+      setDeleting(null);
       qc.invalidateQueries({ queryKey: ["admin-roles"] });
     } catch (e) {
       push((e as ApiError).message, "error");
@@ -248,7 +250,7 @@ export function AdminRolesPage() {
                           size="sm"
                           variant="outline"
                           disabled={busy || role.userCount > 0}
-                          onClick={() => remove(role)}
+                          onClick={() => setDeleting(role)}
                           title={role.userCount > 0 ? "ابتدا کاربران این نقش را جابه‌جا کنید" : undefined}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -412,6 +414,36 @@ export function AdminRolesPage() {
               );
             })}
           </div>
+        </div>
+      </Modal>
+
+      {/* مودال تأیید حذف نقش */}
+      <Modal
+        open={!!deleting}
+        onClose={() => setDeleting(null)}
+        title={`حذف نقش «${deleting?.name ?? ""}»`}
+        subtitle="این عملیات قابل بازگشت نیست"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setDeleting(null)}>
+              انصراف
+            </Button>
+            <Button onClick={remove} loading={busy}>
+              <Trash2 className="h-4 w-4" />
+              حذف قطعی
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-[13px] leading-6">
+            نقش <span className="font-bold">{deleting?.name}</span>
+            {deleting ? <span className="badge badge-gray mr-1.5 font-mono text-[10px]" dir="ltr">{deleting.key}</span> : null} حذف شود؟
+          </p>
+          <p className="text-[12px] leading-6 text-ink-soft">
+            این نقش به هیچ کاربری اختصاص داده نشده و حذف آن بر دسترسی کسی تأثیری نمی‌گذارد.
+            اگر بعداً لازم شد، می‌توانید نقشی با همین مجوزها دوباره بسازید.
+          </p>
         </div>
       </Modal>
     </div>
