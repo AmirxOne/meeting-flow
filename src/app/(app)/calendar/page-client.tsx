@@ -498,11 +498,11 @@ export function CalendarPage() {
           در انتظار تایید
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-          <span className="h-2.5 w-2.5 rounded-[3px] bg-ink/45" />
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-emerald-500" />
           برگزار شده
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-          <span className="h-2.5 w-2.5 rounded-[3px] bg-ink-faint" />
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-red-300" />
           لغو/رد شده
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">

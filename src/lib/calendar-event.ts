@@ -26,19 +26,21 @@ export function calendarEventTone(status: string): CalendarEventTone {
     };
   }
   if (DONE.has(status)) {
+    // لغو/رد شده: خاکستری با خط‌خوردگی + حاشیه قرمز — با «برگزار شده» اشتباه نشود
     return {
       chip: "bg-paper-deep text-ink-faint line-through",
       block: "bg-paper-deep text-ink-faint line-through",
-      rail: "bg-ink-faint",
-      dot: "bg-ink-faint",
+      rail: "bg-red-300",
+      dot: "bg-red-300",
     };
   }
   if (status === "COMPLETED") {
+    // برگزار شده: تیک سبز — جلسه‌ی باخت‌ونجات‌یافته
     return {
-      chip: "bg-paper-soft text-ink-soft",
-      block: "bg-ink/45 text-white",
-      rail: "bg-ink-faint",
-      dot: "bg-ink-faint",
+      chip: "bg-emerald-50 text-emerald-700",
+      block: "bg-emerald-100 text-emerald-800",
+      rail: "bg-emerald-500",
+      dot: "bg-emerald-500",
     };
   }
   return {
