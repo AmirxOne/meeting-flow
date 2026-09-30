@@ -53,6 +53,10 @@ export function RequestQueuePage() {
   const [scheduling, setScheduling] = useState<Req | null>(null);
   const [rejecting, setRejecting] = useState<Req | null>(null);
   const [editing, setEditing] = useState<Req | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkReject, setBulkReject] = useState(false);
+  const [bulkNote, setBulkNote] = useState("");
 
   const { data } = useQuery({
     queryKey: ["meeting-requests", "all"],
@@ -64,6 +68,59 @@ export function RequestQueuePage() {
   const done = items.filter((r) => r.status !== "OPEN");
   const refresh = () => qc.invalidateQueries({ queryKey: ["meeting-requests"] });
 
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const allSelected = open.length > 0 && selected.size === open.length;
+
+  async function bulkApprove() {
+    if (selected.size === 0) return;
+    setBulkBusy(true);
+    let okCount = 0;
+    let lastErr = "";
+    for (const id of selected) {
+      try {
+        await api(`/api/meeting-requests/${id}`, { method: "PATCH", json: { action: "approve" } });
+        okCount++;
+      } catch (e) {
+        lastErr = (e as { message?: string }).message ?? "خطا";
+      }
+    }
+    setBulkBusy(false);
+    setSelected(new Set());
+    refresh();
+    if (okCount > 0) push(`${faNum(okCount)} درخواست تأیید شد`, "success");
+    if (lastErr) push(`برای برخی درخواست‌ها خطا: ${lastErr}`, "error");
+  }
+
+  async function bulkRejectConfirmed() {
+    if (selected.size === 0) return;
+    setBulkBusy(true);
+    let okCount = 0;
+    let lastErr = "";
+    for (const id of selected) {
+      try {
+        await api(`/api/meeting-requests/${id}`, { method: "PATCH", json: { action: "reject", adminNote: bulkNote.trim() || null } });
+        okCount++;
+      } catch (e) {
+        lastErr = (e as { message?: string }).message ?? "خطا";
+      }
+    }
+    setBulkBusy(false);
+    setBulkReject(false);
+    setBulkNote("");
+    setSelected(new Set());
+    refresh();
+    if (okCount > 0) push(`${faNum(okCount)} درخواست رد شد`, "success");
+    if (lastErr) push(`برای برخی درخواست‌ها خطا: ${lastErr}`, "error");
+  }
+
   return (
     <div className="space-y-4 p-4 lg:p-6">
       <div>
@@ -74,7 +131,41 @@ export function RequestQueuePage() {
       </div>
 
       <Card>
-        <CardHeader title={`در انتظار هماهنگی (${faNum(open.length)})`} />
+        <CardHeader
+          title={
+            <span className="flex flex-wrap items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                در انتظار هماهنگی ({faNum(open.length)})
+                {open.length > 0 && (
+                  <label className="flex cursor-pointer items-center gap-1.5 text-[11.5px] font-normal text-ink-soft">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={() => setSelected(allSelected ? new Set() : new Set(open.map((r) => r.id)))}
+                      className="h-4 w-4 accent-[#0d0d0d]"
+                    />
+                    انتخاب همه
+                  </label>
+                )}
+              </span>
+              {selected.size > 0 && (
+                <span className="flex items-center gap-2">
+                  <span className="rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">
+                    {faNum(selected.size)} انتخاب‌شده
+                  </span>
+                  <Button size="sm" onClick={bulkApprove} disabled={bulkBusy}>
+                    <CheckCircle2 className="h-4 w-4" />
+                    تأیید گروهی
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setBulkReject(true)} disabled={bulkBusy}>
+                    <XCircle className="h-4 w-4" />
+                    رد گروهی
+                  </Button>
+                </span>
+              )}
+            </span>
+          }
+        />
         <CardBody>
           {open.length === 0 ? (
             <EmptyState
@@ -94,6 +185,14 @@ export function RequestQueuePage() {
                   className="rounded-lg border border-line p-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        aria-label={`انتخاب ${r.title}`}
+                        className="mt-1 h-4 w-4 shrink-0 accent-[#0d0d0d]"
+                      />
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-1.5 text-[14px] font-bold">
                         {r.isPrivate && (
@@ -169,6 +268,7 @@ export function RequestQueuePage() {
                         ثبت: {formatJalali(new Date(r.createdAt), { withTime: true })}
                       </p>
                     </div>
+                    </div>
                     <div className="flex shrink-0 flex-wrap gap-2">
                       <Button onClick={() => setScheduling(r)}>
                         <CalendarPlus className="h-4 w-4" />
@@ -220,6 +320,41 @@ export function RequestQueuePage() {
           </CardBody>
         </Card>
       )}
+
+      {/* bulk reject modal */}
+      <Modal
+        open={bulkReject}
+        onClose={() => setBulkReject(false)}
+        title={`رد ${faNum(selected.size)} درخواست`}
+        subtitle="این عملیات قابل بازگشت نیست"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setBulkReject(false)}>
+              انصراف
+            </Button>
+            <Button onClick={bulkRejectConfirmed} loading={bulkBusy} className="!bg-red-600 hover:!bg-red-700">
+              <XCircle className="h-4 w-4" />
+              رد قطعی
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-[13px] leading-6">
+            {faNum(selected.size)} درخواست انتخاب‌شده رد شوند؟
+          </p>
+          <div>
+            <label className="mb-1.5 block text-[12px] font-medium">دلیل رد (اختیاری — برای همه‌ی انتخاب‌شده‌ها)</label>
+            <textarea
+              value={bulkNote}
+              onChange={(e) => setBulkNote(e.target.value)}
+              rows={3}
+              placeholder="مثلاً: ظرفیت این هفته تکمیل است"
+              className="w-full rounded-md border border-line p-3 text-[13px] outline-none focus:border-ink"
+            />
+          </div>
+        </div>
+      </Modal>
 
       {/* reject modal (with reason) */}
       <RejectModal req={rejecting} onClose={() => setRejecting(null)} onDone={refresh} />
