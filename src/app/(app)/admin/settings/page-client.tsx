@@ -328,8 +328,8 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
           if (f) upload(f);
         }}
         className={cn(
-          "flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors",
-          dragOver ? "border-ink bg-paper-soft" : "border-line bg-white hover:border-ink/40",
+          "logo-checkerboard flex size-24 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors",
+          dragOver ? "border-ink" : "border-line hover:border-ink/40",
         )}
         onClick={() => inputRef.current?.click()}
         title="کلیک یا فایل را این‌جا رها کنید"

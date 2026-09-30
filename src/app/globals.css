@@ -142,3 +142,13 @@ body:not(.tour-open) [data-name='nextstep-overlay'] {
 body.tour-open [data-name='nextstep-overlay'] {
   pointer-events: auto !important;
 }
+
+/* ── کادر لوگوی سازمان: پس‌زمینه شطرنجی تا لوگوی سفید/ترنسپرنت هم دیده شود ── */
+.logo-checkerboard {
+  background-color: #fff;
+  background-image:
+    linear-gradient(45deg, #ececf1 25%, transparent 25%, transparent 75%, #ececf1 75%),
+    linear-gradient(45deg, #ececf1 25%, transparent 25%, transparent 75%, #ececf1 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+}
