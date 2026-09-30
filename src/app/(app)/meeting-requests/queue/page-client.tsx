@@ -132,40 +132,47 @@ export function RequestQueuePage() {
 
       <Card>
         <CardHeader
-          title={
-            <span className="flex flex-wrap items-center justify-between gap-2">
-              <span className="flex items-center gap-2">
-                در انتظار هماهنگی ({faNum(open.length)})
-                {open.length > 0 && (
-                  <label className="flex cursor-pointer items-center gap-1.5 text-[11.5px] font-normal text-ink-soft">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={() => setSelected(allSelected ? new Set() : new Set(open.map((r) => r.id)))}
-                      className="h-4 w-4 accent-[#0d0d0d]"
-                    />
-                    انتخاب همه
-                  </label>
-                )}
-              </span>
-              {selected.size > 0 && (
-                <span className="flex items-center gap-2">
-                  <span className="rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">
-                    {faNum(selected.size)} انتخاب‌شده
-                  </span>
-                  <Button size="sm" onClick={bulkApprove} disabled={bulkBusy}>
-                    <CheckCircle2 className="h-4 w-4" />
-                    تأیید گروهی
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setBulkReject(true)} disabled={bulkBusy}>
-                    <XCircle className="h-4 w-4" />
-                    رد گروهی
-                  </Button>
-                </span>
-              )}
-            </span>
-          }
+          title={`در انتظار هماهنگی (${faNum(open.length)})`}
+          subtitle={open.length > 0 ? "برای عملیات گروهی، درخواست‌ها را از چک‌باکس انتخاب کنید" : undefined}
         />
+        {/* نوار انتخاب و عملیات گروهی — ردیف مستقل */}
+        {open.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-soft/50 px-5 py-2.5">
+            <label className="flex cursor-pointer select-none items-center gap-2 text-[12px] font-medium text-ink-soft">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() => setSelected(allSelected ? new Set() : new Set(open.map((r) => r.id)))}
+                className="h-4 w-4 accent-[#0d0d0d]"
+              />
+              انتخاب همه ({faNum(open.length)})
+            </label>
+            {selected.size > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">
+                  {faNum(selected.size)} انتخاب‌شده
+                </span>
+                <Button size="sm" onClick={bulkApprove} disabled={bulkBusy}>
+                  <CheckCircle2 className="h-4 w-4" />
+                  تأیید گروهی
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setBulkReject(true)} disabled={bulkBusy}>
+                  <XCircle className="h-4 w-4" />
+                  رد گروهی
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setSelected(new Set())}
+                  className="text-[11px] text-ink-soft underline-offset-2 hover:text-danger hover:underline"
+                >
+                  لغو انتخاب
+                </button>
+              </div>
+            ) : (
+              <span className="text-[11px] text-ink-faint">هیچ درخواستی انتخاب نشده</span>
+            )}
+          </div>
+        )}
         <CardBody>
           {open.length === 0 ? (
             <EmptyState
