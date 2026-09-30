@@ -88,7 +88,14 @@ export function MeetingsPage() {
   return (
     <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <h1 className="min-w-0 text-lg font-bold">{heading}</h1>
+        <div className="min-w-0">
+          <h1 className="min-w-0 text-lg font-bold">{heading}</h1>
+          <p className="mt-0.5 text-[12px] leading-5 text-ink-soft">
+            {isCompact
+              ? "جلسه‌های امروز و این هفته‌ی شما — برای برنامه‌ریزی روزانه"
+              : "فهرست همه‌ی جلسه‌ها با جستجو و فیلتر — برای پیدا کردن جلسه، اتاق و برگزارکننده"}
+          </p>
+        </div>
         {can("meeting:create") && (
           <Link href={canCreateMeeting ? "/meetings/new" : "/meeting-requests"} className="shrink-0">
             <Button size="sm">
