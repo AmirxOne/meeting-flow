@@ -246,7 +246,7 @@ export function RoomFormModal({
             rows={2}
             maxLength={500}
             placeholder="اختیاری — نکات خاص اتاق…"
-            className="w-full rounded-md border border-line px-3 py-2 text-[12px] outline-none focus:border-ink"
+            className="w-full rounded-md border border-line px-3 py-2 text-[12px] outline-none focus:border-ink min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
           />
         </div>
         <div className="sm:col-span-3">

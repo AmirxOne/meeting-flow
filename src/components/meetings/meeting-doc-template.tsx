@@ -172,7 +172,7 @@ export function AgendaTemplate({
               value={draft?.goals ?? ""}
               onChange={(e) => up({ goals: e.target.value })}
               rows={3}
-              className="w-full rounded-b-lg border border-t-0 border-line bg-white p-2.5 text-[12px] leading-6 outline-none focus:border-ink"
+              className="w-full rounded-b-lg border border-t-0 border-line bg-white p-2.5 text-[12px] leading-6 outline-none focus:border-ink min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
               placeholder="اهداف این جلسه…"
             />
           )}
@@ -507,7 +507,7 @@ export function MinutesTemplate({
               value={minDraft?.minFlow ?? ""}
               onChange={(e) => up({ minFlow: e.target.value })}
               rows={4}
-              className="w-full rounded-b-lg border border-t-0 border-line bg-white p-2.5 text-[12px] leading-6 outline-none focus:border-ink"
+              className="w-full rounded-b-lg border border-t-0 border-line bg-white p-2.5 text-[12px] leading-6 outline-none focus:border-ink min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
               placeholder="روند برگزاری جلسه…"
             />
           )}

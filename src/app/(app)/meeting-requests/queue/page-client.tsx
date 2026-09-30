@@ -389,7 +389,7 @@ export function RequestQueuePage() {
               onChange={(e) => setBulkNote(e.target.value)}
               rows={3}
               placeholder="مثلاً: ظرفیت این هفته تکمیل است"
-              className="w-full rounded-md border border-line p-3 text-[13px] outline-none focus:border-ink"
+              className="w-full rounded-md border border-line p-3 text-[13px] outline-none focus:border-ink min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
             />
           </div>
         </div>
@@ -445,7 +445,7 @@ function RejectModal({ req, onClose, onDone }: { req: Req | null; onClose: () =>
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               placeholder="مثلاً: موضوع خارج از حدود اختیارات است"
-              className="w-full rounded-md border border-[#d9d9e0] p-3 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
+              className="w-full rounded-md border border-[#d9d9e0] p-3 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15 min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
             />
           </div>
           <div className="flex justify-end gap-2">
@@ -520,7 +520,7 @@ function EditModal({ req, onClose, onDone }: { req: Req | null; onClose: () => v
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full rounded-md border border-[#d9d9e0] p-3 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
+              className="w-full rounded-md border border-[#d9d9e0] p-3 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15 min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
             />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">

@@ -280,7 +280,7 @@ export function BranchesPage() {
             rows={3}
             maxLength={500}
             placeholder="مثلاً از لابی آسانسور سمت راست…"
-            className="w-full rounded-md border border-line px-3 py-2 text-[12px] outline-none focus:border-ink"
+            className="w-full rounded-md border border-line px-3 py-2 text-[12px] outline-none focus:border-ink min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
           />
         </div>
 

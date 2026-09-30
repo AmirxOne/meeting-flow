@@ -161,7 +161,7 @@ export function MeetingRequestForm() {
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="چه چیزی باید در این جلسه تصمیم گرفته شود؟"
-              className="w-full rounded-md border border-line p-3 text-[13px] outline-none focus:border-ink focus:ring-2 focus:ring-ink/15"
+              className="w-full rounded-md border border-line p-3 text-[13px] outline-none focus:border-ink focus:ring-2 focus:ring-ink/15 min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
             />
           </div>
           <label className="flex h-11 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-white px-3.5">

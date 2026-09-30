@@ -260,7 +260,7 @@ export function PublicRequestForm() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={3}
-                  className="w-full rounded-md border border-[#d9d9e0] p-3 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15"
+                  className="w-full rounded-md border border-[#d9d9e0] p-3 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15 min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
                   placeholder="چه چیزی باید در این جلسه بررسی شود؟"
                 />
               </div>

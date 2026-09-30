@@ -566,7 +566,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full rounded-md border border-[#d9d9e0] px-3.5 py-2.5 text-[13px] outline-none focus:border-ink"
+              className="w-full rounded-md border border-[#d9d9e0] px-3.5 py-2.5 text-[13px] outline-none focus:border-ink min-h-[150px] max-h-[400px] resize-y overflow-y-auto"
             />
           </div>
           {meetingType === "ONLINE" && (
