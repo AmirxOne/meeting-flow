@@ -184,10 +184,24 @@ export function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
+                aria-busy={loading || undefined}
                 data-testid="reset-submit"
-                className="h-11 w-full rounded-md bg-ink text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] disabled:opacity-50"
+                className="relative flex h-11 w-full items-center justify-center rounded-md bg-ink text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] aria-busy:cursor-wait"
               >
-                {loading ? "در حال ذخیره…" : "ذخیره رمز جدید"}
+{loading ? (
+                  <>
+                    <span className="invisible" aria-hidden="true">ذخیره رمز جدید</span>
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    </span>
+                  </>
+                ) : (
+                  "ذخیره رمز جدید"
+                )}
               </button>
             </form>
           )}

@@ -369,7 +369,7 @@ export function LoginPage() {
                 <button
                   type="submit"
                   disabled={forgotLoading}
-                  className="relative flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
+                  className="relative flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg aria-busy:cursor-wait"
                 >
                   {forgotLoading ? (
                     <>
@@ -457,10 +457,23 @@ export function LoginPage() {
               <button
                 type="submit"
                 data-testid="login-2fa-submit"
-                disabled={loading}
-                className="h-11 w-full rounded-md bg-ink text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] disabled:opacity-50"
+                disabled={loading} aria-busy={loading || undefined}
+                className="relative h-11 w-full rounded-md bg-ink text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] aria-busy:cursor-wait"
               >
-                {loading ? "در حال تأیید…" : "تأیید و ورود"}
+                {loading ? (
+                <>
+                  <span className="invisible" aria-hidden="true">تأیید و ورود</span>
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </span>
+                </>
+                ) : (
+                "تأیید و ورود"
+                )}
               </button>
 
               <div className="flex flex-wrap items-center justify-between gap-2 text-[12px]">
@@ -545,7 +558,7 @@ export function LoginPage() {
                 type="submit"
                 disabled={loading}
                 aria-busy={loading || undefined}
-                className="relative flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg disabled:opacity-50"
+                className="relative flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-ink text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg aria-busy:cursor-wait"
               >
                 {loading ? (
                   <>

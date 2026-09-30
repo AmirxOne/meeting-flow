@@ -317,10 +317,24 @@ export function OrgSetupPage() {
                 type="button"
                 data-testid="setup-submit"
                 disabled={loading}
+                aria-busy={loading || undefined}
                 onClick={submit}
-                className="h-10 rounded-md bg-ink px-6 text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] disabled:opacity-50"
+                className="relative flex h-10 items-center justify-center rounded-md bg-ink px-6 text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] aria-busy:cursor-wait"
               >
-                {loading ? "در حال ساخت…" : "ساخت سازمان و ورود"}
+{loading ? (
+                  <>
+                    <span className="invisible" aria-hidden="true">ساخت سازمان و ورود</span>
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    </span>
+                  </>
+                ) : (
+                  "ساخت سازمان و ورود"
+                )}
               </button>
             )}
           </div>

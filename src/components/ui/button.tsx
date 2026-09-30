@@ -13,10 +13,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: "bg-ink text-white hover:bg-[#2a2a2e] disabled:opacity-50",
-  secondary: "bg-paper-soft text-ink hover:bg-paper-deep disabled:opacity-50",
+  primary: "bg-ink text-white hover:bg-[#2a2a2e]",
+  secondary: "bg-paper-soft text-ink hover:bg-paper-deep",
   ghost: "text-ink-soft hover:bg-paper-soft hover:text-ink",
-  danger: "bg-red-600 text-white hover:bg-red-700 disabled:opacity-50",
+  danger: "bg-red-600 text-white hover:bg-red-700",
   outline: "border border-line bg-white text-ink hover:bg-paper-soft",
 };
 
@@ -55,14 +55,17 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30",
         variants[variant],
         sizes[size],
+        // disabled واقعی کم‌رنگ می‌شود؛ لودینگ هرگز — رنگ و اندازه‌ی دکمه پایدار می‌ماند
+        loading ? "cursor-wait" : disabled ? "opacity-50" : undefined,
         className,
       )}
       {...rest}
     >
       {loading ? (
         <>
-          {/* متن نامرئی جا را حفظ می‌کند تا دکمه ذره‌ای تغییر اندازه ندهد */}
-          <span className="invisible" aria-hidden="true">
+          {/* متن نامرئی با display:contents همان چیدمان flex قبلی (آیکون+متن+gap) را
+              حفظ می‌کند تا عرض و ارتفاع دکمه ذره‌ای تغییر نکند */}
+          <span className="invisible contents" aria-hidden="true">
             {children}
           </span>
           {/* نقاط لودینگ روی کل دکمه وسط‌چین */}
