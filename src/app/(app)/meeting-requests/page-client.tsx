@@ -295,15 +295,15 @@ export function MeetingRequestForm() {
                 <div key={i} className="flex items-end gap-2">
                   <div className="min-w-0 flex-1">
                     <label className="mb-1 block text-[11px] font-medium text-ink-soft">
-                      روز {prefSlots.length > 1 ? `(${faNum(i + 1)})` : ""}
+                      {prefSlots.length > 1 ? `پیشنهاد (${faNum(i + 1)}) — روز` : "روز"}
                     </label>
                     <JalaliDatePicker value={sl.day} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, day: v } : x)))} />
                   </div>
-                  <div className="w-[92px] shrink-0">
+                  <div className="w-[150px] shrink-0">
                     <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
                     <TimePicker value={sl.from} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, from: v } : x)))} />
                   </div>
-                  <div className="w-[92px] shrink-0">
+                  <div className="w-[150px] shrink-0">
                     <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
                     <TimePicker value={sl.to} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, to: v } : x)))} />
                   </div>
@@ -319,19 +319,21 @@ export function MeetingRequestForm() {
                   )}
                 </div>
               ))}
-              <div className="flex items-center justify-between pt-0.5">
+              <div className="flex items-center justify-between gap-2 pt-0.5">
+                {prefSlots.length > 1 ? (
+                  <span className="text-[11px] text-ink-faint">مدیریت از بین {faNum(prefSlots.length)} بازه‌ی پیشنهادی بهترین را انتخاب می‌کند</span>
+                ) : (
+                  <span />
+                )}
                 <button
                   type="button"
                   onClick={() => prefSlots.length < 10 && setPrefSlots((arr) => [...arr, { day: "", from: "", to: "" }])}
                   disabled={prefSlots.length >= 10}
-                  className="flex h-10 items-center gap-1.5 rounded-lg border border-dashed border-line px-3 text-[11.5px] font-medium text-ink-soft transition hover:border-accent/50 hover:text-accent disabled:opacity-40"
+                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-dashed border-line px-3 text-[11.5px] font-medium text-ink-soft transition hover:border-accent/50 hover:text-accent disabled:opacity-40"
                 >
                   <Plus className="h-4 w-4" />
                   افزودن بازه‌ی پیشنهادی دیگر {prefSlots.length > 1 ? `(${faNum(prefSlots.length)}/۱۰)` : ""}
                 </button>
-                {prefSlots.length > 1 && (
-                  <span className="text-[11px] text-ink-faint">مدیریت از بین {faNum(prefSlots.length)} بازه‌ی پیشنهادی بهترین را انتخاب می‌کند</span>
-                )}
               </div>
             </div>
           </div>
