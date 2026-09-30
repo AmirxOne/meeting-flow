@@ -139,7 +139,9 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
     }
 
     prefilledFromAvailability.current = true;
-    clearAvailabilityBooking();
+    // StrictMode/dev: کامپوننت ممکن است دوباره mount شود و دوباره نیاز به draft داشته باشد —
+    // پاک‌سازی را عقب بینداز تا remount همان prefill را دوباره اعمال کند
+    setTimeout(() => clearAvailabilityBooking(), 1500);
 
     setBranchId(draft.branchId);
     setDurationMin(draft.durationMin);
