@@ -482,6 +482,35 @@ export function CalendarPage() {
         </div>
       </div>
 
+      {/* راهنمای رنگ وضعیت جلسات */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-line bg-white px-3.5 py-2">
+        <span className="text-[11px] font-bold text-ink-soft">راهنما:</span>
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-ink" />
+          جلسه‌ی عادی (تاییدشده)
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-red-500" />
+          در حال برگزاری
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-amber-500" />
+          در انتظار تایید
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-ink/45" />
+          برگزار شده
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-ink-faint" />
+          لغو/رد شده
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-red-50 ring-1 ring-red-200" />
+          روز تعطیل
+        </span>
+      </div>
+
       {showSkeleton ? (
         view === "month" ? (
           <CalendarMonthSkeleton monthGrid={monthGrid} />
