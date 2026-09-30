@@ -161,12 +161,21 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
+      {/* ── هدر ── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2 text-lg font-bold">
-          <BarChart3 className="h-5 w-5" />
-          گزارش‌ها
-        </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 items-center justify-center rounded-xl bg-ink text-white">
+            <BarChart3 className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold leading-6">گزارش‌های سازمانی</h1>
+            <p className="mt-0.5 text-[12px] text-ink-soft">
+              نمای کلی جلسات، اتاق‌ها و شعبه‌ها — با فیلتر بازه، وضعیت و افراد
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="mr-1 hidden text-[11px] text-ink-faint sm:inline">خروجی:</span>
           {(
             [
               { fmt: "csv", label: "CSV" },
@@ -175,7 +184,7 @@ export function ReportsPage() {
             ] as const
           ).map((f) => (
             <a key={f.fmt} href={`/api/reports?${queryString}&format=${f.fmt}`} download>
-              <button className="inline-flex h-10 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium hover:bg-paper-soft">
+              <button className="inline-flex h-10 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] font-medium transition-colors hover:border-ink/40 hover:bg-paper-soft">
                 <Download className="h-4 w-4" />
                 {f.label}
               </button>
@@ -184,11 +193,13 @@ export function ReportsPage() {
         </div>
       </div>
 
-      <FilterBar
-        groups={filterGroups}
-        value={{ range: rangePreset, branch: branchId, room: roomId, status, type }}
-        onChange={handleFilterChange}
-      >
+      {/* ── پنل فیلتر (کارت یکپارچه) ── */}
+      <Card className="space-y-3 p-4">
+        <FilterBar
+          groups={filterGroups}
+          value={{ range: rangePreset, branch: branchId, room: roomId, status, type }}
+          onChange={handleFilterChange}
+        >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <JalaliDatePicker
             value={from}
@@ -204,36 +215,36 @@ export function ReportsPage() {
             className="w-40 min-w-0 max-w-full [&>button]:h-10 [&>button]:text-[12px]"
           />
         </div>
-      </FilterBar>
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-[12px] font-medium">برگزارکننده</label>
-          <PeoplePicker
-            value={organizer}
-            onChange={setOrganizer}
-            max={1}
-            allowManual={false}
-            placeholder="جستجوی برگزارکننده…"
-          />
-          {organizer[0] && !organizerId && (
-            <p className="mt-1 text-[11px] text-ink-faint">این فرد حساب کاربری ندارد و در فیلتر برگزارکننده اعمال نمی‌شود.</p>
-          )}
+        </FilterBar>
+        <div className="grid gap-3 border-t border-line pt-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium text-ink-soft">برگزارکننده</label>
+            <PeoplePicker
+              value={organizer}
+              onChange={setOrganizer}
+              max={1}
+              allowManual={false}
+              placeholder="جستجوی برگزارکننده…"
+            />
+            {organizer[0] && !organizerId && (
+              <p className="mt-1 text-[11px] text-ink-faint">این فرد حساب کاربری ندارد و در فیلتر برگزارکننده اعمال نمی‌شود.</p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium text-ink-soft">شرکت‌کننده</label>
+            <PeoplePicker
+              value={participant}
+              onChange={setParticipant}
+              max={1}
+              allowManual={false}
+              placeholder="جستجوی شرکت‌کننده…"
+            />
+            {participant[0] && !participantId && (
+              <p className="mt-1 text-[11px] text-ink-faint">این فرد حساب کاربری ندارد و در فیلتر شرکت‌کننده اعمال نمی‌شود.</p>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="mb-1.5 block text-[12px] font-medium">شرکت‌کننده</label>
-          <PeoplePicker
-            value={participant}
-            onChange={setParticipant}
-            max={1}
-            allowManual={false}
-            placeholder="جستجوی شرکت‌کننده…"
-          />
-          {participant[0] && !participantId && (
-            <p className="mt-1 text-[11px] text-ink-faint">این فرد حساب کاربری ندارد و در فیلتر شرکت‌کننده اعمال نمی‌شود.</p>
-          )}
-        </div>
-      </div>
+      </Card>
 
       {isLoading || !s ? (
         <>
@@ -290,11 +301,11 @@ export function ReportsPage() {
             <Metric label="کل جلسات" value={faNum(s.totalMeetings)} />
             <Metric label="کل ساعت‌ها" value={faStr(s.totalHours.toFixed(1))} />
             <Metric label="میانگین مدت" value={`${faNum(s.avgDurationMin)} دقیقه`} />
+            <Metric label="ساعت پیک" value={s.peakHour !== null ? faStr(String(s.peakHour).padStart(2, "0")) + ":۰۰" : "—"} />
+            <Metric label="تکمیل‌شده" value={faNum(s.completedCount)} good={s.totalMeetings > 0 && s.completedCount / s.totalMeetings >= 0.6} />
+            <Metric label="جلسات خارجی" value={faNum(s.externalCount)} />
             <Metric label="نرخ لغو" value={`٪${faNum(s.cancellationRate)}`} tone={s.cancellationRate > 15 ? "danger" : "default"} />
             <Metric label="نرخ غیبت" value={`٪${faNum(s.noShowRate)}`} tone={s.noShowRate > 10 ? "danger" : "default"} />
-            <Metric label="جلسات خارجی" value={faNum(s.externalCount)} />
-            <Metric label="تکمیل‌شده" value={faNum(s.completedCount)} />
-            <Metric label="ساعت پیک" value={s.peakHour !== null ? faStr(String(s.peakHour).padStart(2, "0")) + ":۰۰" : "—"} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -395,11 +406,42 @@ export function ReportsPage() {
   );
 }
 
-function Metric({ label, value, tone }: { label: string; value: string; tone?: "danger" | "default" }) {
+function Metric({
+  label,
+  value,
+  tone,
+  good,
+}: {
+  label: string;
+  value: string;
+  tone?: "danger" | "default";
+  good?: boolean;
+}) {
   return (
-    <Card className={cn("p-4", tone === "danger" && "text-red-600")}>
-      <p className="text-[11px] text-ink-soft">{label}</p>
-      <p className="mt-1 text-xl font-bold">{value}</p>
+    <Card
+      className={cn(
+        "relative overflow-hidden p-4",
+        tone === "danger" && "ring-1 ring-red-200",
+        good && "ring-1 ring-emerald-200",
+      )}
+    >
+      <p className="text-[11px] font-medium text-ink-soft">{label}</p>
+      <p
+        className={cn(
+          "mt-1 text-xl font-bold tabular-nums",
+          tone === "danger" && "text-red-600",
+          good && "text-emerald-700",
+        )}
+      >
+        {value}
+      </p>
+      <span
+        aria-hidden
+        className={cn(
+          "absolute bottom-0 right-0 h-1 w-full",
+          tone === "danger" ? "bg-red-500/70" : good ? "bg-emerald-500/70" : "bg-ink/60",
+        )}
+      />
     </Card>
   );
 }
