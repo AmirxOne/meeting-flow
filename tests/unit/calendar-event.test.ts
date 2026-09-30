@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { calendarEventTone, newMeetingHref } from "@/lib/calendar-event";
 
 describe("calendarEventTone", () => {
-  it("marks in-progress meetings in red", () => {
-    expect(calendarEventTone("IN_PROGRESS").dot).toBe("bg-red-500");
+  it("marks in-progress meetings in info blue", () => {
+    expect(calendarEventTone("IN_PROGRESS").dot).toBe("bg-blue-500");
   });
 
   it("marks pending approval in amber", () => {
