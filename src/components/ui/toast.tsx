@@ -31,15 +31,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={{ push }}>
       {children}
-      <div className="fixed bottom-4 left-4 z-[100] flex flex-col gap-2">
+      <div className="fixed right-4 top-4 z-[100] flex flex-col gap-2 max-sm:right-1/2 max-sm:translate-x-1/2">
         <AnimatePresence mode="popLayout">
         {toasts.map((t) => (
           <motion.div
             key={t.id}
             layout
-            initial={{ opacity: 0, y: 24, scale: 0.96 }}
+            initial={{ opacity: 0, y: -16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: -32, transition: { duration: 0.15 } }}
+            exit={{ opacity: 0, y: -12, transition: { duration: 0.15 } }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             className="flex max-w-sm items-center gap-2 rounded-md border border-line bg-white px-4 py-3 shadow-lg"
           >
