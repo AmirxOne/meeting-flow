@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, SkeletonBlock, EmptyState } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { StatusBadge } from "@/components/ui/badges";
-import { faNum, formatJalali, cn } from "@/lib";
+import { faNum, formatJalali, cn, faStr } from "@/lib";
 
 type Me = {
   summary: {
@@ -279,15 +279,18 @@ function StatCard({
 function MonthlyBars({ series }: { series: { month: string; hours: number }[] }) {
   const max = Math.max(...series.map((s) => s.hours), 1);
   return (
-    <div dir="rtl" className="flex h-40 items-end gap-2" role="img" aria-label="نمودار ساعت جلسات ماهانه">
+    <div dir="rtl" className="flex h-40 gap-2" role="img" aria-label="نمودار ساعت جلسات ماهانه">
       {series.map((s) => (
-        <div key={s.month} className="flex flex-1 flex-col items-center gap-1.5">
+        <div key={s.month} className="flex h-full min-w-0 flex-1 flex-col items-center gap-1.5">
           <span className="text-[10px] font-medium text-ink-soft">{faNum(s.hours)}</span>
-          <div
-            className="w-full rounded-t-md bg-ink/85 transition-all"
-            style={{ height: `${Math.max((s.hours / max) * 100, 4)}%` }}
-            title={`${s.month}: ${s.hours}h`}
-          />
+          {/* ناحیه میله: flex-1 و items-end تا درصد ارتفاع مرجع قطعی داشته باشد */}
+          <div className="flex w-full flex-1 items-end">
+            <div
+              className="w-full rounded-t-md bg-ink/85 transition-all"
+              style={{ height: `${Math.max((s.hours / max) * 100, 4)}%` }}
+              title={`${faNum(s.month.slice(5))}: ${faStr(String(s.hours))} ساعت`}
+            />
+          </div>
           <span className="text-[9px] text-ink-faint">{faNum(s.month.slice(5))}</span>
         </div>
       ))}
