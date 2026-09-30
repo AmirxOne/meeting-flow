@@ -2,10 +2,10 @@
 
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Plus, Trash2, Pencil, CheckCircle2, XCircle, History, UserRound, Activity } from "@/components/ui/icon";
+import { ChevronDown, ChevronUp, Plus, Trash2, Pencil, CheckCircle2, XCircle, History, Activity, Search } from "@/components/ui/icon";
+import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { api } from "@/lib/api";
 import { Card, CardHeader, SkeletonBlock, SkeletonTable, EmptyState } from "@/components/ui/card";
-import { FilterBar } from "@/components/ui/filter-bar";
 import { Select } from "@/components/ui/select";
 import { cn, faNum, faStr, formatJalali } from "@/lib";
 import { useAuth } from "@/lib/auth-store";
@@ -158,15 +158,23 @@ export function AuditLogsPage() {
   const [entity, setEntity] = useState("");
   const [action, setAction] = useState("");
   const [actorId, setActorId] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [q, setQ] = useState("");
+  const [entityId, setEntityId] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const queryString = useMemo(() => {
-    const q = new URLSearchParams({ page: String(page) });
-    if (entity) q.set("entity", entity);
-    if (action) q.set("action", action);
-    if (actorId) q.set("actorId", actorId);
-    return q.toString();
-  }, [page, entity, action, actorId]);
+    const qs = new URLSearchParams({ page: String(page) });
+    if (entity) qs.set("entity", entity);
+    if (action) qs.set("action", action);
+    if (actorId) qs.set("actorId", actorId);
+    if (from) qs.set("from", from);
+    if (to) qs.set("to", to);
+    if (q.trim()) qs.set("q", q.trim());
+    if (entityId.trim()) qs.set("entityId", entityId.trim());
+    return qs.toString();
+  }, [page, entity, action, actorId, from, to, q, entityId]);
 
   const { data: usersData } = useQuery({
     queryKey: ["users", "audit-filter"],
@@ -187,6 +195,20 @@ export function AuditLogsPage() {
   function handleFilterChange(v: Record<string, string>) {
     setEntity(v.entity ?? "");
     setAction(v.action ?? "");
+    setPage(1);
+    setExpandedId(null);
+  }
+
+  const anyFilterActive = !!(entity || action || actorId || from || to || q.trim() || entityId.trim());
+
+  function clearAll() {
+    setEntity("");
+    setAction("");
+    setActorId("");
+    setFrom("");
+    setTo("");
+    setQ("");
+    setEntityId("");
     setPage(1);
     setExpandedId(null);
   }
@@ -215,49 +237,85 @@ export function AuditLogsPage() {
         </div>
       </div>
 
-      <FilterBar
-        groups={[
-          {
-            key: "entity",
-            label: "موجودیت",
-            options: [
-              { value: "", label: "همه" },
-              ...Object.entries(ENTITY_FA).map(([value, label]) => ({ value, label })),
-            ],
-          },
-          {
-            key: "action",
-            label: "عملیات",
-            options: [
-              { value: "", label: "همه" },
-              ...Object.entries(ACTION_FA).map(([value, label]) => ({ value, label })),
-            ],
-          },
-        ]}
-        value={{ entity, action }}
-        onChange={handleFilterChange}
-      />
-
-      <Card className="flex flex-wrap items-center gap-3 px-4 py-3">
-        <span className="text-[11px] font-bold text-ink-soft">فیلتر کاربر:</span>
-        <div className="w-56">
-          <Select
-            value={actorId}
-            onChange={(v) => {
-              setActorId(v);
-              setPage(1);
-              setExpandedId(null);
-            }}
-            placeholder="همه کاربران"
-            options={[
-              { value: "", label: "همه کاربران" },
-              ...users.map((u) => ({ value: u.id, label: u.fullName })),
-            ]}
-          />
+      {/* پنل فیلتر یکپارچه */}
+      <Card data-tour="audit-filters" className="p-4">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* جستجوی سراسری */}
+          <div className="relative min-w-52 flex-1">
+            <Search className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+            <input
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1); }}
+              placeholder="جستجو در نام کاربر، عملیات یا شناسه…"
+              className="h-10 w-full rounded-md border border-line bg-white pr-9 pl-3 text-[12.5px] outline-none transition-colors placeholder:text-ink-faint focus:border-ink/50"
+            />
+          </div>
+          {/* بازه تاریخ */}
+          <div className="flex items-center gap-1.5">
+            <JalaliDatePicker value={from} onChange={(v) => { setFrom(v); setPage(1); }} placeholder="از تاریخ" className="w-[130px]" />
+            <span className="text-[11px] text-ink-faint">تا</span>
+            <JalaliDatePicker value={to} onChange={(v) => { setTo(v); setPage(1); }} placeholder="تا تاریخ" className="w-[130px]" />
+          </div>
         </div>
-        <span className="mr-auto text-[11px] text-ink-faint">
-          {(data?.logs ?? []).length > 0 ? `نمایش ${faNum((data?.logs ?? []).length)} رخداد در این صفحه` : ""}
-        </span>
+        <div className="mt-2.5 flex flex-wrap items-center gap-2.5 border-t border-line/70 pt-2.5">
+          {/* موجودیت */}
+          <div className="w-44">
+            <Select
+              value={entity}
+              onChange={(v) => handleFilterChange({ entity: v, action })}
+              placeholder="موجودیت: همه"
+              options={[
+                { value: "", label: "موجودیت: همه" },
+                ...Object.entries(ENTITY_FA).map(([value, label]) => ({ value, label })),
+              ]}
+            />
+          </div>
+          {/* عملیات */}
+          <div className="w-44">
+            <Select
+              value={action}
+              onChange={(v) => handleFilterChange({ entity, action: v })}
+              placeholder="عملیات: همه"
+              options={[
+                { value: "", label: "عملیات: همه" },
+                ...Object.entries(ACTION_FA).map(([value, label]) => ({ value, label })),
+              ]}
+            />
+          </div>
+          {/* کاربر */}
+          <div className="w-44">
+            <Select
+              value={actorId}
+              onChange={(v) => { setActorId(v); setPage(1); setExpandedId(null); }}
+              placeholder="کاربر: همه"
+              options={[
+                { value: "", label: "کاربر: همه" },
+                ...users.map((u) => ({ value: u.id, label: u.fullName })),
+              ]}
+            />
+          </div>
+          {/* شناسه موجودیت */}
+          <input
+            value={entityId}
+            onChange={(e) => { setEntityId(e.target.value); setPage(1); }}
+            dir="ltr"
+            placeholder="شناسه‌ی موجودیت (اختیاری)"
+            className="h-10 w-48 rounded-md border border-line bg-white px-3 text-left font-mono text-[12px] outline-none transition-colors placeholder:font-sans placeholder:text-right placeholder:text-ink-faint focus:border-ink/50"
+          />
+          {anyFilterActive && (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="h-10 shrink-0 rounded-md border border-dashed border-line px-3 text-[11px] text-ink-soft transition hover:border-danger/40 hover:text-danger"
+            >
+              حذف فیلترها
+            </button>
+          )}
+          <span className="mr-auto text-[11px] text-ink-faint">
+            {faNum(data?.total ?? 0)} رخداد مطابق
+            {(data?.logs ?? []).length > 0 ? ` · ${faNum((data?.logs ?? []).length)} در این صفحه` : ""}
+          </span>
+        </div>
       </Card>
 
       {isLoading ? (

@@ -14,12 +14,35 @@ export async function GET(req: NextRequest) {
     const entity = sp.get("entity");
     const action = sp.get("action");
     const actorId = sp.get("actorId");
+    const from = sp.get("from");
+    const to = sp.get("to");
+    const q = sp.get("q")?.trim();
+    const entityId = sp.get("entityId")?.trim();
 
     const where = {
       orgId: actor.orgId,
       ...(entity ? { entity } : {}),
       ...(action ? { action } : {}),
       ...(actorId ? { actorId } : {}),
+      ...(entityId ? { entityId } : {}),
+      ...(from || to
+        ? {
+            createdAt: {
+              ...(from ? { gte: new Date(`${from}T00:00:00`) } : {}),
+              ...(to ? { lte: new Date(`${to}T23:59:59`) } : {}),
+            },
+          }
+        : {}),
+      ...(q
+        ? {
+            OR: [
+              { entityId: { contains: q, mode: "insensitive" as const } },
+              { action: { contains: q.toUpperCase(), mode: "insensitive" as const } },
+              { entity: { contains: q, mode: "insensitive" as const } },
+              { actor: { is: { fullName: { contains: q, mode: "insensitive" as const } } } },
+            ],
+          }
+        : {}),
     };
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({
