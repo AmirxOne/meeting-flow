@@ -183,7 +183,7 @@ export function AdminPoliciesPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4 p-4 lg:p-6">
+      <div className="space-y-4 p-4 lg:p-6">
         <div className="skeleton h-7 w-40" />
         <Card>
           <div className="border-b border-line px-5 py-4">
@@ -209,7 +209,7 @@ export function AdminPoliciesPage() {
   const policies = data?.policies ?? [];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-4 lg:p-6">
+    <div className="space-y-4 p-4 lg:p-6">
       <h1 className="text-lg font-bold">سیاست‌های جلسه</h1>
 
       <Card>
