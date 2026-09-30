@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, CheckCircle2, ChevronDown, Search, X, UserRound, Plus } from "@/components/ui/icon";
+import {
+  Trash2, ArrowLeft, CheckCircle2, ChevronDown, Search, X, UserRound, Plus } from "@/components/ui/icon";
 import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
 import { useOrgName } from "@/lib/org-branding";
@@ -112,14 +113,14 @@ export function PublicRequestForm() {
     "h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15";
 
   return (
-    <div dir="rtl" className="relative flex min-h-screen items-center justify-center overflow-hidden bg-paper-soft p-4 sm:p-6">
+    <div dir="rtl" className="relative flex min-h-screen items-center justify-center overflow-x-clip bg-paper-soft p-4 sm:p-6">
       {/* dot-pattern backdrop */}
       <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #d9d9e0 1px, transparent 0)", backgroundSize: "22px 22px" }} />
       <div aria-hidden className="pointer-events-none absolute -top-32 left-1/4 size-96 rounded-full bg-ink/[0.05] blur-3xl" />
 
-      <div className="relative grid w-full max-w-4xl overflow-hidden rounded-3xl border border-line bg-white shadow-[0_30px_80px_-30px_rgba(0,0,0,0.3)] lg:grid-cols-[340px_1fr]">
+      <div className="relative grid w-full max-w-5xl overflow-clip rounded-3xl border border-line bg-white shadow-[0_30px_80px_-30px_rgba(0,0,0,0.3)] lg:grid-cols-[380px_1fr]">
         {/* ── side panel: brand + trust ── */}
-        <aside className="relative hidden flex-col justify-between overflow-hidden bg-ink p-8 text-white lg:flex">
+        <aside className="relative hidden flex-col gap-6 overflow-x-clip bg-ink p-8 text-white lg:flex">
           <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.14) 1px, transparent 0)", backgroundSize: "22px 22px" }} />
           <div aria-hidden className="pointer-events-none absolute -left-20 -top-20 size-56 rounded-full bg-emerald-400/15 blur-3xl" />
 
@@ -144,7 +145,7 @@ export function PublicRequestForm() {
             </p>
           </div>
 
-          <ul className="relative mt-10 space-y-3">
+          <ul className="relative mt-3 space-y-3 self-start lg:sticky lg:top-6">
             {[
               { t: "بدون نیاز به ثبت‌نام", d: "فرم کوتاه — کمتر از یک دقیقه" },
               { t: "تقویم شمسی و بازه دلخواه", d: "روز و ساعت مورد نظرتان را مشخص کنید" },
@@ -359,18 +360,18 @@ export function PublicRequestForm() {
                 </p>
                 <div className="mt-3 space-y-2.5">
                   {prefSlots.map((sl, i) => (
-                    <div key={i} className="flex items-end gap-2">
-                      <div className="min-w-0 flex-1">
+                    <div key={i} className="flex flex-wrap items-end gap-x-2 gap-y-2 rounded-xl border border-line/70 bg-white px-2.5 py-2.5">
+                      <div className="min-w-[130px] flex-1 basis-40">
                         <label className="mb-1 block text-[11px] font-medium text-ink-soft">
                           {prefSlots.length > 1 ? `پیشنهاد (${fa(i + 1)}) — روز` : "روز"}
                         </label>
                         <JalaliDatePicker value={sl.day} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, day: v } : x)))} />
                       </div>
-                      <div className="w-[150px] shrink-0">
+                      <div className="w-[130px] shrink-0 sm:w-[150px]">
                         <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
                         <TimePicker value={sl.from} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, from: v } : x)))} />
                       </div>
-                      <div className="w-[150px] shrink-0">
+                      <div className="w-[130px] shrink-0 sm:w-[150px]">
                         <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
                         <TimePicker value={sl.to} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, to: v } : x)))} />
                       </div>
@@ -379,9 +380,9 @@ export function PublicRequestForm() {
                           type="button"
                           aria-label={`حذف بازه ${fa(i + 1)}`}
                           onClick={() => setPrefSlots((arr) => arr.filter((_, j) => j !== i))}
-                          className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint transition hover:border-danger/40 hover:text-danger"
+                          className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint transition hover:border-danger/40 hover:text-danger"
                         >
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       )}
                     </div>
