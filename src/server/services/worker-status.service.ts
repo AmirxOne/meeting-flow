@@ -8,7 +8,7 @@ import {
 
 export const WORKER_HEARTBEAT_KEY = "worker:lastTick";
 
-export type WorkerTickSource = "worker" | "cron";
+export type WorkerTickSource = "worker" | "cron" | "admin";
 
 export type WorkerHeartbeatPayload = {
   at: string;

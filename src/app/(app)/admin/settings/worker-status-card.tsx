@@ -1,7 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, Clock, Power } from "@/components/ui/icon";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, CheckCircle2, Clock, Play, Power } from "@/components/ui/icon";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
+
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, SkeletonBlock } from "@/components/ui/card";
 import { faNum, faStr, formatJalali } from "@/lib";
@@ -9,7 +12,7 @@ import { faNum, faStr, formatJalali } from "@/lib";
 type WorkerAdminStatus = {
   heartbeat: {
     at: string;
-    source: "worker" | "cron";
+    source: "worker" | "cron" | "admin";
     ok: boolean;
     sent: number;
     completed: number;
@@ -38,10 +41,27 @@ function formatMinutes(m: number | null): string {
 }
 
 export function WorkerStatusCard() {
+  const { push } = useToast();
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["admin-worker-status"],
     queryFn: () => api<WorkerAdminStatus>("/api/admin/worker-status"),
     refetchInterval: 30_000,
+  });
+
+  const tickMutation = useMutation({
+    mutationFn: () =>
+      api<{ sent: number; completed: number; waitlist: number }>("/api/admin/worker-status/tick", {
+        method: "POST",
+      }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["admin-worker-status"] });
+      push(
+        `تیک دستی اجرا شد — ${faNum(r.sent)} یادآور ارسال · ${faNum(r.completed)} جلسه تکمیل · ${faNum(r.waitlist)} پیشنهاد صف`,
+        "success",
+      );
+    },
+    onError: () => push("اجرای تیک ناموفق بود", "error"),
   });
 
   return (
@@ -65,6 +85,17 @@ export function WorkerStatusCard() {
           </span>
         }
         subtitle="موتور پس‌زمینه: یادآورها، چرخه‌ی وضعیت جلسات و صف انتظار اتاق‌ها"
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            loading={tickMutation.isPending}
+            onClick={() => tickMutation.mutate()}
+          >
+            <Play className="h-4 w-4" />
+            اجرای دستی تیک
+          </Button>
+        }
       />
       <CardBody className="space-y-4">
         {isLoading ? (
