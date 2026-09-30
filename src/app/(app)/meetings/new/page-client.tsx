@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, Sparkles, Clock, User, Users, DoorOpen, UserRound } from "@/components/ui/icon";
+import { CheckCircle2, CalendarClock, Clock, User, Users, DoorOpen, UserRound } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -748,7 +748,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
           {!fromAvailability && !offsite && (
             <div className="flex justify-end">
               <Button onClick={findSlots} loading={searching} disabled={holidayBlocked} className="w-full sm:w-auto">
-                <Sparkles className="h-4 w-4" />
+                <CalendarClock className="h-4 w-4" />
                 یافتن زمان‌های آزاد
               </Button>
             </div>

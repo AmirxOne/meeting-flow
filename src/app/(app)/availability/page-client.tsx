@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { Clock, CheckCircle2, CalendarClock, CalendarDays, User, Building2, DoorOpen, ArrowLeft, Info } from "@/components/ui/icon";
+import { CheckCircle2, CalendarClock, CalendarDays, User, Building2, DoorOpen, ArrowLeft, Info } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -239,7 +239,7 @@ export function AvailabilityPage() {
               </Button>
             )}
             <Button onClick={search} loading={loading} className="w-full sm:w-auto">
-              <Clock className="h-4 w-4" />
+              <CalendarClock className="h-4 w-4" />
               جستجوی زمان‌های آزاد
             </Button>
           </div>
