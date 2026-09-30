@@ -319,8 +319,10 @@ export function AvailabilityPage() {
                           <CheckCircle2 className="h-5 w-5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[13.5px] font-bold" dir="ltr" style={{ textAlign: "right" }}>
-                            {formatClockInTz(new Date(s.start), orgTz)} تا {formatClockInTz(new Date(s.end), orgTz)}
+                          <p className="flex items-center gap-2 text-[13.5px] font-bold">
+                            <span dir="ltr">{formatClockInTz(new Date(s.start), orgTz)}</span>
+                            <span className="text-[11.5px] font-normal text-ink-soft">تا</span>
+                            <span dir="ltr">{formatClockInTz(new Date(s.end), orgTz)}</span>
                           </p>
                           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-ink-soft">
                             <span className="flex items-center gap-1">
