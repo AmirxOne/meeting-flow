@@ -544,7 +544,7 @@ export function CalendarPage() {
                         "relative h-16 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
                         dragOverIso === iso && "ring-2 ring-inset ring-ink bg-paper-soft",
                         holidayName
-                          ? "bg-amber-50"
+                          ? "bg-red-50"
                           : isSelected
                             ? "bg-paper-soft"
                             : "hover:bg-paper-soft/70",
@@ -971,7 +971,7 @@ function DayPanel({
         </div>
       </div>
       {holidayName && (
-        <p className="border-b border-amber-100 bg-amber-50 px-4 py-2 text-[11px] leading-5 text-amber-900">
+        <p className="border-b border-red-100 bg-red-50 px-4 py-2 text-[11px] leading-5 text-red-700">
           {holidayMode === "REQUIRE_APPROVAL"
             ? "روز تعطیل سازمانی — رزرو نیاز به تأیید دارد."
             : "روز تعطیل سازمانی — رزرو اتاق پیش‌فرض ممنوع است."}
