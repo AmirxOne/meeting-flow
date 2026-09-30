@@ -26,12 +26,12 @@ export function CardHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-line px-5 py-4">
-      <div>
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-5 py-4">
+      <div className="min-w-0">
         <h3 className="text-[14px] font-bold">{title}</h3>
-        {subtitle && <div className="mt-0.5 text-[12px] text-ink-soft">{subtitle}</div>}
+        {subtitle && <div className="mt-0.5 text-[12px] leading-5 text-ink-soft">{subtitle}</div>}
       </div>
-      {action}
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }

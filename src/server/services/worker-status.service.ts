@@ -36,6 +36,7 @@ export type WorkerAdminStatus = {
   staleAfterMinutes: number;
   pollIntervalMs: number;
   reminders24h: { sent: number; failed: number };
+  pendingReminders: number;
   recentErrors: ReminderErrorRow[];
 };
 
@@ -133,9 +134,12 @@ export async function getRecentReminderErrors(limit = 20): Promise<ReminderError
 export async function getWorkerAdminStatus(): Promise<WorkerAdminStatus> {
   const heartbeat = await readWorkerHeartbeat();
   const staleEval = evaluateHeartbeat(heartbeat);
-  const [reminders24h, recentErrors] = await Promise.all([
+  const [reminders24h, recentErrors, pendingReminders] = await Promise.all([
     getReminderStats24h(),
     getRecentReminderErrors(),
+    prisma.meetingReminder.count({
+      where: { status: "PENDING", remindAt: { lte: new Date() } },
+    }),
   ]);
   return {
     heartbeat,
@@ -144,6 +148,7 @@ export async function getWorkerAdminStatus(): Promise<WorkerAdminStatus> {
     staleAfterMinutes: staleEval.staleAfterMinutes,
     pollIntervalMs: Number(process.env.WORKER_POLL_INTERVAL_MS ?? 15000),
     reminders24h,
+    pendingReminders,
     recentErrors,
   };
 }

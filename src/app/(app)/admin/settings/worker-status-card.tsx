@@ -24,6 +24,7 @@ type WorkerAdminStatus = {
   staleAfterMinutes: number;
   pollIntervalMs: number;
   reminders24h: { sent: number; failed: number };
+  pendingReminders?: number;
   recentErrors: {
     id: string;
     channel: string;
@@ -89,6 +90,7 @@ export function WorkerStatusCard() {
           <Button
             size="sm"
             variant="outline"
+            className="whitespace-nowrap"
             loading={tickMutation.isPending}
             onClick={() => tickMutation.mutate()}
           >
@@ -121,7 +123,7 @@ export function WorkerStatusCard() {
                       : "هنوز هیچ تیکی ثبت نشده است."}
                   </p>
                   <p className="mt-1.5 text-[11px] leading-6 text-amber-800/80">
-                    بدون worker، یادآورها ارسال نمی‌شوند و وضعیت جلسات به‌روز نمی‌شود. برای اجرا:
+                    تا وقتی worker برنگشته می‌توانید با دکمه‌ی «اجرای دستی تیک» همین‌جا یادآورهای عقب‌مانده را بفرستید — ولی هر بار فقط یک بسته را می‌گیرد، نه شبانه‌روزی. برای راه‌اندازی دائمی:
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <code className="rounded bg-amber-100 px-2 py-1 font-mono text-[11px] text-amber-900 ring-1 ring-amber-200" dir="ltr">
@@ -161,6 +163,15 @@ export function WorkerStatusCard() {
                 </p>
                 <p className="mt-0.5 text-[10.5px] text-ink-faint">در ۲۴ ساعت گذشته</p>
               </div>
+              {data.stale && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50/70 px-3.5 py-3">
+                  <p className="text-[11px] font-medium text-amber-800">یادآور در انتظار</p>
+                  <p className="mt-1 text-[20px] font-bold tabular-nums text-amber-700">
+                    {faNum(data.pendingReminders ?? 0)}
+                  </p>
+                  <p className="mt-0.5 text-[10.5px] text-amber-700/70">با اجرای دستی ارسال می‌شوند</p>
+                </div>
+              )}
             </div>
 
             {data.heartbeat && (
