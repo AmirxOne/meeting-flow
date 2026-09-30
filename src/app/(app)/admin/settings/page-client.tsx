@@ -339,8 +339,10 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
           <img src={isLocal ? "/api/public/organization/logo" : logoUrl} alt="لوگو" className="max-h-full max-w-full object-contain p-1" />
         ) : (
           <span className="flex flex-col items-center gap-1 text-ink-faint">
-            <Building2 className="h-6 w-6" />
-            <span className="text-[10px]">بدون لوگو</span>
+            {/* لوگوی پیش‌فرض نشان داده می‌شود — سازمان هنوز لوگوی خود را بارگذاری نکرده */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-white.png" alt="لوگوی پیش‌فرض" className="max-h-14 max-w-full object-contain" />
+            <span className="text-[10px]">پیش‌فرض</span>
           </span>
         )}
       </div>
