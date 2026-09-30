@@ -551,7 +551,7 @@ export function CalendarPage() {
                         isOtherMonth && (dragId ? "opacity-100" : "opacity-40"),
                       )}
                     >
-                      <span className="flex items-baseline justify-end gap-1">
+                      <span className="flex items-baseline justify-start gap-1">
                         <span className={cn(
                           "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6",
                           isToday ? "bg-ink font-bold text-white" : isFriday || holidayName ? "font-medium text-red-600" : "text-ink",
