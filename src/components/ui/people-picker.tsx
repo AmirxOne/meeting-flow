@@ -270,14 +270,21 @@ export function PeoplePicker({
         {value.map((p) => (
           <span
             key={p.ref}
+            title={p.company ? `${p.name} — ${p.company}` : p.name}
             className={cn(
-              "inline-flex max-w-56 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
-              p.kind === "INTERNAL" ? "bg-ink text-white" : "bg-paper-deep text-ink",
+              "group/chip inline-flex max-w-full items-center gap-1.5 rounded-full py-1 pl-1.5 pr-2.5 text-[11.5px] font-medium transition-colors",
+              p.kind === "INTERNAL"
+                ? "bg-ink text-white"
+                : "border border-line bg-paper-soft text-ink",
             )}
           >
-            {p.kind === "EXTERNAL" && "خارجی · "}
-            <span className="truncate">{p.name}</span>
-            {p.company && <span className="opacity-70">({p.company})</span>}
+            {p.kind === "EXTERNAL" && (
+              <span className="shrink-0 text-[10px] font-bold opacity-60">خارجی</span>
+            )}
+            <span className="min-w-0 truncate">{p.name}</span>
+            {p.company && (
+              <span className="hidden min-w-0 truncate text-[10px] font-normal opacity-60 sm:inline">· {p.company}</span>
+            )}
             <button
               type="button"
               disabled={disabled}
@@ -285,7 +292,7 @@ export function PeoplePicker({
                 e.stopPropagation();
                 onChange(value.filter((x) => x.ref !== p.ref));
               }}
-              className="opacity-70 hover:opacity-100"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full opacity-60 transition hover:bg-white/15 hover:opacity-100"
               aria-label={`حذف ${p.name}`}
             >
               <X className="h-3 w-3" />

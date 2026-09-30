@@ -22,7 +22,7 @@ const DURATIONS: { v: string; l: string }[] = [
   { v: "120", l: "۲ ساعت" },
 ];
 
-type PubPerson = { id: string; name: string; jobTitle?: string | null; company?: string | null };
+type PubPerson = { id: string; name: string; jobTitle?: string | null; company?: string | null; kind?: "INTERNAL" | "EXTERNAL" };
 
 /** PUBLIC (no login) meeting-request form for guests. */
 export function PublicRequestForm() {
@@ -648,11 +648,25 @@ function PublicPeoplePicker({ value, onChange }: { value: PubPerson[]; onChange:
             key={p.id}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-1 rounded bg-paper-soft px-2 py-1 text-[11px] text-ink"
+            title={p.jobTitle ? `${p.name} — ${p.jobTitle}` : p.name}
+            className={
+              "inline-flex max-w-full items-center gap-1.5 rounded-full py-1 pl-1.5 pr-2.5 text-[11.5px] font-medium " +
+              (p.kind === "EXTERNAL"
+                ? "border border-line bg-paper-soft text-ink"
+                : "bg-ink text-white")
+            }
           >
-            {p.name}
-            {p.jobTitle ? <span className="text-ink-faint">— {p.jobTitle}</span> : null}
-            <button type="button" aria-label={`حذف ${p.name}`} onClick={() => toggle(p)} className="text-ink-faint hover:text-red-600">
+            {p.kind === "EXTERNAL" && (
+              <span className="shrink-0 text-[10px] font-bold opacity-60">خارجی</span>
+            )}
+            <span className="min-w-0 truncate">{p.name}</span>
+            {p.jobTitle ? <span className="hidden min-w-0 truncate text-[10px] font-normal opacity-60 sm:inline">· {p.jobTitle}</span> : null}
+            <button
+              type="button"
+              aria-label={`حذف ${p.name}`}
+              onClick={() => toggle(p)}
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full opacity-60 transition hover:bg-white/15 hover:opacity-100"
+            >
               <X className="h-3 w-3" />
             </button>
           </motion.span>
