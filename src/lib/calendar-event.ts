@@ -10,11 +10,12 @@ const DONE = new Set(["CANCELLED", "REJECTED", "NO_SHOW"]);
 /** Shared status colors for month chips, week blocks, and the day panel. */
 export function calendarEventTone(status: string): CalendarEventTone {
   if (status === "IN_PROGRESS") {
+    // در حال برگزاری: آبی info — نه قرمز که حس منفی/خطر می‌دهد
     return {
-      chip: "bg-red-100 text-red-700",
-      block: "bg-red-500 text-white",
-      rail: "bg-red-500",
-      dot: "bg-red-500",
+      chip: "bg-blue-50 text-blue-700",
+      block: "bg-blue-500 text-white",
+      rail: "bg-blue-500",
+      dot: "bg-blue-500",
     };
   }
   if (status === "PENDING_APPROVAL") {

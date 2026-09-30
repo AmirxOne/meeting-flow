@@ -490,7 +490,7 @@ export function CalendarPage() {
           جلسه‌ی عادی (تاییدشده)
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-          <span className="h-2.5 w-2.5 rounded-[3px] bg-red-500" />
+          <span className="h-2.5 w-2.5 rounded-[3px] bg-blue-500" />
           در حال برگزاری
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
