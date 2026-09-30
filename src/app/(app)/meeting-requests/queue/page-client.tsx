@@ -58,7 +58,7 @@ export function RequestQueuePage() {
   const [bulkReject, setBulkReject] = useState(false);
   const [bulkNote, setBulkNote] = useState("");
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["meeting-requests", "all"],
     queryFn: () => api<{ items: Req[]; total: number }>("/api/meeting-requests?scope=all"),
   });
@@ -130,6 +130,38 @@ export function RequestQueuePage() {
         </p>
       </div>
 
+      {isLoading ? (
+        <Card>
+          <div className="border-b border-line px-5 py-4">
+            <div className="skeleton h-4 w-44" />
+            <div className="skeleton mt-1.5 h-3 w-56" />
+            <div className="mt-2.5 flex items-center gap-2 border-t border-line/70 pt-2.5">
+              <div className="skeleton h-4 w-4 rounded" />
+              <div className="skeleton h-3 w-24" />
+            </div>
+          </div>
+          <div className="space-y-4 p-5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-line p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 space-y-2">
+                    <div className="skeleton h-4 w-2/5" />
+                    <div className="skeleton h-3 w-3/5" />
+                    <div className="skeleton h-3 w-1/3" />
+                    <div className="skeleton h-10 w-full rounded-md" />
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <div className="skeleton h-10 w-28 rounded-md" />
+                    <div className="skeleton h-10 w-20 rounded-md" />
+                    <div className="skeleton h-10 w-16 rounded-md" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : (
+      <>
       <Card>
         <CardHeader
           title={`در انتظار هماهنگی (${faNum(open.length)})`}
@@ -367,6 +399,8 @@ export function RequestQueuePage() {
       <RejectModal req={rejecting} onClose={() => setRejecting(null)} onDone={refresh} />
       {/* edit modal */}
       <EditModal req={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); refresh(); }} />
+      </>
+      )}
     </div>
   );
 }
