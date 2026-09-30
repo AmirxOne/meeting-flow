@@ -291,14 +291,27 @@ export function AdminRolesPage() {
       >
         <div className="space-y-4">
           {!editing && (
-            <Field label="کلید نقش (لاتین)">
-              <input
-                value={form.key}
-                onChange={(e) => setForm({ ...form, key: e.target.value.toUpperCase() })}
-                dir="ltr"
-                placeholder="CUSTOM_ROLE"
-                className="h-10 w-full rounded-md border border-line px-3 font-mono text-[13px]"
-              />
+            <Field label="شناسه‌ی فنی نقش">
+              <div className="flex items-center gap-2">
+                <input
+                  value={form.key}
+                  onChange={(e) => setForm({ ...form, key: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "") })}
+                  dir="ltr"
+                  placeholder="مثلاً SALES_MANAGER"
+                  className="h-10 w-full rounded-md border border-line px-3 font-mono text-[13px]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, key: `ROLE_${Math.random().toString(36).slice(2, 7).toUpperCase()}` }))}
+                  className="h-10 shrink-0 rounded-md border border-dashed border-line px-3 text-[11px] text-ink-soft transition hover:border-ink/40 hover:text-ink"
+                  title="یک شناسه‌ی مناسب تولید کنید"
+                >
+                  تولید خودکار
+                </button>
+              </div>
+              <span className="block text-[10.5px] leading-4 text-ink-faint">
+                یک کد انگلیسی اختیاری برای استفاده‌ی داخلی سیستم — کاربران آن را نمی‌بینند. اگر ایده‌ای ندارید «تولید خودکار» را بزنید.
+              </span>
             </Field>
           )}
           <Field label="نام نمایشی">
@@ -407,9 +420,9 @@ export function AdminRolesPage() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block space-y-1.5">
-      <span className="text-[12px] font-medium text-ink-soft">{label}</span>
+    <div className="block space-y-1.5">
+      <span className="block text-[12px] font-medium text-ink-soft">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }
