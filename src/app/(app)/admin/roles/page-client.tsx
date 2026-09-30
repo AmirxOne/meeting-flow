@@ -236,7 +236,9 @@ export function AdminRolesPage() {
         wide
         footer={
           <div className="flex justify-end gap-2">
-            <Button
+            <Button variant="ghost" onClick={() => setShowForm(false)}>
+              انصراف
+            </Button><Button
               onClick={save}
               loading={busy}
               disabled={
@@ -247,9 +249,6 @@ export function AdminRolesPage() {
               }
             >
               {editing ? "ذخیره" : "ایجاد نقش"}
-            </Button>
-            <Button variant="ghost" onClick={() => setShowForm(false)}>
-              انصراف
             </Button>
           </div>
         }

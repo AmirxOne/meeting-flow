@@ -327,10 +327,9 @@ export function useUserManagement() {
         wide
         footer={
           <div className="flex justify-end gap-2">
-            <Button onClick={createUser} loading={busy} disabled={!createForm.email || !createForm.fullName || createForm.password.length < 6 || createForm.roleKeys.length === 0}>
+            <Button variant="ghost" onClick={() => setShowCreate(false)}>انصراف</Button><Button onClick={createUser} loading={busy} disabled={!createForm.email || !createForm.fullName || createForm.password.length < 6 || createForm.roleKeys.length === 0}>
               ایجاد کاربر
             </Button>
-            <Button variant="ghost" onClick={() => setShowCreate(false)}>انصراف</Button>
           </div>
         }
       >
@@ -361,8 +360,7 @@ export function useUserManagement() {
         wide
         footer={
           <div className="flex justify-end gap-2">
-            <Button onClick={saveEdit} loading={busy} disabled={!editForm.fullName.trim() || (manageRoles && editForm.roleKeys.length === 0)}>ذخیره تغییرات</Button>
-            <Button variant="ghost" onClick={() => setEditing(null)}>انصراف</Button>
+            <Button variant="ghost" onClick={() => setEditing(null)}>انصراف</Button><Button onClick={saveEdit} loading={busy} disabled={!editForm.fullName.trim() || (manageRoles && editForm.roleKeys.length === 0)}>ذخیره تغییرات</Button>
           </div>
         }
       >
@@ -392,8 +390,7 @@ export function useUserManagement() {
         subtitle="کاربر باید با رمز جدید دوباره وارد شود"
         footer={
           <div className="flex justify-end gap-2">
-            <Button onClick={resetPassword} loading={busy} disabled={newPassword.length < 6}>بازنشانی رمز</Button>
-            <Button variant="ghost" onClick={() => setResetUser(null)}>انصراف</Button>
+            <Button variant="ghost" onClick={() => setResetUser(null)}>انصراف</Button><Button onClick={resetPassword} loading={busy} disabled={newPassword.length < 6}>بازنشانی رمز</Button>
           </div>
         }
       >

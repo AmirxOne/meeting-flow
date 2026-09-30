@@ -156,11 +156,10 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
         subtitle="مهمان‌ها و ارتباط‌های بیرونی — هنگام ساخت جلسه از همین لیست انتخاب می‌شوند"
         footer={
           <div className="flex justify-end gap-2">
-            <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
-              {editing ? "ذخیره تغییرات" : "افزودن"}
-            </Button>
             <Button variant="ghost" onClick={() => setShowForm(false)}>
               انصراف
+            </Button><Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
+              {editing ? "ذخیره تغییرات" : "افزودن"}
             </Button>
           </div>
         }

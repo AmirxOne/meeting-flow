@@ -231,11 +231,10 @@ export function BranchesPage() {
         wide
         footer={
           <div className="flex justify-end gap-2">
-            <Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
-              {editing ? "ذخیره تغییرات" : "ایجاد شعبه"}
-            </Button>
             <Button variant="ghost" onClick={() => setShowForm(false)}>
               انصراف
+            </Button><Button onClick={save} loading={busy} disabled={form.name.trim().length < 2}>
+              {editing ? "ذخیره تغییرات" : "ایجاد شعبه"}
             </Button>
           </div>
         }

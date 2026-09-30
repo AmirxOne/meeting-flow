@@ -445,8 +445,7 @@ function TopicsTab({
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="نتیجه بحث (اختیاری)" className="w-full rounded-md border border-line p-2 text-[12px] outline-none focus:border-ink" />
           <textarea value={decisions} onChange={(e) => setDecisions(e.target.value)} rows={2} placeholder="تصمیمات اتخاذشده (اختیاری)" className="w-full rounded-md border border-line p-2 text-[12px] outline-none focus:border-ink" />
           <div className="flex justify-end gap-2">
-            <Button onClick={add}>ثبت موضوع</Button>
-            <Button variant="outline" onClick={() => setAdding(false)}>انصراف</Button>
+            <Button variant="outline" onClick={() => setAdding(false)}>انصراف</Button><Button onClick={add}>ثبت موضوع</Button>
           </div>
         </div>
       ) : (

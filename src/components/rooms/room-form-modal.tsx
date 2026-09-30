@@ -156,11 +156,10 @@ export function RoomFormModal({
       wide
       footer={
         <div className="flex justify-end gap-2">
-          <Button onClick={save} loading={busy} disabled={!form.name.trim() || (!editing && !form.branchId)}>
-            {editing ? "ذخیره تغییرات" : "ایجاد اتاق"}
-          </Button>
           <Button variant="ghost" onClick={onClose}>
             انصراف
+          </Button><Button onClick={save} loading={busy} disabled={!form.name.trim() || (!editing && !form.branchId)}>
+            {editing ? "ذخیره تغییرات" : "ایجاد اتاق"}
           </Button>
         </div>
       }

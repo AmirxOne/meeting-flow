@@ -898,11 +898,10 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
         subtitle="می‌توانید در لیست انتظار بمانید؛ تا قطعی کردن، اتاق قفل نمی‌شود"
         footer={
           <div className="flex justify-end gap-2">
-            <Button onClick={() => submit({ waitlistIfBusy: true })} loading={submitting}>
-              پیوستن به لیست انتظار
-            </Button>
             <Button variant="ghost" onClick={() => setWaitlistOpen(false)}>
               انصراف
+            </Button><Button onClick={() => submit({ waitlistIfBusy: true })} loading={submitting}>
+              پیوستن به لیست انتظار
             </Button>
           </div>
         }

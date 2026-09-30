@@ -202,11 +202,10 @@ export function DelegatesCard() {
         subtitle="این فرد می‌تواند در ویزارد برگزارکننده را شما انتخاب کند"
         footer={
           <div className="flex justify-end gap-2">
-            <Button onClick={add} loading={busy} disabled={!pickedId}>
-              افزودن
-            </Button>
             <Button variant="ghost" onClick={() => setAddOpen(false)}>
               انصراف
+            </Button><Button onClick={add} loading={busy} disabled={!pickedId}>
+              افزودن
             </Button>
           </div>
         }
@@ -258,11 +257,10 @@ export function DelegatesCard() {
         subtitle={removeRow ? `${removeRow.user.fullName} دیگر به نام شما جلسه نمی‌سازد` : undefined}
         footer={
           <div className="flex justify-end gap-2">
-            <Button variant="danger" onClick={remove} loading={busy}>
-              حذف
-            </Button>
             <Button variant="ghost" onClick={() => setRemoveRow(null)}>
               انصراف
+            </Button><Button variant="danger" onClick={remove} loading={busy}>
+              حذف
             </Button>
           </div>
         }

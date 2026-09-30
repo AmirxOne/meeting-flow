@@ -103,11 +103,10 @@ export function AvatarCropModal({
       subtitle="برای جابه‌جایی بکشید؛ با نوار، بزرگ‌نمایی کنید. خروجی مربع است."
       footer={
         <div className="flex justify-end gap-2">
-          <Button onClick={confirm} loading={busy} disabled={!objectUrl}>
-            برش و ذخیره
-          </Button>
           <Button variant="ghost" onClick={onClose} disabled={busy}>
             انصراف
+          </Button><Button onClick={confirm} loading={busy} disabled={!objectUrl}>
+            برش و ذخیره
           </Button>
         </div>
       }

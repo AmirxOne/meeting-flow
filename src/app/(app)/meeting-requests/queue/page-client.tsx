@@ -273,11 +273,10 @@ function RejectModal({ req, onClose, onDone }: { req: Req | null; onClose: () =>
             />
           </div>
           <div className="flex justify-end gap-2">
-            <Button onClick={reject} disabled={busy} className="!bg-red-600 hover:!bg-red-700">
+            <Button variant="outline" onClick={onClose}>انصراف</Button><Button onClick={reject} disabled={busy} className="!bg-red-600 hover:!bg-red-700">
               <XCircle className="h-4 w-4" />
               {busy ? "در حال ثبت…" : "رد قطعی"}
             </Button>
-            <Button variant="outline" onClick={onClose}>انصراف</Button>
           </div>
         </div>
       )}
@@ -377,11 +376,10 @@ function EditModal({ req, onClose, onDone }: { req: Req | null; onClose: () => v
             بعد از ذخیره، از دکمه‌ی «زمان‌بندی و تأیید» جلسه را قطعی کنید
           </p>
           <div className="flex justify-end gap-2">
-            <Button onClick={save} disabled={busy}>
+            <Button variant="outline" onClick={onClose}>انصراف</Button><Button onClick={save} disabled={busy}>
               <Pencil className="h-4 w-4" />
               {busy ? "در حال ذخیره…" : "ذخیره تغییرات"}
             </Button>
-            <Button variant="outline" onClick={onClose}>انصراف</Button>
           </div>
         </div>
       )}
@@ -595,10 +593,9 @@ function ScheduleForm({ r, onDone, onCancel }: { r: Req; onDone: () => void; onC
           شرکت‌کنندگان درخواست‌شده خودکار دعوت می‌شوند
         </p>
         <div className="flex justify-end gap-2">
-          <Button onClick={schedule} disabled={busy}>
+          <Button variant="outline" onClick={onCancel}>انصراف</Button><Button onClick={schedule} disabled={busy}>
             {busy ? "در حال ثبت…" : "ثبت نهایی جلسه"}
           </Button>
-          <Button variant="outline" onClick={onCancel}>انصراف</Button>
         </div>
       </div>
     </motion.div>
