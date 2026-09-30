@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ChevronDown, Users } from "@/components/ui/icon";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Shield } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
@@ -41,6 +42,7 @@ export function AdminRolesPage() {
   const [editing, setEditing] = useState<RoleRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [busy, setBusy] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-roles"],
@@ -154,15 +156,17 @@ export function AdminRolesPage() {
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="flex items-center gap-2 text-lg font-bold">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink text-white">
             <Shield className="h-5 w-5" />
-            مدیریت نقش‌ها
-          </h1>
-          <p className="mt-0.5 text-[12px] text-ink-soft">
-            نقش‌های سفارشی قابل ویرایش؛ نقش‌های سیستمی فقط مشاهده
-          </p>
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-[17px] font-bold leading-tight">نقش‌ها و دسترسی‌ها</h1>
+            <p className="mt-0.5 text-[12px] text-ink-soft">
+              {faNum(roles.length)} نقش — نقش‌های سفارشی قابل ویرایش؛ نقش‌های سیستمی فقط مشاهده
+            </p>
+          </div>
         </div>
         <Button size="sm" onClick={openCreate}>
           <Plus className="h-4 w-4" />
@@ -176,54 +180,86 @@ export function AdminRolesPage() {
           {roles.length === 0 ? (
             <EmptyState title="نقشی یافت نشد" description="با seed نقش‌های پیش‌فرض ساخته می‌شوند." compact />
           ) : (
-            roles.map((role) => (
-              <div key={role.id} className="flex flex-wrap items-start gap-3 px-5 py-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-[14px] font-bold">{role.name}</p>
-                    <span className="badge badge-gray font-mono text-[10px]" dir="ltr">
-                      {role.key}
+            roles.map((role) => {
+              const totalPerms = catalog.reduce((n, g) => n + g.permissions.length, 0) || 1;
+              const pct = Math.round((role.permissionKeys.length / totalPerms) * 100);
+              return (
+                <div key={role.id} data-role={role.key} className="group px-5 py-4">
+                  <div className="flex flex-wrap items-start gap-3">
+                    <span
+                      className={cn(
+                        "mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                        role.isSystem ? "bg-amber-50 text-amber-700" : "bg-paper-soft text-ink-soft",
+                      )}
+                    >
+                      <Shield className="h-5 w-5" />
                     </span>
-                    {role.isSystem && <span className="badge badge-amber text-[10px]">سیستمی</span>}
-                    <span className="text-[11px] text-ink-faint">{faNum(role.userCount)} کاربر</span>
-                  </div>
-                  {role.description && (
-                    <p className="mt-1 text-[12px] text-ink-soft">{role.description}</p>
-                  )}
-                  <p className="mt-2 text-[11px] text-ink-faint">
-                    {faNum(role.permissionKeys.length)} دسترسی
-                    {role.permissionKeys.slice(0, 4).map((k) => (
-                      <span key={k} className="mr-1 inline-block rounded bg-paper-soft px-1.5 py-0.5">
-                        {permissionName.get(k) ?? k}
-                      </span>
-                    ))}
-                    {role.permissionKeys.length > 4 ? "…" : ""}
-                  </p>
-                </div>
-                <div className="flex gap-1">
-                  {!role.isSystem && (
-                    <>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[14px] font-bold">{role.name}</p>
+                        <span className="badge badge-gray font-mono text-[10px]" dir="ltr">
+                          {role.key}
+                        </span>
+                        {role.isSystem && <span className="badge badge-amber text-[10px]">سیستمی — فقط‌خواندنی</span>}
+                        <span className="flex items-center gap-1 text-[11px] text-ink-faint">
+                          <Users className="h-3.5 w-3.5" />
+                          {faNum(role.userCount)} کاربر
+                        </span>
+                      </div>
+                      {role.description && (
+                        <p className="mt-1 text-[12px] leading-5 text-ink-soft">{role.description}</p>
+                      )}
+                      {/* نوار سطح دسترسی */}
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="h-1.5 w-28 overflow-hidden rounded-full bg-paper-deep">
+                          <div
+                            className={cn("h-full rounded-full", pct >= 80 ? "bg-red-400" : pct >= 40 ? "bg-amber-400" : "bg-emerald-500")}
+                            style={{ width: `${Math.max(pct, 4)}%` }}
+                          />
+                        </div>
+                        <span className="text-[10.5px] text-ink-faint">
+                          {faNum(role.permissionKeys.length)} از {faNum(totalPerms)} دسترسی ({faNum(pct)}٪)
+                        </span>
+                      </div>
+                      {/* چیپ‌های مجوز */}
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {role.permissionKeys.slice(0, 6).map((k) => (
+                          <span key={k} className="rounded-full border border-line bg-paper-soft px-2 py-0.5 text-[10px] text-ink-soft">
+                            {permissionName.get(k) ?? k}
+                          </span>
+                        ))}
+                        {role.permissionKeys.length > 6 && (
+                          <span className="rounded-full border border-dashed border-line px-2 py-0.5 text-[10px] text-ink-faint">
+                            +{faNum(role.permissionKeys.length - 6)} مجوز دیگر
+                          </span>
+                        )}
+                        {role.permissionKeys.length === 0 && (
+                          <span className="text-[10.5px] text-ink-faint">بدون دسترسی</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
                       <Button size="sm" variant="outline" onClick={() => openEdit(role)}>
                         <Pencil className="h-3.5 w-3.5" />
                         ویرایش
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={busy || role.userCount > 0}
-                        onClick={() => remove(role)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        حذف
-                      </Button>
-                    </>
-                  )}
-                  {role.isSystem && (
-                    <span className="text-[11px] text-ink-faint">نقش سیستمی — فقط‌خواندنی</span>
-                  )}
+                      {!role.isSystem && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy || role.userCount > 0}
+                          onClick={() => remove(role)}
+                          title={role.userCount > 0 ? "ابتدا کاربران این نقش را جابه‌جا کنید" : undefined}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          حذف
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </CardBody>
       </Card>
@@ -282,32 +318,86 @@ export function AdminRolesPage() {
             />
           </Field>
           <div className="space-y-3">
-            <p className="text-[12px] font-medium text-ink-soft">دسترسی‌ها</p>
-            {catalog.map((group) => (
-              <div key={group.group} className="rounded-md border border-line p-3">
-                <p className="mb-2 text-[11px] font-bold text-ink-faint">{group.group}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {group.permissions.map((p) => {
-                    const sel = form.permissionKeys.includes(p.key);
-                    return (
+            <div className="flex items-center justify-between rounded-lg border border-line bg-paper-soft/60 px-3.5 py-2.5">
+              <p className="text-[12px] font-medium">
+                دسترسی‌ها
+                <span className="mr-2 rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold text-white">
+                  {faNum(form.permissionKeys.length)} انتخاب
+                </span>
+              </p>
+              {form.permissionKeys.length > 0 && !editing?.isSystem && (
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, permissionKeys: [] }))}
+                  className="text-[11px] text-ink-soft underline-offset-2 hover:text-danger hover:underline"
+                >
+                  پاک‌کردن همه
+                </button>
+              )}
+            </div>
+            {catalog.map((group) => {
+              const groupKeys = group.permissions.map((p) => p.key);
+              const selectedCount = groupKeys.filter((k) => form.permissionKeys.includes(k)).length;
+              const allSelected = selectedCount === groupKeys.length;
+              const someSelected = selectedCount > 0 && !allSelected;
+              return (
+                <div key={group.group} className="rounded-lg border border-line">
+                  <div className="flex items-center justify-between gap-2 border-b border-line/70 px-3.5 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setCollapsed((c) => ({ ...c, [group.group]: !c[group.group] }))}
+                      className="flex items-center gap-1.5 text-[12px] font-bold text-ink"
+                    >
+                      <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", collapsed[group.group] && "-rotate-90")} />
+                      {group.group}
+                      <span className="text-[10px] font-normal text-ink-faint">
+                        ({faNum(selectedCount)}/{faNum(groupKeys.length)})
+                      </span>
+                    </button>
+                    {!editing?.isSystem && (
                       <button
-                        key={p.key}
                         type="button"
-                        disabled={!!editing?.isSystem}
-                        onClick={() => togglePermission(p.key)}
-                        className={cn(
-                          "rounded-full border px-2.5 py-1 text-[11px]",
-                          sel ? "border-ink bg-ink text-white" : "border-line text-ink-soft",
-                          editing?.isSystem && "opacity-50",
-                        )}
+                        onClick={() =>
+                          setForm((f) => ({
+                            ...f,
+                            permissionKeys: allSelected
+                              ? f.permissionKeys.filter((k) => !groupKeys.includes(k))
+                              : Array.from(new Set([...f.permissionKeys, ...groupKeys])),
+                          }))
+                        }
+                        className="rounded-md border border-line px-2 py-1 text-[10px] text-ink-soft transition hover:border-ink/40 hover:text-ink"
                       >
-                        {p.name}
+                        {allSelected ? "حذف گروه" : "انتخاب گروه"}
                       </button>
-                    );
-                  })}
+                    )}
+                  </div>
+                  {!collapsed[group.group] && (
+                    <div className={cn("flex flex-wrap gap-1.5 p-3", someSelected && "bg-amber-50/40")}>
+                      {group.permissions.map((p) => {
+                        const sel = form.permissionKeys.includes(p.key);
+                        return (
+                          <button
+                            key={p.key}
+                            type="button"
+                            disabled={!!editing?.isSystem}
+                            onClick={() => togglePermission(p.key)}
+                            className={cn(
+                              "rounded-full border px-2.5 py-1 text-[11px] transition",
+                              sel
+                                ? "border-ink bg-ink text-white"
+                                : "border-line text-ink-soft hover:border-ink/40 hover:text-ink",
+                              editing?.isSystem && "opacity-50",
+                            )}
+                          >
+                            {p.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </Modal>
