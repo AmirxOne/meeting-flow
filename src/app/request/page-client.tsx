@@ -38,9 +38,9 @@ export function PublicRequestForm() {
   const [busy, setBusy] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
   // preferred window (optional): day + from/to hours
-  const [prefDay, setPrefDay] = useState("");
-  const [prefFrom, setPrefFrom] = useState("");
-  const [prefTo, setPrefTo] = useState("");
+  const [prefSlots, setPrefSlots] = useState<{ day: string; from: string; to: string }[]>([
+    { day: "", from: "", to: "" },
+  ]);
   // ONSITE = our company · OFFSITE = at another org (e.g. همراه اول)
   const [venue, setVenue] = useState<"ONSITE" | "OFFSITE">("ONSITE");
   const [recFreq, setRecFreq] = useState("NONE");
@@ -78,12 +78,19 @@ export function PublicRequestForm() {
           venue,
           ...(venue === "OFFSITE" ? { offsiteOrg: offsiteOrg.trim() } : {}),
           ...(venue === "OFFSITE" && offsiteNote.trim() ? { offsiteNote: offsiteNote.trim() } : {}),
-          ...(prefDay && prefFrom
-            ? {
-                prefFrom: tehranToIso(prefDay, prefFrom),
-                ...(prefTo ? { prefTo: tehranToIso(prefDay, prefTo) } : {}),
-              }
-            : {}),
+          ...((): Record<string, unknown> => {
+            const filled = prefSlots.filter((sl) => sl.day && sl.from);
+            if (filled.length === 0) return {};
+            const first = filled[0];
+            return {
+              prefFrom: tehranToIso(first.day, first.from),
+              ...(first.to ? { prefTo: tehranToIso(first.day, first.to) } : {}),
+              prefSlots: filled.map((sl) => ({
+                from: tehranToIso(sl.day, sl.from),
+                ...(sl.to ? { to: tehranToIso(sl.day, sl.to) } : {}),
+              })),
+            };
+          })(),
           attendeeCount,
           requestedPersonIds: people.map((p) => p.id),
         }),
@@ -194,9 +201,7 @@ export function PublicRequestForm() {
                 setDescription("");
                 setPeople([]);
                 setAttendeeCount(2);
-                setPrefDay("");
-                setPrefFrom("");
-                setPrefTo("");
+                setPrefSlots([{ day: "", from: "", to: "" }]);
                 setVenue("ONSITE");
                 setOffsiteOrg("");
                 setOffsiteNote("");
@@ -352,18 +357,50 @@ export function PublicRequestForm() {
                 <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">
                   روز و ساعتی که برایتان مناسب است — مدیریت سعی می‌کند جلسه را در همین بازه بگیرد
                 </p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">روز</label>
-                    <JalaliDatePicker value={prefDay} onChange={(v) => setPrefDay(v)} />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
-                    <TimePicker value={prefFrom} onChange={(v) => setPrefFrom(v)} />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
-                    <TimePicker value={prefTo} onChange={(v) => setPrefTo(v)} />
+                <div className="mt-3 space-y-2.5">
+                  {prefSlots.map((sl, i) => (
+                    <div key={i} className="flex items-end gap-2">
+                      <div className="min-w-0 flex-1">
+                        <label className="mb-1 block text-[11px] font-medium text-ink-soft">
+                          {prefSlots.length > 1 ? `پیشنهاد (${fa(i + 1)}) — روز` : "روز"}
+                        </label>
+                        <JalaliDatePicker value={sl.day} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, day: v } : x)))} />
+                      </div>
+                      <div className="w-[150px] shrink-0">
+                        <label className="mb-1 block text-[11px] font-medium text-ink-soft">از ساعت</label>
+                        <TimePicker value={sl.from} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, from: v } : x)))} />
+                      </div>
+                      <div className="w-[150px] shrink-0">
+                        <label className="mb-1 block text-[11px] font-medium text-ink-soft">تا ساعت</label>
+                        <TimePicker value={sl.to} onChange={(v) => setPrefSlots((arr) => arr.map((x, j) => (j === i ? { ...x, to: v } : x)))} />
+                      </div>
+                      {prefSlots.length > 1 && (
+                        <button
+                          type="button"
+                          aria-label={`حذف بازه ${fa(i + 1)}`}
+                          onClick={() => setPrefSlots((arr) => arr.filter((_, j) => j !== i))}
+                          className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint transition hover:border-danger/40 hover:text-danger"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between gap-2 pt-0.5">
+                    {prefSlots.length > 1 ? (
+                      <span className="text-[11px] text-ink-faint">مدیریت از بین {fa(prefSlots.length)} بازه‌ی پیشنهادی بهترین را انتخاب می‌کند</span>
+                    ) : (
+                      <span />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => prefSlots.length < 10 && setPrefSlots((arr) => [...arr, { day: "", from: "", to: "" }])}
+                      disabled={prefSlots.length >= 10}
+                      className="flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-dashed border-line px-3 text-[11.5px] font-medium text-ink-soft transition hover:border-accent/50 hover:text-accent disabled:opacity-40"
+                    >
+                      <Plus className="h-4 w-4" />
+                      افزودن بازه‌ی پیشنهادی دیگر {prefSlots.length > 1 ? `(${fa(prefSlots.length)}/۱۰)` : ""}
+                    </button>
                   </div>
                 </div>
               </div>
