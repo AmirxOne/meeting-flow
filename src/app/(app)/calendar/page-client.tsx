@@ -125,7 +125,7 @@ export function CalendarPage() {
   const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ["calendar", range.from.toISOString(), range.to.toISOString(), scope],
     queryFn: () =>
-      api<{ meetings: CalMeeting[]; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean }>(
+      api<{ meetings: CalMeeting[]; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean; canSeeAll: boolean }>(
         `/api/calendar?from=${range.from.toISOString()}&to=${range.to.toISOString()}&scope=${scope}`,
       ),
     // keep last month's data while fetching the new one — no skeleton flash,
@@ -467,7 +467,7 @@ export function CalendarPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5">
-          {data?.seeAll && (
+          {(data?.canSeeAll ?? data?.seeAll) && (
             <div className="flex overflow-hidden rounded-md border border-line">
               {([["all", "شرکت"], ["mine", "من"]] as const).map(([k, l]) => (
                 <button key={k} onClick={() => setScope(k)} className={cn("flex h-10 items-center px-3 text-[12px]", scope === k ? "bg-ink text-white" : "text-ink-soft")}>{l}</button>

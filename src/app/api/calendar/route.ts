@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
     const branchId = sp.get("branchId");
     const scope = sp.get("scope");
 
-    const seeAll = can(user, "meeting:view-all") && scope !== "mine";
+    const canSeeAll = can(user, "meeting:view-all");
+    const seeAll = canSeeAll && scope !== "mine";
 
     const meetings = await prisma.meeting.findMany({
       where: {
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
 
         const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
     const masked = meetings.map((m) => maskPrivateMeeting(m, viewer));
-    return ok({ meetings: masked, occupancy, seeAll });
+    return ok({ meetings: masked, occupancy, seeAll, canSeeAll });
   } catch (e) {
     return handleError(e);
   }
