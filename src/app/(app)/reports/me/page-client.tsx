@@ -23,6 +23,7 @@ type Me = {
   topPeople: { name: string; count: number; minutes: number }[];
   series: { month: string; hours: number }[];
   types: { type: string; count: number; color: string }[];
+  topics: [string, number][];
   meetings: {
     id: string;
     title: string;
@@ -173,17 +174,17 @@ export function MyReportsClient() {
               <CardHeader title="موضوعات پرتکرار شما" />
               <CardBody>
                 {(() => {
-                  const topics = (me as unknown as { topics?: { title: string; count: number }[] }).topics ?? [];
+                  const topics = me.topics ?? [];
                   if (topics.length === 0)
                     return <p className="text-[12px] text-ink-faint">موضوع تکراری ندارید</p>;
                   return (
                     <div className="flex flex-wrap gap-2">
-                      {topics.map((t, i) => (
+                      {topics.map(([title, count], i) => (
                         <span
-                          key={`topic-${i}-${t.title}`}
+                          key={`topic-${i}-${title}`}
                           className="rounded-full border border-line bg-paper-soft px-3 py-1.5 text-[12px]"
                         >
-                          {t.title} <span className="text-ink-faint">×{faNum(t.count)}</span>
+                          {title} <span className="text-ink-faint">×{faNum(count)}</span>
                         </span>
                       ))}
                     </div>
