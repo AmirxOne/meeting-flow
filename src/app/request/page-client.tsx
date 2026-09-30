@@ -380,7 +380,7 @@ export function PublicRequestForm() {
                           type="button"
                           aria-label={`حذف بازه ${fa(i + 1)}`}
                           onClick={() => setPrefSlots((arr) => arr.filter((_, j) => j !== i))}
-                          className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint transition hover:border-danger/40 hover:text-danger"
+                          className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line text-ink-faint transition hover:border-danger/40 hover:text-danger max-md:order-last"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
