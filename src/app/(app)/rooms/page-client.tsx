@@ -18,6 +18,7 @@ import { IconTipButton } from "@/components/ui/tooltip";
 import { ContextMenuOpen, type ContextMenuItem } from "@/components/ui/context-menu";
 import { EquipmentPicker, equipmentLabel } from "@/components/rooms/equipment-picker";
 import { RoomFormModal } from "@/components/rooms/room-form-modal";
+import { useConfirm } from "@/components/ui/confirm-modal";
 
 interface RoomWithLive {
   id: string;
@@ -62,6 +63,7 @@ const STATUS_META: Record<string, { label: string; dot: string; cls: string }> =
 };
 
 export function RoomsPage() {
+  const confirmAsk = useConfirm();
   const { can } = useAuth();
   const isAdmin = can("room:update");
   const qc = useQueryClient();
@@ -161,7 +163,7 @@ export function RoomsPage() {
   }
 
   async function remove(r: RoomWithLive) {
-    if (!confirm(`حذف «${r.name}»؟`)) return;
+    if (!(await confirmAsk({ title: `حذف «${r.name}»`, confirmLabel: "حذف قطعی", danger: true }))) return;
     try {
       await api(`/api/rooms/${r.id}/manage`, { method: "DELETE" });
       push("اتاق حذف شد", "success");
@@ -169,7 +171,14 @@ export function RoomsPage() {
     } catch (e) {
       const err = e as ApiError;
       if (err.code === "ROOM_IN_USE") {
-        if (confirm(`${err.message}\n\nغیرفعالش کنیم؟ (جلسات فعلی حفظ می‌شوند ولی رزرو جدید ممکن نیست)`)) {
+        if (
+          await confirmAsk({
+            title: `«${r.name}» در حال استفاده است`,
+            body: `${err.message} — غیرفعالش کنیم؟ جلسات فعلی حفظ می‌شوند ولی رزرو جدید ممکن نیست.`,
+            confirmLabel: "غیرفعال کن",
+            cancelLabel: "باشه، فعلاً نه",
+          })
+        ) {
           await toggleActive({ ...r, isActive: true });
         }
       } else {
@@ -214,7 +223,7 @@ export function RoomsPage() {
 
   async function removeExclusion(ex: RoomExclusion) {
     if (!exclusionRoom) return;
-    if (!confirm(`حذف «${ex.reason}»؟`)) return;
+    if (!(await confirmAsk({ title: `حذف «${ex.reason}»`, confirmLabel: "حذف قطعی", danger: true }))) return;
     setExBusy(true);
     try {
       await api(`/api/rooms/${exclusionRoom.id}/exclusions/${ex.id}`, { method: "DELETE" });

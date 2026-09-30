@@ -14,6 +14,7 @@ import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum, faStr } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { useConfirm } from "@/components/ui/confirm-modal";
 
 interface Person {
   id: string;
@@ -34,6 +35,7 @@ interface PeopleDirectoryPageProps {
 }
 
 export function PeopleDirectoryPage({ variant = "default", embedded = false }: PeopleDirectoryPageProps & { embedded?: boolean }) {
+  const confirmAsk = useConfirm();
   const qc = useQueryClient();
   const { push } = useToast();
   const [q, setQ] = useState("");
@@ -100,7 +102,15 @@ export function PeopleDirectoryPage({ variant = "default", embedded = false }: P
   }
 
   async function remove(p: Person) {
-    if (!confirm(`حذف «${p.name}» از دایرکتوری؟ (سابقه جلسات حفظ می‌شود)`)) return;
+    if (
+      !(await confirmAsk({
+        title: `حذف «${p.name}» از دایرکتوری`,
+        body: "سابقه جلسات این فرد حفظ می‌شود.",
+        confirmLabel: "حذف قطعی",
+        danger: true,
+      }))
+    )
+      return;
     try {
       await api(`/api/people/${p.id}`, { method: "DELETE" });
       push("حذف شد", "success");

@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth-store";
 import { IconTipButton } from "@/components/ui/tooltip";
 import { cn, faNum, faStr } from "@/lib";
 import { FaInput } from "@/components/ui/fa-input";
+import { useConfirm } from "@/components/ui/confirm-modal";
 
 interface Branch {
   id: string;
@@ -123,8 +124,10 @@ export function BranchesPage() {
     }
   }
 
+  const confirmAsk = useConfirm();
+
   async function remove(b: Branch) {
-    if (!confirm(`حذف «${b.name}»؟ این عمل بازگشت‌پذیر نیست.`)) return;
+    if (!(await confirmAsk({ title: `حذف «${b.name}»`, body: "این عمل بازگشت‌پذیر نیست.", confirmLabel: "حذف قطعی", danger: true }))) return;
     try {
       await api(`/api/branches/${b.id}`, { method: "DELETE" });
       push("شعبه حذف شد", "success");
@@ -184,7 +187,7 @@ export function BranchesPage() {
 
   async function removeFloor(f: { id: string; name: string }) {
     if (!floorBranch) return;
-    if (!confirm(`حذف «${f.name}»؟`)) return;
+    if (!(await confirmAsk({ title: `حذف طبقه «${f.name}»`, body: "اتاق‌های این طبقه هم حذف می‌شوند.", confirmLabel: "حذف قطعی", danger: true }))) return;
     setFloorBusy(true);
     try {
       await api(`/api/branches/${floorBranch.id}/floors/${f.id}`, { method: "DELETE" });
