@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "@/components/ui/icon";
+import { Plus, Trash2, Shield, ShieldCheck, Clock, Hourglass, Bell, CheckCircle2, CalendarX2, SlidersHorizontal } from "@/components/ui/icon";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,15 +24,72 @@ interface Policy {
   updatedAt: string;
 }
 
-const POLICY_FA: Record<string, { label: string; type: "bool" | "number" | "list"; unit?: string }> = {
-  requireApprovalExternalGuest: { label: "جلسه با مهمان خارجی نیاز به تأیید دارد", type: "bool" },
-  requireApprovalVipRoom: { label: "اتاق VIP نیاز به تأیید دارد", type: "bool" },
-  requireApprovalLongerThanMin: { label: "جلسه طولانی‌تر از این مدت نیاز به تأیید دارد", type: "number", unit: "دقیقه" },
-  autoApproveInternal: { label: "جلسه داخلی خودکار تأیید شود", type: "bool" },
-  minDurationMin: { label: "حداقل مدت جلسه", type: "number", unit: "دقیقه" },
-  maxDurationMin: { label: "حداکثر مدت جلسه", type: "number", unit: "دقیقه" },
-  defaultReminderOffsets: { label: "یادآورها (دقیقه قبل از جلسه)", type: "list" },
+type PolicyGroup = "approval" | "limits" | "reminders";
+
+const POLICY_FA: Record<
+  string,
+  { label: string; desc?: string; type: "bool" | "number" | "list"; unit?: string; group: PolicyGroup; icon: ReactNode }
+> = {
+  requireApprovalExternalGuest: {
+    label: "تأیید مهمان خارجی",
+    desc: "جلسه‌ای که مهمان خارج از سازمان دارد باید پیش از برگزاری تأیید شود",
+    type: "bool",
+    group: "approval",
+    icon: <Shield className="h-4 w-4" />,
+  },
+  requireApprovalVipRoom: {
+    label: "تأیید اتاق VIP",
+    desc: "رزرو اتاق‌های VIP نیازمند تأیید مدیریت است",
+    type: "bool",
+    group: "approval",
+    icon: <ShieldCheck className="h-4 w-4" />,
+  },
+  requireApprovalLongerThanMin: {
+    label: "تأیید جلسات طولانی",
+    desc: "جلسه‌های طولانی‌تر از این مقدار به تأیید نیاز دارند",
+    type: "number",
+    unit: "دقیقه",
+    group: "approval",
+    icon: <Clock className="h-4 w-4" />,
+  },
+  autoApproveInternal: {
+    label: "تأیید خودکار جلسات داخلی",
+    desc: "جلسات تماماً داخلی بدون نیاز به تأیید ثبت می‌شوند",
+    type: "bool",
+    group: "approval",
+    icon: <CheckCircle2 className="h-4 w-4" />,
+  },
+  minDurationMin: {
+    label: "حداقل مدت جلسه",
+    desc: "جلسه کوتاه‌تر از این مقدار قابل ثبت نیست",
+    type: "number",
+    unit: "دقیقه",
+    group: "limits",
+    icon: <Hourglass className="h-4 w-4" />,
+  },
+  maxDurationMin: {
+    label: "حداکثر مدت جلسه",
+    desc: "جلسه بلندتر از این مقدار قابل ثبت نیست",
+    type: "number",
+    unit: "دقیقه",
+    group: "limits",
+    icon: <Clock className="h-4 w-4" />,
+  },
+  defaultReminderOffsets: {
+    label: "یادآورهای پیش‌فرض",
+    desc: "چند دقیقه قبل از شروع جلسه، یادآور برای شرکت‌کننده‌ها ارسال شود",
+    type: "list",
+    unit: "دقیقه",
+    group: "reminders",
+    icon: <Bell className="h-4 w-4" />,
+  },
 };
+
+const POLICY_GROUPS: { key: PolicyGroup; title: string; subtitle: string; icon: ReactNode }[] = [
+  { key: "approval", title: "قواعد تأیید", subtitle: "کدام جلسات پیش از برگزاری نیازمند تأیید مدیریت‌اند", icon: <Shield className="h-5 w-5" /> },
+  { key: "limits", title: "محدودیت‌های زمانی", subtitle: "کف و سقف مدت جلسات ثبت‌شده", icon: <Hourglass className="h-5 w-5" /> },
+  { key: "reminders", title: "یادآورها", subtitle: "زمان‌بندی یادآوری پیش از شروع جلسه", icon: <Bell className="h-5 w-5" /> },
+];
 
 const HOLIDAY_MODE_OPTIONS = [
   { value: "BLOCK", label: "رزرو ممنوع", hint: "در روز تعطیل اتاق رزرو نمی‌شود" },
@@ -208,60 +265,106 @@ export function AdminPoliciesPage() {
 
   const policies = data?.policies ?? [];
 
+  const activePolicies = policies.filter((p) => p.key !== "holidayBooking");
+
   return (
     <div className="space-y-4 p-4 lg:p-6">
-      <h1 className="text-lg font-bold">سیاست‌های جلسه</h1>
+      {/* هدر برندینگ‌دار — هم‌ساخت با settings/branches */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink text-white">
+          <SlidersHorizontal className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-[17px] font-bold leading-tight">سیاست‌های جلسه</h1>
+          <p className="mt-0.5 text-[12px] text-ink-soft">قواعد تأیید، محدودیت‌ها و یادآورها — تغییرات بلافاصله اعمال می‌شود</p>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader title="قواعد تأیید و محدودیت‌ها" subtitle="تغییرات بلافاصله اعمال می‌شود" />
-        <CardBody className="space-y-4">
-          {policies.length === 0 && (
+      {policies.length === 0 && (
+        <Card>
+          <CardBody>
             <EmptyState title="سیاستی ثبت نشده است" description="قواعد پیش‌فرض سیستم فعال است. با افزودن سیاست، رفتار تأیید جلسات قابل تنظیم می‌شود." />
-          )}
-          {policies.filter((p) => p.key !== "holidayBooking").map((p) => {
-            const meta = POLICY_FA[p.key] ?? { label: p.key, type: "bool" as const };
-            const isList = meta.type === "list";
-            return (
-              <div
-                key={p.id}
-                className={cn(
-                  "flex gap-4 border-b border-line pb-4 last:border-0 last:pb-0",
-                  isList ? "flex-col sm:flex-row sm:items-start sm:justify-between" : "items-center justify-between",
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="text-[13px] font-medium">{meta.label}</p>
-                  {p.description && <p className="mt-0.5 text-[11px] text-ink-faint">{p.description}</p>}
-                </div>
-                {meta.type === "bool" && (
-                  <button
-                    onClick={() => update(p.key, !p.value)}
-                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${p.value ? "bg-ink" : "bg-paper-deep"}`}
-                    aria-label="تغییر"
+          </CardBody>
+        </Card>
+      )}
+
+      {POLICY_GROUPS.map((g) => {
+        const groupPolicies = activePolicies.filter((p) => (POLICY_FA[p.key]?.group ?? "approval") === g.key);
+        if (groupPolicies.length === 0) return null;
+        return (
+          <Card key={g.key}>
+            <CardHeader
+              title={
+                <span className="flex items-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-paper-soft text-ink-soft">{g.icon}</span>
+                  {g.title}
+                </span>
+              }
+              subtitle={g.subtitle}
+            />
+            <CardBody className="space-y-1">
+              {groupPolicies.map((p) => {
+                const meta = POLICY_FA[p.key] ?? { label: p.key, type: "bool" as const, icon: null };
+                const isList = meta.type === "list";
+                return (
+                  <div
+                    key={p.id}
+                    data-policy={p.key}
+                    className={cn(
+                      "flex gap-4 border-b border-line py-3.5 first:pt-0 last:border-0 last:pb-0",
+                      isList ? "flex-col sm:flex-row sm:items-start sm:justify-between" : "items-center justify-between",
+                    )}
                   >
-                    <span
-                      className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${p.value ? "right-0.5" : "right-[22px]"}`}
-                    />
-                  </button>
-                )}
-                {meta.type === "number" && (
-                  <PolicyNumberInput
-                    value={Number(p.value)}
-                    onCommit={(v) => update(p.key, v)}
-                  />
-                )}
-                {meta.type === "list" && (
-                  <ReminderOffsetsEditor
-                    value={Array.isArray(p.value) ? (p.value as number[]) : []}
-                    busy={savingKey === p.key}
-                    onSave={(offsets) => update(p.key, offsets)}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </CardBody>
-      </Card>
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      {meta.icon && (
+                        <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-paper-soft text-ink-soft">
+                          {meta.icon}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-medium">
+                          {meta.label}
+                          {meta.unit && meta.type === "number" && (
+                            <span className="mr-1.5 text-[10px] font-normal text-ink-faint">({meta.unit})</span>
+                          )}
+                        </p>
+                        <p className="mt-0.5 text-[11px] leading-5 text-ink-faint">{meta.desc ?? p.description}</p>
+                      </div>
+                    </div>
+                    {meta.type === "bool" && (
+                      <button
+                        onClick={() => update(p.key, !p.value)}
+                        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${p.value ? "bg-ink" : "bg-paper-deep"}`}
+                        aria-label="تغییر"
+                      >
+                        <span
+                          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${p.value ? "right-0.5" : "right-[22px]"}`}
+                        />
+                      </button>
+                    )}
+                    {meta.type === "number" && (
+                      <div className="flex items-center gap-1.5">
+                        <PolicyNumberInput
+                          value={Number(p.value)}
+                          onCommit={(v) => update(p.key, v)}
+                        />
+                        {savingKey === p.key && <span className="text-[10px] text-ink-faint">…</span>}
+                      </div>
+                    )}
+                    {meta.type === "list" && (
+                      <ReminderOffsetsEditor
+                        value={Array.isArray(p.value) ? (p.value as number[]) : []}
+                        busy={savingKey === p.key}
+                        onSave={(offsets) => update(p.key, offsets)}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </CardBody>
+          </Card>
+        );
+      })}
 
       <HolidaysCard
         bookingMode={
@@ -337,7 +440,14 @@ function HolidaysCard({
   return (
     <Card data-tour="org-holidays">
       <CardHeader
-        title="تعطیلات و روزهای مسدود"
+        title={
+          <span className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-paper-soft text-ink-soft">
+              <CalendarX2 className="h-4 w-4" />
+            </span>
+            تعطیلات و روزهای مسدود
+          </span>
+        }
         subtitle="تاریخ‌ها شمسی انتخاب می‌شوند؛ رزرو اتاق در این روزها طبق سیاست زیر است"
       />
       <CardBody className="space-y-4">
