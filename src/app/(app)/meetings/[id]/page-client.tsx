@@ -547,10 +547,14 @@ export function MeetingDetailPage() {
       </div>
 
       {/* Reschedule form */}
-      {showReschedule && (
-        <Card className="p-4">
-          <p className="mb-3 text-[13px] font-bold">زمان‌بندی مجدد</p>
-          <div className="grid gap-3 sm:grid-cols-4">
+      {/* Reschedule dialog */}
+      <Modal
+        open={showReschedule}
+        onClose={() => setShowReschedule(false)}
+        title="زمان‌بندی مجدد"
+        subtitle={m.title}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">تاریخ (شمسی)</label>
               <JalaliDatePicker value={rsDate} onChange={setRsDate} />
@@ -585,10 +589,18 @@ export function MeetingDetailPage() {
                 />
               </div>
             )}
-            <div className="flex items-end">
+            <div className="flex items-end gap-2 sm:col-span-2">
               <Button
                 size="md"
-                className="w-full"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowReschedule(false)}
+              >
+                انصراف
+              </Button>
+              <Button
+                size="md"
+                className="flex-1"
                 loading={busy === "reschedule"}
                 onClick={() => {
                   const base = rsDate || new Date(m.startAt).toISOString().slice(0, 10);
@@ -618,8 +630,7 @@ export function MeetingDetailPage() {
           <p className="mt-2 text-[11px] text-ink-faint">
             قبل از ثبت، تداخل اتاق و افراد به‌صورت خودکار بررسی می‌شود.
           </p>
-        </Card>
-      )}
+      </Modal>
 
       {/* Cancel dialog */}
       <Modal
@@ -686,17 +697,23 @@ export function MeetingDetailPage() {
       </Modal>
 
       {/* Add participant */}
-      {showAddUser && (
-        <Card className="p-4">
-          <p className="mb-3 text-[13px] font-bold">افزودن مشارکت‌کننده</p>
-          <AddParticipantBlock
-            meetingId={id}
-            existingUserIds={m.participants.map((p) => p.userId)}
-            existingGuestNames={m.guests.map((g) => g.name)}
-            onDone={() => qc.invalidateQueries({ queryKey: ["meeting", id] })}
-          />
-        </Card>
-      )}
+      {/* Add participant dialog */}
+      <Modal
+        open={showAddUser}
+        onClose={() => setShowAddUser(false)}
+        title="افزودن مشارکت‌کننده"
+        subtitle={m.title}
+      >
+        <AddParticipantBlock
+          meetingId={id}
+          existingUserIds={m.participants.map((p) => p.userId)}
+          existingGuestNames={m.guests.map((g) => g.name)}
+          onDone={() => {
+            qc.invalidateQueries({ queryKey: ["meeting", id] });
+            setShowAddUser(false);
+          }}
+        />
+      </Modal>
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Details */}
@@ -1085,43 +1102,53 @@ function RejectButton({ meetingId, onDone }: { meetingId: string; onDone: () => 
   const [busy, setBusy] = useState(false);
   const { push } = useToast();
 
-  if (!open) {
-    return (
+  return (
+    <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
         <X className="h-4 w-4" />
         رد جلسه
       </Button>
-    );
-  }
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        placeholder="دلیل رد (الزامی)"
-        className="h-8 w-56 rounded-md border border-line px-3 text-[12px] outline-none focus:border-red-400"
-      />
-      <Button
-        size="sm"
-        variant="danger"
-        disabled={reason.trim().length < 3}
-        loading={busy}
-        onClick={async () => {
-          setBusy(true);
-          try {
-            await api(`/api/meetings/${meetingId}/reject`, { method: "POST", json: { reason } });
-            push("جلسه رد شد", "success");
-            onDone();
-          } catch (e) {
-            push((e as ApiError).message, "error");
-          } finally {
-            setBusy(false);
-          }
-        }}
-      >
-        ثبت رد
-      </Button>
-    </div>
+      <Modal open={open} onClose={() => setOpen(false)} title="رد جلسه" subtitle="دلیل رد برای برگزارکننده ثبت می‌شود">
+        <div className="space-y-3">
+          <div>
+            <label className="mb-1 block text-[11px] text-ink-soft">دلیل رد (الزامی)</label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="مثلاً: اتاق مناسب در این ساعت آزاد نیست"
+              rows={3}
+              className="min-h-[80px] w-full resize-y rounded-md border border-line p-3 text-[12px] outline-none focus:border-red-400"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setOpen(false)}>
+              انصراف
+            </Button>
+            <Button
+              variant="danger"
+              className="flex-1"
+              disabled={reason.trim().length < 3}
+              loading={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await api(`/api/meetings/${meetingId}/reject`, { method: "POST", json: { reason } });
+                  push("جلسه رد شد", "success");
+                  setOpen(false);
+                  onDone();
+                } catch (e) {
+                  push((e as ApiError).message, "error");
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              ثبت رد
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }
 
