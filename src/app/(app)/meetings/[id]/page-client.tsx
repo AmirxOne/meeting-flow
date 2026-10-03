@@ -81,7 +81,7 @@ interface MeetingDetail {
   events: {
     id: string;
     type: string;
-    data: unknown;
+    data: Record<string, unknown> | null;
     createdAt: string;
     actor: { fullName: string } | null;
   }[];
@@ -111,6 +111,55 @@ type WaitlistInfo = {
   offerExpiresAt: string | null;
   offered: boolean;
 };
+
+/** جزئیات خوانای هر رخداد — از data واقعی رخداد ساخته می‌شود */
+function eventDetail(ev: { type: string; data: Record<string, unknown> | null }): string | null {
+  const d = ev.data ?? {};
+  const num = (k: string) => typeof d[k] === "number" ? faNum(d[k] as number) : null;
+  switch (ev.type) {
+    case "RESCHEDULED": {
+      const from = d.from as { startAt?: string } | undefined;
+      const to = d.to as { startAt?: string } | undefined;
+      const fmt = (x?: string) => (x ? formatJalali(new Date(x), { withTime: true, monthName: true }) : null);
+      const f = fmt(from?.startAt);
+      const t = fmt(to?.startAt);
+      if (f && t && f !== t) return `از ${f} به ${t}`;
+      return null;
+    }
+    case "PARTICIPANT_RESPONDED": {
+      const r = d.responseStatus as string | undefined;
+      if (r === "ACCEPTED") return "پاسخ: می‌آیم";
+      if (r === "DECLINED") return "پاسخ: نمی‌آیم";
+      if (r === "TENTATIVE") return "پاسخ: شاید";
+      return null;
+    }
+    case "ATTACHMENT_ADDED": {
+      const name = d.originalName as string | undefined;
+      const size = num("sizeBytes");
+      return name ? `فایل: ${name}${size ? ` (${size} بایت)` : ""}` : null;
+    }
+    case "ATTACHMENT_REMOVED":
+      return d.originalName ? `فایل: ${d.originalName as string}` : null;
+    case "AGENDA_UPDATED":
+      return num("count") ? `${num("count")} بند در دستور جلسه` : null;
+    case "PARTICIPANT_ADDED":
+      return d.name ? `افروده‌شده: ${d.name as string}` : null;
+    case "PARTICIPANT_REMOVED":
+      return d.name ? `حذف‌شده: ${d.name as string}` : null;
+    case "CREATED":
+      return d.needsApproval === true ? "نیازمند تأیید مدیریت" : "تأیید خودکار";
+    case "CANCELLED":
+      return (d.reason as string) ? `دلیل: ${d.reason as string}` : null;
+    case "ROOM_CHANGED":
+      return (d.to as string) ? `اتاق جدید: ${d.to as string}` : null;
+    case "EXTENDED": {
+      const to = d.newEndAt as string | undefined;
+      return to ? `تا ${formatJalali(new Date(to), { withTime: true, monthName: true })}` : null;
+    }
+    default:
+      return null;
+  }
+}
 
 const EVENT_FA: Record<string, string> = {
   CREATED: "ایجاد شد",
@@ -957,6 +1006,9 @@ export function MeetingDetailPage() {
                     <span className="relative z-10 mt-1 h-[15px] w-[15px] shrink-0 rounded-full border-2 border-line bg-white" />
                     <div className="min-w-0 flex-1">
                       <p className="text-[12px] font-medium">{EVENT_FA[ev.type] ?? ev.type}</p>
+                      {eventDetail(ev) && (
+                        <p className="mt-0.5 text-[11px] leading-5 text-ink-soft">{eventDetail(ev)}</p>
+                      )}
                       <p className="mt-0.5 text-[11px] text-ink-faint">
                         {formatJalali(new Date(ev.createdAt), { withTime: true })}
                         {ev.actor ? ` · ${ev.actor.fullName}` : ""}
