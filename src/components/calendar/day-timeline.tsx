@@ -165,7 +165,7 @@ export function DayTimeline({
               </p>
             )}
           </div>
-          <div className="flex items-end gap-0.5 overflow-x-auto pb-0.5" role="img" aria-label="نمودار تراکم جلسات به تفکیک ساعت">
+          <div className="-my-1 flex items-end gap-0.5 overflow-x-auto px-1 py-1.5" role="img" aria-label="نمودار تراکم جلسات به تفکیک ساعت">
             {density.map((slot) => {
               const active = slot.count > 0;
               const level = densityLevel(slot.count, densMax);
