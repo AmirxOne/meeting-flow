@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest) {
         : meetingAccessOr(user.id)),
     };
 
-    const [todayCount, activeNow, pendingApprovals, availableRooms, occupiedRooms, cancelledThisWeek, weekMeetings, upcomingMine] =
+    const [todayCount, activeNow, pendingApprovals, availableRooms, occupiedRooms, cancelledThisWeek, weekMeetings, upcomingMine, pendingRsvp] =
       await Promise.all([
         prisma.meeting.count({
           where: { ...scope, startAt: { gte: todayStart, lt: todayEnd }, status: { notIn: ["CANCELLED", "REJECTED", "DRAFT"] } },
@@ -53,6 +53,26 @@ export async function GET(_req: NextRequest) {
           },
           orderBy: { startAt: "asc" },
           take: 6,
+        }),
+        // دعوت‌هایی که هنوز پاسخ نداده‌ام (PENDING) — برای کارت RSVP صبحگاهی
+        prisma.meeting.findMany({
+          where: {
+            orgId,
+            status: { in: ["CONFIRMED", "APPROVED"] },
+            startAt: { gte: new Date(Date.now() - 3600_000) },
+            participants: { some: { userId: user.id, responseStatus: "PENDING" } },
+          },
+          select: {
+            id: true,
+            title: true,
+            isPrivate: true,
+            startAt: true,
+            endAt: true,
+            organizer: { select: { fullName: true } },
+            room: { select: { name: true } },
+          },
+          orderBy: { startAt: "asc" },
+          take: 8,
         }),
       ]);
 
@@ -80,6 +100,7 @@ export async function GET(_req: NextRequest) {
       cancelledThisWeek,
       weekSeries,
       upcoming: upcomingMine.map((m) => maskPrivateMeeting(m, viewer)),
+      pendingRsvp: pendingRsvp.map((m) => maskPrivateMeeting(m, viewer)),
       seeAll,
     });
   } catch (e) {

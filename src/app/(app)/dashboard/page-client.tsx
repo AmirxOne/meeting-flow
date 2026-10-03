@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, DoorOpen, Hourglass, Users, XCircle } from "@/components/ui/icon";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { CalendarDays, Clock, DoorOpen, Hourglass, Users, XCircle, Check, X, MessageQuestion } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, StatCard, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badges";
@@ -10,6 +10,8 @@ import { cn, faNum, faStr, formatJalali, isoDateInTz } from "@/lib";
 import { J_MONTHS, J_WEEKDAYS_LONG, jalaliPartsInTz } from "@/lib/jalali";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { Tooltip } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 
 interface DashboardData {
@@ -29,6 +31,15 @@ interface DashboardData {
     room: { name: string } | null;
     branch: { name: string };
     isPrivate?: boolean;
+    isMasked?: boolean;
+  }[];
+  pendingRsvp: {
+    id: string;
+    title: string;
+    startAt: string;
+    endAt: string;
+    organizer: { fullName: string } | null;
+    room: { name: string } | null;
     isMasked?: boolean;
   }[];
   seeAll: boolean;
@@ -162,6 +173,11 @@ export function DashboardPage() {
         </StaggerItem>
       </StaggerList>
 
+      {/* دعوت‌های در انتظار پاسخ — اول صبح همین‌جا جواب بده */}
+      {data.pendingRsvp.length > 0 && (
+        <PendingRsvpCard invites={data.pendingRsvp} />
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly chart */}
         <Card className="lg:col-span-2">
@@ -268,5 +284,86 @@ export function DashboardPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+function PendingRsvpCard({ invites }: { invites: DashboardData["pendingRsvp"] }) {
+  const qc = useQueryClient();
+  const { push } = useToast();
+  const respond = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: "ACCEPTED" | "DECLINED" | "TENTATIVE" }) =>
+      api(`/api/meetings/${id}/participants/respond`, { method: "POST", json: { responseStatus: status } }),
+    onSuccess: (_d, v) => {
+      push(
+        v.status === "ACCEPTED" ? "حضور شما ثبت شد" : v.status === "DECLINED" ? "عدم حضور شما ثبت شد" : "شاید — ثبت شد",
+        "success",
+      );
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      qc.invalidateQueries({ queryKey: ["meetings"] });
+    },
+    onError: (e) => push((e as Error).message || "ثبت پاسخ ناموفق بود", "error"),
+  });
+
+  return (
+    <Card className="ring-1 ring-amber-100">
+      <CardHeader
+        title={
+          <span className="flex items-center gap-2">
+            <MessageQuestion className="h-4 w-4 text-amber-500" />
+            دعوت‌های در انتظار پاسخ شما
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10.5px] font-bold text-amber-800">
+              {faNum(invites.length)}
+            </span>
+          </span>
+        }
+        subtitle="به جلسه‌های زیر دعوت شده‌اید و هنوز پاسخ نداده‌اید"
+      />
+      <div className="divide-y divide-line">
+        {invites.map((m) => (
+          <div key={m.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
+            <div className="min-w-0 flex-1">
+              <Link href={`/meetings/${m.id}`} className="truncate text-[13px] font-medium hover:underline">
+                {m.isMasked ? "🔒 جلسه محرمانه" : m.title}
+              </Link>
+              <p className="mt-0.5 truncate text-[11px] text-ink-soft">
+                {formatJalali(new Date(m.startAt), { withTime: true, monthName: true })}
+                {m.room ? ` · ${m.room.name}` : ""}
+                {m.organizer ? ` · برگزارکننده: ${m.organizer.fullName}` : ""}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                size="sm"
+                loading={respond.isPending && respond.variables?.id === m.id && respond.variables?.status === "ACCEPTED"}
+                onClick={() => respond.mutate({ id: m.id, status: "ACCEPTED" })}
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+              >
+                <Check className="h-4 w-4" />
+                می‌آیم
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                loading={respond.isPending && respond.variables?.id === m.id && respond.variables?.status === "TENTATIVE"}
+                onClick={() => respond.mutate({ id: m.id, status: "TENTATIVE" })}
+              >
+                <Hourglass className="h-4 w-4" />
+                شاید
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                loading={respond.isPending && respond.variables?.id === m.id && respond.variables?.status === "DECLINED"}
+                onClick={() => respond.mutate({ id: m.id, status: "DECLINED" })}
+                className="text-red-600 hover:border-red-300 hover:bg-red-50"
+              >
+                <X className="h-4 w-4" />
+                نمی‌آیم
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
