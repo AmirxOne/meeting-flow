@@ -269,7 +269,7 @@ export function DayTimeline({
                       <span className={cn("mt-2 h-2 w-2 rounded-full", isNowHour ? "bg-red-500" : "bg-ink")} />
                       <span className="mt-1 w-px flex-1 bg-line" />
                     </div>
-                    <div className="min-w-0 flex-1 space-y-2 pb-6">
+                    <div className="min-w-0 flex-1 space-y-2.5 pb-6">
                       {isNowHour && (
                         <p className="text-[11px] font-medium text-red-600">الان {timeLabel(now.toISOString())}</p>
                       )}
