@@ -111,6 +111,7 @@ export function MeetingRequestForm() {
         },
       });
       push("درخواست جلسه ثبت شد — هماهنگی با مدیریت انجام می‌شود", "success");
+      qc.invalidateQueries({ queryKey: ["my-requests"] });
       setTitle("");
       setDescription("");
       setParticipants([]);
@@ -121,6 +122,8 @@ export function MeetingRequestForm() {
       setRecFreq("NONE");
       setRecCount("4");
       qc.invalidateQueries({ queryKey: ["meeting-requests"] });
+      // رفتن به صفحه‌ی پیگیری تا کاربر وضعیت درخواستش را ببیند
+      router.push("/meeting-requests/mine?submitted=1");
     } catch (e) {
       push((e as Error).message || "خطا در ثبت درخواست", "error");
     } finally {
