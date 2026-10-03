@@ -487,7 +487,7 @@ export function CalendarPage() {
         <span className="text-[11px] font-bold text-ink-soft">راهنما:</span>
         {CALENDAR_LEGEND.filter((l) => l.status !== "__HOLIDAY__").map((l) => (
           <span key={l.status} className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-            <span className={"h-2.5 w-2.5 rounded-[3px] " + calendarEventTone(l.status).block} />
+            <span className={"h-2.5 w-2.5 rounded-[3px] " + calendarEventTone(l.status).chip} />
             {l.label}
           </span>
         ))}
