@@ -56,6 +56,7 @@ export type NotificationType =
   | "MEETING_STARTED"
   | "MEETING_EXTENDED"
   | "MINUTES_PUBLISHED"
+  | "AGENDA_PUBLISHED"
   | "WAITLIST_JOINED"
   | "WAITLIST_OFFERED"
   | "WAITLIST_EXPIRED"
@@ -342,6 +343,21 @@ export const notificationService = {
         emailProvider.send(u.email, tpl.subject, tpl.text, tpl.html),
       );
     }
+  },
+
+  async agendaPublished(
+    meeting: Pick<Meeting, "id"> & { title?: string | null },
+    actorId: string,
+    count: number,
+  ) {
+    const people = await meetingPeople(meeting.id);
+    await notifyUsers(
+      people.filter((id) => id !== actorId),
+      "AGENDA_PUBLISHED",
+      `دستور جلسه «${meeting.title ?? "جلسه"}»`,
+      `${faNum(count)} مورد — مسئول هر بند، خودش را برای گزارش آماده کند`,
+      { meetingId: meeting.id },
+    );
   },
 
   async meetingExtended(meeting: Meeting, actorId: string) {

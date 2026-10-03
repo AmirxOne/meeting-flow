@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { HttpError, type AuthUser } from "@/server/auth/session";
 import type { AgendaReplaceInput } from "@/lib/validations";
 import { formatAgendaPlain, type AgendaPlainItem } from "@/lib/agenda";
+import { notificationService } from "./notification.service";
 
 const AGENDA_PUBLIC = {
   id: true,
@@ -23,6 +24,7 @@ export type PublicAgendaItem = {
 };
 
 type MeetingAccess = Pick<Meeting, "id" | "organizerId" | "isPrivate"> & {
+  title?: string;
   participants: { userId: string }[];
 };
 
@@ -55,6 +57,7 @@ export async function loadMeetingForAgenda(meetingId: string, orgId: string): Pr
     where: { id: meetingId, orgId },
     select: {
       id: true,
+      title: true,
       organizerId: true,
       isPrivate: true,
       participants: { select: { userId: true } },
@@ -135,6 +138,9 @@ export async function replaceAgenda(
       },
     });
   });
+
+  // نوتیف نباید ذخیره‌ی دستور جلسه را شکست بدهد
+  await notificationService.agendaPublished(meeting, user.id, rows.length).catch(() => undefined);
 
   return listAgendaItems(meetingId);
 }
