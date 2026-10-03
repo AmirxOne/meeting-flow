@@ -10,15 +10,16 @@ const DONE = new Set(["CANCELLED", "REJECTED", "NO_SHOW"]);
 /**
  * Shared status colors for month chips, week blocks, and the day panel.
  * همه‌ی ویوها (ماه/هفته/روز) از یک خانواده‌ی رنگ برای هر وضعیت استفاده می‌کنند:
- *   chip  = تینت ملایم اما واضح (سطح ۲۰۰ / ink-15) با متن تیره — ویوی ماه
+ *   chip  = همان رنگ توپر block — ویوی ماه (چیپ کوچک)
  *   block = رنگ توپر -500 با متن سفید — ویوی هفته و روز
+ * یک جلسه در همه‌ی ویوها دقیقاً یک رنگ دارد
  *   rail/dot = همان رنگ توپر — پنل روز و نقطه‌های موبایل
  */
 export function calendarEventTone(status: string): CalendarEventTone {
   if (status === "IN_PROGRESS") {
     // در حال برگزاری: آبی info — نه قرمز که حس منفی/خطر می‌دهد
     return {
-      chip: "bg-blue-200 text-blue-900",
+      chip: "bg-blue-500 text-white",
       block: "bg-blue-500 text-white",
       rail: "bg-blue-500",
       dot: "bg-blue-500",
@@ -26,7 +27,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
   }
   if (status === "PENDING_APPROVAL") {
     return {
-      chip: "bg-amber-200 text-amber-900",
+      chip: "bg-amber-500 text-white",
       block: "bg-amber-500 text-white",
       rail: "bg-amber-500",
       dot: "bg-amber-500",
@@ -35,7 +36,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
   if (DONE.has(status)) {
     // لغو/رد/غیبت: خاکستری خط‌خورده — با «برگزار شده» اشتباه نشود
     return {
-      chip: "bg-ink/15 text-ink-soft line-through",
+      chip: "bg-ink/25 text-ink-soft line-through",
       block: "bg-ink/25 text-ink-soft line-through",
       rail: "bg-ink/25",
       dot: "bg-ink/30",
@@ -44,7 +45,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
   if (status === "COMPLETED") {
     // برگزار شده: تیک سبز
     return {
-      chip: "bg-emerald-200 text-emerald-900",
+      chip: "bg-emerald-500 text-white",
       block: "bg-emerald-500 text-white",
       rail: "bg-emerald-500",
       dot: "bg-emerald-500",
@@ -52,7 +53,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
   }
   // تأییدشده (عادی): مشکی
   return {
-    chip: "bg-ink/15 text-ink font-medium",
+    chip: "bg-ink text-white font-medium",
     block: "bg-ink text-white",
     rail: "bg-ink",
     dot: "bg-ink",
