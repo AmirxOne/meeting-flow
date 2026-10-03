@@ -13,6 +13,7 @@ import { Card, CardHeader, CardBody, EmptyState, SkeletonBlock, SkeletonRow } fr
 import { StatusBadge, TypeBadge } from "@/components/ui/badges";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import { Modal } from "@/components/ui/modal";
 import { useAuth } from "@/lib/auth-store";
 import { cn, faNum, faStr, formatJalali, CANCEL_REASON_FA, RESPONSE_FA } from "@/lib";
 import { Select } from "@/components/ui/select";
@@ -620,11 +621,14 @@ export function MeetingDetailPage() {
         </Card>
       )}
 
-      {/* Cancel form */}
-      {showCancel && (
-        <Card className="p-4">
-          <p className="mb-3 text-[13px] font-bold text-red-600">لغو جلسه</p>
-          <div className="grid gap-3 sm:grid-cols-3">
+      {/* Cancel dialog */}
+      <Modal
+        open={showCancel}
+        onClose={() => setShowCancel(false)}
+        title="لغو جلسه"
+        subtitle={m.title}
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">دلیل لغو</label>
               <Select
@@ -654,10 +658,13 @@ export function MeetingDetailPage() {
                 className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
               />
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2 sm:col-span-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowCancel(false)}>
+                انصراف
+              </Button>
               <Button
                 variant="danger"
-                className="w-full"
+                className="flex-1"
                 loading={busy === "cancel"}
                 onClick={() =>
                   act(
@@ -676,8 +683,7 @@ export function MeetingDetailPage() {
               </Button>
             </div>
           </div>
-        </Card>
-      )}
+      </Modal>
 
       {/* Add participant */}
       {showAddUser && (

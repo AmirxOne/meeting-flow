@@ -28,6 +28,9 @@ export function handleError(error: unknown, context?: { source?: string }) {
       error.errors,
     );
   }
+  if (error instanceof Error && error.name === "TransitionError") {
+    return fail(409, error.message, "INVALID_STATUS_TRANSITION");
+  }
   const msg = error instanceof Error ? error.message : "خطای داخلی سرور";
   if (msg.includes("overlap") || msg.includes("exclusion")) {
     return fail(409, "تداخل زمانی: این بازه قبلاً رزرو شده است", "ROOM_CONFLICT");
