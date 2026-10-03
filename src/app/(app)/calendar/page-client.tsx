@@ -16,7 +16,7 @@ import { DayTimeline, DayTimelineSkeleton } from "@/components/calendar/day-time
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { cn, faNum, faStr, faPad2, formatJalali, toJalali, jMonthLen } from "@/lib";
 import { jMonthGrid, J_MONTHS, J_WEEKDAYS_LONG, toGregorian, isFridayIso } from "@/lib/jalali";
-import { calendarEventTone, newMeetingHref } from "@/lib/calendar-event";
+import { calendarEventTone, newMeetingHref, CALENDAR_LEGEND } from "@/lib/calendar-event";
 import { layoutDayBlocks, nowLineTop } from "@/lib/calendar-timeline";
 
 interface CalMeeting {
@@ -482,29 +482,15 @@ export function CalendarPage() {
         </div>
       </div>
 
-      {/* راهنمای رنگ وضعیت جلسات */}
+      {/* راهنمای رنگ وضعیت جلسات — همیشه از calendarEventTone ساخته می‌شود */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg border border-line bg-white px-3.5 py-2">
         <span className="text-[11px] font-bold text-ink-soft">راهنما:</span>
-        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-          <span className="h-2.5 w-2.5 rounded-[3px] bg-ink" />
-          جلسه‌ی عادی (تاییدشده)
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-          <span className="h-2.5 w-2.5 rounded-[3px] bg-blue-500" />
-          در حال برگزاری
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-          <span className="h-2.5 w-2.5 rounded-[3px] bg-amber-500" />
-          در انتظار تایید
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-          <span className="h-2.5 w-2.5 rounded-[3px] bg-emerald-500" />
-          برگزار شده
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
-          <span className="h-2.5 w-2.5 rounded-[3px] bg-red-300" />
-          لغو/رد شده
-        </span>
+        {CALENDAR_LEGEND.filter((l) => l.status !== "__HOLIDAY__").map((l) => (
+          <span key={l.status} className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+            <span className={"h-2.5 w-2.5 rounded-[3px] " + calendarEventTone(l.status).block} />
+            {l.label}
+          </span>
+        ))}
         <span className="flex items-center gap-1.5 text-[11px] text-ink-soft">
           <span className="h-2.5 w-2.5 rounded-[3px] bg-red-50 ring-1 ring-red-200" />
           روز تعطیل

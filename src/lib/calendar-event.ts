@@ -57,3 +57,13 @@ export function newMeetingHref(dateIso: string, hour?: number): string {
   if (hour != null && Number.isFinite(hour)) q.set("hour", String(hour));
   return `/meetings/new?${q.toString()}`;
 }
+
+/** Legend entries derived from calendarEventTone — single source of truth. */
+export const CALENDAR_LEGEND: { status: string; label: string; swatch: string; note?: string }[] = [
+  { status: "CONFIRMED", label: "تأییدشده (عادی)", swatch: "bg-ink" },
+  { status: "IN_PROGRESS", label: "در حال برگزاری", swatch: "bg-blue-500" },
+  { status: "PENDING_APPROVAL", label: "در انتظار تأیید", swatch: "bg-amber-500" },
+  { status: "COMPLETED", label: "برگزار شده", swatch: "bg-emerald-500" },
+  { status: "CANCELLED", label: "لغو / غیبت (NO_SHOW)", swatch: "bg-paper-deep line-through", note: "خاکستری خط‌خورده — نه قرمز" },
+  { status: "__HOLIDAY__", label: "روز تعطیل", swatch: "bg-red-50 ring-1 ring-red-200" },
+];
