@@ -68,13 +68,13 @@ function statusTone(status: string) {
   return { rail: "bg-ink", card: "border-line bg-white hover:border-ink/20 hover:bg-paper-soft/60", badge: "badge-gray" };
 }
 
-function densityLevel(count: number, max: number): string {
-  if (count === 0) return "bg-paper-deep/70";
-  if (max <= 1) return "bg-ink";
-  const t = count / max;
-  if (t > 0.66) return "bg-ink";
-  if (t > 0.33) return "bg-ink/55";
-  return "bg-ink/25";
+function densityLevel(count: number, max: number): { fill: string; pct: number } {
+  if (count === 0) return { fill: "bg-transparent", pct: 0 };
+  if (max <= 1) return { fill: "bg-ink", pct: 100 };
+  const pct = Math.round((count / max) * 100);
+  if (pct > 66) return { fill: "bg-ink", pct: Math.max(pct, 55) };
+  if (pct > 33) return { fill: "bg-ink/70", pct: Math.max(pct, 35) };
+  return { fill: "bg-ink/40", pct: Math.max(pct, 18) };
 }
 
 export function DayTimeline({
@@ -155,30 +155,66 @@ export function DayTimeline({
       </div>
 
       <div data-tour="day-timeline" className={cn(friday && "bg-red-50/25")}>
-        <div className="border-b border-line px-3 py-3 sm:px-4">
-          <div className="flex gap-1 overflow-x-auto pb-0.5">
+        {/* نمودار تراکم ساعت‌ها — میله‌ها از یک پایه‌ی مشترک؛ قد = سهم از اوج روز */}
+        <div className="border-b border-line bg-paper-soft/40 px-3 py-2.5 sm:px-4">
+          <div className="mb-1.5 flex items-center justify-between px-0.5">
+            <p className="text-[10.5px] font-medium text-ink-faint">تراکم ساعت‌ها</p>
+            {peak && peak.count > 1 && (
+              <p className="text-[10.5px] text-ink-faint">
+                اوج: <span className="font-bold tabular-nums text-ink">{faPad2(peak.hour)}:۰۰</span> · {faNum(peak.count)} جلسه
+              </p>
+            )}
+          </div>
+          <div className="flex items-end gap-0.5 overflow-x-auto pb-0.5" role="img" aria-label="نمودار تراکم جلسات به تفکیک ساعت">
             {density.map((slot) => {
               const active = slot.count > 0;
+              const level = densityLevel(slot.count, densMax);
+              const isNow = isToday && slot.hour === nowHour;
+              const isPeak = !!peak && slot.hour === peak.hour && peak.count > 1;
               return (
-                <Tooltip key={slot.hour} content={`${faPad2(slot.hour)}:۰۰`}>
-                <span className="inline-flex">
-                <button
-                  type="button"
-                  disabled={!active}
-                  onClick={() => jumpToHour(slot.hour)}
-                  className={cn(
-                    "flex w-9 shrink-0 flex-col items-center gap-1 rounded-md py-1 text-center transition-colors",
-                    active ? "hover:bg-paper-soft" : "cursor-default opacity-50",
-                    isToday && slot.hour === nowHour && "ring-1 ring-red-200",
-                  )}
-                >
-                  <span className="text-[10px] tabular-nums text-ink-soft">{faPad2(slot.hour)}</span>
-                  <span className={cn("h-1.5 w-full rounded-full", densityLevel(slot.count, densMax))} />
-                  <span className="text-[9px] tabular-nums text-ink-faint">
-                    {slot.count ? faNum(slot.count) : "·"}
+                <Tooltip key={slot.hour} content={active ? `ساعت ${faPad2(slot.hour)}:۰۰ — ${faNum(slot.count)} جلسه` : `ساعت ${faPad2(slot.hour)}:۰۰ — خالی`}>
+                  <span className="inline-flex">
+                    <button
+                      type="button"
+                      disabled={!active}
+                      onClick={() => jumpToHour(slot.hour)}
+                      className={cn(
+                        "group flex w-9 shrink-0 flex-col items-center gap-1 rounded-md px-0.5 pb-1 pt-1.5 text-center transition-colors",
+                        active ? "hover:bg-white hover:ring-1 hover:ring-line" : "cursor-default",
+                        isNow && "bg-red-50/70 ring-1 ring-red-300",
+                      )}
+                    >
+                      {/* میله روی تراک — پایه‌ی مشترک، پرشدگی درصدی */}
+                      <span className="flex h-9 w-full items-end justify-center" aria-hidden="true">
+                        <span className="relative flex h-full w-5 items-end justify-center overflow-hidden rounded-full bg-paper-deep/50">
+                          <span
+                            className={cn(
+                              "w-full rounded-full transition-all",
+                              level.fill,
+                              active && "group-hover:bg-ink",
+                              isNow && "bg-red-500",
+                              isPeak && !isNow && "bg-ink",
+                            )}
+                            style={{ height: `${level.pct}%` }}
+                          />
+                          {isNow && <span className="absolute inset-x-0 top-0 h-full w-full animate-pulse rounded-full bg-red-500/10" />}
+                        </span>
+                      </span>
+                      {/* ساعت + شمارنده */}
+                      <span className={cn("text-[10px] font-medium tabular-nums leading-3", active ? "text-ink" : "text-ink-faint/70")}>
+                        {faPad2(slot.hour)}
+                      </span>
+                      <span
+                        className={cn(
+                          "min-w-4 rounded-full px-1 text-[9px] font-bold leading-4 tabular-nums",
+                          active ? "bg-ink/[0.08] text-ink" : "text-transparent",
+                          isNow && "bg-red-100 text-red-700",
+                        )}
+                      >
+                        {slot.count ? faNum(slot.count) : "·"}
+                      </span>
+                    </button>
                   </span>
-                </button>
-                </span>
                 </Tooltip>
               );
             })}
@@ -363,14 +399,17 @@ export function DayTimelineSkeleton() {
         <div className="skeleton h-3.5 w-24" />
         <div className="skeleton h-6 w-20 rounded-full" />
       </div>
-      <div className="flex gap-1 border-b border-line px-4 py-3">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="flex w-9 flex-col items-center gap-1">
-            <div className="skeleton h-2.5 w-5" />
-            <div className="skeleton h-1.5 w-full rounded-full" />
-            <div className="skeleton h-2 w-3" />
-          </div>
-        ))}
+      <div className="border-b border-line px-4 py-2.5">
+        <div className="skeleton mb-1.5 h-2.5 w-24" />
+        <div className="flex gap-0.5">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="flex w-9 flex-col items-center gap-1">
+              <div className="skeleton h-9 w-5 rounded-full" />
+              <div className="skeleton h-2.5 w-5" />
+              <div className="skeleton h-2 w-3" />
+            </div>
+          ))}
+        </div>
       </div>
       <div className="space-y-4 px-5 py-4">
         {[0, 1, 2].map((i) => (

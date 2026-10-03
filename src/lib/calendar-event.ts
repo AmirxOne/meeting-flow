@@ -7,12 +7,18 @@ export type CalendarEventTone = {
 
 const DONE = new Set(["CANCELLED", "REJECTED", "NO_SHOW"]);
 
-/** Shared status colors for month chips, week blocks, and the day panel. */
+/**
+ * Shared status colors for month chips, week blocks, and the day panel.
+ * همه‌ی ویوها (ماه/هفته/روز) از یک خانواده‌ی رنگ برای هر وضعیت استفاده می‌کنند:
+ *   chip  = تینت ملایم اما واضح (سطح ۲۰۰ / ink-15) با متن تیره — ویوی ماه
+ *   block = رنگ توپر -500 با متن سفید — ویوی هفته و روز
+ *   rail/dot = همان رنگ توپر — پنل روز و نقطه‌های موبایل
+ */
 export function calendarEventTone(status: string): CalendarEventTone {
   if (status === "IN_PROGRESS") {
     // در حال برگزاری: آبی info — نه قرمز که حس منفی/خطر می‌دهد
     return {
-      chip: "bg-blue-50 text-blue-700",
+      chip: "bg-blue-200 text-blue-900",
       block: "bg-blue-500 text-white",
       rail: "bg-blue-500",
       dot: "bg-blue-500",
@@ -20,32 +26,33 @@ export function calendarEventTone(status: string): CalendarEventTone {
   }
   if (status === "PENDING_APPROVAL") {
     return {
-      chip: "bg-amber-50 text-amber-800",
+      chip: "bg-amber-200 text-amber-900",
       block: "bg-amber-500 text-white",
       rail: "bg-amber-500",
       dot: "bg-amber-500",
     };
   }
   if (DONE.has(status)) {
-    // لغو/رد شده: خاکستری با خط‌خوردگی + حاشیه قرمز — با «برگزار شده» اشتباه نشود
+    // لغو/رد/غیبت: خاکستری خط‌خورده — با «برگزار شده» اشتباه نشود
     return {
-      chip: "bg-paper-deep text-ink-faint line-through",
-      block: "bg-paper-deep text-ink-faint line-through",
-      rail: "bg-red-300",
-      dot: "bg-red-300",
+      chip: "bg-ink/15 text-ink-soft line-through",
+      block: "bg-ink/25 text-ink-soft line-through",
+      rail: "bg-ink/25",
+      dot: "bg-ink/30",
     };
   }
   if (status === "COMPLETED") {
-    // برگزار شده: تیک سبز — جلسه‌ی باخت‌ونجات‌یافته
+    // برگزار شده: تیک سبز
     return {
-      chip: "bg-emerald-50 text-emerald-700",
-      block: "bg-emerald-100 text-emerald-800",
+      chip: "bg-emerald-200 text-emerald-900",
+      block: "bg-emerald-500 text-white",
       rail: "bg-emerald-500",
       dot: "bg-emerald-500",
     };
   }
+  // تأییدشده (عادی): مشکی
   return {
-    chip: "bg-ink/[0.07] text-ink",
+    chip: "bg-ink/15 text-ink font-medium",
     block: "bg-ink text-white",
     rail: "bg-ink",
     dot: "bg-ink",
@@ -59,11 +66,10 @@ export function newMeetingHref(dateIso: string, hour?: number): string {
 }
 
 /** Legend entries derived from calendarEventTone — single source of truth. */
-export const CALENDAR_LEGEND: { status: string; label: string; swatch: string; note?: string }[] = [
-  { status: "CONFIRMED", label: "تأییدشده (عادی)", swatch: "bg-ink" },
-  { status: "IN_PROGRESS", label: "در حال برگزاری", swatch: "bg-blue-500" },
-  { status: "PENDING_APPROVAL", label: "در انتظار تأیید", swatch: "bg-amber-500" },
-  { status: "COMPLETED", label: "برگزار شده", swatch: "bg-emerald-500" },
-  { status: "CANCELLED", label: "لغو / غیبت (NO_SHOW)", swatch: "bg-paper-deep line-through", note: "خاکستری خط‌خورده — نه قرمز" },
-  { status: "__HOLIDAY__", label: "روز تعطیل", swatch: "bg-red-50 ring-1 ring-red-200" },
+export const CALENDAR_LEGEND: { status: string; label: string }[] = [
+  { status: "CONFIRMED", label: "تأییدشده (عادی)" },
+  { status: "IN_PROGRESS", label: "در حال برگزاری" },
+  { status: "PENDING_APPROVAL", label: "در انتظار تأیید" },
+  { status: "COMPLETED", label: "برگزار شده" },
+  { status: "CANCELLED", label: "لغو / غیبت" },
 ];
