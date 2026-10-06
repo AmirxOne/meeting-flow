@@ -72,6 +72,19 @@ body {
 .badge-blue { @apply bg-blue-50 text-blue-700; }
 .badge-black { @apply bg-ink text-white; }
 
+/* animated gradient text (magicui pattern) */
+@keyframes gradient-move {
+  to { background-position: var(--bg-size) 0; }
+}
+.ai-gradient-text {
+  background-image: linear-gradient(to right, var(--color-from), var(--color-to), var(--color-from));
+  background-size: var(--bg-size) 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gradient-move 3s linear infinite;
+}
+
 /* skeleton shimmer */
 @keyframes shimmer {
   0% { background-position: 200% 0; }

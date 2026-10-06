@@ -267,10 +267,19 @@ export function AgendaTemplate({
                                   setAiBusy(false);
                                 }
                               }}
-                              className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink disabled:cursor-wait disabled:opacity-60"
+                              className="group flex items-center gap-1.5 rounded-md border border-dashed border-amber-300 bg-amber-50/40 px-2.5 py-1 text-[11px] font-bold transition hover:border-amber-400 hover:bg-amber-50 disabled:cursor-wait disabled:opacity-60"
                             >
-                              <Sparkles className="h-3.5 w-3.5" />
-                              {aiBusy ? "در حال پیشنهاد…" : "پیشنهاد ۵ موضوع با هوش مصنوعی"}
+                              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                              <span
+                                style={{
+                                  "--bg-size": "300%",
+                                  "--color-from": "#b45309",
+                                  "--color-to": "#9333ea",
+                                } as React.CSSProperties}
+                                className={aiBusy ? "text-ink-soft" : "ai-gradient-text"}
+                              >
+                                {aiBusy ? "در حال پیشنهاد…" : "پیشنهاد ۵ موضوع با هوش مصنوعی"}
+                              </span>
                             </button>
                           )}
                         </div>
