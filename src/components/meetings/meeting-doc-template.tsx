@@ -186,37 +186,6 @@ export function AgendaTemplate({
         {/* ── روند جلسه (۴ ستون) ── */}
         <div>
           <SectionHeader label="روند جلسه" />
-          {!view && ai.enabled && (
-            <button
-              type="button"
-              data-testid="ai-flow-suggest"
-              disabled={aiBusy}
-              onClick={async () => {
-                setAiBusy(true);
-                try {
-                  const r = await api<{ topics: string[] }>(`/api/meetings/${meetingId}/ai/agenda-topics`, { method: "POST" });
-                  const cur = draft?.flow ?? [];
-                  // موضوعات پیشنهادی — ردیف‌های خالی را پر می‌کند، بعد اضافه
-                  const next = [...cur];
-                  r.topics.forEach((t) => {
-                    const emptyIdx = next.findIndex((x) => !x.title.trim());
-                    if (emptyIdx >= 0) next[emptyIdx] = { ...next[emptyIdx], title: t };
-                    else next.push({ title: t, start: "", end: "" });
-                  });
-                  up({ flow: next });
-                  push("پنج موضوع پیشنهادی هوش مصنوعی اضافه شد", "success");
-                } catch (e) {
-                  push((e as Error).message || "پیشنهاد موضوعات ناموفق بود", "error");
-                } finally {
-                  setAiBusy(false);
-                }
-              }}
-              className="mr-auto mt-2 flex items-center gap-1.5 rounded-md border border-dashed border-ink/25 bg-white px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/50 hover:bg-paper-soft hover:text-ink disabled:cursor-wait disabled:opacity-60"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {aiBusy ? "در حال پیشنهاد…" : "پیشنهاد ۵ موضوع با هوش مصنوعی"}
-            </button>
-          )}
           <div className="overflow-x-auto rounded-b-lg border border-t-0 border-line bg-white">
             <table className="w-full border-collapse text-right">
               <thead>
@@ -269,10 +238,42 @@ export function AgendaTemplate({
                     ))}
                     <tr>
                       <td colSpan={5} className="border border-line p-1.5">
-                        <button type="button" onClick={() => up({ flow: [...(draft?.flow ?? []), { title: "", start: "", end: "" }] })} className="mr-auto flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
-                          <Plus className="h-3.5 w-3.5" />
-                          افزودن ردیف
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => up({ flow: [...(draft?.flow ?? []), { title: "", start: "", end: "" }] })} className="mr-auto flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
+                            <Plus className="h-3.5 w-3.5" />
+                            افزودن ردیف
+                          </button>
+                          {ai.enabled && (
+                            <button
+                              type="button"
+                              data-testid="ai-flow-suggest"
+                              disabled={aiBusy}
+                              onClick={async () => {
+                                setAiBusy(true);
+                                try {
+                                  const r = await api<{ topics: string[] }>(`/api/meetings/${meetingId}/ai/agenda-topics`, { method: "POST" });
+                                  const cur = draft?.flow ?? [];
+                                  const next = [...cur];
+                                  r.topics.forEach((t) => {
+                                    const emptyIdx = next.findIndex((x) => !x.title.trim());
+                                    if (emptyIdx >= 0) next[emptyIdx] = { ...next[emptyIdx], title: t };
+                                    else next.push({ title: t, start: "", end: "" });
+                                  });
+                                  up({ flow: next });
+                                  push("پنج موضوع پیشنهادی هوش مصنوعی اضافه شد", "success");
+                                } catch (e) {
+                                  push((e as Error).message || "پیشنهاد موضوعات ناموفق بود", "error");
+                                } finally {
+                                  setAiBusy(false);
+                                }
+                              }}
+                              className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink disabled:cursor-wait disabled:opacity-60"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              {aiBusy ? "در حال پیشنهاد…" : "پیشنهاد ۵ موضوع با هوش مصنوعی"}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   </>
