@@ -25,6 +25,7 @@ interface SafeProvider {
 interface ActiveSettings {
   activeProviderId: string | null;
   fallbackProviderId: string | null;
+  fallbackModel: string | null;
   temperature: number;
   maxTokens: number;
 }
@@ -129,11 +130,45 @@ export function AiProvidersCard() {
             <label className="mb-1 block text-[11px] font-medium text-ink-soft">پروایدر پشتیبان (fallback)</label>
             <Select
               value={activeSettings?.fallbackProviderId ?? ""}
-              onChange={(v) => saveSettings({ fallbackProviderId: v || null })}
+              onChange={(v) => {
+                const fb = providers.find((p) => p.id === v);
+                const act = providers.find((p) => p.id === (activeSettings?.activeProviderId ?? ""));
+                // همان پروایدرِ فعال مجاز است ولی فقط با مدل متفاوت
+                const patch: Partial<ActiveSettings> = { fallbackProviderId: v || null };
+                if (v && fb && act && act.id === fb.id && (!fb.model || fb.model === act.model)) {
+                  patch.fallbackModel = "";
+                } else if (v && (!fb?.model || fb?.model !== act?.model)) {
+                  patch.fallbackModel = null; // مدل خود پروایدر کافی است
+                }
+                saveSettings(patch);
+              }}
               placeholder="بدون پشتیبان"
-              options={providers.map((p) => ({ value: p.id, label: `${p.name}${p.model ? ` · ${p.model}` : ""}` }))}
+              options={providers.map((p) => ({ value: p.id, label: p.name }))}
             />
-            <p className="mt-1 text-[10.5px] text-ink-faint">اگر فعال محدود شد (۴۲۹/۵۰۳) درخواست خودکار به این می‌رود</p>
+            {/* مدل پشتیبان — فقط وقتی پشتیبان همان پروایدر فعال است (یا ادمین می‌خواهد override کند) */}
+            {(() => {
+              const act = providers.find((p) => p.id === (activeSettings?.activeProviderId ?? ""));
+              const fb = providers.find((p) => p.id === (activeSettings?.fallbackProviderId ?? ""));
+              if (!fb) return null;
+              const sameProv = act?.id === fb.id;
+              return (
+                <div className="mt-2">
+                  <label className="mb-1 block text-[11px] text-ink-soft">
+                    مدل پشتیبان {sameProv ? <span className="text-amber-600">(چون پشتیبان همان پروایدر فعال است، مدل متفاوت الزامی است)</span> : "(اختیاری — پیش‌فرض: مدل خود پشتیبان)"}
+                  </label>
+                  <input
+                    value={activeSettings?.fallbackModel ?? ""}
+                    onChange={(e) => saveSettings({ fallbackModel: e.target.value || null })}
+                    placeholder={fb.model ?? "مثلاً glm-5.2"}
+                    name="ai-fallback-model"
+                    autoComplete="off"
+                    dir="ltr"
+                    className="h-10 w-full rounded-md border border-line px-3 font-mono text-[11.5px] outline-none focus:border-ink"
+                  />
+                </div>
+              );
+            })()}
+            <p className="mt-1 text-[10.5px] text-ink-faint">اگر فعال محدود شد (۴۲۹/۵۰۳) یا مدل خطا داد، درخواست خودکار به این می‌رود</p>
           </div>
         </div>
       )}

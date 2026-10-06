@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { deriveAiUsable, AiUnavailableError, type AiHealth } from "@/server/services/llm-client.service";
+import { deriveAiUsable, AiUnavailableError, samePair, type AiHealth } from "@/server/services/llm-client.service";
 
-const baseSettings = { activeProviderId: "p1", fallbackProviderId: null, temperature: 0.3, maxTokens: 2000 };
+const baseSettings = { activeProviderId: "p1", fallbackProviderId: null, fallbackModel: null, temperature: 0.3, maxTokens: 2000 };
 const providers = { p1: { enabled: true }, p2: { enabled: true } };
 const NOW = Date.now();
 
@@ -40,5 +40,17 @@ describe("AI availability gate", () => {
   it("AiUnavailableError پیام فارسی دارد", () => {
     const e = new AiUnavailableError();
     expect(e.message).toBe("قابلیت هوش مصنوعی در دسترس نیست");
+  });
+});
+
+describe("samePair — پشتیبان تکراری", () => {
+  it("همان پروایدر همان مدل → تکراری", () => {
+    expect(samePair({ providerId: "a", model: "glm-5.3" }, { providerId: "a", model: "glm-5.3" })).toBe(true);
+  });
+  it("همان پروایدر مدل متفاوت → مجاز", () => {
+    expect(samePair({ providerId: "a", model: "glm-5.3" }, { providerId: "a", model: "glm-5.2" })).toBe(false);
+  });
+  it("پروایدر متفاوت همان مدل → مجاز", () => {
+    expect(samePair({ providerId: "a", model: "glm-5.3" }, { providerId: "b", model: "glm-5.3" })).toBe(false);
   });
 });

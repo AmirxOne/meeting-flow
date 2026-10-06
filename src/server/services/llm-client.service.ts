@@ -47,8 +47,10 @@ const SETTINGS_KEY = "ai:settings";
 export interface AiSettings {
   /** id پروایدر فعال — مدل پیش‌فرض از همان خوانده می‌شود */
   activeProviderId: string | null;
-  /** id پروایدر fallback — موقع 429/503/قطعی استفاده می‌شود */
+  /** id پروایدر fallback — موقع 429/503/قطعی/خطای مدل استفاده می‌شود */
   fallbackProviderId: string | null;
+  /** مدلِ override برای fallback — مثلاً همان Z.AI با glm-5.2 پشتیبانِ glm-5.3 */
+  fallbackModel: string | null;
   temperature: number;
   maxTokens: number;
 }
@@ -56,6 +58,7 @@ export interface AiSettings {
 const DEFAULT_SETTINGS: AiSettings = {
   activeProviderId: null,
   fallbackProviderId: null,
+  fallbackModel: null,
   temperature: 0.3,
   maxTokens: 2000,
 };
@@ -121,6 +124,11 @@ export async function ensureAiAvailable(): Promise<void> {
   if (!(await isAiUsable())) throw new AiUnavailableError();
 }
 
+/** آیا دو انتخاب (پروایدر+مدل) عین هم‌اند؟ پشتیبانِ تکراری بی‌فایده است. */
+export function samePair(a: { providerId: string; model: string | null }, b: { providerId: string; model: string | null }): boolean {
+  return a.providerId === b.providerId && (a.model ?? "") === (b.model ?? "");
+}
+
 export async function getAiSettings(): Promise<AiSettings> {
   const row = await prisma.systemMeta.findUnique({ where: { key: SETTINGS_KEY } });
   return { ...DEFAULT_SETTINGS, ...((row?.value ?? {}) as Partial<AiSettings>) };
@@ -145,11 +153,12 @@ async function loadProviders(): Promise<Record<string, StoredProvider>> {
 async function callProvider(
   p: StoredProvider,
   req: LlmRequest,
+  modelOverride?: string | null,
 ): Promise<{ text: string; model: string }> {
   const spec = PROVIDER_SPECS.find((s) => s.id === p.specId);
   const base = (p.baseUrl || spec?.baseUrl || "").replace(/\/$/, "");
   if (!base) throw new Error(`پروایدر «${p.name}» آدرس پایه ندارد`);
-  const model = p.model || spec?.defaultModel;
+  const model = modelOverride || p.model || spec?.defaultModel;
   if (!model) throw new Error(`پروایدر «${p.name}» مدل ندارد`);
 
   let key: string;
@@ -226,7 +235,7 @@ export async function llmChat(req: LlmRequest): Promise<LlmResponse> {
       throw new Error(`پروایدر «${active.name}» پاسخ نداد: ${(e as Error).message}`.slice(0, 200));
     }
     const fb = providers[fbId];
-    const r = await callProvider(fb, req);
+    const r = await callProvider(fb, req, settings.fallbackModel);
     await recordAiHealth(true).catch(() => undefined);
     return {
       text: r.text,
