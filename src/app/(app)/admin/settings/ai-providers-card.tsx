@@ -60,6 +60,30 @@ export function AiProvidersCard() {
   const activeSettings = settingsQ.data?.settings;
 
   const [fbDiscovered, setFbDiscovered] = useState<string[]>([]);
+
+  // فعال/غیرفعال سریع از خود لیست
+  const toggleMut = useMutation({
+    mutationFn: async (prov: SafeProvider) => {
+      await api("/api/admin/ai-providers", {
+        method: "POST",
+        json: {
+          id: prov.id,
+          specId: prov.specId,
+          name: prov.name,
+          baseUrl: prov.baseUrl,
+          model: prov.model,
+          enabled: !prov.enabled,
+        },
+      });
+      return !prov.enabled;
+    },
+    onSuccess: (nowEnabled, prov) => {
+      qc.invalidateQueries({ queryKey: ["ai-providers"] });
+      qc.invalidateQueries({ queryKey: ["ai-settings"] });
+      push(nowEnabled ? `پروایدر «${prov.name}» فعال شد` : `پروایدر «${prov.name}» غیرفعال شد`, "success");
+    },
+    onError: (e) => push((e as ApiError).message ?? "تغییر وضعیت ناموفق", "error"),
+  });
   const [fbDiscovering, setFbDiscovering] = useState(false);
   async function discoverFallbackModels(providerId: string) {
     setFbDiscovering(true);
@@ -250,6 +274,26 @@ export function AiProvidersCard() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={p.enabled}
+                    aria-label={p.enabled ? "غیرفعال کردن پروایدر" : "فعال کردن پروایدر"}
+                    disabled={toggleMut.isPending && toggleMut.variables?.id === p.id}
+                    onClick={() => toggleMut.mutate(p)}
+                    className={cn(
+                      "relative h-[22px] w-10 shrink-0 rounded-full transition-colors",
+                      p.enabled ? "bg-ink" : "bg-line",
+                      toggleMut.isPending && toggleMut.variables?.id === p.id ? "opacity-50" : "hover:opacity-90",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-[3px] h-4 w-4 rounded-full bg-white shadow transition-all",
+                        p.enabled ? "left-[3px]" : "right-[3px]",
+                      )}
+                    />
+                  </button>
                   <Button size="sm" variant="outline" loading={testMut.isPending && testMut.variables === p.id} onClick={() => testMut.mutate(p.id)}>
                     تست اتصال
                   </Button>
