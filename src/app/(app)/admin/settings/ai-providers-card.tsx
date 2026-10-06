@@ -247,6 +247,9 @@ function ProviderForm({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={spec?.name ?? "مثلاً: GLM تولیدی"}
+                  name="ai-provider-display-name"
+                  autoComplete="off"
+                  readOnly={false}
                   className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
                 />
               </div>
@@ -257,6 +260,8 @@ function ProviderForm({
                   onChange={(e) => setModel(e.target.value)}
                   placeholder={spec?.defaultModel ?? "مثلاً glm-4.7"}
                   list="provider-models"
+                  name="ai-provider-model"
+                  autoComplete="off"
                   className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
                 />
                 <datalist id="provider-models">
@@ -274,6 +279,9 @@ function ProviderForm({
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder={spec?.baseUrl || "https://..."}
                 dir="ltr"
+                name="ai-provider-base-url"
+                autoComplete="url"
+                spellCheck={false}
                 className="h-10 w-full rounded-md border border-line px-3 font-mono text-[11.5px] outline-none focus:border-ink"
               />
             </div>
@@ -286,7 +294,8 @@ function ProviderForm({
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 type="password"
-                autoComplete="off"
+                name="ai-provider-api-key"
+                autoComplete="new-password"
                 placeholder={initial ? "برای تغییر، کلید جدید را وارد کنید" : "کلید API پروایدر"}
                 dir="ltr"
                 className="h-10 w-full rounded-md border border-line px-3 font-mono text-[11.5px] outline-none focus:border-ink"
