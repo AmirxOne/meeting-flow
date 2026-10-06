@@ -59,6 +59,24 @@ export function AiProvidersCard() {
   });
   const activeSettings = settingsQ.data?.settings;
 
+  const [fbDiscovered, setFbDiscovered] = useState<string[]>([]);
+  const [fbDiscovering, setFbDiscovering] = useState(false);
+  async function discoverFallbackModels(providerId: string) {
+    setFbDiscovering(true);
+    try {
+      const r = await api<{ models: string[] }>("/api/admin/ai-providers/models", {
+        method: "POST",
+        json: { providerId },
+      });
+      setFbDiscovered(r.models);
+      push(r.models.length ? `${faNum(r.models.length)} مدل پیدا شد` : "پروایدر مدلی برنگرداند", r.models.length ? "success" : "error");
+    } catch (e) {
+      push((e as ApiError).message ?? "دریافت مدل‌ها ناموفق بود", "error");
+    } finally {
+      setFbDiscovering(false);
+    }
+  }
+
   const saveSettings = (patch: Partial<ActiveSettings>) => {
     api("/api/admin/ai-providers/settings", { method: "POST", json: patch })
       .then(() => {
@@ -154,17 +172,33 @@ export function AiProvidersCard() {
               return (
                 <div className="mt-2">
                   <label className="mb-1 block text-[11px] text-ink-soft">
-                    مدل پشتیبان {sameProv ? <span className="text-amber-600">(چون پشتیبان همان پروایدر فعال است، مدل متفاوت الزامی است)</span> : "(اختیاری — پیش‌فرض: مدل خود پشتیبان)"}
+                    مدل پشتیبان {sameProv ? <span className="text-amber-600">(مدل متفاوت الزامی است)</span> : "(اختیاری — پیش‌فرض: مدل خود پشتیبان)"}
                   </label>
-                  <input
-                    value={activeSettings?.fallbackModel ?? ""}
-                    onChange={(e) => saveSettings({ fallbackModel: e.target.value || null })}
-                    placeholder={fb.model ?? "مثلاً glm-5.2"}
-                    name="ai-fallback-model"
-                    autoComplete="off"
-                    dir="ltr"
-                    className="h-10 w-full rounded-md border border-line px-3 font-mono text-[11.5px] outline-none focus:border-ink"
-                  />
+                  {fbDiscovered.length > 0 ? (
+                    <Select
+                      value={activeSettings?.fallbackModel ?? ""}
+                      onChange={(v) => saveSettings({ fallbackModel: v || null })}
+                      placeholder={fb.model ?? "انتخاب مدل پشتیبان"}
+                      // مدلِ فعال حذف می‌شود تا جفت یکسان انتخاب‌ناپذیر باشد
+                      options={fbDiscovered
+                        .filter((m) => !(act && act.id === fb.id && m === act.model))
+                        .map((m) => ({ value: m, label: m }))}
+                    />
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      loading={fbDiscovering}
+                      onClick={() => discoverFallbackModels(fb.id)}
+                      className="w-full"
+                    >
+                      دریافت لیست مدل‌های {fb.name}
+                    </Button>
+                  )}
+                  <p className="mt-1 text-[10.5px] text-ink-faint">
+                    {sameProv ? "مدلِ فعال از لیست حذف می‌شود" : "یا مدل خود پشتیبان استفاده می‌شود"}
+                  </p>
                 </div>
               );
             })()}
@@ -268,7 +302,6 @@ function ProviderForm({
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
   const [discovered, setDiscovered] = useState<string[]>([]);
   const [discovering, setDiscovering] = useState(false);
-  const { push: pushToast } = useToast();
 
   async function discoverModels() {
     setDiscovering(true);
@@ -283,14 +316,14 @@ function ProviderForm({
         },
       });
       setDiscovered(r.models);
-      pushToast(
+      push(
         r.models.length
           ? `${faNum(r.models.length)} مدل پیدا شد — از لیست انتخاب کنید`
           : "پروایدر مدلی برنگرداند — دستی وارد کنید",
         r.models.length ? "success" : "error",
       );
     } catch (e) {
-      pushToast((e as ApiError).message ?? "دریافت مدل‌ها ناموفق بود", "error");
+      push((e as ApiError).message ?? "دریافت مدل‌ها ناموفق بود", "error");
     } finally {
       setDiscovering(false);
     }
