@@ -21,6 +21,7 @@ import { SsoSettingsCard } from "./sso-card";
 import { SmsPilotCard } from "./sms-pilot-card";
 import { EmailPilotCard } from "./email-pilot-card";
 import { WorkerStatusCard } from "./worker-status-card";
+import { AiProvidersCard } from "./ai-providers-card";
 
 interface Organization {
   id: string;
@@ -256,6 +257,7 @@ export function AdminSettingsPage() {
       {/* ── ردیف ۲: زیرساخت و پیام‌رسانی ── */}
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <WorkerStatusCard />
+        <AiProvidersCard />
         <SmsPilotCard />
         <EmailPilotCard />
       </div>
