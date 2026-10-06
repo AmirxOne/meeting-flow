@@ -241,3 +241,41 @@ export async function testProvider(id: string): Promise<{ ok: boolean; detail: s
     return { ok: false, detail: `ارتباط برقرار نشد: ${(e as Error).message}`.slice(0, 200) };
   }
 }
+
+/** GET {base}/models با کلید پروایدر — لیست واقعی مدل‌های سرویس. */
+export async function fetchProviderModels(input: {
+  specId?: string;
+  baseUrl?: string;
+  apiKey?: string; // برای پروایدرِ ذخیره‌شده خالی می‌آید و از DB خوانده می‌شود
+  providerId?: string;
+}): Promise<{ models: string[] }> {
+  let base = (input.baseUrl ?? "").trim();
+  let key = (input.apiKey ?? "").trim();
+
+  if (input.providerId) {
+    const row = await prisma.systemMeta.findUnique({ where: { key: META_KEY } });
+    const map = (row?.value ?? {}) as unknown as Record<string, StoredProvider>;
+    const p2 = map[input.providerId];
+    if (!p2) throw new Error("پروایدر یافت نشد");
+    base = base || p2.baseUrl || PROVIDER_SPECS.find((s2) => s2.id === p2.specId)?.baseUrl || "";
+    try {
+      key = key || openSecret(p2.apiKeySealed);
+    } catch {
+      throw new Error("کلید رمزگشایی نشد");
+    }
+  }
+  if (!base) throw new Error("آدرس پایه مشخص نیست");
+  if (!key) throw new Error("کلید API لازم است");
+
+  const res = await fetch(`${base.replace(/\/$/, "")}/models`, {
+    headers: { authorization: `Bearer ${key}` },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) throw new Error("کلید رد شد (۴۰۱/۴۰۳)");
+    throw new Error(`پاسخ پروایدر: ${res.status}`);
+  }
+  const j = (await res.json()) as { data?: { id?: string }[] };
+  const models = (j.data ?? []).map((m) => m.id).filter((x): x is string => !!x).sort();
+  return { models };
+}

@@ -184,6 +184,35 @@ function ProviderForm({
   const [model, setModel] = useState(initial?.model ?? "");
   const [apiKey, setApiKey] = useState("");
   const [enabled, setEnabled] = useState(initial?.enabled ?? true);
+  const [discovered, setDiscovered] = useState<string[]>([]);
+  const [discovering, setDiscovering] = useState(false);
+  const { push: pushToast } = useToast();
+
+  async function discoverModels() {
+    setDiscovering(true);
+    try {
+      const r = await api<{ models: string[] }>("/api/admin/ai-providers/models", {
+        method: "POST",
+        json: {
+          ...(initial?.id ? { providerId: initial.id } : {}),
+          ...(apiKey.trim() ? { apiKey: apiKey.trim() } : initial?.id ? {} : {}),
+          specId,
+          baseUrl: baseUrl.trim() || spec?.baseUrl || "",
+        },
+      });
+      setDiscovered(r.models);
+      pushToast(
+        r.models.length
+          ? `${faNum(r.models.length)} مدل پیدا شد — از لیست انتخاب کنید`
+          : "پروایدر مدلی برنگرداند — دستی وارد کنید",
+        r.models.length ? "success" : "error",
+      );
+    } catch (e) {
+      pushToast((e as ApiError).message ?? "دریافت مدل‌ها ناموفق بود", "error");
+    } finally {
+      setDiscovering(false);
+    }
+  }
 
   const spec = specs.find((s) => s.id === specId);
   const effectiveBase = baseUrl || spec?.baseUrl || "";
@@ -254,21 +283,42 @@ function ProviderForm({
                 />
               </div>
               <div>
-                <label className="mb-1 block text-[11px] text-ink-soft">مدل</label>
-                <input
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  placeholder={spec?.defaultModel ?? "مثلاً glm-4.7"}
-                  list="provider-models"
-                  name="ai-provider-model"
-                  autoComplete="off"
-                  className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
-                />
-                <datalist id="provider-models">
-                  {(spec?.models ?? []).map((m) => (
-                    <option key={m} value={m} />
-                  ))}
-                </datalist>
+                <label className="mb-1 flex items-center justify-between text-[11px] text-ink-soft">
+                  <span>مدل</span>
+                </label>
+                {discovered.length > 0 ? (
+                  <Select
+                    value={model || discovered[discovered.length - 1]}
+                    onChange={(v) => setModel(v)}
+                    options={discovered.map((m) => ({ value: m, label: m }))}
+                  />
+                ) : (
+                  <input
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    placeholder={spec?.defaultModel ?? "مثلاً glm-4.7"}
+                    name="ai-provider-model"
+                    autoComplete="off"
+                    className="h-10 w-full rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink"
+                  />
+                )}
+              </div>
+              <div className="sm:col-span-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  loading={discovering}
+                  onClick={discoverModels}
+                  className="w-full"
+                >
+                  دریافت خودکار مدل‌ها از پروایدر
+                </Button>
+                {discovered.length === 0 && (spec?.models?.length ?? 0) > 0 && (
+                  <p className="mt-1.5 text-[10.5px] text-ink-faint">
+                    مدل‌های پیشنهادی {spec?.name}: {spec?.models?.join("، ")}
+                  </p>
+                )}
               </div>
             </div>
 
