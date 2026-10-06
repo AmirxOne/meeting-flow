@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { deriveAiUsable, AiUnavailableError, samePair, type AiHealth } from "@/server/services/llm-client.service";
+import { validateTopics, extractJson } from "@/server/services/agenda-ai.service";
 
 const baseSettings = { activeProviderId: "p1", fallbackProviderId: null, fallbackModel: null, temperature: 0.3, maxTokens: 2000 };
 const providers = { p1: { enabled: true }, p2: { enabled: true } };
@@ -52,5 +53,31 @@ describe("samePair — پشتیبان تکراری", () => {
   });
   it("پروایدر متفاوت همان مدل → مجاز", () => {
     expect(samePair({ providerId: "a", model: "glm-5.3" }, { providerId: "b", model: "glm-5.3" })).toBe(false);
+  });
+});
+
+describe("validateTopics — خروجی ساخت‌یافته AI", () => {
+  const good = { topics: ["الف", "ب", "ج", "د", "هـ"] };
+  it("۵ موضوع سالم → قبول", () => {
+    expect(validateTopics(good)).toEqual(["الف", "ب", "ج", "د", "هـ"]);
+  });
+  it("۴ موضوع → رد", () => {
+    expect(validateTopics({ topics: ["۱", "۲", "۳", "۴"] })).toBeNull();
+  });
+  it("۶ موضوع → رد", () => {
+    expect(validateTopics({ topics: ["۱", "۲", "۳", "۴", "۵", "۶"] })).toBeNull();
+  });
+  it("تکراری → رد", () => {
+    expect(validateTopics({ topics: ["الف", "الف", "ب", "ج", "د"] })).toBeNull();
+  });
+  it("خالی/فاصله → رد", () => {
+    expect(validateTopics({ topics: [" ", "ب", "ج", "د", "هـ"] })).toBeNull();
+  });
+  it("غیر رشته → رد", () => {
+    expect(validateTopics({ topics: [1, 2, 3, 4, 5] })).toBeNull();
+  });
+  it("JSON داخل code fence هم پذیرفته می‌شود (extract)", () => {
+    const fenced = "```json" + String.fromCharCode(10) + '{"topics":["a","b","c","d","e"]}' + String.fromCharCode(10) + "```";
+    expect(validateTopics(extractJson(fenced))).toEqual(["a", "b", "c", "d", "e"]);
   });
 });
