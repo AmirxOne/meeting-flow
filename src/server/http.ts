@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 import { HttpError } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { reportError } from "@/server/report-error";
+import { AiUnavailableError } from "@/server/services/llm-client.service";
 
 export function ok<T>(data: T, init?: number) {
   return NextResponse.json({ ok: true, data }, { status: init ?? 200 });
@@ -18,6 +19,10 @@ export function fail(status: number, message: string, code?: string, extra?: unk
 export function handleError(error: unknown, context?: { source?: string }) {
   if (error instanceof HttpError) {
     return fail(error.status, error.message, error.code, error.extra);
+  }
+  // قابلیت AI بدون پروایدر سالم → 503 فارسی، نه خطای خام
+  if (error instanceof AiUnavailableError) {
+    return fail(503, error.message, "AI_UNAVAILABLE");
   }
   if (error instanceof ZodError) {
     const first = error.errors[0];

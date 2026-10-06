@@ -60,6 +60,67 @@ const DEFAULT_SETTINGS: AiSettings = {
   maxTokens: 2000,
 };
 
+/** سلامت پروایدر — با تست اتصال و llmChat به‌روز می‌شود */
+export interface AiHealth {
+  ok: boolean;
+  at: string; // ISO
+  error?: string;
+}
+
+const HEALTH_KEY = "ai:health";
+/** اگر آخرین خطا در این بازه باشد، AI غیرقابل‌استفاده تلقی می‌شود */
+const HEALTH_STALE_MS = 15 * 60 * 1000;
+
+export async function recordAiHealth(ok: boolean, error?: string): Promise<void> {
+  const h: AiHealth = { ok, at: new Date().toISOString(), ...(error ? { error: error.slice(0, 200) } : {}) };
+  await prisma.systemMeta.upsert({
+    where: { key: HEALTH_KEY },
+    create: { key: HEALTH_KEY, value: h as unknown as object },
+    update: { value: h as unknown as object },
+  });
+}
+
+/** خطای مشخصه‌ی غیرقابل‌دسترس بودن AI — به 503 فارسی مپ می‌شود، نه خطای خام */
+export class AiUnavailableError extends Error {
+  constructor(msg = "قابلیت هوش مصنوعی در دسترس نیست") {
+    super(msg);
+    this.name = "AiUnavailableError";
+  }
+}
+
+/** تصمیم خالص — تست‌پذیر */
+export function deriveAiUsable(input: {
+  settings: AiSettings;
+  providers: Record<string, { enabled: boolean }>;
+  health: AiHealth | null;
+  now: number;
+}): boolean {
+  const id = input.settings.activeProviderId ?? Object.keys(input.providers).find((k) => input.providers[k].enabled) ?? null;
+  if (!id || !input.providers[id]?.enabled) return false;
+  if (input.health && !input.health.ok) {
+    const failedAt = new Date(input.health.at).getTime();
+    if (!Number.isNaN(failedAt) && input.now - failedAt < HEALTH_STALE_MS) return false;
+  }
+  return true;
+}
+
+/** آیا AI قابل استفاده است؟ (پروایدر فعال هست + اخیراً خطای قطعی نداشته) */
+export async function isAiUsable(): Promise<boolean> {
+  const [prow, hrow] = await Promise.all([
+    prisma.systemMeta.findUnique({ where: { key: META_KEY } }),
+    prisma.systemMeta.findUnique({ where: { key: HEALTH_KEY } }),
+  ]);
+  const providers = (prow?.value ?? {}) as unknown as Record<string, { enabled: boolean }>;
+  const health = (hrow?.value ?? null) as unknown as AiHealth | null;
+  const settings = await getAiSettings();
+  return deriveAiUsable({ settings, providers, health, now: Date.now() });
+}
+
+/** گیت سمت سرور — هر route قابلیت AI با این شروع می‌شود */
+export async function ensureAiAvailable(): Promise<void> {
+  if (!(await isAiUsable())) throw new AiUnavailableError();
+}
+
 export async function getAiSettings(): Promise<AiSettings> {
   const row = await prisma.systemMeta.findUnique({ where: { key: SETTINGS_KEY } });
   return { ...DEFAULT_SETTINGS, ...((row?.value ?? {}) as Partial<AiSettings>) };
@@ -146,6 +207,7 @@ export async function llmChat(req: LlmRequest): Promise<LlmResponse> {
 
   try {
     const r = await callProvider(active, req);
+    await recordAiHealth(true).catch(() => undefined);
     return {
       text: r.text,
       providerId: activeId,
@@ -154,6 +216,7 @@ export async function llmChat(req: LlmRequest): Promise<LlmResponse> {
       fallbackUsed: false,
     };
   } catch (e) {
+    await recordAiHealth(false, (e as Error).message).catch(() => undefined);
     const fbId = settings.fallbackProviderId;
     if (!fbId || !providers[fbId] || fbId === activeId || !isFailoverError(e)) {
       // خطای واقعی (کلید نامعتبر و…) — بدون fallback
@@ -164,6 +227,7 @@ export async function llmChat(req: LlmRequest): Promise<LlmResponse> {
     }
     const fb = providers[fbId];
     const r = await callProvider(fb, req);
+    await recordAiHealth(true).catch(() => undefined);
     return {
       text: r.text,
       providerId: fbId,
