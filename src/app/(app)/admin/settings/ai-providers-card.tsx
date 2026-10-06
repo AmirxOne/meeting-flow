@@ -22,6 +22,13 @@ interface SafeProvider {
   apiKeyMasked: string;
 }
 
+interface ActiveSettings {
+  activeProviderId: string | null;
+  fallbackProviderId: string | null;
+  temperature: number;
+  maxTokens: number;
+}
+
 interface Spec {
   id: string;
   name: string;
@@ -44,6 +51,21 @@ export function AiProvidersCard() {
     queryKey: ["ai-providers"],
     queryFn: () => api<{ providers: SafeProvider[]; specs: Spec[] }>("/api/admin/ai-providers"),
   });
+
+  const settingsQ = useQuery({
+    queryKey: ["ai-settings"],
+    queryFn: () => api<{ settings: ActiveSettings }>("/api/admin/ai-providers/settings"),
+  });
+  const activeSettings = settingsQ.data?.settings;
+
+  const saveSettings = (patch: Partial<ActiveSettings>) => {
+    api("/api/admin/ai-providers/settings", { method: "POST", json: patch })
+      .then(() => {
+        qc.invalidateQueries({ queryKey: ["ai-settings"] });
+        push("تنظیمات هوش مصنوعی ذخیره شد", "success");
+      })
+      .catch((e) => push((e as ApiError).message ?? "ذخیره ناموفق", "error"));
+  };
 
   const testMut = useMutation({
     mutationFn: (id: string) => api<{ ok: boolean; detail: string }>("/api/admin/ai-providers/test", { method: "POST", json: { id } }),
@@ -90,6 +112,31 @@ export function AiProvidersCard() {
           </Button>
         }
       />
+      {/* پروایدر فعال + fallback — الگوی استاندارد: همه‌ی قابلیت‌های AI از همین دو می‌خوانند */}
+      {providers.length > 0 && (
+        <div className="grid gap-3 border-b border-line bg-paper-soft/40 px-5 py-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-ink-soft">پروایدر فعال (پیش‌فرض)</label>
+            <Select
+              value={activeSettings?.activeProviderId ?? ""}
+              onChange={(v) => saveSettings({ activeProviderId: v || null })}
+              placeholder="اولین پروایدرِ فعال"
+              options={providers.map((p) => ({ value: p.id, label: `${p.name}${p.model ? ` · ${p.model}` : ""}`, hint: p.enabled ? undefined : "غیرفعال" }))}
+            />
+            <p className="mt-1 text-[10.5px] text-ink-faint">همه‌ی قابلیت‌های AI از این پروایدر استفاده می‌کنند</p>
+          </div>
+          <div>
+            <label className="mb-1 block text-[11px] font-medium text-ink-soft">پروایدر پشتیبان (fallback)</label>
+            <Select
+              value={activeSettings?.fallbackProviderId ?? ""}
+              onChange={(v) => saveSettings({ fallbackProviderId: v || null })}
+              placeholder="بدون پشتیبان"
+              options={providers.map((p) => ({ value: p.id, label: `${p.name}${p.model ? ` · ${p.model}` : ""}` }))}
+            />
+            <p className="mt-1 text-[10.5px] text-ink-faint">اگر فعال محدود شد (۴۲۹/۵۰۳) درخواست خودکار به این می‌رود</p>
+          </div>
+        </div>
+      )}
       <div className="p-5 pt-4">
         {isLoading ? (
           <div className="space-y-2">
