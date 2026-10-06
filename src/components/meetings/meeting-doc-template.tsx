@@ -267,7 +267,7 @@ export function AgendaTemplate({
                                   setAiBusy(false);
                                 }
                               }}
-                              className="group flex items-center gap-1.5 rounded-md border border-dashed border-amber-300 bg-amber-50/40 px-2.5 py-1 text-[11px] font-bold transition hover:border-amber-400 hover:bg-amber-50 disabled:cursor-wait disabled:opacity-60"
+                              className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium transition hover:border-ink/40 hover:bg-paper-soft disabled:cursor-wait disabled:opacity-60"
                             >
                               <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                               <span
