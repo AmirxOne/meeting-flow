@@ -271,8 +271,12 @@ export function AgendaTemplate({
                             >
                               <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                               <span
-                                style={{ "--shiny-width": "100px" } as React.CSSProperties}
-                                className={aiBusy ? "text-ink-soft" : "ai-shiny-text text-ink"}
+                                style={{
+                                  "--bg-size": "300%",
+                                  "--color-from": "#b45309",
+                                  "--color-to": "#9333ea",
+                                } as React.CSSProperties}
+                                className={aiBusy ? "text-ink-soft" : "ai-gradient-text"}
                               >
                                 {aiBusy ? "در حال پیشنهاد…" : "پیشنهاد ۵ موضوع با هوش مصنوعی"}
                               </span>

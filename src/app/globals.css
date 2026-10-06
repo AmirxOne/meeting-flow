@@ -72,19 +72,17 @@ body {
 .badge-blue { @apply bg-blue-50 text-blue-700; }
 .badge-black { @apply bg-ink text-white; }
 
-/* animated shiny text (magicui pattern) */
-@keyframes shiny-text {
-  0%, 90%, 100% { background-position: calc(-100% - var(--shiny-width)) 0; }
-  30%, 60% { background-position: calc(100% + var(--shiny-width)) 0; }
+/* animated gradient text (magicui pattern) */
+@keyframes gradient-move {
+  to { background-position: var(--bg-size) 0; }
 }
-.ai-shiny-text {
-  background-image: linear-gradient(to right, transparent, rgb(0 0 0 / 0.85) 50%, transparent);
-  background-size: var(--shiny-width) 100%;
-  background-repeat: no-repeat;
-  background-position: 0 0;
+.ai-gradient-text {
+  background-image: linear-gradient(to right, var(--color-from), var(--color-to), var(--color-from));
+  background-size: var(--bg-size) 100%;
   -webkit-background-clip: text;
   background-clip: text;
-  animation: shiny-text 8s infinite;
+  color: transparent;
+  animation: gradient-move 3s linear infinite;
 }
 
 /* skeleton shimmer */
