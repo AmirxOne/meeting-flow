@@ -29,6 +29,12 @@ function isoDate(d: Date | string): string {
   return (typeof d === "string" ? d : d.toISOString()).slice(0, 10);
 }
 
+/** ISO → «۱۴۰۵/۰۷/۱۸» شمسی */
+function faDateFromIso(d: Date | string): string {
+  const date = typeof d === "string" ? new Date(d.length <= 10 ? d + "T12:00:00Z" : d) : d;
+  return date.toLocaleDateString("fa-IR");
+}
+
 function validateForm(days: Record<string, DayForm>): string | null {
   for (const [date, day] of Object.entries(days)) {
     if (!day.enabled) continue;
@@ -65,12 +71,28 @@ export function AvailabilityModal() {
 
   useEffect(() => {
     // مودال فقط برای درخواست PENDING باز می‌شود — SUBMITTED/OVERDUE نه
+    // «بعداً» = سکوت ۱۰ دقیقه‌ای برای همان درخواست؛ در هر لود/صفحه دوباره باز نمی‌شود
     if (data?.request && !open && queue.length === 0) {
+      try {
+        const key = `avail-snooze:${data.request.id}`;
+        const until = Number(sessionStorage.getItem(key) ?? 0);
+        if (until > Date.now()) return;
+      } catch { /* sessionStorage در دسترس نیست — بدون سکوت ادامه بده */ }
       setQueue([data.request]);
       setIdx(0);
       setOpen(true);
     }
   }, [data?.request]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function snooze() {
+    if (current) {
+      try {
+        sessionStorage.setItem(`avail-snooze:${current.id}`, String(Date.now() + 10 * 60 * 1000));
+      } catch { /* ignore */ }
+    }
+    setOpen(false);
+    setQueue([]);
+  }
 
   const current = queue[idx];
 
@@ -130,14 +152,14 @@ export function AvailabilityModal() {
   return (
     <Modal
       open={open}
-      onClose={() => { setOpen(false); setQueue([]); }}
+      onClose={snooze}
       title={`اعلام زمان‌های آزاد${queue.length > 1 ? ` (${faNum(idx + 1)} از ${faNum(queue.length)})` : ""}`}
-      subtitle={`بازه‌ی ${isoDate(current.periodStart)} تا ${isoDate(current.periodEnd)} — مهلت ثبت: ${new Date(current.deadline).toLocaleDateString("fa-IR")} ساعت ${new Date(current.deadline).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}`}
+      subtitle={`بازه‌ی ${faDateFromIso(current.periodStart)} تا ${faDateFromIso(current.periodEnd)} — مهلت ثبت: ${new Date(current.deadline).toLocaleDateString("fa-IR")} ساعت ${new Date(current.deadline).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}`}
       footer={
         <div className="flex items-center justify-between gap-2">
           <p className="text-[11px] text-ink-faint">می‌توانید بعداً از اعلان‌ها ادامه دهید</p>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => { setOpen(false); setQueue([]); }} disabled={busy}>
+            <Button variant="ghost" onClick={snooze} disabled={busy}>
               بعداً
             </Button>
             <Button onClick={submit} disabled={busy}>
