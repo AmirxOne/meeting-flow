@@ -267,7 +267,7 @@ export function AgendaTemplate({
                                   setAiBusy(false);
                                 }
                               }}
-                              className="flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-semibold transition hover:border-ink/40 hover:bg-paper-soft disabled:cursor-wait disabled:opacity-60"
+                              className="relative flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-semibold transition hover:border-ink/40 hover:bg-paper-soft disabled:cursor-wait disabled:opacity-60"
                             >
                               <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                               <span
@@ -276,9 +276,11 @@ export function AgendaTemplate({
                                   "--color-from": "#b45309",
                                   "--color-to": "#9333ea",
                                 } as React.CSSProperties}
-                                className={aiBusy ? "text-ink-soft" : "ai-gradient-text"}
+                                className={`relative ${aiBusy ? "" : "ai-gradient-text"}`}
                               >
-                                {aiBusy ? "در حال پیشنهاد…" : "پیشنهاد ۵ موضوع با هوش مصنوعی"}
+                                {/* متن invisible نگه می‌دارد عرض ثابت — الگوی استاندارد دکمه‌های لودینگ پروژه */}
+                                <span className={aiBusy ? "invisible" : undefined}>پیشنهاد ۵ موضوع با هوش مصنوعی</span>
+                                {aiBusy && <span className="absolute inset-0 flex items-center justify-center text-ink-soft">در حال پیشنهاد…</span>}
                               </span>
                             </button>
                           )}
