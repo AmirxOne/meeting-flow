@@ -280,7 +280,7 @@ export function AgendaTemplate({
                               >
                                 {/* متن invisible نگه می‌دارد عرض ثابت — الگوی استاندارد دکمه‌های لودینگ پروژه */}
                                 <span className={aiBusy ? "invisible" : undefined}>پیشنهاد ۵ موضوع با هوش مصنوعی</span>
-                                {aiBusy && <span className="absolute inset-0 flex items-center justify-center text-ink-soft">در حال پیشنهاد…</span>}
+                                {aiBusy && <span className="absolute inset-0 flex items-center justify-center text-ink-soft">هوش مصنوعی در حال بررسی جلسه است…</span>}
                               </span>
                             </button>
                           )}
