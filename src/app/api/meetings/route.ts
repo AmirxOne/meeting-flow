@@ -54,8 +54,23 @@ export async function GET(req: NextRequest) {
       orderBy: { startAt: "asc" },
       take: Math.min(Number(sp.get("limit") ?? 200), 500),
     });
+
+    // مرتب‌سازی عملیاتی: درخواست‌های در انتظار تأیید اول (جدیدترین) —
+    // تا ثبتِ درخواستِ تازه در میانه‌ی لیست «گم» نشود؛ سپس بقیه به‌ترتیب زمان
+    const ACTION_ORDER: Record<string, number> = {
+      PENDING_APPROVAL: 0,
+      WAITLISTED: 1,
+      WAITLIST_OFFERED: 1,
+    };
+    const withSort = meetings.map((m) => ({ m, rank: ACTION_ORDER[m.status] ?? 2 }));
+    withSort.sort((a, b) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      if (a.rank === 0) return b.m.createdAt.getTime() - a.m.createdAt.getTime(); // جدیدترین درخواست اول
+      return a.m.startAt.getTime() - b.m.startAt.getTime();
+    });
+    const sorted = withSort.map((x) => x.m);
     const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
-    const masked = meetings.map((m) => {
+    const masked = sorted.map((m) => {
       const mine = m.participants.find((p) => p.userId === user.id && p.role !== "ORGANIZER");
       const { participants, ...rest } = maskPrivateMeeting(m, viewer);
       return {

@@ -326,7 +326,10 @@ export function MeetingsPage() {
         <StaggerList className="flex min-w-0 flex-col gap-3">
           {meetings.map((m) => (
             <StaggerItem key={m.id}>
-              <Card className="min-w-0 overflow-hidden p-4 transition-colors hover:border-ink-faint">
+              <Card className={cn(
+                "min-w-0 overflow-hidden p-4 transition-colors hover:border-ink-faint",
+                m.status === "PENDING_APPROVAL" ? "!border-amber-300 !bg-amber-50" : "border-line bg-white",
+              )}>
                 <Link href={`/meetings/${m.id}`} className="block min-w-0">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
                     <p className="flex min-w-0 items-center gap-1 break-words text-[14px] font-medium">
