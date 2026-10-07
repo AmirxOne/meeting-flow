@@ -148,14 +148,23 @@ export function isMobileNavActive(pathname: string, href: string): boolean {
  * Prefix routes that must match EXACTLY (their sub-routes are separate
  * sidebar entries, not children): /meeting-requests/queue is the admin
  * queue under مدیریت — it must NOT also light up «درخواست جلسه».
+ * /meetings/new («ثبت مستقیم جلسه» under مدیریت) is likewise separate
+ * — being on it must NOT light up «جلسات».
  */
 const EXACT_ONLY = new Set(["/meeting-requests"]);
+
+/** زیرمسیرهایی که پدرِشان را فعال نمی‌کنند — صفحه‌ی مستقل سایدبارند. */
+const PARENT_EXEMPT: Record<string, string[]> = {
+  "/meetings": ["/meetings/new"],
+};
 
 /** True when this href is the most specific visible match for the current path. */
 export function isNavActive(pathname: string, href: string, siblings: string[] = []): boolean {
   if (EXACT_ONLY.has(href)) return pathname === href;
   const matches = pathname === href || pathname.startsWith(`${href}/`);
   if (!matches) return false;
+  // زیرمسیرهای مستقل (مثل /meetings/new زیر /meetings) پدر را فعال نکنند
+  if ((PARENT_EXEMPT[href] ?? []).some((sub) => pathname === sub || pathname.startsWith(`${sub}/`))) return false;
   return !siblings.some(
     (other) =>
       other !== href &&
@@ -167,6 +176,10 @@ export function isNavActive(pathname: string, href: string, siblings: string[] =
 /** A parent nav item is "open/expanded" relevant when the current path is inside it. */
 export function isParentActive(pathname: string, parent: string, children: string[]): boolean {
   if (EXACT_ONLY.has(parent)) return pathname === parent;
+  if ((PARENT_EXEMPT[parent] ?? []).some((sub) => pathname === sub || pathname.startsWith(`${sub}/`))) {
+    // فقط اگر خودِ یکی از children واقعیِ همین والد مچ شود
+    return children.some((c) => pathname === c || pathname.startsWith(`${c}/`));
+  }
   if (pathname === parent || pathname.startsWith(`${parent}/`)) return true;
   return children.some((c) => pathname === c || pathname.startsWith(`${c}/`));
 }
