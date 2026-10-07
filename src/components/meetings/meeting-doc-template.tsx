@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Pencil, X, Check, Info, MessageQuestion, ShieldCheck } from "@/components/ui/icon";
 import { TemplateAttachments } from "@/components/meetings/template-attachments";
@@ -8,7 +8,7 @@ import { api } from "@/lib/api";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { faNum } from "@/lib";
+import { faNum, cn } from "@/lib";
 
 /* ═══════════════════════════════════════════════════════════
    فرم رسمی دستور جلسه — مطابق تمپلیت Word شرکت:
@@ -67,6 +67,35 @@ function SectionHeader({ label }: { label: string }) {
 
 const cellInputCls = "h-8 w-full rounded border border-line bg-white px-2 text-[12px] outline-none focus:border-ink";
 
+/* ── چیدمان مجدد زمان‌های روند جلسه:
+   ساعت شروع اولین ردیفِ دارای زمان نگه داشته می‌شود و ردیف‌ها
+   پشت‌سرهم بدون گپ چیده می‌شوند (مدت هر ردیف حفظ می‌شود).
+   ردیف‌های بی‌زمان دست‌نخورده می‌مانند. ── */
+function reflowFlow(flow: { title: string; start: string; end: string }[]): { title: string; start: string; end: string }[] {
+  const parse = (v: string) => {
+    // ارقام فارسی → لاتین برای پارس
+    const norm = v.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+    const m = /^(\d{1,2}):(\d{2})$/.exec(norm.trim());
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  // مبنا: کوچک‌ترین ساعت شروع بین ردیف‌ها — تا جابه‌جایی/حذف، زمان‌ها از پنجره بیرون نزنند
+  const starts = flow.map((r) => parse(r.start)).filter((v): v is number => v !== null);
+  if (starts.length === 0) return flow;
+  let cursor = Math.min(...starts);
+  return flow.map((r) => {
+    const s = parse(r.start);
+    const e = parse(r.end);
+    if (s === null || e === null || e <= s) return r; // بی‌زمان — دست نزن
+    const dur = e - s;
+    const ns = cursor;
+    const ne = cursor + dur;
+    cursor = ne;
+    const f2 = (n: number) => `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+    // نمایش با ارقام فارسی (سازگار با بقیه‌ی فرم)
+    return { ...r, start: f2(ns).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]), end: f2(ne).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]) };
+  });
+}
+
 /* ═════════════════ فرم دستور جلسه ═════════════════ */
 export function AgendaTemplate({
   meetingId,
@@ -97,6 +126,9 @@ export function AgendaTemplate({
   const saved = tpl?.template;
   const ai = useAiFeature();
   const [aiBusy, setAiBusy] = useState(false);
+  const dragIdxRef = useRef<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null); // فقط برای استایل
+  const [overIdx, setOverIdx] = useState<number | null>(null);
 
   function startEdit() {
     const base: DocTemplateData = {
@@ -218,8 +250,34 @@ export function AgendaTemplate({
                 ) : (
                   <>
                     {(draft?.flow ?? []).map((r, i) => (
-                      <tr key={i}>
-                        <td className="border border-line px-2 py-1.5 text-center text-[12px] font-bold">{faNum(i + 1)}</td>
+                      <tr
+                        key={i}
+                        onDragOver={(e) => { e.preventDefault(); setOverIdx(i); }}
+                        onDragLeave={() => setOverIdx((v) => (v === i ? null : v))}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const from = dragIdxRef.current;
+                          if (from !== null && from !== i) {
+                            const flow = [...(draft?.flow ?? [])];
+                            const [moved] = flow.splice(from, 1);
+                            flow.splice(i, 0, moved);
+                            up({ flow: reflowFlow(flow) });
+                          }
+                          dragIdxRef.current = null;
+                          setDragIdx(null);
+                          setOverIdx(null);
+                        }}
+                        className={cn(overIdx === i && dragIdx !== null && dragIdx !== i ? "bg-amber-50" : "", dragIdx === i ? "opacity-50" : "")}
+                      >
+                        <td
+                          draggable
+                          onDragStart={(e) => { dragIdxRef.current = i; setDragIdx(i); e.dataTransfer.effectAllowed = "move"; }}
+                          onDragEnd={() => { dragIdxRef.current = null; setDragIdx(null); setOverIdx(null); }}
+                          title="کشیدن برای جابه‌جایی"
+                          className="border border-line px-2 py-1.5 text-center text-[12px] font-bold select-none text-ink-faint cursor-grab active:cursor-grabbing"
+                        >
+                          {faNum(i + 1)}
+                        </td>
                         <td className="border border-line p-1">
                           <input value={r.title} onChange={(e) => up({ flow: (draft?.flow ?? []).map((x, j) => (j === i ? { ...x, title: e.target.value } : x)) })} className={cellInputCls} placeholder="موضوع" />
                         </td>
@@ -230,7 +288,7 @@ export function AgendaTemplate({
                           <input value={r.end} onChange={(e) => up({ flow: (draft?.flow ?? []).map((x, j) => (j === i ? { ...x, end: e.target.value } : x)) })} className={cellInputCls} placeholder="۱۰:۱۵" />
                         </td>
                         <td className="border border-line px-1 py-1.5 text-center">
-                          <button type="button" aria-label={`حذف ردیف ${faNum(i + 1)}`} onClick={() => up({ flow: (draft?.flow ?? []).filter((_, j) => j !== i) })} className="text-ink-faint transition hover:text-red-600">
+                          <button type="button" aria-label={`حذف ردیف ${faNum(i + 1)}`} onClick={() => up({ flow: reflowFlow((draft?.flow ?? []).filter((_, j) => j !== i)) })} className="text-ink-faint transition hover:text-red-600">
                             <Trash2 className="mx-auto h-3.5 w-3.5" />
                           </button>
                         </td>
@@ -466,6 +524,9 @@ export function MinutesTemplate({
   const saved = tpl?.template;
   const ai = useAiFeature();
   const [aiBusy, setAiBusy] = useState(false);
+  const dragIdxRef = useRef<number | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null); // فقط برای استایل
+  const [overIdx, setOverIdx] = useState<number | null>(null);
 
   const [minDraft, setMinDraft] = useState<DocTemplateData | null>(null);
   const [rows, setRows] = useState<{ text: string; owner: string; due: string }[]>([]);
