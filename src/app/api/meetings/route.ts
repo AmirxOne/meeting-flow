@@ -52,7 +52,8 @@ export async function GET(req: NextRequest) {
         _count: { select: { participants: true, guests: true } },
       },
       orderBy: { startAt: "asc" },
-      take: Math.min(Number(sp.get("limit") ?? 200), 500),
+      // همه‌ی ردیف‌های مرتبط fetch می‌شوند تا مرتب‌سازی عملیاتی چیزی را «بیرون» نگذارد
+      take: 1000,
     });
 
     // مرتب‌سازی عملیاتی: درخواست‌های در انتظار تأیید اول (جدیدترین) —
@@ -72,7 +73,9 @@ export async function GET(req: NextRequest) {
       // آینده: نزدیک‌ترین اول؛ گذشته: تازه‌ترین گذشته اول (هر دو دور از الان = انتهای لیست)
       return distance(a.m.startAt.getTime()) - distance(b.m.startAt.getTime());
     });
-    const sorted = withSort.map((x) => x.m);
+    const sortedAll = withSort.map((x) => x.m);
+    // سقف نهایی بعد از مرتب‌سازی عملیاتی — نه قبل از آن
+    const sorted = sortedAll.slice(0, Math.min(Number(sp.get("limit") ?? 200), 500));
     const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
     const masked = sorted.map((m) => {
       const mine = m.participants.find((p) => p.userId === user.id && p.role !== "ORGANIZER");
