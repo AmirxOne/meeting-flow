@@ -256,8 +256,8 @@ export function AgendaTemplate({
                                   const next = [...cur];
                                   r.topics.forEach((t) => {
                                     const emptyIdx = next.findIndex((x) => !x.title.trim());
-                                    if (emptyIdx >= 0) next[emptyIdx] = { ...next[emptyIdx], title: t.title, start: t.start, end: t.end };
-                                    else next.push({ title: t.title, start: t.start, end: t.end });
+                                    if (emptyIdx >= 0) next[emptyIdx] = { ...next[emptyIdx], title: t.title, start: faNum(t.start), end: faNum(t.end) };
+                                    else next.push({ title: t.title, start: faNum(t.start), end: faNum(t.end) });
                                   });
                                   up({ flow: next });
                                   push("پنج موضوع پیشنهادی هوش مصنوعی اضافه شد", "success");
