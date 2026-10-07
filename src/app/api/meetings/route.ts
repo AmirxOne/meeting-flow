@@ -62,11 +62,15 @@ export async function GET(req: NextRequest) {
       WAITLISTED: 1,
       WAITLIST_OFFERED: 1,
     };
+    // برای جلسات عادی: نزدیک‌ترین به «الان» اول — گذشته‌ها به انتهای لیست می‌روند
+    const now = Date.now();
+    const distance = (t: number) => (t >= now ? t - now : now - t + Number.MAX_SAFE_INTEGER / 2);
     const withSort = meetings.map((m) => ({ m, rank: ACTION_ORDER[m.status] ?? 2 }));
     withSort.sort((a, b) => {
       if (a.rank !== b.rank) return a.rank - b.rank;
       if (a.rank === 0) return b.m.createdAt.getTime() - a.m.createdAt.getTime(); // جدیدترین درخواست اول
-      return a.m.startAt.getTime() - b.m.startAt.getTime();
+      // آینده: نزدیک‌ترین اول؛ گذشته: تازه‌ترین گذشته اول (هر دو دور از الان = انتهای لیست)
+      return distance(a.m.startAt.getTime()) - distance(b.m.startAt.getTime());
     });
     const sorted = withSort.map((x) => x.m);
     const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
