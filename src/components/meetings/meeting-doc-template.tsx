@@ -251,13 +251,13 @@ export function AgendaTemplate({
                               onClick={async () => {
                                 setAiBusy(true);
                                 try {
-                                  const r = await api<{ topics: string[] }>(`/api/meetings/${meetingId}/ai/agenda-topics`, { method: "POST" });
+                                  const r = await api<{ topics: { title: string; start: string; end: string }[] }>(`/api/meetings/${meetingId}/ai/agenda-topics`, { method: "POST" });
                                   const cur = draft?.flow ?? [];
                                   const next = [...cur];
                                   r.topics.forEach((t) => {
                                     const emptyIdx = next.findIndex((x) => !x.title.trim());
-                                    if (emptyIdx >= 0) next[emptyIdx] = { ...next[emptyIdx], title: t };
-                                    else next.push({ title: t, start: "", end: "" });
+                                    if (emptyIdx >= 0) next[emptyIdx] = { ...next[emptyIdx], title: t.title, start: t.start, end: t.end };
+                                    else next.push({ title: t.title, start: t.start, end: t.end });
                                   });
                                   up({ flow: next });
                                   push("پنج موضوع پیشنهادی هوش مصنوعی اضافه شد", "success");

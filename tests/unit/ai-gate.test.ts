@@ -58,27 +58,44 @@ describe("samePair — پشتیبان تکراری", () => {
 });
 
 describe("validateTopics — خروجی ساخت‌یافته AI", () => {
-  const good = JSON.stringify({ topics: ["الف", "ب", "ج", "د", "هـ"] });
-  it("۵ موضوع سالم → قبول", () => {
-    expect(validateTopics(good)).toEqual(["الف", "ب", "ج", "د", "هـ"]);
+  const slot = (title: string, start: string, end: string) => ({ title, start, end });
+  const good = JSON.stringify({ topics: [slot("الف", "10:00", "10:15"), slot("ب", "10:15", "10:30"), slot("ج", "10:30", "10:45"), slot("د", "10:45", "11:00"), slot("هـ", "11:00", "11:15")] });
+  it("۵ موضوع سالم با زمان → قبول", () => {
+    expect(validateTopics(good)?.map((t) => t.title)).toEqual(["الف", "ب", "ج", "د", "هـ"]);
   });
   it("۴ موضوع → رد", () => {
-    expect(validateTopics(JSON.stringify({ topics: ["۱", "۲", "۳", "۴"] }))).toBeNull();
+    expect(validateTopics(JSON.stringify({ topics: [slot("۱", "10:00", "10:10"), slot("۲", "10:10", "10:20"), slot("۳", "10:20", "10:30"), slot("۴", "10:30", "10:40")] }))).toBeNull();
   });
   it("۶ موضوع → رد", () => {
-    expect(validateTopics(JSON.stringify({ topics: ["۱", "۲", "۳", "۴", "۵", "۶"] }))).toBeNull();
+    expect(validateTopics(JSON.stringify({ topics: [slot("۱", "10:00", "10:10"), slot("۲", "10:10", "10:20"), slot("۳", "10:20", "10:30"), slot("۴", "10:30", "10:40"), slot("۵", "10:40", "10:50"), slot("۶", "10:50", "11:00")] }))).toBeNull();
   });
   it("تکراری → رد", () => {
-    expect(validateTopics(JSON.stringify({ topics: ["الف", "الف", "ب", "ج", "د"] }))).toBeNull();
+    expect(validateTopics(JSON.stringify({ topics: [slot("الف", "10:00", "10:10"), slot("الف", "10:10", "10:20"), slot("ب", "10:20", "10:30"), slot("ج", "10:30", "10:40"), slot("د", "10:40", "10:50")] }))).toBeNull();
   });
   it("خالی/فاصله → رد", () => {
-    expect(validateTopics(JSON.stringify({ topics: [" ", "ب", "ج", "د", "هـ"] }))).toBeNull();
+    expect(validateTopics(JSON.stringify({ topics: [slot(" ", "10:00", "10:10"), slot("ب", "10:10", "10:20"), slot("ج", "10:20", "10:30"), slot("د", "10:30", "10:40"), slot("هـ", "10:40", "10:50")] }))).toBeNull();
   });
-  it("غیر رشته → رد", () => {
-    expect(validateTopics(JSON.stringify({ topics: [1, 2, 3, 4, 5] }))).toBeNull();
+  it("فرمت زمان غلط → رد", () => {
+    expect(validateTopics(JSON.stringify({ topics: [slot("الف", "10", "10:10"), slot("ب", "10:10", "10:20"), slot("ج", "10:20", "10:30"), slot("د", "10:30", "10:40"), slot("هـ", "10:40", "10:50")] }))).toBeNull();
   });
   it("JSON داخل code fence هم پذیرفته می‌شود (extract)", () => {
-    const fenced = "```json" + String.fromCharCode(10) + '{"topics":["a","b","c","d","e"]}' + String.fromCharCode(10) + "```";
-    expect(validateTopics(JSON.stringify(extractJson(fenced)))).toEqual(["a", "b", "c", "d", "e"]);
+    const fenced = "```json" + String.fromCharCode(10) + JSON.stringify({ topics: [slot("a", "10:00", "10:05"), slot("b", "10:05", "10:10"), slot("c", "10:10", "10:15"), slot("d", "10:15", "10:20"), slot("e", "10:20", "10:25")] }) + String.fromCharCode(10) + "```";
+    expect(validateTopics(JSON.stringify(extractJson(fenced)))?.map((t) => t.title)).toEqual(["a", "b", "c", "d", "e"]);
+  });
+
+  const win = { startAt: new Date("2026-10-07T10:00:00"), endAt: new Date("2026-10-07T11:30:00"), durationMin: 90 };
+  it("خارج از بازه‌ی جلسه → رد", () => {
+    expect(validateTopics(good, { ...win, endAt: new Date("2026-10-07T10:45:00"), durationMin: 45 })).toBeNull();
+  });
+  it("هم‌پوشانی → رد", () => {
+    const overlap = JSON.stringify({ topics: [slot("الف", "10:00", "10:20"), slot("ب", "10:10", "10:30"), slot("ج", "10:30", "10:40"), slot("د", "10:40", "10:50"), slot("هـ", "10:50", "11:00")] });
+    expect(validateTopics(overlap, win)).toBeNull();
+  });
+  it("مجموع مدت بیشتر از جلسه → رد", () => {
+    const long = JSON.stringify({ topics: [slot("الف", "10:00", "10:20"), slot("ب", "10:20", "10:40"), slot("ج", "10:40", "11:00"), slot("د", "11:00", "11:20"), slot("هـ", "11:20", "11:40")] });
+    expect(validateTopics(long, win)).toBeNull();
+  });
+  it("داخل بازه و بدون هم‌پوشانی → قبول", () => {
+    expect(validateTopics(good, win)?.length).toBe(5);
   });
 });

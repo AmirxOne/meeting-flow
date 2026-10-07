@@ -25,8 +25,8 @@ export interface AiFeature<T> {
   maxRetries?: number;
   /** تبدیل context جلسه به پیام‌های مدل */
   buildPrompt: (ctx: MeetingAiContext) => LlmMessage[];
-  /** اعتبارسنجی خروجی خام — null یعنی retry */
-  validate: (raw: string) => T | null;
+  /** اعتبارسنجی خروجی خام — null یعنی retry (ctx برای چک‌های وابسته به جلسه) */
+  validate: (raw: string, ctx: MeetingAiContext) => T | null;
 }
 
 /** استخراج JSON از پاسخ مدل — حتی با code fence یا متن اضافه */
@@ -68,7 +68,7 @@ export async function runAiFeature<T>(
       // خطای زیرساخت — retry بی‌فایده
       throw new Error(`تولید ناموفق: ${(e as Error).message}`.slice(0, 200));
     }
-    const parsed = feature.validate(raw);
+    const parsed = feature.validate(raw, ctx);
     if (parsed !== null && parsed !== undefined) return parsed;
     lastErr = "خروجی مدل نامعتبر بود";
   }
