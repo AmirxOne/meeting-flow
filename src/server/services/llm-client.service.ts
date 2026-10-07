@@ -60,7 +60,7 @@ const DEFAULT_SETTINGS: AiSettings = {
   fallbackProviderId: null,
   fallbackModel: null,
   temperature: 0.3,
-  maxTokens: 2000,
+  maxTokens: 3000,
 };
 
 /** سلامت پروایدر — با تست اتصال و llmChat به‌روز می‌شود */
