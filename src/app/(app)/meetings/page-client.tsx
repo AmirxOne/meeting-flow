@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Search, CalendarX2, Users, SlidersHorizontal } from "@/components/ui/icon";
 import { api } from "@/lib/api";
@@ -64,6 +64,7 @@ export function MeetingsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [advanced, setAdvanced] = useState(false);
+  const [page, setPage] = useState(1);
 
   const isCompact = compact === true;
   const effectiveScope = isCompact ? "mine" : scope;
@@ -79,11 +80,12 @@ export function MeetingsPage() {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["meetings", status, effectiveScope, q, range?.from, range?.to, branchId, roomId, from, to],
+    queryKey: ["meetings", status, effectiveScope, q, range?.from, range?.to, branchId, roomId, from, to, page],
     queryFn: () => {
       const params = new URLSearchParams();
       if (status) params.set("status", status);
       params.set("scope", effectiveScope);
+      if (page > 1) params.set("page", String(page));
       if (q) params.set("q", q);
       if (range) {
         params.set("from", range.from);
@@ -94,12 +96,22 @@ export function MeetingsPage() {
       }
       if (branchId) params.set("branchId", branchId);
       if (roomId) params.set("roomId", roomId);
-      return api<{ meetings: MeetingRow[] }>(`/api/meetings?${params.toString()}`);
+      return api<{ meetings: MeetingRow[]; total: number; page: number; pageSize: number }>(`/api/meetings?${params.toString()}`);
     },
     enabled: compact !== null,
   });
 
   const meetings = data?.meetings ?? [];
+  const total = data?.total ?? meetings.length;
+  const totalPages = Math.max(1, Math.ceil(total / (data?.pageSize ?? 50)));
+
+  // با تغییر فیلترها به صفحه‌ی اول برگرد
+  const filterKey = `${status}|${effectiveScope}|${q}|${range?.from ?? ""}|${range?.to ?? ""}|${branchId}|${roomId}|${from}|${to}`;
+  const lastFilterRef = useRef(filterKey);
+  if (lastFilterRef.current !== filterKey) {
+    lastFilterRef.current = filterKey;
+    if (page !== 1) setPage(1);
+  }
 
   const heading = isCompact ? "جلسات من" : "جلسات";
 
@@ -118,7 +130,7 @@ export function MeetingsPage() {
         <div className="flex shrink-0 items-center gap-2.5">
           {!isCompact && (
             <span className="tabular-nums shrink-0 rounded-full border border-line bg-paper-soft px-3 py-1.5 text-[11px] font-medium text-ink-soft">
-              {faNum(meetings.length)} جلسه
+              {faNum(total)} جلسه
             </span>
           )}
           {can("meeting:create") && (
@@ -368,6 +380,46 @@ export function MeetingsPage() {
             </StaggerItem>
           ))}
         </StaggerList>
+      )}
+
+      {/* صفحه‌بندی — کل جلسات، ۵۰تایی */}
+      {totalPages > 1 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <p className="text-[11px] text-ink-soft">
+            صفحه‌ی {faNum(page)} از {faNum(totalPages)} — {faNum(total)} جلسه
+          </p>
+          <div className="flex items-center gap-1.5">
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage(1)}>
+              اول
+            </Button>
+            <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((v) => v - 1)}>
+              قبلی
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((n) => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+              .map((n, arrIdx, arr) => (
+                <span key={n} className="flex items-center gap-1.5">
+                  {arrIdx > 0 && arr[arrIdx - 1] !== n - 1 && <span className="text-[11px] text-ink-faint">…</span>}
+                  <button
+                    type="button"
+                    onClick={() => setPage(n)}
+                    className={cn(
+                      "h-8 min-w-8 rounded-md border px-2 text-[12px] font-medium tabular-nums transition-colors",
+                      n === page ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/40 hover:text-ink",
+                    )}
+                  >
+                    {faNum(n)}
+                  </button>
+                </span>
+              ))}
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((v) => v + 1)}>
+              بعدی
+            </Button>
+            <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage(totalPages)}>
+              آخر
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

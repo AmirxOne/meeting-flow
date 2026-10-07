@@ -70,12 +70,15 @@ export async function GET(req: NextRequest) {
     withSort.sort((a, b) => {
       if (a.rank !== b.rank) return a.rank - b.rank;
       if (a.rank === 0) return b.m.createdAt.getTime() - a.m.createdAt.getTime(); // جدیدترین درخواست اول
-      // آینده: نزدیک‌ترین اول؛ گذشته: تازه‌ترین گذشته اول (هر دو دور از الان = انتهای لیست)
+      // آینده: نزدیک‌ترین اول؛ گذشته: تازه‌ترین گذشته اول (هر دو دور از ان = انتهای لیست)
       return distance(a.m.startAt.getTime()) - distance(b.m.startAt.getTime());
     });
     const sortedAll = withSort.map((x) => x.m);
-    // سقف نهایی بعد از مرتب‌سازی عملیاتی — نه قبل از آن
-    const sorted = sortedAll.slice(0, Math.min(Number(sp.get("limit") ?? 200), 500));
+    // صفحه‌بندی: ۵۰ جلسه در هر صفحه — کل شمارش قبل از برش
+    const PAGE_SIZE = 50;
+    const total = sortedAll.length;
+    const page = Math.max(1, Number(sp.get("page") ?? 1));
+    const sorted = sortedAll.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
     const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
     const masked = sorted.map((m) => {
       const mine = m.participants.find((p) => p.userId === user.id && p.role !== "ORGANIZER");
@@ -86,7 +89,7 @@ export async function GET(req: NextRequest) {
         participants: participants.map((p) => ({ userId: p.userId })),
       };
     });
-    return ok({ meetings: masked });
+return ok({ meetings: masked, total, page, pageSize: PAGE_SIZE });
   } catch (e) {
     return handleError(e);
   }
