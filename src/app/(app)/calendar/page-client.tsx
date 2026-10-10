@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, ChevronLeft, Plus, Shield } from "@/components/ui/icon";
 import { api } from "@/lib/api";
@@ -122,18 +122,41 @@ export function CalendarPage() {
     };
   }, [anchor]);
 
+  // ── پیش‌نمایش زمان‌بندی هوشمند (?smart=1) ──
+  const searchParams = useSearchParams();
+  const [smartMode, setSmartMode] = useState(false);
+  useEffect(() => { if (searchParams.get("smart") === "1") setSmartMode(true); }, [searchParams]);
+
   const { data, isLoading, isPlaceholderData } = useQuery({
-    queryKey: ["calendar", range.from.toISOString(), range.to.toISOString(), scope],
+    queryKey: ["calendar", range.from.toISOString(), range.to.toISOString(), scope, smartMode],
     queryFn: () =>
-      api<{ meetings: CalMeeting[]; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean; canSeeAll: boolean }>(
-        `/api/calendar?from=${range.from.toISOString()}&to=${range.to.toISOString()}&scope=${scope}`,
+      api<{ meetings: CalMeeting[]; draftMeetings?: CalMeeting[]; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean; canSeeAll: boolean }>(
+        `/api/calendar?from=${range.from.toISOString()}&to=${range.to.toISOString()}&scope=${scope}${smartMode ? "&smart=1" : ""}`,
       ),
     // keep last month's data while fetching the new one — no skeleton flash,
     // no DOM teardown (docks/drag context survive), smooth animated flip
     placeholderData: keepPreviousData,
   });
   // only the FIRST load shows a skeleton; month flips keep rendering data
-  const showSkeleton = isLoading && !isPlaceholderData;  const meetings = data?.meetings ?? [];
+  const showSkeleton = isLoading && !isPlaceholderData;
+  const meetings = data?.meetings ?? [];
+  const smartMeetings = (data?.draftMeetings ?? []) as CalMeeting[];
+  const allMeetings = useMemo(() => (smartMode ? [...meetings, ...smartMeetings] : meetings), [meetings, smartMeetings, smartMode]);
+  const [smartDraftId, setSmartDraftId] = useState<string | null>(null);
+  const [smartBusy, setSmartBusy] = useState(false);
+  useEffect(() => {
+    if (smartMeetings.length > 0) {
+      fetch("/api/admin/smart-schedule", { credentials: "include" })
+        .then((r) => r.json())
+        .then((j: { data?: { draft?: { id?: string } | null } }) => {
+          if (j.data?.draft?.id) {
+            setSmartDraftId(j.data.draft.id);
+            (window as unknown as { __smartDraftId?: string }).__smartDraftId = j.data.draft.id;
+          }
+        })
+        .catch(() => undefined);
+    }
+  }, [smartMode]); // eslint-disable-line react-hooks/exhaustive-deps
   // ── drag & drop reschedule (month view) ──
   const qc = useQueryClient();
   const { push } = useToast();
@@ -206,7 +229,7 @@ export function CalendarPage() {
       setDragOverIso(null);
       if (!id) return;
       const m =
-        (meetings ?? []).find((x) => x.id === id) ??
+        (allMeetings ?? []).find((x) => x.id === id) ??
         (dragInfo && dragInfo.id === id
           ? { ...dragInfo, title: dragInfo.isMasked ? "جلسه محرمانه" : dragInfo.title }
           : undefined);
@@ -226,10 +249,27 @@ export function CalendarPage() {
       const newStartLocal = new Date(Date.UTC(y, mo - 1, d, startLocal.getUTCHours(), startLocal.getUTCMinutes()));
       const newStart = new Date(newStartLocal.getTime() - 210 * 60000);
       const newEnd = new Date(newStart.getTime() + durMin * 60000);
+      // درگ پیش‌نمایش هوشمند → مستقیم Draft اصلاح شود
+      if (id.startsWith("smart-")) {
+        api<{ draft: { id: string }; validation: { ok: boolean; errors: { message: string }[] } }>("/api/admin/smart-schedule/edit", {
+          method: "POST",
+          json: { draftId: (window as unknown as { __smartDraftId?: string }).__smartDraftId, requestId: id.slice(6), start: newStart.toISOString(), end: newEnd.toISOString() },
+        })
+          .then((r2) => {
+            if (r2.validation.ok) {
+              push("جلسه‌ی پیشنهادی جابه‌جا شد", "success");
+              qc.invalidateQueries({ queryKey: ["calendar"] });
+            } else {
+              push(r2.validation.errors[0]?.message ?? "جابه‌جایی مجاز نیست", "error");
+            }
+          })
+          .catch(() => push("اصلاح پیش‌نویس ناموفق بود", "error"));
+        return;
+      }
       // show the confirmation MODAL instead of window.confirm
       setPendingDrop({ id, title: m.isMasked ? "جلسه محرمانه" : m.title, iso, newStart, newEnd });
     },
-    [dragId, dragInfo, meetings],
+    [dragId, dragInfo, allMeetings],
   );
 
   // compute target iso: same Jalali day in an arbitrary month offset from the DRAGGED meeting's month
@@ -342,13 +382,13 @@ export function CalendarPage() {
 
   const byDate = useMemo(() => {
     const map = new Map<string, CalMeeting[]>();
-    for (const m of meetings) {
+    for (const m of allMeetings) {
       const key = isoOfLocalDay(new Date(m.startAt));
       (map.get(key) ?? map.set(key, []).get(key)!).push(m);
     }
     for (const list of map.values()) list.sort((a, b) => a.startAt.localeCompare(b.startAt));
     return map;
-  }, [meetings]);
+  }, [allMeetings]);
 
   const monthGrid = useMemo(() => jMonthGrid(anchor.jy, anchor.jm), [anchor]);
 
@@ -429,7 +469,45 @@ export function CalendarPage() {
   }
 
   return (
-    <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div className="min-w-0 space-y-4 p-3 sm:p-4">
+      {/* نوار تأیید زمان‌بندی هوشمند */}
+      {smartMode && smartMeetings.length > 0 && (
+        <div className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-pink-300 bg-pink-50 px-4 py-3 shadow-sm">
+          <div className="min-w-0">
+            <p className="text-[13px] font-bold text-pink-900">
+              پیش‌نمایش زمان‌بندی هوشمند — {faNum(smartMeetings.length)} جلسه‌ی پیشنهادی (صورتی نقطه‌چین)
+            </p>
+            <p className="mt-0.5 text-[11px] text-pink-800/80">
+              بلوک صورتی را با درگ جابه‌جا کنید؛ با تأیید، جلسه‌ها واقعی می‌شوند
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setSmartMode(false)} disabled={smartBusy}>
+              انصراف
+            </Button>
+            <Button
+              size="sm"
+              loading={smartBusy}
+              onClick={async () => {
+                if (!smartDraftId) return;
+                setSmartBusy(true);
+                try {
+                  const r = await api<{ created: number }>("/api/admin/smart-schedule/apply", { method: "POST", json: { draftId: smartDraftId } });
+                  push(`${faNum(r.created)} جلسه ساخته شد`, "success");
+                  setSmartMode(false);
+                  qc.invalidateQueries({ queryKey: ["calendar"] });
+                } catch (e) {
+                  push((e as Error).message ?? "اعمال ناموفق بود", "error");
+                } finally {
+                  setSmartBusy(false);
+                }
+              }}
+            >
+              تأیید و ثبت نهایی
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-1.5">
           <button
@@ -616,7 +694,9 @@ export function CalendarPage() {
                             }}
                             className={cn(
                               "flex truncate rounded px-1 py-0.5 text-[10px] leading-4",
-                              calendarEventTone(m.status).chip,
+                              m.status === "SMART_DRAFT"
+                                ? "bg-pink-100 text-pink-800 border border-dashed border-pink-400"
+                                : calendarEventTone(m.status).chip,
                               dragId === m.id && "dragging opacity-40",
                               canDnD && "cursor-grab active:cursor-grabbing",
                             )}
@@ -870,7 +950,9 @@ export function CalendarPage() {
                               "absolute z-10 overflow-hidden rounded px-1.5 py-1 text-[10px] leading-tight transition-opacity hover:opacity-90",
                               canDnD && !m.isMasked && "cursor-grab active:cursor-grabbing",
                               dragId === m.id && "dragging opacity-40",
-                              calendarEventTone(m.status).block,
+                              m.status === "SMART_DRAFT"
+                                ? "bg-pink-100/80 text-pink-900 border border-dashed border-pink-400"
+                                : calendarEventTone(m.status).block,
                             )}
                             style={{
                               top: b.top,

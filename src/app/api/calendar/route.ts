@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { maskPrivateMeeting, meetingAccessOr } from "@/server/services/privacy";
 import { requireUser, can } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
+import { getDraft } from "@/server/services/ai/smart-schedule.service";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,34 @@ export async function GET(req: NextRequest) {
 
         const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all") };
     const masked = meetings.map((m) => maskPrivateMeeting(m, viewer));
-    return ok({ meetings: masked, occupancy, seeAll, canSeeAll });
+    const smart = req.nextUrl.searchParams.get("smart") === "1";
+    let draftMeetings: unknown[] | null = null;
+    if (smart) {
+      try {
+        const user2 = await requireUser();
+        const canSee = user2.roleKeys.includes("ADMIN") || user2.roleKeys.includes("SUPER_ADMIN") || !!user2.isSuperAdmin || can(user2, "meeting:approve");
+        if (canSee) {
+          const draft = await getDraft();
+          if (draft) {
+            draftMeetings = draft.assignments.map((a) => ({
+              id: `smart-${a.requestId}`,
+              title: a.title,
+              startAt: a.start,
+              endAt: a.end,
+              status: "SMART_DRAFT",
+              meetingType: "INTERNAL",
+              isPrivate: false,
+              isMasked: false,
+              seriesId: null,
+              organizer: { fullName: "زمان‌بندی هوشمند" },
+              room: a.roomId ? { id: a.roomId, name: a.roomName ?? "" } : null,
+              _count: { participants: 0 },
+            }));
+          }
+        }
+      } catch { draftMeetings = null; }
+    }
+    return ok({ meetings: masked, draftMeetings, occupancy, seeAll, canSeeAll });
   } catch (e) {
     return handleError(e);
   }

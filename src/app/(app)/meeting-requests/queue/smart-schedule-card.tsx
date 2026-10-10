@@ -8,6 +8,7 @@
  */
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { api, type ApiError } from "@/lib/api";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -58,6 +59,7 @@ function rangeFor(mode: "week" | "month"): { from: string; to: string } {
 
 export function SmartScheduleCard() {
   const { push } = useToast();
+  const router = useRouter();
   const [mode, setMode] = useState<"week" | "month">("week");
   const [draft, setDraft] = useState<PlanDraft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -76,7 +78,8 @@ export function SmartScheduleCard() {
         json: { windowFrom: range.from, windowTo: range.to, useAi: true },
       });
       setDraft(r.draft);
-      push(`${faNum(r.draft.stats.scheduled)} از ${faNum(r.draft.stats.total)} درخواست زمان‌بندی شد (پیش‌نویس)`, "success");
+      push(`${faNum(r.draft.stats.scheduled)} از ${faNum(r.draft.stats.total)} درخواست زمان‌بندی شد — پیش‌نمایش در تقویم`, "success");
+      router.push("/calendar?smart=1&view=month");
     } catch (e) {
       push((e as ApiError).message ?? "تولید برنامه ناموفق بود", "error");
     } finally {
