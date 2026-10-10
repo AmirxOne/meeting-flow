@@ -13,6 +13,7 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { faNum, formatJalali } from "@/lib";
 import { StatusChip } from "@/components/ui/request-status";
+import { SmartScheduleCard } from "./smart-schedule-card";
 
 const URGENCY_FA: Record<string, string> = {
   URGENT: "فوری",
@@ -129,6 +130,8 @@ export function RequestQueuePage() {
           درخواست‌های کارکنان و مهمان‌ها — تأیید، ویرایش، زمان‌بندی یا رد
         </p>
       </div>
+
+      <SmartScheduleCard />
 
       {isLoading ? (
         <Card>
