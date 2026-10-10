@@ -91,7 +91,7 @@ export async function GET(_req: NextRequest) {
       return { date, hours: Math.round(hours * 10) / 10, count: countByDay.get(date) ?? 0 };
     });
 
-    const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
+    const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all") };
     return ok({
       todayCount,
       activeNow,

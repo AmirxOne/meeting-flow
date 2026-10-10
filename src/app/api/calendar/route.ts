@@ -64,7 +64,7 @@ export async function GET(req: NextRequest) {
         : 0,
     }));
 
-        const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
+        const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all") };
     const masked = meetings.map((m) => maskPrivateMeeting(m, viewer));
     return ok({ meetings: masked, occupancy, seeAll, canSeeAll });
   } catch (e) {

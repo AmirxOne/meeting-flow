@@ -34,7 +34,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       endAt: new Date(input.endAt),
       excludeMeetingId: input.excludeMeetingId ?? id,
       orgId: user.orgId,
-      viewer: { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") },
+      viewer: { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all") },
     });
     return ok(result);
   } catch (e) {

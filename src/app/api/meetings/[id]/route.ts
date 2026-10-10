@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
-import { requireUser, HttpError } from "@/server/auth/session";
+import { requireUser, HttpError, can } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
 import { waitlistMeta } from "@/server/services/waitlist.service";
 
@@ -110,7 +110,8 @@ export async function GET(
       meeting.organizerId === user.id ||
       meeting.createdById === user.id ||
       meeting.participants.some((p) => p.userId === user.id);
-    const isSuper = !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN");
+    // مدیران با مجوز «مشاهده همه جلسات» (ADMIN و بالاتر) محرمانه‌ها را هم می‌بینند
+    const isSuper = !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all");
     if (!isParticipant && !isSuper && meeting.isPrivate) {
       throw new HttpError(403, "دسترسی به این جلسه ندارید", "FORBIDDEN");
     }

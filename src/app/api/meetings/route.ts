@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     const total = sortedAll.length;
     const page = Math.max(1, Number(sp.get("page") ?? 1));
     const sorted = sortedAll.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-    const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
+    const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all") };
     const masked = sorted.map((m) => {
       const mine = m.participants.find((p) => p.userId === user.id && p.role !== "ORGANIZER");
       const { participants, ...rest } = maskPrivateMeeting(m, viewer);
