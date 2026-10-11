@@ -686,12 +686,12 @@ export function CalendarPage() {
 
                       <div
                         className={cn(
-                          "relative mt-0.5 hidden space-y-0.5 sm:block",
+                          "absolute inset-x-1 bottom-0.5 top-7 hidden sm:block",
                           dayMeetings.length > 3 && "block",
                         )}
                       >
                       {dayMeetings.length > 3 && (
-                      <ScrollCell className="max-h-[3.8rem] space-y-0.5 sm:max-h-[5rem] lg:max-h-[5.2rem]">
+                      <ScrollCell fillParent className="space-y-0.5">
                         {(() => {
                           // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند
                           const sortedDay = smartMode
