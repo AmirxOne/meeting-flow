@@ -686,7 +686,7 @@ export function CalendarPage() {
 
                       <div
                         className={cn(
-                          "absolute inset-x-1 bottom-0.5 top-7 hidden sm:block",
+                          "absolute inset-x-0 bottom-0 top-7 hidden sm:block",
                           dayMeetings.length > 3 && "block",
                         )}
                       >
