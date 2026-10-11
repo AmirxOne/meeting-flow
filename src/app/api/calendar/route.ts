@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
     const masked = meetings.map((m) => maskPrivateMeeting(m, viewer));
     const smart = req.nextUrl.searchParams.get("smart") === "1";
     let draftMeetings: unknown[] | null = null;
+    let draftId: string | null = null;
     if (smart) {
       try {
         const user2 = await requireUser();
@@ -76,6 +77,7 @@ export async function GET(req: NextRequest) {
         if (canSee) {
           const draft = await getDraft();
           if (draft) {
+            draftId = draft.id;
             draftMeetings = draft.assignments.map((a) => ({
               id: `smart-${a.requestId}`,
               title: a.title,
@@ -94,7 +96,7 @@ export async function GET(req: NextRequest) {
         }
       } catch { draftMeetings = null; }
     }
-    return ok({ meetings: masked, draftMeetings, occupancy, seeAll, canSeeAll });
+    return ok({ meetings: masked, draftMeetings, draftId, occupancy, seeAll, canSeeAll });
   } catch (e) {
     return handleError(e);
   }

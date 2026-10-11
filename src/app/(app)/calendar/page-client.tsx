@@ -130,7 +130,7 @@ export function CalendarPage() {
   const { data, isLoading, isPlaceholderData } = useQuery({
     queryKey: ["calendar", range.from.toISOString(), range.to.toISOString(), scope, smartMode],
     queryFn: () =>
-      api<{ meetings: CalMeeting[]; draftMeetings?: CalMeeting[]; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean; canSeeAll: boolean }>(
+      api<{ meetings: CalMeeting[]; draftMeetings?: CalMeeting[]; draftId?: string | null; occupancy: { date: string; count: number; occupancyPct: number }[]; seeAll: boolean; canSeeAll: boolean }>(
         `/api/calendar?from=${range.from.toISOString()}&to=${range.to.toISOString()}&scope=${scope}${smartMode ? "&smart=1" : ""}`,
       ),
     // keep last month's data while fetching the new one — no skeleton flash,
@@ -143,20 +143,22 @@ export function CalendarPage() {
   const smartMeetings = (data?.draftMeetings ?? []) as CalMeeting[];
   const allMeetings = useMemo(() => (smartMode ? [...meetings, ...smartMeetings] : meetings), [meetings, smartMeetings, smartMode]);
   const [smartDraftId, setSmartDraftId] = useState<string | null>(null);
-  const [smartBusy, setSmartBusy] = useState(false);
+  const smartDraftIdFromApi = data?.draftId ?? null;
   useEffect(() => {
-    if (smartMeetings.length > 0) {
-      fetch("/api/admin/smart-schedule", { credentials: "include" })
-        .then((r) => r.json())
-        .then((j: { data?: { draft?: { id?: string } | null } }) => {
-          if (j.data?.draft?.id) {
-            setSmartDraftId(j.data.draft.id);
-            (window as unknown as { __smartDraftId?: string }).__smartDraftId = j.data.draft.id;
-          }
-        })
-        .catch(() => undefined);
+    if (smartDraftIdFromApi && smartDraftIdFromApi !== smartDraftId) {
+      setSmartDraftId(smartDraftIdFromApi);
+      (window as unknown as { __smartDraftId?: string }).__smartDraftId = smartDraftIdFromApi;
     }
-  }, [smartMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [smartDraftIdFromApi]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [smartBusy, setSmartBusy] = useState(false);
+  // draftId از همان پاسخ تقویم — بدون fetch جداگانه، همیشه همگام با بلوک‌ها
+  const draftIdFromApi = (data as { draftId?: string | null } | undefined)?.draftId ?? null;
+  useEffect(() => {
+    if (draftIdFromApi) {
+      setSmartDraftId(draftIdFromApi);
+      (window as unknown as { __smartDraftId?: string }).__smartDraftId = draftIdFromApi;
+    }
+  }, [draftIdFromApi]);
   // ── drag & drop reschedule (month view) ──
   const qc = useQueryClient();
   const { push } = useToast();
@@ -251,9 +253,14 @@ export function CalendarPage() {
       const newEnd = new Date(newStart.getTime() + durMin * 60000);
       // درگ پیش‌نمایش هوشمند → مستقیم Draft اصلاح شود
       if (id.startsWith("smart-")) {
+        const did = smartDraftId ?? (window as unknown as { __smartDraftId?: string }).__smartDraftId;
+        if (!did) {
+          push("پیش‌نویس آماده نیست — دوباره تولید کنید", "error");
+          return;
+        }
         api<{ draft: { id: string }; validation: { ok: boolean; errors: { message: string }[] } }>("/api/admin/smart-schedule/edit", {
           method: "POST",
-          json: { draftId: (window as unknown as { __smartDraftId?: string }).__smartDraftId, requestId: id.slice(6), start: newStart.toISOString(), end: newEnd.toISOString() },
+          json: { draftId: did, requestId: id.slice(6), start: newStart.toISOString(), end: newEnd.toISOString() },
         })
           .then((r2) => {
             if (r2.validation.ok) {
@@ -263,7 +270,7 @@ export function CalendarPage() {
               push(r2.validation.errors[0]?.message ?? "جابه‌جایی مجاز نیست", "error");
             }
           })
-          .catch(() => push("اصلاح پیش‌نویس ناموفق بود", "error"));
+          .catch((err2) => push((err2 as Error)?.message || "اصلاح پیش‌نویس ناموفق بود", "error"));
         return;
       }
       // show the confirmation MODAL instead of window.confirm
