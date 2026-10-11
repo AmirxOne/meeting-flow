@@ -624,7 +624,7 @@ export function CalendarPage() {
                 >
                 {monthGrid.map((cell, i) => {
                   const fridayCol = i % 7 === 6;
-                  if (!cell) return <div key={i} className="aspect-square border-b border-l border-line/40 bg-paper-soft/20" />;
+                  if (!cell) return <div key={i} className="h-16 border-b border-l border-line/40 bg-paper-soft/20 sm:h-24 lg:h-[7.25rem]" />;
                   const iso = isoOfJalali(cell.jy, cell.jm, cell.jd);
                   const dayMeetings = byDate.get(iso) ?? [];
                   const occ = occupancyMap.get(iso);
@@ -654,7 +654,7 @@ export function CalendarPage() {
                         onDropToDay(iso, fromData || undefined);
                       }}
                       className={cn(
-                        "relative aspect-square overflow-hidden border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:p-1.5",
+                        "relative h-16 overflow-hidden border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
                         dragOverIso === iso && "ring-2 ring-inset ring-ink bg-paper-soft",
                         holidayName
                           ? "bg-red-50"
@@ -686,12 +686,12 @@ export function CalendarPage() {
 
                       <div
                         className={cn(
-                          "absolute inset-x-1 bottom-1 top-8 hidden sm:block",
+                          "relative mt-0.5 hidden space-y-0.5 sm:block",
                           dayMeetings.length > 3 && "block",
                         )}
                       >
                       {dayMeetings.length > 3 && (
-                      <ScrollCell fillParent className="space-y-0.5">
+                      <ScrollCell className="max-h-[3.8rem] space-y-0.5 sm:max-h-[5rem] lg:max-h-[5.2rem]">
                         {(() => {
                           // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند
                           const sortedDay = smartMode
