@@ -38,7 +38,7 @@ export function ScrollCell({
 
   return (
     <div className={cn("relative", fillParent ? "h-full" : "")}>
-      <div ref={ref} onScroll={onScroll} className={cn("no-scrollbar overflow-y-auto pb-1.5", fillParent && "h-full", className)}>
+      <div ref={ref} onScroll={onScroll} className={cn("no-scrollbar overflow-y-auto pb-3", fillParent && "h-full", className)}>
         {children}
       </div>
       {!atBottom && (
