@@ -719,26 +719,15 @@ export function CalendarPage() {
                               stopAutoAdvance();
                             }}
                             className={cn(
-                              "flex items-center gap-1 rounded px-1 py-0.5 text-[10px] leading-4",
+                              "flex truncate rounded px-1 py-0.5 text-[10px] leading-4 font-medium",
                               m.status === "SMART_DRAFT"
-                                ? "text-pink-800"
-                                : "text-ink",
+                                ? "bg-pink-100 text-pink-800 border border-dashed border-pink-400"
+                                : calendarEventTone(m.status).chip,
                               dragId === m.id && "dragging opacity-40",
                               canDnD && "cursor-grab active:cursor-grabbing",
                             )}
                           >
-                            {/* بلوک مربع ۱:۱ — رنگ وضعیت؛ زمان داخلش */}
-                            <span
-                              className={cn(
-                                "flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-[5px] text-[8.5px] font-bold leading-none tabular-nums",
-                                m.status === "SMART_DRAFT"
-                                  ? "border border-dashed border-pink-400 bg-pink-100 text-pink-800"
-                                  : calendarEventTone(m.status).square,
-                              )}
-                            >
-                              {timeOf(m.startAt)}
-                            </span>
-                            <span className="truncate">{m.isMasked ? "جلسه محرمانه" : m.title}{m.seriesId ? " ↻" : ""}</span>
+                            <span className="truncate">{timeOf(m.startAt)} {m.isMasked ? "جلسه محرمانه" : m.title}{m.seriesId ? " ↻" : ""}</span>
                           </div>
                           ));
                         })()}
