@@ -1,5 +1,6 @@
 export type CalendarEventTone = {
   chip: string;
+  square: string;
   block: string;
   rail: string;
   dot: string;
@@ -20,6 +21,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
     // در حال برگزاری: آبی info — نه قرمز که حس منفی/خطر می‌دهد
     return {
       chip: "bg-blue-500 text-white",
+      square: "bg-blue-500 text-white",
       block: "bg-blue-500 text-white",
       rail: "bg-blue-500",
       dot: "bg-blue-500",
@@ -28,6 +30,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
   if (status === "PENDING_APPROVAL") {
     return {
       chip: "bg-amber-500 text-white",
+      square: "bg-amber-500 text-white",
       block: "bg-amber-500 text-white",
       rail: "bg-amber-500",
       dot: "bg-amber-500",
@@ -37,6 +40,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
     // لغو/رد/غیبت: خاکستری خط‌خورده — با «برگزار شده» اشتباه نشود
     return {
       chip: "bg-ink/25 text-ink-soft line-through",
+      square: "bg-ink/25 text-ink-soft",
       block: "bg-ink/25 text-ink-soft line-through",
       rail: "bg-ink/25",
       dot: "bg-ink/30",
@@ -46,6 +50,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
     // برگزار شده: تیک سبز
     return {
       chip: "bg-emerald-500 text-white",
+      square: "bg-emerald-500 text-white",
       block: "bg-emerald-500 text-white",
       rail: "bg-emerald-500",
       dot: "bg-emerald-500",
@@ -54,6 +59,7 @@ export function calendarEventTone(status: string): CalendarEventTone {
   // تأییدشده (عادی): مشکی
   return {
     chip: "bg-ink text-white font-medium",
+    square: "bg-ink text-white",
     block: "bg-ink text-white",
     rail: "bg-ink",
     dot: "bg-ink",

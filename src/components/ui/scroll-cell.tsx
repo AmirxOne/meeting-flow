@@ -13,9 +13,11 @@ import { ProgressiveBlur } from "./progressive-blur";
 export function ScrollCell({
   className,
   children,
+  fillParent,
 }: {
   className?: string;
   children: ReactNode;
+  fillParent?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // فرض اولیه: سرریز دارد و پایینیم نیستیم — بعد از mount موقعیت واقعی خوانده می‌شود
@@ -35,8 +37,8 @@ export function ScrollCell({
   }
 
   return (
-    <div className="relative">
-      <div ref={ref} onScroll={onScroll} className={cn("no-scrollbar overflow-y-auto pb-1.5", className)}>
+    <div className={cn("relative", fillParent ? "h-full" : "")}>
+      <div ref={ref} onScroll={onScroll} className={cn("no-scrollbar overflow-y-auto pb-1.5", fillParent && "h-full", className)}>
         {children}
       </div>
       {!atBottom && (
