@@ -654,8 +654,7 @@ export function CalendarPage() {
                         onDropToDay(iso, fromData || undefined);
                       }}
                       className={cn(
-                        "relative h-16 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
-                        smartMode && dayMeetings.some((m) => m.status === "SMART_DRAFT") && "overflow-hidden",
+                        "relative h-16 overflow-hidden border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
                         dragOverIso === iso && "ring-2 ring-inset ring-ink bg-paper-soft",
                         holidayName
                           ? "bg-red-50"
@@ -692,7 +691,7 @@ export function CalendarPage() {
                         )}
                       >
                       {dayMeetings.length > 3 && (
-                      <ScrollCell className="max-h-[6.5rem] space-y-0.5 lg:max-h-[6.2rem]">
+                      <ScrollCell className="max-h-[3.4rem] space-y-0.5 sm:max-h-[5rem] lg:max-h-[5.6rem]">
                         {(() => {
                           // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند
                           const sortedDay = smartMode
