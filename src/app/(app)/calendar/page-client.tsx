@@ -686,16 +686,15 @@ export function CalendarPage() {
 
                       <div className={cn(
                         "mt-0.5 hidden space-y-0.5 sm:block",
-                        // پیش‌نمایش هوشمند: همه‌ی بلوک‌ها هستند ولی سلول قد ثابت می‌ماند — اسکرول داخلی
-                        smartMode && dayMeetings.some((m) => m.status === "SMART_DRAFT") && "block max-h-[6.5rem] overflow-y-auto lg:max-h-[6.2rem]",
+                        // بیش از ۳ رویداد در هر سلول (حالت عادی یا هوشمند): همه می‌مانند ولی داخل اسکرول بی‌نوار
+                        dayMeetings.length > 3 && "block max-h-[6.5rem] overflow-y-auto no-scrollbar lg:max-h-[6.2rem]",
                       )}>
                         {(() => {
                           // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند
                           const sortedDay = smartMode
                             ? [...dayMeetings].sort((a, b) => (a.status === "SMART_DRAFT" ? 0 : 1) - (b.status === "SMART_DRAFT" ? 0 : 1))
                             : dayMeetings;
-                          const shown = smartMode ? sortedDay : sortedDay.slice(0, 3);
-                          return shown.map((m) => (
+                          return sortedDay.map((m) => (
                           <div
                             key={m.id}
                             data-mid={m.id}
@@ -729,9 +728,7 @@ export function CalendarPage() {
                           </div>
                           ));
                         })()}
-                        {!smartMode && dayMeetings.length > 3 && (
-                          <div className="pr-1 text-[10px] text-ink-faint">+{faNum(dayMeetings.length - 3)} جلسه دیگر</div>
-                        )}
+
                       </div>
 
                       <div className="absolute bottom-1.5 right-1.5 flex gap-0.5 sm:hidden">

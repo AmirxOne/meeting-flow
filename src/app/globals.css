@@ -54,6 +54,15 @@ body {
   color: #ffffff;
 }
 
+/* اسکرول بدون نوار — برای سلول‌های تقویم */
+.no-scrollbar {
+  scrollbar-width: none; /* firefox */
+  -ms-overflow-style: none; /* ie */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* chrome/safari */
+}
+
 /* thin scrollbars */
 * {
   scrollbar-width: thin;
