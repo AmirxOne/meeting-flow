@@ -691,7 +691,7 @@ export function CalendarPage() {
                         )}
                       >
                       {dayMeetings.length > 3 && (
-                      <ScrollCell fillParent className="space-y-0.5">
+                      <ScrollCell fillParent className="space-y-0.5 pb-3">
                         {(() => {
                           // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند
                           const sortedDay = smartMode
