@@ -17,6 +17,7 @@ import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { cn, faNum, faStr, faPad2, formatJalali, toJalali, jMonthLen } from "@/lib";
 import { jMonthGrid, J_MONTHS, J_WEEKDAYS_LONG, toGregorian, isFridayIso } from "@/lib/jalali";
 import { calendarEventTone, newMeetingHref, CALENDAR_LEGEND } from "@/lib/calendar-event";
+import { ScrollCell } from "@/components/ui/scroll-cell";
 import { layoutDayBlocks, nowLineTop } from "@/lib/calendar-timeline";
 
 interface CalMeeting {
@@ -684,11 +685,14 @@ export function CalendarPage() {
                         </p>
                       )}
 
-                      <div className={cn(
-                        "mt-0.5 hidden space-y-0.5 sm:block",
-                        // بیش از ۳ رویداد در هر سلول (حالت عادی یا هوشمند): همه می‌مانند ولی داخل اسکرول بی‌نوار
-                        dayMeetings.length > 3 && "block max-h-[6.5rem] overflow-y-auto no-scrollbar lg:max-h-[6.2rem]",
-                      )}>
+                      <div
+                        className={cn(
+                          "relative mt-0.5 hidden space-y-0.5 sm:block",
+                          dayMeetings.length > 3 && "block",
+                        )}
+                      >
+                      {dayMeetings.length > 3 && (
+                      <ScrollCell className="max-h-[6.5rem] space-y-0.5 lg:max-h-[6.2rem]">
                         {(() => {
                           // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند
                           const sortedDay = smartMode
@@ -728,6 +732,8 @@ export function CalendarPage() {
                           </div>
                           ));
                         })()}
+                      </ScrollCell>
+                      )}
 
                       </div>
 
