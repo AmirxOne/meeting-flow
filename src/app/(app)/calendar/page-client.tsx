@@ -654,6 +654,7 @@ export function CalendarPage() {
                       }}
                       className={cn(
                         "relative h-16 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
+                        smartMode && dayMeetings.some((m) => m.status === "SMART_DRAFT") && "lg:h-auto lg:min-h-[7.25rem]",
                         dragOverIso === iso && "ring-2 ring-inset ring-ink bg-paper-soft",
                         holidayName
                           ? "bg-red-50"
@@ -684,7 +685,13 @@ export function CalendarPage() {
                       )}
 
                       <div className="mt-0.5 hidden space-y-0.5 sm:block">
-                        {dayMeetings.slice(0, 3).map((m) => (
+                        {(() => {
+                          // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند
+                          const sortedDay = smartMode
+                            ? [...dayMeetings].sort((a, b) => (a.status === "SMART_DRAFT" ? 0 : 1) - (b.status === "SMART_DRAFT" ? 0 : 1))
+                            : dayMeetings;
+                          const shown = smartMode ? sortedDay : sortedDay.slice(0, 3);
+                          return shown.map((m) => (
                           <div
                             key={m.id}
                             data-mid={m.id}
@@ -716,8 +723,9 @@ export function CalendarPage() {
                           >
                             <span className="truncate">{timeOf(m.startAt)} {m.isMasked ? "جلسه محرمانه" : m.title}{m.seriesId ? " ↻" : ""}</span>
                           </div>
-                        ))}
-                        {dayMeetings.length > 3 && (
+                          ));
+                        })()}
+                        {!smartMode && dayMeetings.length > 3 && (
                           <div className="pr-1 text-[10px] text-ink-faint">+{faNum(dayMeetings.length - 3)} جلسه دیگر</div>
                         )}
                       </div>
