@@ -654,7 +654,7 @@ export function CalendarPage() {
                       }}
                       className={cn(
                         "relative h-16 border-b border-l border-line/40 p-1 text-right align-top transition-colors sm:h-24 sm:p-1.5 lg:h-[7.25rem]",
-                        smartMode && dayMeetings.some((m) => m.status === "SMART_DRAFT") && "lg:h-auto lg:min-h-[7.25rem]",
+                        smartMode && dayMeetings.some((m) => m.status === "SMART_DRAFT") && "overflow-hidden",
                         dragOverIso === iso && "ring-2 ring-inset ring-ink bg-paper-soft",
                         holidayName
                           ? "bg-red-50"
@@ -684,7 +684,11 @@ export function CalendarPage() {
                         </p>
                       )}
 
-                      <div className="mt-0.5 hidden space-y-0.5 sm:block">
+                      <div className={cn(
+                        "mt-0.5 hidden space-y-0.5 sm:block",
+                        // پیش‌نمایش هوشمند: همه‌ی بلوک‌ها هستند ولی سلول قد ثابت می‌ماند — اسکرول داخلی
+                        smartMode && dayMeetings.some((m) => m.status === "SMART_DRAFT") && "block max-h-[6.5rem] overflow-y-auto lg:max-h-[6.2rem]",
+                      )}>
                         {(() => {
                           // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند
                           const sortedDay = smartMode
