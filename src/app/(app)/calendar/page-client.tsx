@@ -478,6 +478,12 @@ export function CalendarPage() {
   return (
     <div className="min-w-0 space-y-4 p-3 sm:p-4">
       {/* نوار تأیید زمان‌بندی هوشمند */}
+      {smartMode && smartMeetings.length === 0 && !isLoading && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-pink-200 bg-pink-50/60 px-4 py-3">
+          <p className="text-[12px] text-pink-900">درخواستِ بازِ واجد شرایطی برای زمان‌بندی نیست — از «هماهنگی درخواست‌ها» برنامه‌ی جدید تولید کنید</p>
+          <Button variant="outline" size="sm" onClick={() => setSmartMode(false)}>بستن</Button>
+        </div>
+      )}
       {smartMode && smartMeetings.length > 0 && (
         <div className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-pink-300 bg-pink-50 px-4 py-3 shadow-sm">
           <div className="min-w-0">
