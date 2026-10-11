@@ -36,7 +36,7 @@ export function ScrollCell({
 
   return (
     <div className="relative">
-      <div ref={ref} onScroll={onScroll} className={cn("no-scrollbar overflow-y-auto", className)}>
+      <div ref={ref} onScroll={onScroll} className={cn("no-scrollbar overflow-y-auto pb-1.5", className)}>
         {children}
       </div>
       {!atBottom && (
