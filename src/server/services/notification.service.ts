@@ -45,6 +45,8 @@ export const emailProvider: EmailProvider = {
 
 export type NotificationType =
   | "MEETING_CREATED"
+  | "APPOINTMENT_BOOKED"
+  | "APPOINTMENT_CANCELLED"
   | "MEETING_APPROVED"
   | "MEETING_REJECTED"
   | "MEETING_CANCELLED"
@@ -75,7 +77,7 @@ async function tryExternal(label: string, fn: () => Promise<void>) {
   }
 }
 
-async function notifyUsers(
+export async function notifyUsers(
   userIds: string[],
   type: NotificationType,
   title: string,
