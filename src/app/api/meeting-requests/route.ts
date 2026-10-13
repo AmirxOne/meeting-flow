@@ -87,6 +87,14 @@ export async function POST(req: NextRequest) {
     const user = await requireUser();
     const input = requestSchema.parse(await req.json().catch(() => ({})));
 
+    // درخواست برای گذشته بی‌معناست — پنجره‌ی ترجیحی باید آینده باشد
+    if (input.prefFrom && new Date(input.prefFrom).getTime() < Date.now() - 24 * 3600_000) {
+      return Response.json(
+        { ok: false, error: { message: "تاریخ درخواست نمی‌تواند در گذشته باشد", code: "PAST_DATE" } },
+        { status: 400 },
+      );
+    }
+
     const item = await prisma.meetingRequest.create({
       data: {
         orgId: user.orgId,
