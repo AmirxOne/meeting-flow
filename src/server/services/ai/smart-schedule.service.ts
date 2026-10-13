@@ -13,6 +13,7 @@ import {
   type SchedAssignment,
 } from "./smart-schedule-engine";
 import { llmChat, ensureAiAvailable } from "../llm-client.service";
+import { extractJson } from "./feature-base";
 
 const DRAFT_KEY = "smart-schedule:draft";
 
@@ -34,6 +35,44 @@ export interface SmartPlanDraft {
   unscheduled: { requestId: string; title: string; reason: string; alternatives?: { start: string; end: string }[] }[];
   aiSummary: string | null;
   stats: { total: number; scheduled: number; unscheduled: number; elapsedMs: number };
+}
+
+/**
+ * تحلیل AI قبل از زمان‌بندی — نقش تحلیلی فقط:
+ * GLM درخواست‌ها را می‌بیند و «پیشنهاد اولویت» می‌دهد (وزن اضافه ۰ تا ۳۰).
+ * تصمیم نهایی همیشه با موتور قانون‌محور است؛ خروجی AI اعتبارسنجی
+ * می‌شود (فقط عدد مجاز) و نبودِ AI برنامه را بی‌اعتبار نمی‌کند.
+ */
+async function aiPriorityHints(
+  requests: { id: string; title: string; urgency: string; durationMin: number; requesterName: string | null }[],
+): Promise<Map<string, number>> {
+  const hints = new Map<string, number>();
+  try {
+    await ensureAiAvailable();
+    const r = await llmChat({
+      messages: [
+        {
+          role: "system",
+          content: `You are a scheduling analyst. For each meeting request, output a JSON object mapping request ids to a small priority boost 0-30 (integer). Consider: business impact signals in the title (budget, hiring, customer, decision, deadline), cross-team coordination needs, and blocked-downstream work. Requests with vague titles get 0. Return ONLY JSON like {"<id>": 12}. No markdown, no explanation. Persian titles are common.`,
+        },
+        { role: "user", content: JSON.stringify(requests) },
+      ],
+      temperature: 0.2,
+      maxTokens: 800,
+      purpose: "smart-schedule-priority-hints",
+    });
+    const j = extractJson(r.text);
+    if (j && typeof j === "object") {
+      for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
+        if (requests.some((q) => q.id === k) && typeof v === "number" && v >= 0 && v <= 30) {
+          hints.set(k, Math.round(v)); // اعتبارسنجی: فقط اعداد ۰..۳۰ برای idهای واقعی
+        }
+      }
+    }
+  } catch {
+    // AI قطع — بدون هینت ادامه بده
+  }
+  return hints;
 }
 
 /** جمع‌آوری محدودیت‌ها از داده‌ی واقعی سازمان */
@@ -93,7 +132,7 @@ export async function generateSmartPlan(input: {
       meetingId: null,
     },
     select: {
-      id: true, title: true, urgency: true, durationMin: true,
+      id: true, title: true, createdAt: true, urgency: true, durationMin: true,
       prefFrom: true, prefTo: true, prefSlots: true,
       participantIds: true, attendeeCount: true, venue: true, requesterId: true,
     },
@@ -106,6 +145,7 @@ export async function generateSmartPlan(input: {
   const schedReqs: SchedRequest[] = requests.map((r) => ({
     id: r.id,
     title: r.title,
+    createdAt: r.createdAt,
     urgency: r.urgency,
     durationMin: r.durationMin,
     prefFrom: r.prefFrom,
@@ -115,6 +155,27 @@ export async function generateSmartPlan(input: {
     attendeeCount: r.attendeeCount,
     venue: r.venue,
   }));
+
+  // تحلیل AI — پیشنهاد وزن (اختیاری، ولیدیت‌شده)؛ سپس موتور قانون‌محور تصمیم می‌گیرد
+  const hints = input.useAi
+    ? await aiPriorityHints(
+        requests.map((r) => ({
+          id: r.id,
+          title: r.title,
+          urgency: r.urgency,
+          durationMin: r.durationMin,
+          requesterName: null,
+        })),
+      )
+    : new Map<string, number>();
+  if (hints.size > 0) {
+    for (const rq of schedReqs) {
+      const h = hints.get(rq.id);
+      if (h) {
+        (rq as SchedRequest & { aiBoost?: number }).aiBoost = h;
+      }
+    }
+  }
 
   // موتور — تخصیص زمان توسط کد
   const result = scheduleRequests(schedReqs, c, roomBusy);
@@ -210,10 +271,10 @@ export async function updateDraftAssignment(input: {
   const { c, roomBusy } = await buildConstraints(input.orgId, new Date(draft.windowFrom), new Date(draft.windowTo));
   const reqs = await prisma.meetingRequest.findMany({
     where: { orgId: input.orgId, status: "OPEN", meetingId: null },
-    select: { id: true, title: true, urgency: true, durationMin: true, prefFrom: true, prefTo: true, prefSlots: true, participantIds: true, attendeeCount: true, venue: true, requesterId: true },
+    select: { id: true, title: true, createdAt: true, urgency: true, durationMin: true, prefFrom: true, prefTo: true, prefSlots: true, participantIds: true, attendeeCount: true, venue: true, requesterId: true },
   });
   const schedReqs: SchedRequest[] = reqs.map((r) => ({
-    id: r.id, title: r.title, urgency: r.urgency, durationMin: r.durationMin,
+    id: r.id, title: r.title, createdAt: r.createdAt, urgency: r.urgency, durationMin: r.durationMin,
     prefFrom: r.prefFrom, prefTo: r.prefTo,
     prefSlots: (r.prefSlots as { from: string; to: string }[] | null) ?? null,
     participantIds: r.requesterId ? [...new Set([r.requesterId, ...r.participantIds])] : r.participantIds,
@@ -237,7 +298,7 @@ export async function applySmartPlan(input: { orgId: string; userId: string; dra
   // re-check: درخواست‌ها هنوز OPEN و بدون جلسه‌اند؟
   const reqs = await prisma.meetingRequest.findMany({
     where: { orgId: input.orgId, id: { in: draft.assignments.map((a) => a.requestId) } },
-    select: { id: true, status: true, meetingId: true, title: true, requesterId: true, participantIds: true, durationMin: true, venue: true, description: true, urgency: true, isPrivate: true },
+    select: { id: true, status: true, meetingId: true, title: true, createdAt: true, requesterId: true, participantIds: true, durationMin: true, venue: true, description: true, urgency: true, isPrivate: true },
   });
   const changed = reqs.filter((r) => r.status !== "OPEN" || r.meetingId);
   if (changed.length) throw new HttpError(409, `${changed.length} درخواست از زمان تولید برنامه تغییر کرده — برنامه را دوباره تولید کنید`, "PLAN_STALE");
@@ -245,7 +306,7 @@ export async function applySmartPlan(input: { orgId: string; userId: string; dra
   // اعتبارسنجی نهایی همان لحظه
   const { c } = await buildConstraints(input.orgId, new Date(draft.windowFrom), new Date(draft.windowTo));
   const schedReqs: SchedRequest[] = reqs.map((r) => ({
-    id: r.id, title: r.title, urgency: r.urgency, durationMin: r.durationMin,
+    id: r.id, title: r.title, createdAt: r.createdAt, urgency: r.urgency, durationMin: r.durationMin,
     prefFrom: null, prefTo: null, prefSlots: null,
     participantIds: r.requesterId ? [...new Set([r.requesterId, ...r.participantIds])] : r.participantIds,
     attendeeCount: null, venue: r.venue,

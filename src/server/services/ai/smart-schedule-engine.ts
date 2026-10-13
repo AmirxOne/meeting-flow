@@ -25,6 +25,7 @@ const STEP_MIN = 15;
 export interface SchedRequest {
   id: string;
   title: string;
+  createdAt: Date;
   urgency: string; // URGENT | NORMAL | FLEXIBLE
   durationMin: number;
   prefFrom: Date | null;
@@ -82,21 +83,62 @@ export interface SchedResult {
   stats: { total: number; scheduled: number; unscheduled: number; elapsedMs: number };
 }
 
-/** امتیاز اولویت — شفاف و قابل‌تست؛ بالاتر = زودتر زمان‌بندی می‌شود */
-export function priorityScore(r: SchedRequest): number {
-  let s = 0;
-  if (r.urgency === "URGENT") s += 100;
-  else if (r.urgency === "NORMAL") s += 50;
-  // پنجره‌ی ترجیحی نزدیک‌تر = فوریت بیشتر
-  if (r.prefFrom) {
-    const daysLeft = (r.prefFrom.getTime() - Date.now()) / 86400000;
-    if (daysLeft < 1) s += 40;
-    else if (daysLeft < 3) s += 25;
-    else if (daysLeft < 7) s += 10;
+/**
+ * امتیاز اولویت چندوجهی — بالاتر = زودتر زمان‌بندی می‌شود.
+ * وزن‌ها شفاف‌اند تا ادمین بتواند گزارش «چرا این جلسه اول شد» را ببیند.
+ */
+export interface ScoreBreakdown {
+  total: number;
+  urgency: number;
+  deadline: number;
+  coordination: number;
+  size: number;
+  age: number;
+}
+
+export function priorityScoreDetailed(r: SchedRequest, now = Date.now()): ScoreBreakdown {
+  const aiBoost = Math.min((r as SchedRequest & { aiBoost?: number }).aiBoost ?? 0, 30); // تحلیل AI — سقف ۳۰، ولیدیت‌شده
+  const urgency = r.urgency === "URGENT" ? 100 : r.urgency === "NORMAL" ? 50 : 10;
+  // نزدیکی ددلاینِ پنجره‌ی ترجیحی
+  let deadline = 0;
+  if (r.prefTo) {
+    const hoursLeft = (r.prefTo.getTime() - now) / 3600000;
+    if (hoursLeft < 24) deadline = 40;
+    else if (hoursLeft < 72) deadline = 25;
+    else if (hoursLeft < 168) deadline = 12;
+    else if (hoursLeft < 0) deadline = 60; // از مهلت گذشته — فوری‌ترین
   }
-  // شرکت‌کننده بیشتر = هماهنگی سخت‌تر = زودتر قفل شود
-  s += Math.min(r.participantIds.length, 8) * 3;
-  return s;
+  // سختی هماهنگی: شرکت‌کننده بیشتر = زودتر قفل شود
+  const coordination = Math.min(r.participantIds.length, 8) * 4;
+  // جلسه‌ی بزرگ (نفرات)
+  const size = Math.min(r.attendeeCount ?? 0, 10) * 2;
+  // قدیمی‌تر بودن درخواست (روزهای منتظر‌مانده) — انصاف FIFO
+  const age = Math.min(Math.floor((now - r.createdAt.getTime()) / 86400000), 7) * 3;
+  return { total: urgency + deadline + coordination + size + age + aiBoost, urgency, deadline, coordination, size, age };
+}
+
+export function priorityScore(r: SchedRequest): number {
+  return priorityScoreDetailed(r).total;
+}
+
+/** توضیح شفاف «چرا این زمان» — بر اساس تصمیم‌های واقعی موتور */
+function buildReason(r: SchedRequest, start: Date, d: ScoreBreakdown): string {
+  const parts: string[] = [];
+  if (d.deadline >= 40) parts.push("ددلاین نزدیک");
+  if (r.urgency === "URGENT") parts.push("فوری — صبحِ نزدیک‌ترین روز");
+  if (r.prefFrom && r.prefTo) {
+    const min = start.getHours() * 60 + start.getMinutes();
+    const pf = r.prefFrom.getHours() * 60 + r.prefFrom.getMinutes();
+    const pt = r.prefTo.getHours() * 60 + r.prefTo.getMinutes();
+    if (min >= pf && min <= pt) parts.push("داخل پنجره‌ی ترجیحی");
+    else parts.push("نزدیک به پنجره‌ی ترجیحی");
+  }
+  const hour = start.getHours();
+  if (hour >= 9 && hour < 12) parts.push("بازه‌ی پرانرژی صبح");
+  else if (hour >= 13 && hour < 16) parts.push("بعدازظهر کاری");
+  if (d.coordination >= 16) parts.push("هماهنگی شرکت‌کنندگان زیاد");
+  if (parts.length === 0) parts.push("بهترین اسلات مشترک آزاد");
+  return parts.join(" · ");
 }
 
 function fmtLocal(d: Date): string {
@@ -173,6 +215,62 @@ function roomAvailable(
 }
 
 /**
+ * امتیاز کیفیتِ یک اسلاتِ معتبر برای یک درخواست — بالاتر = بهتر.
+ * معیارها:
+ *  - نزدیکی به پنجره/اسلات ترجیحی درخواست
+ *  - فوری‌ها صبح و زودتر در بازه
+ *  - انرژی‌بخشی: جلسات مهم‌تر در بازه‌ی پرانرژی (۹ تا ۱۲)
+ *  - توزیع بار: روزِ خلوت‌تر بهتر
+ *  - جریمه‌ی چسبیدن به ساعت ناهار
+ */
+function slotQuality(
+  start: Date,
+  r: SchedRequest,
+  c: SchedConstraints,
+  dayLoad: Map<string, number>,
+): number {
+  let q = 0;
+  const min = start.getHours() * 60 + start.getMinutes();
+
+  // ۱. نزدیکی به ترجیح درخواست
+  if (r.prefFrom && r.prefTo) {
+    const pf = r.prefFrom.getHours() * 60 + r.prefFrom.getMinutes();
+    const pt = r.prefTo.getHours() * 60 + r.prefTo.getMinutes();
+    if (min >= pf && min <= pt) q += 30; // داخل پنجره
+    else q -= Math.min(Math.abs(min - pf), Math.abs(min - pt)) / 8;
+  }
+  if (r.prefSlots?.length) {
+    const inside = r.prefSlots.some((sl) => {
+      const f = new Date(sl.from);
+      const t = new Date(sl.to);
+      return start >= f && new Date(start.getTime() + r.durationMin * 60000) <= t;
+    });
+    if (inside) q += 30;
+  }
+
+  // ۲. فوری‌ها: زودتر در بازه + صبح
+  if (r.urgency === "URGENT") {
+    q += Math.max(0, 20 - (start.getTime() - c.windowFrom.getTime()) / (86400000 * 2));
+    if (min < 12 * 60) q += 8;
+  }
+
+  // ۳. پرانرژی ۹–۱۲ برای همه (جز FLEXIBLE)
+  if (min >= 9 * 60 && min < 12 * 60) q += r.urgency === "FLEXIBLE" ? 3 : 10;
+  if (min >= 13 * 60 && min < 16 * 60) q += 4;
+  if (min >= 12 * 60 && min < 13 * 60) q -= 12; // چسبیده به ناهار
+
+  // ۴. توزیع بار روزها
+  const dkey = fmtLocal(start);
+  q -= Math.min((dayLoad.get(dkey) ?? 0) * 2.5, 25);
+
+  // ۵. شنبه/چهارشنبه جریمه‌ی ملایم (اول و انتهای هفته کاری)
+  const wd = start.getDay();
+  if (wd === 6 || wd === 3) q -= 4;
+
+  return q;
+}
+
+/**
  * موتور اصلی — Greedy با اولویت + گرید ۱۵ دقیقه‌ای.
  * برای ۱۰۰+ درخواست کافی است (هر درخواست × اسلات‌های بازه).
  */
@@ -197,11 +295,18 @@ export function scheduleRequests(requests: SchedRequest[], c: SchedConstraints, 
     g.setMinutes(g.getMinutes() + STEP_MIN);
   }
 
+  // بار روزها برای توزیع
+  const dayLoad = new Map<string, number>();
+  for (const b of c.busy) {
+    const k = fmtLocal(b.from);
+    dayLoad.set(k, (dayLoad.get(k) ?? 0) + 1);
+  }
+
   for (const r of sorted) {
-    let placed = false;
     let lastReason = "زمان معتبری در بازه یافت نشد";
-    let roomReason: string | null = null; // علت اتاق مهم‌تر است — زمان کاری هست ولی اتاق نیست
+    let roomReason: string | null = null; // علت اتاق مهم‌تر است
     const alternatives: { start: Date; end: Date }[] = [];
+    let best: { start: Date; end: Date; roomId: string | null; q: number } | null = null;
 
     for (const start of gridStarts) {
       const end = new Date(start.getTime() + r.durationMin * 60000);
@@ -212,37 +317,36 @@ export function scheduleRequests(requests: SchedRequest[], c: SchedConstraints, 
       const confErr = participantConflict(start, end, r.participantIds, c.busy, assignments, reqMap);
       if (confErr) { lastReason = confErr; continue; }
 
-      // اتاق: فقط ONSITE و با نیاز به ظرفیت — اولین اتاق آزاد
+      // اتاق: کوچک‌ترین اتاق مناسبِ آزاد
       let roomId: string | null = null;
       if (r.venue === "ONSITE") {
         const need = Math.max(2, (r.participantIds.length || 1) + 1);
         const room = c.rooms
           .filter((rm) => rm.active && rm.capacity >= need)
-          .sort((a, b) => a.capacity - b.capacity) // کوچک‌ترین مناسب — اتاق بزرگ برای جمعیت بزرگ بماند
+          .sort((a, b) => a.capacity - b.capacity)
           .find((rm) => roomAvailable(rm.id, start, end, roomBusy, assignments));
         if (!room) { roomReason = "اتاق خالی با ظرفیت کافی نیست"; continue; }
         roomId = room.id;
       }
 
+      const q = slotQuality(start, r, c, dayLoad);
       if (alternatives.length < 3) alternatives.push({ start: new Date(start), end: new Date(end) });
-      if (!placed) {
-        assignments.push({
-          requestId: r.id,
-          start: new Date(start),
-          end: new Date(end),
-          roomId,
-          priorityScore: priorityScore(r),
-          reason: r.urgency === "URGENT"
-            ? "فوری — نزدیک‌ترین زمان ممکن"
-            : r.prefFrom
-              ? "نزدیک به پنجره‌ی ترجیحی"
-              : "اولین زمان مشترک آزاد",
-        });
-        placed = true;
-        break; // اولین اسلات معتبر = گیری
-      }
+      if (!best || q > best.q) best = { start: new Date(start), end: new Date(end), roomId, q };
     }
-    if (!placed) {
+
+    if (best) {
+      const d = priorityScoreDetailed(r);
+      assignments.push({
+        requestId: r.id,
+        start: best.start,
+        end: best.end,
+        roomId: best.roomId,
+        priorityScore: d.total,
+        reason: buildReason(r, best.start, d),
+      });
+      const k = fmtLocal(best.start);
+      dayLoad.set(k, (dayLoad.get(k) ?? 0) + 1);
+    } else {
       unscheduled.push({ requestId: r.id, title: r.title, reason: roomReason ?? lastReason, alternatives: alternatives.slice(0, 2) });
     }
   }

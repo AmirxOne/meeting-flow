@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scheduleRequests, validatePlan, priorityScore, type SchedRequest, type SchedConstraints } from "@/server/services/ai/smart-schedule-engine";
+import { scheduleRequests, validatePlan, priorityScore, priorityScoreDetailed, type SchedRequest, type SchedConstraints } from "@/server/services/ai/smart-schedule-engine";
 
 // پنجره: شنبه ۲ مهر…؟ نه — تاریخ ثابت: 2026-10-12 (دوشنبه) تا 2026-10-14 (چهارشنبه)
 // ساعت کاری 08:00-18:00، شنبه تا چهارشنبه (6,0,1,2,3)
@@ -26,6 +26,7 @@ const C = (over: Partial<SchedConstraints> = {}): SchedConstraints => ({
 const REQ = (over: Partial<SchedRequest> = {}): SchedRequest => ({
   id: "req-1",
   title: "جلسه",
+  createdAt: new Date("2026-10-01T08:00:00"),
   urgency: "NORMAL",
   durationMin: 60,
   prefFrom: null,
@@ -44,10 +45,23 @@ describe("priorityScore", () => {
     const f = priorityScore(REQ({ urgency: "FLEXIBLE" }));
     expect(u > n && n > f).toBe(true);
   });
-  it("پنجره‌ی ترجیحی نزدیک امتیاز می‌آورد", () => {
-    const soon = priorityScore(REQ({ prefFrom: new Date(Date.now() + 12 * 3600e3) }));
-    const far = priorityScore(REQ({ prefFrom: new Date(Date.now() + 20 * 86400e3) }));
+  it("ددلاین نزدیک‌تر امتیاز بیشتری می‌آورد", () => {
+    const soon = priorityScore(REQ({ prefTo: new Date(Date.now() + 12 * 3600e3) }));
+    const far = priorityScore(REQ({ prefTo: new Date(Date.now() + 20 * 86400e3) }));
     expect(soon > far).toBe(true);
+  });
+  it("درخواست قدیمی‌تر (بیشتر منتظر) امتیاز بیشتری دارد", () => {
+    const old1 = priorityScore(REQ({ createdAt: new Date(Date.now() - 5 * 86400e3) }));
+    const fresh = priorityScore(REQ({ createdAt: new Date(Date.now() - 0.2 * 86400e3) }));
+    expect(old1 > fresh).toBe(true);
+  });
+  it("تفکیک جزئیات امتیاز شفاف است", () => {
+    const d = priorityScoreDetailed(REQ({ urgency: "URGENT", prefTo: new Date(Date.now() + 10 * 3600e3), participantIds: ["a", "b", "c"], attendeeCount: 6 }));
+    expect(d.urgency).toBe(100);
+    expect(d.deadline).toBe(40);
+    expect(d.coordination).toBe(12);
+    expect(d.size).toBe(12);
+    expect(d.total).toBe(d.urgency + d.deadline + d.coordination + d.size + d.age);
   });
 });
 
