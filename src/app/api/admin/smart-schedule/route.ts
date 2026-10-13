@@ -10,7 +10,6 @@ export const maxDuration = 120;
 const genSchema = z.object({
   windowFrom: z.string().min(10),
   windowTo: z.string().min(10),
-  useAi: z.boolean().optional().default(true),
 });
 
 /** POST — تولید برنامه‌ی پیش‌نویس (هیچ داده‌ی اصلی تغییر نمی‌کند) */
@@ -22,7 +21,6 @@ export async function POST(req: NextRequest) {
       orgId: user.orgId,
       windowFrom: new Date(input.windowFrom),
       windowTo: new Date(input.windowTo),
-      useAi: input.useAi,
     });
     return ok({ draft });
   } catch (e) {

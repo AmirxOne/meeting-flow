@@ -34,7 +34,35 @@ export interface SmartPlanDraft {
   }[];
   unscheduled: { requestId: string; title: string; reason: string; alternatives?: { start: string; end: string }[] }[];
   aiSummary: string | null;
+  /** آیا لایه‌ی AI واقعاً مشارکت کرد؟ false = فقط الگوریتم بومی */
+  aiUsed: boolean;
+  /** راهنمای ادمین وقتی AI ندارد */
+  aiNotice: string | null;
   stats: { total: number; scheduled: number; unscheduled: number; elapsedMs: number };
+}
+
+/**
+ * تحلیل بومی کسب‌وکار (بدون LLM) — سیگنال‌های مهمیتی از خودِ دیتا:
+ * عنوان، فوریت، پرشمار بودن، وابستگی متقاطع. هنگام نبودِ AI
+ * همین تحلیل محلی وزن می‌دهد؛ با AI هم به‌عنوان کف عمل می‌کند.
+ */
+export function localBusinessBoost(r: {
+  title: string;
+  urgency: string;
+  participantIds: string[];
+  attendeeCount: number | null;
+  description: string | null;
+}): number {
+  const text = `${r.title} ${r.description ?? ""}`;
+  let b = 0;
+  // کلیدواژه‌های تصمیم/بودجه/مشتری/استخدام/ددلاین — فارسی و انگلیسی
+  const HIGH = [/بودجه|مالی|مالیة|مصوب|تصمیم|مشتری|کلیدی|استخدام|حقوق|قرارداد|فوری|آخرین|ددلاین|budget|customer|hiring|decision|critical|urgent/i];
+  const MED = [/برنامه.ریزی|راهبرد|استراتژ|مرور|بازبینی|هم.راستایی| ALIGN|sync|review|planning|roadmap/i];
+  if (HIGH.some((re) => re.test(text))) b += 20;
+  else if (MED.some((re) => re.test(text))) b += 10;
+  // پرشمار = هماهنگی سخت‌تر
+  if ((r.attendeeCount ?? 0) >= 6 || r.participantIds.length >= 5) b += 8;
+  return Math.min(b, 30); // همان سقف هینت AI — هم‌وزن، قابل‌مقایسه
 }
 
 /**
@@ -58,7 +86,7 @@ async function aiPriorityHints(
         { role: "user", content: JSON.stringify(requests) },
       ],
       temperature: 0.2,
-      maxTokens: 800,
+      maxTokens: 2500,
       purpose: "smart-schedule-priority-hints",
     });
     const j = extractJson(r.text);
@@ -122,7 +150,6 @@ export async function generateSmartPlan(input: {
   orgId: string;
   windowFrom: Date;
   windowTo: Date;
-  useAi: boolean;
 }): Promise<SmartPlanDraft> {
   // درخواست‌های واجد شرایط: OPEN بدون جلسه‌ی ساخته‌شده
   const requests = await prisma.meetingRequest.findMany({
@@ -132,7 +159,7 @@ export async function generateSmartPlan(input: {
       meetingId: null,
     },
     select: {
-      id: true, title: true, createdAt: true, urgency: true, durationMin: true,
+      id: true, title: true, description: true, createdAt: true, urgency: true, durationMin: true,
       prefFrom: true, prefTo: true, prefSlots: true,
       participantIds: true, attendeeCount: true, venue: true, requesterId: true,
     },
@@ -157,23 +184,35 @@ export async function generateSmartPlan(input: {
   }));
 
   // تحلیل AI — پیشنهاد وزن (اختیاری، ولیدیت‌شده)؛ سپس موتور قانون‌محور تصمیم می‌گیرد
-  const hints = input.useAi
-    ? await aiPriorityHints(
-        requests.map((r) => ({
-          id: r.id,
-          title: r.title,
-          urgency: r.urgency,
-          durationMin: r.durationMin,
-          requesterName: null,
-        })),
-      )
-    : new Map<string, number>();
-  if (hints.size > 0) {
-    for (const rq of schedReqs) {
-      const h = hints.get(rq.id);
-      if (h) {
-        (rq as SchedRequest & { aiBoost?: number }).aiBoost = h;
-      }
+  let aiUsed = false;
+  // کفِ بومی — همیشه: سیگنال‌های کسب‌وکار از خودِ دیتا (بدون LLM)
+  for (const rq of schedReqs) {
+    const base = localBusinessBoost({
+      title: rq.title,
+      urgency: rq.urgency,
+      participantIds: rq.participantIds,
+      attendeeCount: rq.attendeeCount,
+      description: requests.find((q) => q.id === rq.id)?.description ?? null,
+    });
+    (rq as SchedRequest & { aiBoost?: number }).aiBoost = base;
+  }
+  // لایه‌ی AI — اگر پروایدر فعال باشد وزن تحلیلی مدل روی همان کف می‌نشیند
+  const aiHints = await aiPriorityHints(
+    requests.map((r) => ({
+      id: r.id,
+      title: r.title,
+      urgency: r.urgency,
+      durationMin: r.durationMin,
+      requesterName: null,
+    })),
+  );
+  aiUsed = aiHints.size > 0;
+  for (const rq of schedReqs) {
+    const ai = aiHints.get(rq.id);
+    if (ai !== undefined) {
+      // حداکثرِ دو لایه — نه جمع بی‌سقف
+      const cur = (rq as SchedRequest & { aiBoost?: number }).aiBoost ?? 0;
+      (rq as SchedRequest & { aiBoost?: number }).aiBoost = Math.max(cur, ai);
     }
   }
 
@@ -182,7 +221,7 @@ export async function generateSmartPlan(input: {
 
   // AI — فقط خلاصه‌ی تحلیلی برنامه (نه تصمیم‌گیرنده)
   let aiSummary: string | null = null;
-  if (input.useAi) {
+  if (true) { // خلاصه‌ی تحلیلی در صورت وجود پروایدر — قطعی، برنامه معتبر می‌ماند
     try {
       await ensureAiAvailable();
       const r = await llmChat({
@@ -235,6 +274,8 @@ export async function generateSmartPlan(input: {
       alternatives: u.alternatives?.map((al) => ({ start: al.start.toISOString(), end: al.end.toISOString() })),
     })),
     aiSummary,
+    aiUsed,
+    aiNotice: aiUsed ? null : "برنامه با الگوریتم بومی تنظیم شد — با افزودن پروایدر هوش مصنوعی در تنظیمات، تحلیل هوشمندتر و نتیجه‌ی دقیق‌تری بگیرید",
     stats: result.stats,
   };
 

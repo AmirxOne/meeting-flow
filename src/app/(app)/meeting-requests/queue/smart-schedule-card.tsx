@@ -37,6 +37,8 @@ interface PlanDraft {
   assignments: DraftAssignment[];
   unscheduled: { requestId: string; title: string; reason: string }[];
   aiSummary: string | null;
+  aiUsed: boolean;
+  aiNotice: string | null;
   stats: { total: number; scheduled: number; unscheduled: number; elapsedMs: number };
 }
 
@@ -70,7 +72,12 @@ export function SmartScheduleCard() {
         method: "POST",
         json: { windowFrom: range.from, windowTo: range.to, useAi: true },
       });
-      push(`${faNum(r.draft.stats.scheduled)} از ${faNum(r.draft.stats.total)} درخواست زمان‌بندی شد — پیش‌نمایش در تقویم`, "success");
+      push(
+        r.draft.aiUsed
+          ? `${faNum(r.draft.stats.scheduled)} از ${faNum(r.draft.stats.total)} درخواست زمان‌بندی شد (الگوریتم + تحلیل AI) — پیش‌نمایش در تقویم`
+          : `${faNum(r.draft.stats.scheduled)} از ${faNum(r.draft.stats.total)} درخواست زمان‌بندی شد (الگوریتم بومی) — ${r.draft.aiNotice ?? ""}`,
+        r.draft.aiUsed ? "success" : "success",
+      );
       router.push("/calendar?smart=1&view=month");
     } catch (e) {
       push((e as ApiError).message ?? "تولید برنامه ناموفق بود", "error");
@@ -106,9 +113,14 @@ export function SmartScheduleCard() {
             </div>
           }
         />
-        <div className="p-5 pt-4 text-[12px] leading-6 text-ink-soft">
-          قوانین اجباری رعایت می‌شوند: عدم هم‌پوشانی شرکت‌کنندگان، ساعات کاری، تعطیلات، ظرفیت اتاق‌ها و پنجره‌ی ترجیحی هر درخواست.
-          زمان‌بندی دستی از طریق همان دکمه‌های فعلی هر درخواست همچنان کار می‌کند.
+        <div className="space-y-1.5 p-5 pt-4 text-[12px] leading-6 text-ink-soft">
+          <p>
+            قوانین اجباری رعایت می‌شوند: عدم هم‌پوشانی شرکت‌کنندگان، ساعات کاری، تعطیلات، ظرفیت اتاق‌ها و پنجره‌ی ترجیحی هر درخواست.
+            زمان‌بندی دستی از طریق همان دکمه‌های فعلی هر درخواست همچنان کار می‌کند.
+          </p>
+          <p className="text-[11px] text-ink-faint">
+            بدون پروایدر هم کار می‌کند (الگوریتم چندلایه روی دیتای جلسات) — با افزودن پروایدر هوش مصنوعی در تنظیمات، تحلیل هوشمندتر و نتیجه‌ی دقیق‌تری بگیرید.
+          </p>
         </div>
       </Card>
 
