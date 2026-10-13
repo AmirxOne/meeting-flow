@@ -664,7 +664,7 @@ export function CalendarPage() {
                         isOtherMonth && (dragId ? "opacity-100" : "opacity-40"),
                       )}
                     >
-                      <span className="flex items-baseline justify-start gap-1">
+                      <span className="absolute right-1 top-1 z-10 flex items-baseline justify-start gap-1 sm:right-1.5 sm:top-1.5">
                         <span className={cn(
                           "inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] sm:h-6 sm:w-6",
                           isToday ? "bg-ink font-bold text-white" : isFriday || holidayName ? "font-medium text-red-600" : "text-ink",
@@ -686,7 +686,7 @@ export function CalendarPage() {
 
                       <div
                         className={cn(
-                          "absolute inset-x-0 bottom-0 top-7 hidden sm:block",
+                          "absolute inset-x-0 bottom-0 top-9 hidden sm:block",
                           dayMeetings.length > 3 && "block",
                         )}
                       >
