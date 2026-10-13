@@ -1112,16 +1112,20 @@ function DayPanel({
           <p className="px-4 py-8 text-center text-[12px] text-ink-faint">جلسه‌ای در این روز نیست</p>
         )}
         {meetings.map((m) => {
-          const tone = calendarEventTone(m.status);
+          const isDraft = m.status === "SMART_DRAFT";
+          const tone = isDraft
+            ? { rail: "bg-pink-300 border border-dashed border-pink-400", chip: "" }
+            : { rail: calendarEventTone(m.status).rail, chip: "" };
           return (
-            <Link key={m.id} href={`/meetings/${m.id}`} className="flex items-start gap-3 px-4 py-3 hover:bg-paper-soft">
+            <Link key={m.id} href={isDraft ? "/meeting-requests/queue" : `/meetings/${m.id}`} className="flex items-start gap-3 px-4 py-3 hover:bg-paper-soft">
               <div className="w-12 shrink-0 pt-0.5 text-left">
-                <p className="text-[11px] font-bold">{timeOf(m.startAt)}</p>
+                <p className={cn("text-[11px] font-bold", isDraft && "text-pink-700")}>{timeOf(m.startAt)}</p>
               </div>
               <div className={cn("mt-1 h-8 w-1 shrink-0 rounded-full", tone.rail)} />
               <div className="min-w-0 flex-1">
-                <p className={cn("truncate text-[12.5px] font-medium", m.status === "CANCELLED" && "line-through opacity-60")}>
+                <p className={cn("truncate text-[12.5px] font-medium", m.status === "CANCELLED" && "line-through opacity-60", isDraft && "text-pink-800")}>
                   <EventLabel meeting={m} />
+                  {isDraft && <span className="mr-1.5 inline-block rounded-full border border-dashed border-pink-400 bg-pink-50 px-1.5 py-0.5 text-[9px] font-bold text-pink-700">پیش‌نویس هوشمند — در انتظار تأیید</span>}
                 </p>
                 <p className="mt-0.5 truncate text-[11px] text-ink-faint">{m.room?.name ?? m.organizer.fullName}</p>
               </div>
