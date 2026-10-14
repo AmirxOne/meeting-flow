@@ -192,6 +192,8 @@ export async function bookSlot(input: {
   if (!program || program.orgId !== input.user.orgId) throw new HttpError(404, "برنامه یافت نشد", "NOT_FOUND");
   if (!(await canAccessProgram(input.user, program))) throw new HttpError(403, "دسترسی به این برنامه ندارید", "FORBIDDEN");
   if (program.status !== "ACTIVE") throw new HttpError(409, "برنامه فعال نیست", "PROGRAM_INACTIVE");
+  // مسئول برنامه نمی‌تواند از برنامه‌ی خودش نوبت بگیرد
+  if (program.hostId === input.user.id) throw new HttpError(400, "این برنامه‌ی خودتان است — کارکنان از آن نوبت می‌گیرند", "HOST_CANNOT_BOOK");
 
   const start = new Date(input.startAt);
   const end = new Date(start.getTime() + program.durationMin * 60000);

@@ -687,10 +687,10 @@ export function CalendarPage() {
                       <div
                         className={cn(
                           "absolute inset-x-0 bottom-0 top-9 hidden sm:block",
-                          dayMeetings.length > 3 && "block",
+                          dayMeetings.length > 0 && "block",
                         )}
                       >
-                      {dayMeetings.length > 3 && (
+                      {dayMeetings.length > 0 && (
                       <ScrollCell fillParent className="space-y-0.5 pb-3">
                         {(() => {
                           // در پیش‌نمایش هوشمند، پیشنهادها اول و بدون سقف — همه باید دیده و قابل درگ باشند

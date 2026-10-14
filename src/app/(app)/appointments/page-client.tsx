@@ -320,6 +320,7 @@ function CancelBookingButton({ bookingId, onDone }: { bookingId: string; onDone:
 
 function SlotPicker({ program, onClose, onBooked }: { program: Program; onClose: () => void; onBooked: () => void }) {
   const { push } = useToast();
+  const readOnly = program.isMine; // مسئول فقط می‌بیند — رزرو مال کارکنان است
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [confirmSlot, setConfirmSlot] = useState<Slot | null>(null);
   const [success, setSuccess] = useState<{ room: string; startAt: string } | null>(null);
@@ -418,6 +419,11 @@ function SlotPicker({ program, onClose, onBooked }: { program: Program; onClose:
               {selectedDay && (
                 <div className="mt-4">
                   <p className="mb-2 text-[11px] font-medium text-ink-soft">۲. چه ساعتی؟</p>
+                  {readOnly && daySlots.length > 0 && (
+                    <p className="mb-2 rounded-md bg-paper-soft px-2.5 py-1.5 text-[10.5px] leading-5 text-ink-soft">
+                      👁 حالت مشاهده — این برنامه‌ی شماست؛ کارکنان از این زمان‌ها نوبت می‌گیرند.
+                    </p>
+                  )}
                   {confirmSlot ? (
                     <div className="rounded-lg border border-line bg-paper-soft/40 p-3.5">
                       <p className="text-[11px] font-medium text-ink-soft">۳. تأیید نهایی</p>
@@ -440,8 +446,11 @@ function SlotPicker({ program, onClose, onBooked }: { program: Program; onClose:
                       {daySlots.map((s) => (
                         <button
                           key={s.startAt}
-                          onClick={() => setConfirmSlot(s)}
-                          className="h-11 rounded-lg border border-line bg-white text-[13px] font-bold tabular-nums text-ink transition hover:border-ink hover:bg-paper-soft"
+                          onClick={() => { if (!readOnly) setConfirmSlot(s); }}
+                          className={cn(
+                            "h-11 rounded-lg border border-line bg-white text-[13px] font-bold tabular-nums text-ink transition",
+                            readOnly ? "cursor-default" : "hover:border-ink hover:bg-paper-soft",
+                          )}
                         >
                           {faTime(s.startAt)}
                         </button>
