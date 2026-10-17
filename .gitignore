@@ -8,10 +8,10 @@ coverage/
 *.tsbuildinfo
 next-env.d.ts
 
+# ─── env — همه‌ی فایل‌های واقعی ignored؛ فقط *.example داخل گیت ───
 .env
-.env.local
-.env.production
-.env.sentry-build-plugin
+.env.*
+!*.example
 
 prisma/*.db
 .DS_Store
