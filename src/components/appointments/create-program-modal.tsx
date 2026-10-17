@@ -8,7 +8,7 @@ import { api, type ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib";
-import { X } from "@/components/ui/icon";
+import { X, Plus } from "@/components/ui/icon";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { TimePicker } from "@/components/ui/jalali-date-picker";
 import { createPortal } from "react-dom";
@@ -48,7 +48,25 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
   const [isConfidential, setIsConfidential] = useState(editProgram?.isConfidential ?? false);
   const [audienceType, setAudienceType] = useState<"ALL" | "BRANCH" | "USERS">((editProgram?.audienceType as "ALL") ?? "ALL");
   const [pickedPeople, setPickedPeople] = useState<PickedPerson[]>([]);
-  const [windows, setWindows] = useState<WindowRow[]>(editProgram?.windows?.length ? editProgram.windows : [{ daysOfWeek: [6], from: "09:00", to: "12:00" }]);
+  // روز فعال → بازه‌های ساعتی آن روز (چند بازه در روز)
+  const [dayRanges, setDayRanges] = useState<Record<number, { from: string; to: string }[]>>(
+    (() => {
+      const init: Record<number, { from: string; to: string }[]> = {};
+      if (editProgram?.windows?.length) {
+        for (const w of editProgram.windows) {
+          for (const d of w.daysOfWeek) init[d] = [...(init[d] ?? []), { from: w.from, to: w.to }];
+        }
+      }
+      return init;
+    })(),
+  );
+  const toggleDay = (v: number) =>
+    setDayRanges((prev) => {
+      const next = { ...prev };
+      if (next[v]) delete next[v];
+      else next[v] = [{ from: "09:00", to: "12:00" }];
+      return next;
+    });
   const [roomIds, setRoomIds] = useState<string[]>(editProgram?.roomIds ?? []);
   const [busy, setBusy] = useState(false);
 
@@ -91,7 +109,9 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
             roomIds,
             durationMin,
             bufferMin,
-            windows: windows.filter((w) => w.daysOfWeek.length > 0),
+          windows: Object.entries(dayRanges).flatMap(([d, ranges]) =>
+            ranges.map((r) => ({ daysOfWeek: [Number(d)], from: r.from, to: r.to })),
+          ),
             validTo,
             isConfidential,
           },
@@ -113,7 +133,9 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           roomIds,
           durationMin,
           bufferMin,
-          windows: windows.filter((w) => w.daysOfWeek.length > 0),
+          windows: Object.entries(dayRanges).flatMap(([d, ranges]) =>
+            ranges.map((r) => ({ daysOfWeek: [Number(d)], from: r.from, to: r.to })),
+          ),
           validFrom: new Date().toISOString(),
           validTo,
           isConfidential,
@@ -177,52 +199,85 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
 
           <div>
             <label className="mb-1.5 block text-[11px] font-medium text-ink-soft">روزها و ساعت‌های در دسترس</label>
-            <div className="space-y-2">
-              {windows.map((w, i) => (
-                <div key={i} className="rounded-lg border border-line bg-paper-soft/40 p-2.5">
-                  <div className="flex flex-wrap gap-1">
-                    {WEEKDAYS_FA.map((d) => (
-                      <button
-                        key={d.v}
-                        type="button"
-                        onClick={() => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, daysOfWeek: x.daysOfWeek.includes(d.v) ? x.daysOfWeek.filter((v) => v !== d.v) : [...x.daysOfWeek, d.v] } : x))}
-                        className={cn(
-                          "rounded-md border px-2 py-1 text-[10.5px] font-medium transition-colors",
-                          w.daysOfWeek.includes(d.v) ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft",
-                        )}
-                      >
-                        {d.l}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="min-w-0 flex-1">
-                      <TimePicker
-                        value={w.from}
-                        onChange={(v) => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, from: v } : x))}
-                        className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
-                      />
-                    </div>
-                    <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
-                    <div className="min-w-0 flex-1">
-                      <TimePicker
-                        value={w.to}
-                        onChange={(v) => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, to: v } : x))}
-                        className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
-                      />
-                    </div>
-                    {windows.length > 1 && (
-                      <button type="button" aria-label="حذف بازه" onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))} className="text-ink-faint transition hover:text-red-600">
-                        <X className="h-4 w-4" />
-                      </button>
+            <p className="mb-2 text-[10.5px] leading-5 text-ink-faint">روزها را روشن کن؛ برای هر روز هر چند بازه که می‌خواهی اضافه کن (مثلاً صبح و عصر)</p>
+
+            {/* انتخاب روزها */}
+            <div className="flex flex-wrap gap-1">
+              {WEEKDAYS_FA.map((d) => {
+                const on = !!dayRanges[d.v];
+                const cnt = dayRanges[d.v]?.length ?? 0;
+                return (
+                  <button
+                    key={d.v}
+                    type="button"
+                    onClick={() => toggleDay(d.v)}
+                    className={cn(
+                      "rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                      on ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/40",
                     )}
-                  </div>
-                </div>
-              ))}
+                  >
+                    {d.l}
+                    {on && cnt > 1 ? ` (${toFa(cnt)})` : ""}
+                  </button>
+                );
+              })}
             </div>
-            <button type="button" onClick={() => setWindows((ws) => [...ws, { daysOfWeek: [6], from: "14:00", to: "17:00" }])} className="mt-2 flex items-center gap-1.5 rounded-md border border-dashed border-line px-2.5 py-1 text-[11px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
-              افزودن بازه‌ی دیگر
-            </button>
+
+            {/* بازه‌های هر روز فعال */}
+            {Object.keys(dayRanges).length > 0 && (
+              <div className="mt-2.5 space-y-2">
+                {WEEKDAYS_FA.filter((d) => dayRanges[d.v]).map((d) => {
+                  const ranges = dayRanges[d.v];
+                  return (
+                    <div key={d.v} className="rounded-lg border border-line bg-paper-soft/40 p-2.5">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[12px] font-bold">{d.l}</p>
+                        <button
+                          type="button"
+                          onClick={() => setDayRanges((prev) => ({ ...prev, [d.v]: [...(prev[d.v] ?? []), { from: "14:00", to: "17:00" }] }))}
+                          className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-ink-soft transition hover:bg-white hover:text-ink"
+                        >
+                          <Plus className="h-3 w-3" />
+                          بازه‌ی ساعت
+                        </button>
+                      </div>
+                      <div className="space-y-1.5">
+                        {ranges.map((r, ri) => (
+                          <div key={ri} className="flex items-center gap-2">
+                            <span className="w-5 shrink-0 text-center text-[10px] font-bold text-ink-faint">{toFa(ri + 1)}</span>
+                            <div className="min-w-0 flex-1">
+                              <TimePicker
+                                value={r.from}
+                                onChange={(v) => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).map((x, j) => j === ri ? { ...x, from: v } : x) }))}
+                                className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
+                              />
+                            </div>
+                            <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
+                            <div className="min-w-0 flex-1">
+                              <TimePicker
+                                value={r.to}
+                                onChange={(v) => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).map((x, j) => j === ri ? { ...x, to: v } : x) }))}
+                                className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
+                              />
+                            </div>
+                            {ranges.length > 1 && (
+                              <button
+                                type="button"
+                                aria-label={`حذف بازه‌ی ${toFa(ri + 1)} ${d.l}`}
+                                onClick={() => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).filter((_, j) => j !== ri) }))}
+                                className="text-ink-faint transition hover:text-red-600"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div>
