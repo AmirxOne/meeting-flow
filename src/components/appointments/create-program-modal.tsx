@@ -129,11 +129,10 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
   }
 
   const inputCls = "h-10 w-full rounded-md border border-line px-3 text-[12.5px] outline-none focus:border-ink";
-  const timeCls = "h-9 w-full rounded-md border border-line px-2 text-center font-mono text-[12px] outline-none focus:border-ink";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4" onClick={onClose}>
-      <div className="flex max-h-[92dvh] w-full flex-col rounded-t-xl bg-white shadow-2xl sm:max-h-[86vh] sm:max-w-xl sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-2" onClick={onClose}>
+      <div className="flex max-h-[94dvh] w-full flex-col rounded-t-xl bg-white shadow-2xl sm:max-h-[92vh] sm:max-w-xl sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
           <div>
             <h2 className="text-[14px] font-bold">{isEdit ? "ویرایش برنامه‌ی نوبت‌دهی" : "ایجاد برنامه‌ی نوبت‌دهی"}</h2>
@@ -200,7 +199,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
                       <TimePicker
                         value={w.from}
                         onChange={(v) => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, from: v } : x))}
-                        className="grid-cols-2 gap-1.5 [&>div>button]:h-9 [&>div>button]:text-[12px]"
+                        className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
                       />
                     </div>
                     <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
@@ -208,7 +207,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
                       <TimePicker
                         value={w.to}
                         onChange={(v) => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, to: v } : x))}
-                        className="grid-cols-2 gap-1.5 [&>div>button]:h-9 [&>div>button]:text-[12px]"
+                        className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
                       />
                     </div>
                     {windows.length > 1 && (
