@@ -11,6 +11,7 @@ import { cn } from "@/lib";
 import { X } from "@/components/ui/icon";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { TimePicker } from "@/components/ui/jalali-date-picker";
+import { createPortal } from "react-dom";
 import { faNum } from "@/lib";
 
 interface WindowRow { daysOfWeek: number[]; from: string; to: string }
@@ -130,7 +131,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
 
   const inputCls = "h-10 w-full rounded-md border border-line px-3 text-[12.5px] outline-none focus:border-ink";
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-2" onClick={onClose}>
       <div className="flex max-h-[94dvh] w-full flex-col rounded-t-xl bg-white shadow-2xl sm:max-h-[92vh] sm:max-w-xl sm:rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
@@ -332,7 +333,8 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           <Button onClick={submit} loading={busy}>{isEdit ? "ذخیره‌ی تغییرات" : "انتشار برنامه"}</Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
