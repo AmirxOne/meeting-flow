@@ -201,7 +201,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           </div>
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">موضوعات جلسه {topics.length > 0 && <span className="text-ink-faint">({toFa(topics.length)} از ۱۰)</span>}</label>
-            <div className="flex h-10 items-center gap-2 rounded-md border border-line bg-white px-1.5 focus-within:border-ink">
+            <div className="flex h-10 items-center gap-2 rounded-md border border-line bg-white px-1 focus-within:border-ink">
               <input
                 value={topicDraft}
                 onChange={(e) => setTopicDraft(e.target.value)}
