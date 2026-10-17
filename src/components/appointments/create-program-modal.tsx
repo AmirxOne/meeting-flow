@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib";
 import { X, Plus, Minus } from "@/components/ui/icon";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
-import { TimePicker } from "@/components/ui/jalali-date-picker";
+import { TimePicker, JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { createPortal } from "react-dom";
 import { faNum } from "@/lib";
 
@@ -29,6 +29,7 @@ export interface ProgramLite {
   roomIds?: string[];
   roomCount?: number;
   windows?: WindowRow[];
+  validFrom?: string;
   validTo?: string;
 }
 
@@ -57,6 +58,17 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
   const [audienceType, setAudienceType] = useState<"ALL" | "BRANCH" | "USERS">((editProgram?.audienceType as "ALL") ?? "ALL");
   const [pickedPeople, setPickedPeople] = useState<PickedPerson[]>([]);
   // روز فعال → بازه‌های ساعتی آن روز (چند بازه در روز)
+  // مدت اعتبار: یک روز خاص یا بازه — تاریخ شمسی انتخاب می‌شود
+  const todayIso = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.toISOString().slice(0, 10); })();
+  const [durationMode, setDurationMode] = useState<"range" | "single">("range");
+  const [validFromIso, setValidFromIso] = useState<string>(
+    editProgram?.validFrom ? new Date(editProgram.validFrom).toISOString().slice(0, 10) : todayIso,
+  );
+  const [validToIso, setValidToIso] = useState<string>(
+    editProgram?.validTo ? new Date(editProgram.validTo).toISOString().slice(0, 10) : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10); })(),
+  );
+  const [singleDayIso, setSingleDayIso] = useState<string>(todayIso);
+
   const [dayRanges, setDayRanges] = useState<Record<number, { from: string; to: string }[]>>(
     (() => {
       const init: Record<number, { from: string; to: string }[]> = {};
@@ -101,9 +113,14 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
     if (roomIds.length === 0) { push("حداقل یک اتاق انتخاب کنید", "error"); return; }
     setBusy(true);
     try {
-      const validTo = editProgram?.validTo
-        ? new Date(editProgram.validTo).toISOString()
-        : new Date(Date.now() + 30 * 86400000).toISOString();
+      const fromIso = durationMode === "single" ? singleDayIso : validFromIso;
+      const toIso = durationMode === "single" ? singleDayIso : validToIso;
+      if (fromIso > toIso) { push("تاریخ پایان باید بعد از تاریخ شروع باشد", "error"); return; }
+      // پایانِ روزِ آخر + یک روز برای اسلات‌های عصر
+      const toEnd = new Date(toIso + "T00:00:00");
+      toEnd.setDate(toEnd.getDate() + 1);
+      const validFrom = new Date(fromIso + "T00:00:00").toISOString();
+      const validTo = toEnd.toISOString();
       if (isEdit) {
         await api(`/api/appointments/programs/${editProgram.id}`, {
           method: "PATCH",
@@ -143,7 +160,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           windows: Object.entries(dayRanges).flatMap(([d, ranges]) =>
             ranges.map((r) => ({ daysOfWeek: [Number(d)], from: r.from, to: r.to })),
           ),
-          validFrom: new Date().toISOString(),
+          validFrom,
           validTo,
           isConfidential,
           status: "ACTIVE",
@@ -388,6 +405,62 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
               </div>
             </div>
           )}
+
+          {/* مدت اعتبار — یک روز خاص یا بازه */}
+          <div>
+            <label className="mb-1 block text-[11px] text-ink-soft">مدت اعتبار برنامه</label>
+            <div className="mb-2 flex gap-1.5">
+              {[
+                { v: "range", l: "بازه‌ی زمانی" },
+                { v: "single", l: "یک روز خاص" },
+              ].map((o) => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => setDurationMode(o.v as "range")}
+                  className={cn(
+                    "flex-1 rounded-md border px-2 py-2 text-[11.5px] font-medium transition-colors",
+                    durationMode === o.v ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/40",
+                  )}
+                >
+                  {o.l}
+                </button>
+              ))}
+            </div>
+            {durationMode === "range" ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="min-w-[150px] flex-1">
+                  <JalaliDatePicker
+                    value={validFromIso}
+                    onChange={setValidFromIso}
+                    placeholder="از تاریخ"
+                    min={todayIso}
+                  />
+                </div>
+                <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
+                <div className="min-w-[150px] flex-1">
+                  <JalaliDatePicker
+                    value={validToIso}
+                    onChange={setValidToIso}
+                    placeholder="تا تاریخ"
+                    min={validFromIso}
+                  />
+                </div>
+              </div>
+            ) : (
+              <JalaliDatePicker
+                value={singleDayIso}
+                onChange={setSingleDayIso}
+                placeholder="روز برگزاری"
+                min={todayIso}
+              />
+            )}
+            {durationMode === "single" && (
+              <p className="mt-1.5 text-[10.5px] leading-5 text-ink-faint">
+                نوبت‌ها فقط در همین روز ارائه می‌شوند؛ بازه‌های ساعتی همان روز را در بخش «روزها و ساعت‌های در دسترس» تعریف کن.
+              </p>
+            )}
+          </div>
 
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">مخاطبان</label>
