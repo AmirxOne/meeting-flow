@@ -42,7 +42,15 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
   const isEdit = !!editProgram;
   const [title, setTitle] = useState(editProgram?.title ?? "");
   const [description, setDescription] = useState(editProgram?.description ?? "");
-  const [topicsText, setTopicsText] = useState((editProgram?.topics ?? []).map((t) => t.title).join(String.fromCharCode(10)));
+  const [topics, setTopics] = useState<string[]>((editProgram?.topics ?? []).map((t) => t.title));
+  const [topicDraft, setTopicDraft] = useState("");
+  const addTopic = () => {
+    const t = topicDraft.trim();
+    if (!t || topics.includes(t) || topics.length >= 10) return;
+    setTopics((prev) => [...prev, t]);
+    setTopicDraft("");
+  };
+  const removeTopic = (t: string) => setTopics((prev) => prev.filter((x) => x !== t));
   const [durationMin, setDurationMin] = useState(editProgram?.durationMin ?? 30);
   const [bufferMin, setBufferMin] = useState(editProgram?.bufferMin ?? 0);
   const [isConfidential, setIsConfidential] = useState(editProgram?.isConfidential ?? false);
@@ -93,7 +101,6 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
     if (roomIds.length === 0) { push("حداقل یک اتاق انتخاب کنید", "error"); return; }
     setBusy(true);
     try {
-      const topics = topicsText.split("\n").map((t) => t.trim()).filter(Boolean).map((t) => ({ title: t }));
       const validTo = editProgram?.validTo
         ? new Date(editProgram.validTo).toISOString()
         : new Date(Date.now() + 30 * 86400000).toISOString();
@@ -103,7 +110,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           json: {
             title,
             description: description || null,
-            topics: topics.length ? topics : undefined,
+            topics: topics.length ? topics.map((title) => ({ title })) : undefined,
             audienceType,
             audienceIds: audienceType === "USERS" ? pickedPeople.filter((x) => x.kind === "INTERNAL" && x.userId).map((x) => x.userId as string) : editProgram?.audienceIds ?? [],
             roomIds,
@@ -125,7 +132,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
         json: {
           title,
           description: description || undefined,
-          topics: topics.length ? topics : undefined,
+          topics: topics.length ? topics.map((title) => ({ title })) : undefined,
           audienceType,
           audienceIds: audienceType === "USERS"
             ? pickedPeople.filter((p) => p.kind === "INTERNAL" && p.userId).map((p) => p.userId as string)
@@ -193,8 +200,47 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="هدف جلسه برای کارکنان…" className="min-h-[70px] w-full rounded-md border border-line p-2.5 text-[12px] leading-6 outline-none focus:border-ink" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] text-ink-soft">موضوعات (هر خط یک موضوع)</label>
-            <textarea value={topicsText} onChange={(e) => setTopicsText(e.target.value)} placeholder={"بررسی استرس کاری\nتعادل کار و زندگی"} className="min-h-[70px] w-full rounded-md border border-line p-2.5 text-[12px] leading-6 outline-none focus:border-ink" />
+            <label className="mb-1 block text-[11px] text-ink-soft">موضوعات جلسه {topics.length > 0 && <span className="text-ink-faint">({toFa(topics.length)} از ۱۰)</span>}</label>
+            <div className="flex h-10 items-center gap-2 rounded-md border border-line bg-white px-1.5 focus-within:border-ink">
+              <input
+                value={topicDraft}
+                onChange={(e) => setTopicDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addTopic();
+                  }
+                }}
+                placeholder="موضوع را بنویس و Enter بزن…"
+                className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-[12.5px] outline-none"
+              />
+              <button
+                type="button"
+                aria-label="افزودن موضوع"
+                disabled={!topicDraft.trim() || topics.length >= 10}
+                onClick={addTopic}
+                className="my-auto flex size-[30px] shrink-0 items-center justify-center rounded-md border border-line text-ink-soft transition hover:bg-paper-soft hover:text-ink disabled:opacity-40"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {topics.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {topics.map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1 rounded-full border border-line bg-paper-soft px-2.5 py-1 text-[11.5px] font-medium text-ink">
+                    {t}
+                    <button
+                      type="button"
+                      aria-label={"حذف " + t}
+                      onClick={() => removeTopic(t)}
+                      className="text-ink-faint transition hover:text-red-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
