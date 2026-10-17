@@ -3,7 +3,8 @@ import { requireUser, HttpError } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { prisma } from "@/server/db";
 import { z } from "zod";
-import { validateWindows, canAccessProgram } from "@/server/services/appointment.service";
+import { validateWindows, canAccessProgram, programAudienceUserIds } from "@/server/services/appointment.service";
+import { notifyUsers } from "@/server/services/notification.service";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +121,21 @@ export async function POST(req: NextRequest) {
       entityId: program.id,
       newValue: { title: program.title },
     });
+    // اعلان به مخاطبان — شکستش ساخت برنامه را خراب نمی‌کند
+    if (program.status === "ACTIVE") {
+      try {
+        const audience = (await programAudienceUserIds(program)).filter((id) => id !== user.id);
+        await notifyUsers(
+          audience,
+          "APPOINTMENT_PROGRAM_PUBLISHED",
+          "برنامه‌ی نوبت‌دهی جدید",
+          `${user.fullName ?? "مسئول جلسه"} برنامه‌ی «${program.title}» را منتشر کرد — وقت آزاد را ببین و نوبت بگیر`,
+          { programId: program.id, orgId: program.orgId },
+        );
+      } catch (e) {
+        console.error("[appointments] notify audience failed:", e);
+      }
+    }
     return ok({ program });
   } catch (e) {
     return handleError(e);

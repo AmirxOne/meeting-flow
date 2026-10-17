@@ -1,3 +1,4 @@
+import { pendingProgramInvites } from "@/server/services/appointment.service";
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
 import { maskPrivateMeeting, meetingAccessOr } from "@/server/services/privacy";
@@ -27,7 +28,7 @@ export async function GET(_req: NextRequest) {
         : meetingAccessOr(user.id)),
     };
 
-    const [todayCount, activeNow, pendingApprovals, availableRooms, occupiedRooms, cancelledThisWeek, weekMeetings, upcomingMine, pendingRsvp] =
+    const [todayCount, activeNow, pendingApprovals, availableRooms, occupiedRooms, cancelledThisWeek, weekMeetings, upcomingMine, pendingRsvp, programInvites] =
       await Promise.all([
         prisma.meeting.count({
           where: { ...scope, startAt: { gte: todayStart, lt: todayEnd }, status: { notIn: ["CANCELLED", "REJECTED", "DRAFT"] } },
@@ -74,6 +75,7 @@ export async function GET(_req: NextRequest) {
           orderBy: { startAt: "asc" },
           take: 8,
         }),
+        pendingProgramInvites(user),
       ]);
 
     // weekly hours + count by day (Tehran local) — always 7 days from today
@@ -101,6 +103,7 @@ export async function GET(_req: NextRequest) {
       weekSeries,
       upcoming: upcomingMine.map((m) => maskPrivateMeeting(m, viewer)),
       pendingRsvp: pendingRsvp.map((m) => maskPrivateMeeting(m, viewer)),
+      programInvites,
       seeAll,
     });
   } catch (e) {

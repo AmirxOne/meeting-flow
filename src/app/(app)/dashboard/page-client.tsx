@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { AvailabilityCard } from "@/components/availability/availability-card";
+import { ProgramInviteCard } from "@/components/appointments/program-invite-card";
+import { SlotPicker } from "@/components/appointments/slot-picker";
+import { useState } from "react";
 
 interface DashboardData {
   todayCount: number;
@@ -48,6 +51,13 @@ interface DashboardData {
 
 export function DashboardPage() {
   const { can } = useAuth();
+  const qc = useQueryClient();
+  const [bookingInvite, setBookingInvite] = useState<{
+    id: string; title: string; hostName: string; durationMin: number; validTo: string;
+    windows?: { daysOfWeek: number[]; from: string; to: string }[]; isConfidential: boolean;
+    description: string | null; topics: { title: string }[] | null; validFrom: string; status: string; roomCount: number; isMine: boolean;
+    audienceType?: string; audienceIds?: string[]; roomIds?: string[]; bufferMin?: number;
+  } | null>(null);
   const canCreateMeeting = can("meeting:create");
   const { data, isLoading, error } = useQuery({
     queryKey: ["dashboard"],
@@ -177,6 +187,34 @@ export function DashboardPage() {
       {/* دعوت‌های در انتظار پاسخ — اول صبح همین‌جا جواب بده */}
       {data.pendingRsvp.length > 0 && (
         <PendingRsvpCard invites={data.pendingRsvp} />
+      )}
+
+      {/* دعوت به برنامه‌ی نوبت‌دهی — برنامه‌ی جدیدِ بدون‌پاسخ */}
+      <ProgramInviteCard
+        onBook={(inv) =>
+          setBookingInvite({
+            id: inv.id,
+            title: inv.title,
+            hostName: inv.hostName,
+            durationMin: inv.durationMin,
+            validTo: inv.validTo,
+            validFrom: new Date().toISOString(),
+            windows: inv.windows ?? [],
+            isConfidential: inv.isConfidential,
+            description: null,
+            topics: [],
+            status: "ACTIVE",
+            roomCount: 0,
+            isMine: false,
+          })
+        }
+      />
+      {bookingInvite && (
+        <SlotPicker
+          program={bookingInvite}
+          onClose={() => setBookingInvite(null)}
+          onBooked={() => { setBookingInvite(null); qc.invalidateQueries({ queryKey: ["dashboard"] }); qc.invalidateQueries({ queryKey: ["my-appointments"] }); }}
+        />
       )}
 
       {/* اعلام زمان‌های آزاد — درخواست فعال سازمان */}

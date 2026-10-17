@@ -74,6 +74,7 @@ model User {
   @@index([isActive])
   hostedAppointments    AppointmentProgram[]   @relation("appointmentHost")
   appointmentBookings   AppointmentBooking[]   @relation("appointmentByUser")
+  appointmentResponses  AppointmentResponse[]  @relation("appointmentResponse")
 }
 
 model Role {
@@ -994,7 +995,8 @@ model AppointmentProgram {
 
   org     Organization        @relation(fields: [orgId], references: [id], onDelete: Cascade)
   host    User                @relation("appointmentHost", fields: [hostId], references: [id], onDelete: Cascade)
-  bookings AppointmentBooking[]
+  bookings  AppointmentBooking[]
+  responses AppointmentResponse[]
 
   @@index([orgId, status])
   @@index([hostId])
@@ -1025,6 +1027,25 @@ model AppointmentBooking {
   @@unique([programId, startAt])
   @@index([orgId, userId])
   @@index([programId, status])
+}
+
+/// پاسخ کاربر به یک برنامه‌ی نوبت‌دهی:
+///  - DECLINED: «در این برنامه شرکت نمی‌کنم» (دفعات نمایش کارت را صفر می‌کند)
+///  - SEEN_ACK: صرفاً دیده شده (شمارنده‌ی نمایش)
+model AppointmentResponse {
+  id         String   @id @default(cuid())
+  orgId      String
+  programId  String
+  userId     String
+  /// DECLINED | SEEN_ACK
+  response   String
+  createdAt  DateTime @default(now())
+
+  program AppointmentProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+  user    User              @relation("appointmentResponse", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, userId])
+  @@index([orgId, userId])
 }
 
 model SystemMeta {

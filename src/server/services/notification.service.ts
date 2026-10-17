@@ -62,7 +62,8 @@ export type NotificationType =
   | "WAITLIST_JOINED"
   | "WAITLIST_OFFERED"
   | "WAITLIST_EXPIRED"
-  | "AVAILABILITY_REQUESTED";
+  | "AVAILABILITY_REQUESTED"
+  | "APPOINTMENT_PROGRAM_PUBLISHED";
 
 async function faDateTime(d: Date): Promise<string> {
   const tz = await getOrgTimezone();

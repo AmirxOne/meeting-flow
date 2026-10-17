@@ -59,6 +59,66 @@ export function validateWindows(ws: WindowDef[], durationMin: number, bufferMin:
 }
 
 /** آیا کاربر مخاطبِ برنامه است؟ (سمت سرور — UI هم فیلتر می‌کند ولی این منبع حقیقت است) */
+/** شناسه‌ی کاربران مخاطب یک برنامه (برای اعلان) — همه‌ی فعال‌های org یا لیست USERS */
+export async function programAudienceUserIds(program: { audienceType: string; audienceIds: string[]; orgId: string }): Promise<string[]> {
+  if (program.audienceType === "USERS") return program.audienceIds;
+  if (program.audienceType === "BRANCH") {
+    const users = await prisma.user.findMany({ where: { orgId: program.orgId, isActive: true, branchId: { in: program.audienceIds } }, select: { id: true } });
+    return users.map((u) => u.id);
+  }
+  const users = await prisma.user.findMany({ where: { orgId: program.orgId, isActive: true }, select: { id: true } });
+  return users.map((u) => u.id);
+}
+
+/** ثبت پاسخ کاربر به برنامه: DECLINED (شرکت نمی‌کنم) */
+export async function respondToProgram(programId: string, user: { id: string; orgId: string }, response: "DECLINED") {
+  const program = await prisma.appointmentProgram.findUnique({ where: { id: programId } });
+  if (!program || program.orgId !== user.orgId) throw new HttpError(404, "برنامه یافت نشد", "NOT_FOUND");
+  if (!(await canAccessProgram(user, program))) throw new HttpError(403, "دسترسی به این برنامه ندارید", "FORBIDDEN");
+  await prisma.appointmentResponse.upsert({
+    where: { programId_userId: { programId, userId: user.id } },
+    create: { orgId: user.orgId, programId, userId: user.id, response },
+    update: { response },
+  });
+  return { ok: true };
+}
+
+/** کارت داشبورد: برنامه‌های «پاسخ‌نداده» برای این کاربر (جدیدترین اول) */
+export async function pendingProgramInvites(user: { id: string; orgId: string; branchId?: string | null }) {
+  const programs = await prisma.appointmentProgram.findMany({
+    where: { orgId: user.orgId, status: "ACTIVE", validTo: { gte: new Date() }, hostId: { not: user.id } },
+    include: { host: { select: { fullName: true } } },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+  const responded = await prisma.appointmentResponse.findMany({
+    where: { userId: user.id, programId: { in: programs.map((p) => p.id) } },
+    select: { programId: true, response: true },
+  });
+  // رزرو فعال هم «پاسخ» است — کارت را نشان نده
+  const booked = await prisma.appointmentBooking.findMany({
+    where: { userId: user.id, programId: { in: programs.map((p) => p.id) }, status: "BOOKED", startAt: { gte: new Date() } },
+    select: { programId: true },
+  });
+  const respondedMap = new Map(responded.map((r) => [r.programId, r.response]));
+  for (const b of booked) respondedMap.set(b.programId, "BOOKED");
+  const out = [];
+  for (const p of programs) {
+    if (respondedMap.has(p.id)) continue; // پاسخ داده (DECLINED یا رزرو کرده) → دیگر نمایش نده
+    if (!(await canAccessProgram(user, p))) continue;
+    out.push({
+      id: p.id,
+      title: p.title,
+      hostName: p.host.fullName,
+      durationMin: p.durationMin,
+      validTo: p.validTo,
+      windows: p.windows,
+      isConfidential: p.isConfidential,
+    });
+  }
+  return out.slice(0, 3);
+}
+
 export async function canAccessProgram(
   user: { id: string; orgId: string; branchId?: string | null },
   program: { audienceType: string; audienceIds: string[]; orgId: string; hostId?: string },

@@ -1,5 +1,6 @@
-import ProgramsPage from "./page-client";
+import { redirect } from "next/navigation";
 
+/** ادغام شد — همه‌چیز در /appointments (تب «برنامه‌های من») */
 export default function Page() {
-  return <ProgramsPage />;
+  redirect("/appointments");
 }
