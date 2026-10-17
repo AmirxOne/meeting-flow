@@ -46,7 +46,6 @@ export const NAV: NavItemDef[] = [
   { href: "/calendar", label: "تقویم", icon: CalendarDays, perm: null, group: "main" },
   { href: "/meetings", label: "جلسات", icon: Users, perm: null, group: "main" },
   { href: "/availability", label: "زمان مناسب", icon: Search, perm: null, group: "main" },
-  { href: "/appointments", label: "رزرو نوبت", icon: CalendarClock, perm: null, group: "main" },
   {
     href: "/meeting-requests",
     label: "درخواست جلسه",

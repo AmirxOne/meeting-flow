@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { AvailabilityCard } from "@/components/availability/availability-card";
 import { ProgramInviteCard } from "@/components/appointments/program-invite-card";
+import { AppointmentsSection } from "@/components/appointments/appointments-section";
 import { SlotPicker } from "@/components/appointments/slot-picker";
 import { useState } from "react";
 
@@ -219,6 +220,9 @@ export function DashboardPage() {
 
       {/* اعلام زمان‌های آزاد — درخواست فعال سازمان */}
       <AvailabilityCard />
+
+      {/* ─── رزرو نوبت — کامل در داشبورد ─── */}
+      <AppointmentsSection />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly chart */}
