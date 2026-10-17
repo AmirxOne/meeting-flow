@@ -227,13 +227,13 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
             {topics.length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {topics.map((t) => (
-                  <span key={t} className="inline-flex items-center gap-1 rounded-full border border-line bg-paper-soft px-2.5 py-1 text-[11.5px] font-medium text-ink">
-                    {t}
+                  <span key={t} className="group inline-flex max-w-full items-center gap-1.5 rounded-full border border-line bg-paper-soft py-1 pl-2.5 pr-1.5 text-[11.5px] font-medium text-ink transition-colors hover:border-ink/30">
+                    <span className="truncate" title={t}>{t}</span>
                     <button
                       type="button"
                       aria-label={"حذف " + t}
                       onClick={() => removeTopic(t)}
-                      className="text-ink-faint transition hover:text-red-600"
+                      className="flex size-5 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-red-50 hover:text-red-600"
                     >
                       <X className="h-3 w-3" />
                     </button>
