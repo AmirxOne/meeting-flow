@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Clock, DoorOpen, Hourglass, Users, XCircle, Check, X, MessageQuestion } from "@/components/ui/icon";
+import { CalendarDays, CalendarClock, Clock, DoorOpen, Hourglass, Users, XCircle, Check, X, MessageQuestion } from "@/components/ui/icon";
 import { api } from "@/lib/api";
 import { Card, CardHeader, CardBody, StatCard, EmptyState, SkeletonBlock } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badges";
@@ -14,12 +14,22 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { AvailabilityCard } from "@/components/availability/availability-card";
-import { ProgramInviteCard } from "@/components/appointments/program-invite-card";
 import { AppointmentsSection } from "@/components/appointments/appointments-section";
 import { SlotPicker } from "@/components/appointments/slot-picker";
 import { useState } from "react";
 
+interface ProgramInvite {
+  id: string;
+  title: string;
+  hostName: string;
+  durationMin: number;
+  validTo: string;
+  windows?: { daysOfWeek: number[]; from: string; to: string }[];
+  isConfidential: boolean;
+}
+
 interface DashboardData {
+  programInvites?: ProgramInvite[];
   todayCount: number;
   activeNow: number;
   pendingApprovals: number;
@@ -64,6 +74,14 @@ export function DashboardPage() {
     queryKey: ["dashboard"],
     queryFn: () => api<DashboardData>("/api/dashboard"),
     refetchInterval: 60_000,
+  });
+
+  const programInvites: ProgramInvite[] = data?.programInvites ?? [];
+  const declineInvite = useMutation({
+    mutationFn: (id: string) => api(`/api/appointments/programs/${id}/respond`, { method: "POST", json: { response: "DECLINED" } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 
   if (isLoading) {
@@ -185,31 +203,27 @@ export function DashboardPage() {
         </StaggerItem>
       </StaggerList>
 
-      {/* دعوت‌های در انتظار پاسخ — اول صبح همین‌جا جواب بده */}
-      {data.pendingRsvp.length > 0 && (
-        <PendingRsvpCard invites={data.pendingRsvp} />
+      {/* دعوت‌های در انتظار پاسخ (جلسه + نوبت‌دهی) — اول صبح همین‌جا جواب بده */}
+      {(data.pendingRsvp.length > 0 || programInvites.length > 0) && (
+        <PendingRsvpCard
+          invites={data.pendingRsvp}
+          programInvites={programInvites}
+          onBookProgram={(id) => {
+            const inv = programInvites.find((i) => i.id === id);
+            if (!inv) return;
+            setBookingInvite({
+              id: inv.id, title: inv.title, hostName: inv.hostName, durationMin: inv.durationMin,
+              validTo: inv.validTo, validFrom: new Date().toISOString(), windows: inv.windows ?? [],
+              isConfidential: inv.isConfidential, description: null, topics: [], status: "ACTIVE",
+              roomCount: 0, isMine: false,
+            });
+          }}
+          onDeclineProgram={(id) => {
+            declineInvite.mutate(id);
+          }}
+        />
       )}
 
-      {/* دعوت به برنامه‌ی نوبت‌دهی — برنامه‌ی جدیدِ بدون‌پاسخ */}
-      <ProgramInviteCard
-        onBook={(inv) =>
-          setBookingInvite({
-            id: inv.id,
-            title: inv.title,
-            hostName: inv.hostName,
-            durationMin: inv.durationMin,
-            validTo: inv.validTo,
-            validFrom: new Date().toISOString(),
-            windows: inv.windows ?? [],
-            isConfidential: inv.isConfidential,
-            description: null,
-            topics: [],
-            status: "ACTIVE",
-            roomCount: 0,
-            isMine: false,
-          })
-        }
-      />
       {bookingInvite && (
         <SlotPicker
           program={bookingInvite}
@@ -333,7 +347,17 @@ export function DashboardPage() {
   );
 }
 
-function PendingRsvpCard({ invites }: { invites: DashboardData["pendingRsvp"] }) {
+function PendingRsvpCard({
+  invites,
+  programInvites,
+  onBookProgram,
+  onDeclineProgram,
+}: {
+  invites: DashboardData["pendingRsvp"];
+  programInvites: { id: string; title: string; hostName: string; durationMin: number; validTo: string; isConfidential: boolean }[];
+  onBookProgram: (id: string) => void;
+  onDeclineProgram: (id: string) => void;
+}) {
   const qc = useQueryClient();
   const { push } = useToast();
   const respond = useMutation({
@@ -358,11 +382,11 @@ function PendingRsvpCard({ invites }: { invites: DashboardData["pendingRsvp"] })
             <MessageQuestion className="h-4 w-4 text-amber-500" />
             دعوت‌های در انتظار پاسخ شما
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10.5px] font-bold text-amber-800">
-              {faNum(invites.length)}
+              {faNum(invites.length + programInvites.length)}
             </span>
           </span>
         }
-        subtitle="به جلسه‌های زیر دعوت شده‌اید و هنوز پاسخ نداده‌اید"
+        subtitle="به جلسه‌های زیر دعوت شده‌اید یا برنامه‌های نوبت‌دهی برای شما منتشر شده و هنوز پاسخ نداده‌اید"
       />
       <div className="divide-y divide-line">
         {invites.map((m) => (
@@ -405,6 +429,38 @@ function PendingRsvpCard({ invites }: { invites: DashboardData["pendingRsvp"] })
               >
                 <X className="h-4 w-4" />
                 نمی‌آیم
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        {programInvites.map((inv) => (
+          <div key={`prog-${inv.id}`} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+              <CalendarClock className="h-4.5 w-4.5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium">
+                نوبت‌دهی: {inv.isConfidential ? `🔒 ${inv.title}` : inv.title}
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-ink-soft">
+                {inv.hostName} برنامه‌ای {faNum(inv.durationMin)} دقیقه‌ای منتشر کرده — تا{" "}
+                {new Date(inv.validTo).toLocaleDateString("fa-IR", { day: "numeric", month: "long" })}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-red-600 hover:border-red-300 hover:bg-red-50"
+                onClick={() => onDeclineProgram(inv.id)}
+              >
+                <X className="h-4 w-4" />
+                شرکت نمی‌کنم
+              </Button>
+              <Button size="sm" className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => onBookProgram(inv.id)}>
+                <Check className="h-4 w-4" />
+                گرفتن نوبت
               </Button>
             </div>
           </div>
