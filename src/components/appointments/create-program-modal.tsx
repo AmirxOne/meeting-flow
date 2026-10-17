@@ -151,11 +151,11 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">مدت هر جلسه (دقیقه)</label>
-              <FaNumberInput value={durationMin} onChange={setDurationMin} min={10} max={240} step={5} className={inputCls} />
+              <FaNumberInput value={durationMin} onChange={setDurationMin} min={10} max={240} step={5} />
             </div>
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">فاصله (دقیقه)</label>
-              <FaNumberInput value={bufferMin} onChange={setBufferMin} min={0} max={60} step={5} className={inputCls} />
+              <FaNumberInput value={bufferMin} onChange={setBufferMin} min={0} max={60} step={5} />
             </div>
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">محرمانه</label>
@@ -353,7 +353,7 @@ function FaNumberInput({ value, onChange, min = 0, max = 9999, step = 1, classNa
 }) {
   const clamp = (v: number) => Math.min(max, Math.max(min, Number.isFinite(v) ? v : min));
   return (
-    <div className={cn("flex h-10 items-center rounded-md border border-line bg-white focus-within:border-ink", className)}>
+    <div className={cn("flex h-10 w-full items-center rounded-md border border-line bg-white focus-within:border-ink", className)}>
       <button
         type="button"
         aria-label="افزایش"
