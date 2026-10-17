@@ -87,7 +87,7 @@ function windowsSummary(windows: WindowRow[] | null | undefined): string[] {
 
 
 
-export function AppointmentsSection() {
+export function AppointmentsSection({ hiddenIds = [] }: { hiddenIds?: string[] }) {
   const qc = useQueryClient();
 
   const [openProgram, setOpenProgram] = useState<Program | null>(null);
@@ -104,7 +104,9 @@ export function AppointmentsSection() {
 
   const programs = data?.programs ?? [];
   const mine = programs.filter((p) => p.isMine);
-  const others = programs.filter((p) => !p.isMine);
+  const pendingSet = new Set(hiddenIds);
+  // برنامه‌هایی که هنوز در کارت «دعوت‌های در انتظار» بی‌پاسخ‌اند → اینجا تکرار نشوند
+  const others = programs.filter((p) => !p.isMine && !pendingSet.has(p.id));
   const upcoming = (myData?.bookings ?? []).filter((b) => b.status === "BOOKED" && new Date(b.startAt) > new Date());
 
   const invalidateAll = () => {

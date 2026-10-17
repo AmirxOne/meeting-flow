@@ -236,7 +236,7 @@ export function DashboardPage() {
       <AvailabilityCard />
 
       {/* ─── رزرو نوبت — کامل در داشبورد ─── */}
-      <AppointmentsSection />
+      <AppointmentsSection hiddenIds={programInvites.map((i) => i.id)} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly chart */}

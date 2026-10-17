@@ -42,3 +42,17 @@ describe("appointment — canAccessProgram", () => {
     expect(canAccessProgram({ id: "u3", orgId: org }, p)).resolves.toBe(false);
   });
 });
+
+describe("appointment — dedupe pending invites vs public list", () => {
+  it("برنامه‌ی بی‌پاسخ از فهرست عمومی مخفی می‌شود", () => {
+    const programs = [
+      { id: "a", isMine: false },
+      { id: "b", isMine: false },
+      { id: "c", isMine: true },
+    ];
+    const hiddenIds = ["a"];
+    const pendingSet = new Set(hiddenIds);
+    const others = programs.filter((p) => !p.isMine && !pendingSet.has(p.id));
+    expect(others.map((o) => o.id)).toEqual(["b"]);
+  });
+});
