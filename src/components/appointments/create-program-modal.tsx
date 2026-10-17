@@ -294,150 +294,156 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
             )}
           </div>
 
-          {/* مدت اعتبار — یک روز خاص یا بازه */}
-          <div>
-            <label className="mb-1 block text-[11px] text-ink-soft">مدت اعتبار برنامه</label>
-            <div className="mb-2 flex gap-1.5">
-              {[
-                { v: "range", l: "بازه‌ی زمانی" },
-                { v: "single", l: "یک روز خاص" },
-              ].map((o) => (
-                <button
-                  key={o.v}
-                  type="button"
-                  onClick={() => setDurationMode(o.v as "range")}
-                  className={cn(
-                    "flex-1 rounded-md border px-2 py-2 text-[11.5px] font-medium transition-colors",
-                    durationMode === o.v ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/40",
-                  )}
-                >
-                  {o.l}
-                </button>
-              ))}
-            </div>
-            {durationMode === "range" ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="min-w-[150px] flex-1">
-                  <JalaliDatePicker
-                    value={validFromIso}
-                    onChange={setValidFromIso}
-                    placeholder="از تاریخ"
-                    min={todayIso}
-                  />
-                </div>
-                <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
-                <div className="min-w-[150px] flex-1">
-                  <JalaliDatePicker
-                    value={validToIso}
-                    onChange={setValidToIso}
-                    placeholder="تا تاریخ"
-                    min={validFromIso}
-                  />
-                </div>
-              </div>
-            ) : (
-              <JalaliDatePicker
-                value={singleDayIso}
-                onChange={setSingleDayIso}
-                placeholder="روز برگزاری"
-                min={todayIso}
-              />
-            )}
-            {durationMode === "single" && (
-              <p className="mt-1.5 text-[10.5px] leading-5 text-ink-faint">
-                نوبت‌ها فقط در همین روز ارائه می‌شوند؛ بازه‌های ساعتی همان روز را در بخش «روزها و ساعت‌های در دسترس» تعریف کن.
+          {/* ═══ زمان‌بندی نوبت‌دهی — تاریخ + روزها و ساعت‌ها در یک پنل ═══ */}
+          <div className="overflow-hidden rounded-xl border border-line">
+            {/* گام ۱ — مدت اعتبار */}
+            <div className="border-b border-line bg-paper-soft/50 px-4 py-3.5">
+              <p className="flex items-center gap-2 text-[12px] font-bold">
+                <span className="flex size-5 items-center justify-center rounded-full bg-ink text-[10.5px] font-bold text-white">۱</span>
+                چه زمانی نوبت‌دهی فعال باشد؟
               </p>
-            )}
-          </div>
-
-
-          <div>
-            <label className="mb-1.5 block text-[11px] font-medium text-ink-soft">روزها و ساعت‌های در دسترس</label>
-            <p className="mb-2 text-[10.5px] leading-5 text-ink-faint">
-              {durationMode === "single"
-                ? "ساعت‌های همین روز را تعریف کن (چند بازه مجاز است)"
-                : allowedDays.size < 7
-                  ? "فقط روزهای موجود در بازه‌ی اعتبار نمایش داده می‌شوند — روشن کن و برای هر روز چند بازه تعریف کن"
-                  : "روزها را روشن کن؛ برای هر روز هر چند بازه که می‌خواهی اضافه کن (مثلاً صبح و عصر)"}
-            </p>
-
-            {/* انتخاب روزها — فقط روزهای موجود در بازه‌ی اعتبار */}
-            <div className="flex flex-wrap gap-1">
-              {WEEKDAYS_FA.filter((d) => allowedDays.has(d.v)).map((d) => {
-                const on = !!dayRanges[d.v];
-                const cnt = dayRanges[d.v]?.length ?? 0;
-                return (
+              <div className="mt-2.5 flex gap-1.5">
+                {[
+                  { v: "range", l: "بازه‌ی زمانی" },
+                  { v: "single", l: "یک روز خاص" },
+                ].map((o) => (
                   <button
-                    key={d.v}
+                    key={o.v}
                     type="button"
-                    onClick={() => toggleDay(d.v)}
+                    onClick={() => setDurationMode(o.v as "range")}
                     className={cn(
-                      "rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-                      on ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/40",
+                      "flex-1 rounded-md border px-2 py-2 text-[11.5px] font-medium transition-colors",
+                      durationMode === o.v ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/40",
                     )}
                   >
-                    {d.l}
-                    {on && cnt > 1 ? ` (${toFa(cnt)})` : ""}
+                    {o.l}
                   </button>
-                );
-              })}
+                ))}
+              </div>
+              <div className="mt-2">
+                {durationMode === "range" ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="min-w-[150px] flex-1">
+                      <JalaliDatePicker
+                        value={validFromIso}
+                        onChange={setValidFromIso}
+                        placeholder="از تاریخ"
+                        min={todayIso}
+                      />
+                    </div>
+                    <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
+                    <div className="min-w-[150px] flex-1">
+                      <JalaliDatePicker
+                        value={validToIso}
+                        onChange={setValidToIso}
+                        placeholder="تا تاریخ"
+                        min={validFromIso}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <JalaliDatePicker
+                    value={singleDayIso}
+                    onChange={setSingleDayIso}
+                    placeholder="روز برگزاری"
+                    min={todayIso}
+                  />
+                )}
+              </div>
             </div>
 
-            {/* بازه‌های هر روز فعال */}
-            {Object.keys(dayRanges).length > 0 && (
-              <div className="mt-2.5 space-y-2">
-                {WEEKDAYS_FA.filter((d) => dayRanges[d.v]).map((d) => {
-                  const ranges = dayRanges[d.v];
+            {/* گام ۲ — روزها و ساعت‌ها */}
+            <div className="px-4 py-3.5">
+              <p className="flex items-center gap-2 text-[12px] font-bold">
+                <span className="flex size-5 items-center justify-center rounded-full bg-ink text-[10.5px] font-bold text-white">۲</span>
+                {durationMode === "single" ? "ساعت‌های این روز" : "چه روزهایی و چه ساعتی؟"}
+              </p>
+              <p className="mt-1.5 text-[10.5px] leading-5 text-ink-faint">
+                {durationMode === "single"
+                  ? "برای این روز هر چند بازه‌ی ساعتی که می‌خواهی تعریف کن"
+                  : allowedDays.size < 7
+                    ? "فقط روزهای موجود در بازه‌ی بالا نمایش داده می‌شوند — روشن کن و بازه‌های ساعتی هر روز را تعریف کن"
+                    : "روزها را روشن کن؛ برای هر روز هر چند بازه که می‌خواهی اضافه کن (مثلاً صبح و عصر)"}
+              </p>
+
+              {/* چیپ روزها */}
+              <div className="mt-2.5 flex flex-wrap gap-1">
+                {WEEKDAYS_FA.filter((d) => allowedDays.has(d.v)).map((d) => {
+                  const on = !!dayRanges[d.v];
+                  const cnt = dayRanges[d.v]?.length ?? 0;
                   return (
-                    <div key={d.v} className="rounded-lg border border-line bg-paper-soft/40 p-2.5">
-                      <div className="mb-2 flex items-center justify-between">
-                        <p className="text-[12px] font-bold">{d.l}</p>
-                        <button
-                          type="button"
-                          onClick={() => setDayRanges((prev) => ({ ...prev, [d.v]: [...(prev[d.v] ?? []), { from: "14:00", to: "17:00" }] }))}
-                          className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-ink-soft transition hover:bg-white hover:text-ink"
-                        >
-                          <Plus className="h-3 w-3" />
-                          بازه‌ی ساعت
-                        </button>
-                      </div>
-                      <div className="space-y-1.5">
-                        {ranges.map((r, ri) => (
-                          <div key={ri} className="flex items-center gap-2">
-                            <span className="w-5 shrink-0 text-center text-[10px] font-bold text-ink-faint">{toFa(ri + 1)}</span>
-                            <div className="min-w-0 flex-1">
-                              <TimePicker
-                                value={r.from}
-                                onChange={(v) => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).map((x, j) => j === ri ? { ...x, from: v } : x) }))}
-                                className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
-                              />
-                            </div>
-                            <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
-                            <div className="min-w-0 flex-1">
-                              <TimePicker
-                                value={r.to}
-                                onChange={(v) => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).map((x, j) => j === ri ? { ...x, to: v } : x) }))}
-                                className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
-                              />
-                            </div>
-                            {ranges.length > 1 && (
-                              <button
-                                type="button"
-                                aria-label={`حذف بازه‌ی ${toFa(ri + 1)} ${d.l}`}
-                                onClick={() => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).filter((_, j) => j !== ri) }))}
-                                className="text-ink-faint transition hover:text-red-600"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    <button
+                      key={d.v}
+                      type="button"
+                      onClick={() => toggleDay(d.v)}
+                      className={cn(
+                        "rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                        on ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/40",
+                      )}
+                    >
+                      {d.l}
+                      {on && cnt > 1 ? ` (${toFa(cnt)})` : ""}
+                    </button>
                   );
                 })}
               </div>
-            )}
+
+              {/* کارت بازه‌های هر روز */}
+              {Object.keys(dayRanges).length > 0 && (
+                <div className="mt-2.5 space-y-2">
+                  {WEEKDAYS_FA.filter((d) => dayRanges[d.v]).map((d) => {
+                    const ranges = dayRanges[d.v];
+                    return (
+                      <div key={d.v} className="rounded-lg border border-line bg-paper-soft/40 p-2.5">
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-[12px] font-bold">{d.l}</p>
+                          <button
+                            type="button"
+                            onClick={() => setDayRanges((prev) => ({ ...prev, [d.v]: [...(prev[d.v] ?? []), { from: "14:00", to: "17:00" }] }))}
+                            className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-ink-soft transition hover:bg-white hover:text-ink"
+                          >
+                            <Plus className="h-3 w-3" />
+                            بازه‌ی ساعت
+                          </button>
+                        </div>
+                        <div className="space-y-1.5">
+                          {ranges.map((r, ri) => (
+                            <div key={ri} className="flex items-center gap-2">
+                              <span className="w-5 shrink-0 text-center text-[10px] font-bold text-ink-faint">{toFa(ri + 1)}</span>
+                              <div className="min-w-0 flex-1">
+                                <TimePicker
+                                  value={r.from}
+                                  onChange={(v) => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).map((x, j) => j === ri ? { ...x, from: v } : x) }))}
+                                  className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
+                                />
+                              </div>
+                              <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
+                              <div className="min-w-0 flex-1">
+                                <TimePicker
+                                  value={r.to}
+                                  onChange={(v) => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).map((x, j) => j === ri ? { ...x, to: v } : x) }))}
+                                  className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
+                                />
+                              </div>
+                              {ranges.length > 1 && (
+                                <button
+                                  type="button"
+                                  aria-label={"حذف بازه‌ی " + toFa(ri + 1) + " " + d.l}
+                                  onClick={() => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).filter((_, j) => j !== ri) }))}
+                                  className="text-ink-faint transition hover:text-red-600"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
