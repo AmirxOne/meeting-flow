@@ -8,7 +8,7 @@ import { api, type ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib";
-import { X, Plus } from "@/components/ui/icon";
+import { X, Plus, Minus } from "@/components/ui/icon";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { TimePicker } from "@/components/ui/jalali-date-picker";
 import { createPortal } from "react-dom";
@@ -415,9 +415,9 @@ function FaNumberInput({ value, onChange, min = 0, max = 9999, step = 1, classNa
         type="button"
         aria-label="افزایش"
         onClick={() => onChange(clamp(value + step))}
-        className="my-auto flex size-[38px] shrink-0 items-center justify-center border-l border-line text-[15px] font-bold leading-none text-ink-soft transition hover:bg-paper-soft hover:text-ink"
+        className="my-auto flex size-[38px] shrink-0 items-center justify-center border-l border-line text-ink-soft transition hover:bg-paper-soft hover:text-ink"
       >
-        +
+        <Plus className="h-4 w-4" />
       </button>
       <input
         inputMode="numeric"
@@ -432,9 +432,9 @@ function FaNumberInput({ value, onChange, min = 0, max = 9999, step = 1, classNa
         type="button"
         aria-label="کاهش"
         onClick={() => onChange(clamp(value - step))}
-        className="my-auto flex size-[38px] shrink-0 items-center justify-center border-r border-line text-[15px] font-bold leading-none text-ink-soft transition hover:bg-paper-soft hover:text-ink"
+        className="my-auto flex size-[38px] shrink-0 items-center justify-center border-r border-line text-ink-soft transition hover:bg-paper-soft hover:text-ink"
       >
-        −
+        <Minus className="h-4 w-4" />
       </button>
     </div>
   );

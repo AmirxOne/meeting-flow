@@ -45,6 +45,7 @@ export const ICONSAX_MAP = {
   "Play": "play",
   "PlayCircle": "play-circle",
   "Plus": "add",
+  "Minus": "minus",
   "Power": "toggle-on-circle",
   "Printer": "printer",
   "ScrollText": "document-text",
@@ -74,6 +75,7 @@ export type IconName = keyof typeof ICONSAX_MAP;
 export type IconsaxId = (typeof ICONSAX_MAP)[IconName];
 
 export const ICONSAX_GLYPHS: Record<IconsaxId, string> = {
+  "minus": "<svg width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"> <path d=\"M6 12H18\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> </svg>",
   "activity": "<svg width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"> <g clip-path=\"url(#clip0_4418_10070)\"> <path d=\"M9 22H15C20 22 22 20 22 15V9C22 4 20 2 15 2H9C4 2 2 4 2 9V15C2 20 4 22 9 22Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> <path d=\"M7.32996 14.4898L9.70996 11.3998C10.05 10.9598 10.68 10.8798 11.12 11.2198L12.95 12.6598C13.39 12.9998 14.02 12.9198 14.36 12.4898L16.67 9.50977\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> </g> <defs> <clipPath id=\"clip0_4418_10070\"> <rect width=\"24\" height=\"24\" fill=\"currentColor\"/> </clipPath> </defs> </svg>",
   "danger": "<svg width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"> <g clip-path=\"url(#clip0_4418_9824)\"> <path d=\"M12 9V14\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> <path d=\"M12.0001 21.4093H5.94005C2.47005 21.4093 1.02005 18.9293 2.70005 15.8993L5.82006 10.2793L8.76006 4.9993C10.5401 1.7893 13.4601 1.7893 15.2401 4.9993L18.1801 10.2893L21.3001 15.9093C22.9801 18.9393 21.5201 21.4193 18.0601 21.4193H12.0001V21.4093Z\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> <path d=\"M11.9945 17H12.0035\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> </g> <defs> <clipPath id=\"clip0_4418_9824\"> <rect width=\"24\" height=\"24\" fill=\"currentColor\"/> </clipPath> </defs> </svg>",
   "arrow-left-01": "<svg width=\"1em\" height=\"1em\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"> <path d=\"M9.57 5.92969L3.5 11.9997L9.57 18.0697\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-miterlimit=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> <path d=\"M20.4999 12H3.66992\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-miterlimit=\"10\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/> </svg>",

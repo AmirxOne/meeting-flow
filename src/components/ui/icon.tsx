@@ -93,6 +93,7 @@ export const Pencil = named(ICONSAX_MAP.Pencil);
 export const Phone = named(ICONSAX_MAP.Phone);
 export const Play = named(ICONSAX_MAP.Play);
 export const PlayCircle = named(ICONSAX_MAP.PlayCircle);
+export const Minus = named(ICONSAX_MAP.Minus);
 export const Plus = named(ICONSAX_MAP.Plus);
 export const Power = named(ICONSAX_MAP.Power);
 export const Printer = named(ICONSAX_MAP.Printer);
