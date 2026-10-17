@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { useOrgName } from "@/lib/org-branding";
 import { BrandLogo } from "@/components/ui/brand-logo";
