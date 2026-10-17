@@ -16,8 +16,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useConfirm } from "@/components/ui/confirm-modal";
 import { cn, faNum } from "@/lib";
-import { CalendarDays, Clock, Check, X, Pencil, Trash2, Plus } from "@/components/ui/icon";
-import { CreateProgramModal, type ProgramLite } from "./create-program-modal";
+import { CalendarDays, Clock, Check, X, CalendarClock, Plus } from "@/components/ui/icon";
+import Link from "next/link";
 
 interface WindowRow { daysOfWeek: number[]; from: string; to: string }
 interface Slot { startAt: string; endAt: string }
@@ -89,8 +89,7 @@ export default function AppointmentsPage() {
   const { push } = useToast();
   const confirm = useConfirm();
   const [openProgram, setOpenProgram] = useState<Program | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<Program | null>(null);
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["appointment-programs"],
@@ -106,20 +105,6 @@ export default function AppointmentsPage() {
   const others = programs.filter((p) => !p.isMine);
   const upcoming = (myData?.bookings ?? []).filter((b) => b.status === "BOOKED" && new Date(b.startAt) > new Date());
 
-  const delMut = useMutation({
-    mutationFn: (id: string) => api(`/api/appointments/programs/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      push("برنامه حذف شد", "success");
-      qc.invalidateQueries({ queryKey: ["appointment-programs"] });
-    },
-    onError: (e) => push((e as ApiError).message || "حذف ناموفق بود", "error"),
-  });
-
-  async function onDelete(p: Program) {
-    if (!(await confirm({ title: `حذف برنامه‌ی «${p.title}»`, body: "رزروهای آینده‌ی این برنامه لغو و جلساتشان بسته می‌شود. مطمئنی؟", confirmLabel: "حذف", danger: true }))) return;
-    delMut.mutate(p.id);
-  }
-
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["appointment-programs"] });
     qc.invalidateQueries({ queryKey: ["my-appointments"] });
@@ -128,11 +113,20 @@ export default function AppointmentsPage() {
   return (
     <div className="space-y-6 p-4 lg:p-6">
       {/* ───── سربرگ ───── */}
-      <div>
-        <h1 className="text-lg font-bold">رزرو نوبت</h1>
-        <p className="mt-1 max-w-2xl text-[12px] leading-6 text-ink-soft">
-          وقتِ جلسه با مسئولان سازمان (مشاور، منابع انسانی، مدیریت…) — روز و ساعتِ آزاد را ببین و همان‌جا رزرو کن؛ جلسه به‌صورت خودکار در تقویمت ثبت می‌شود.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold">رزرو نوبت</h1>
+          <p className="mt-1 max-w-2xl text-[12px] leading-6 text-ink-soft">
+            وقتِ جلسه با مسئولان سازمان (مشاور، منابع انسانی، مدیریت…) — روز و ساعتِ آزاد را ببین و همان‌جا رزرو کن؛ جلسه به‌صورت خودکار در تقویمت ثبت می‌شود.
+          </p>
+        </div>
+        {mine.length > 0 && (
+          <div className="flex items-center gap-2 rounded-lg border border-line bg-paper-soft/50 px-3 py-2 text-[11px] text-ink-soft">
+            <span className="font-bold text-ink">{faNum(mine.length)}</span> برنامه‌ی فعال شما
+            <span className="text-ink-faint">·</span>
+            <span className="font-bold text-ink">{faNum(upcoming.length)}</span> نوبت پیش‌رو
+          </div>
+        )}
       </div>
 
       {/* ───── ۱. نوبت‌های من ───── */}
@@ -163,61 +157,44 @@ export default function AppointmentsPage() {
 
       {/* ───── ۲. گرفتن نوبت ───── */}
       <section>
-        <h2 className="mb-2 text-[13px] font-bold">{mine.length > 0 ? "گرفتن نوبت از مسئولان دیگر" : "گرفتن نوبت"}</h2>
+        <h2 className="mb-2 text-[13px] font-bold">گرفتن نوبت از مسئولان</h2>
         {isLoading ? (
           <Card><div className="space-y-2 p-5">{[0, 1].map((i) => <div key={i} className="skeleton h-24 w-full rounded-md" />)}</div></Card>
-        ) : others.length === 0 ? (
+        ) : programs.length === 0 ? (
           <Card>
             <EmptyState
               icon={<CalendarDays className="h-10 w-10" />}
-              title={mine.length > 0 ? "فعلاً برنامه‌ی دیگری برای رزرو نداری" : "فعلاً برنامه‌ای برای رزرو منتشر نشده"}
+              title="فعلاً برنامه‌ای برای رزرو منتشر نشده"
               description="وقتی مسئولان (مشاور، HR و…) برنامه انتشار دهند، اینجا وقت آزادشان را می‌بینی و می‌توانی رزرو کنی"
             />
           </Card>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
-            {others.map((p) => (
-              <ProgramCard key={p.id} p={p} onOpen={() => setOpenProgram(p)} />
+            {programs.map((p) => (
+              <ProgramCard key={p.id} p={p} onOpen={() => setOpenProgram(p)} mine={p.isMine} manageHref="/programs" />
             ))}
           </div>
         )}
       </section>
 
-      {/* ───── ۳. برنامه‌های من ───── */}
-      <section>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-[13px] font-bold">برنامه‌های نوبت‌دهی من</h2>
-          <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
-            <Plus className="h-3.5 w-3.5" />
-            برنامه‌ی جدید
-          </Button>
-        </div>
-        {mine.length === 0 ? (
-          <Card className="p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[12.5px] font-bold">هنوز برنامه‌ای نساخته‌ای</p>
-                <p className="mt-1 max-w-md text-[11.5px] leading-6 text-ink-soft">
-                  اگر مشاور یا مسئول جلسه‌ای، روزها و ساعت‌های آزادت را تعریف کن تا کارکنان خودشان وقت بگیرند — بدون پیام‌رفت‌وبرگشت.
-                </p>
-              </div>
-              <Button size="sm" onClick={() => setCreating(true)}>
-                <Plus className="h-3.5 w-3.5" />
-                ساخت اولین برنامه
-              </Button>
+      {/* ─── مسئول جلسه‌ای؟ برنامه‌ی خودت را جدا بساز — مثل ثبت جلسه ─── */}
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-paper-soft text-ink">
+              <CalendarClock className="h-4 w-4" />
+            </span>
+            <div>
+              <p className="text-[12.5px] font-bold">مسئول جلسه یا مشاور هستی؟</p>
+              <p className="mt-0.5 text-[11.5px] leading-5 text-ink-soft">برنامه‌ی نوبت‌دهی بساز تا کارکنان خودشان از وقت آزادت نوبت بگیرند</p>
             </div>
-          </Card>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {mine.map((p) => (
-              <ProgramCard key={p.id} p={p} onOpen={() => setOpenProgram(p)} mine onEdit={() => setEditing(p)} onDelete={() => onDelete(p)} deleting={delMut.isPending} />
-            ))}
           </div>
-        )}
-      </section>
+          <Link href="/programs" className="shrink-0">
+            <Button size="sm" variant="outline"><Plus className="h-3.5 w-3.5" />برنامه‌های نوبت‌دهی من</Button>
+          </Link>
+        </div>
+      </Card>
 
-      {creating && <CreateProgramModal onClose={() => setCreating(false)} onCreated={() => { setCreating(false); invalidateAll(); }} />}
-      {editing && <CreateProgramModal editProgram={editing as unknown as ProgramLite} onClose={() => setEditing(null)} onCreated={() => { setEditing(null); invalidateAll(); }} />}
       {openProgram && <SlotPicker program={openProgram} onClose={() => setOpenProgram(null)} onBooked={() => { setOpenProgram(null); invalidateAll(); }} />}
     </div>
   );
@@ -225,8 +202,8 @@ export default function AppointmentsPage() {
 
 /* ═══════════ کارت برنامه ═══════════ */
 
-function ProgramCard({ p, onOpen, mine, onEdit, onDelete, deleting }: {
-  p: Program; onOpen: () => void; mine?: boolean; onEdit?: () => void; onDelete?: () => void; deleting?: boolean;
+function ProgramCard({ p, onOpen, mine, manageHref }: {
+  p: Program; onOpen: () => void; mine?: boolean; manageHref?: string;
 }) {
   const summary = windowsSummary(p.windows);
   return (
@@ -235,16 +212,12 @@ function ProgramCard({ p, onOpen, mine, onEdit, onDelete, deleting }: {
         <p className="flex min-w-0 items-center gap-1.5 text-[14px] font-bold">
           {p.title}
           {p.isConfidential && <span title="جلسه محرمانه">🔒</span>}
+          {p.isMine && <span className="badge badge-gray">برنامه‌ی شما</span>}
         </p>
         {mine && (
-          <div className="flex shrink-0 gap-1">
-            <button onClick={onEdit} aria-label="ویرایش برنامه" title="ویرایش" className="rounded-md border border-line p-1.5 text-ink-soft transition hover:border-ink/40 hover:text-ink">
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <button onClick={onDelete} disabled={deleting} aria-label="حذف برنامه" title="حذف" className="rounded-md border border-line p-1.5 text-ink-soft transition hover:border-red-300 hover:text-red-600 disabled:opacity-50">
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          </div>
+          <Link href={manageHref ?? "/programs"} className="shrink-0 rounded-md border border-line px-2 py-1 text-[10.5px] font-medium text-ink-soft transition hover:border-ink/40 hover:text-ink">
+            مدیریت
+          </Link>
         )}
       </div>
 

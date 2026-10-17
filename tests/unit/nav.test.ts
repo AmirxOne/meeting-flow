@@ -16,6 +16,7 @@ describe("nav visibility", () => {
       "/meetings",
       "/availability",
       "/appointments",
+      "/programs",
       "/meeting-requests",
     ]);
     expect(groups[2].items.map((i) => i.href)).toEqual(["/notifications", "/reports/me"]);

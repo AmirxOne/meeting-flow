@@ -356,19 +356,24 @@ export async function submitAvailability(
   }
 
   const period = { start: req.periodStart.toISOString().slice(0, 10), end: req.periodEnd.toISOString().slice(0, 10) };
-  const error = validateSlots(slots, period);
-  if (error) throw new HttpError(400, error, "VALIDATION_ERROR");
+  // slots خالی = «هیچ‌کدام از زمان‌ها را نمی‌توانم» — پاسخ معتبر، نه خطا
+  if (slots.length > 0) {
+    const error = validateSlots(slots, period);
+    if (error) throw new HttpError(400, error, "VALIDATION_ERROR");
+  }
 
   return prisma.$transaction(async (tx) => {
     await tx.availabilitySlot.deleteMany({ where: { requestId } });
-    await tx.availabilitySlot.createMany({
-      data: slots.map((s) => ({
-        requestId,
-        date: isoToUtc(s.date),
-        startTime: s.startTime,
-        endTime: s.endTime,
-      })),
-    });
+    if (slots.length > 0) {
+      await tx.availabilitySlot.createMany({
+        data: slots.map((s) => ({
+          requestId,
+          date: isoToUtc(s.date),
+          startTime: s.startTime,
+          endTime: s.endTime,
+        })),
+      });
+    }
     return tx.availabilityRequest.update({
       where: { id: requestId },
       data: { status: "SUBMITTED", submittedAt: new Date(), submittedById: actorId },

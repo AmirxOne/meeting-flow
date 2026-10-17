@@ -112,7 +112,7 @@ const slotSchema = z.object({
 
 const submitSchema = z.object({
   requestId: z.string().min(1),
-  slots: z.array(slotSchema).min(1).max(100),
+  slots: z.array(slotSchema).max(100), // خالی = «هیچ‌کدام را نمی‌توانم»
 });
 
 /** PUT /api/availability-mgmt — ثبت زمان‌های آزاد (کاربر خودش یا admin از طرف او) */

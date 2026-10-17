@@ -47,6 +47,7 @@ export const NAV: NavItemDef[] = [
   { href: "/meetings", label: "جلسات", icon: Users, perm: null, group: "main" },
   { href: "/availability", label: "زمان مناسب", icon: Search, perm: null, group: "main" },
   { href: "/appointments", label: "رزرو نوبت", icon: CalendarClock, perm: null, group: "main" },
+  { href: "/programs", label: "برنامه‌های نوبت‌دهی", icon: CalendarClock, perm: null, group: "main" },
   {
     href: "/meeting-requests",
     label: "درخواست جلسه",

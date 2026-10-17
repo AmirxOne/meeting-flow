@@ -13,6 +13,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
+import { AvailabilityCard } from "@/components/availability/availability-card";
 
 interface DashboardData {
   todayCount: number;
@@ -177,6 +178,9 @@ export function DashboardPage() {
       {data.pendingRsvp.length > 0 && (
         <PendingRsvpCard invites={data.pendingRsvp} />
       )}
+
+      {/* اعلام زمان‌های آزاد — درخواست فعال سازمان */}
+      <AvailabilityCard />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Weekly chart */}

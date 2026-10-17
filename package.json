@@ -27,9 +27,6 @@
     "worker": "tsx src/worker/index.ts",
     "worker:dev": "tsx watch src/worker/index.ts"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
     "@prisma/client": "^6.16.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",

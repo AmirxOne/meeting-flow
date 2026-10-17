@@ -4,7 +4,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, ChevronDown, LogOut, Menu, MessageQuestion, Plus, Search, UserCircle, X } from "@/components/ui/icon";
+import { Bell, CalendarClock, ChevronDown, LogOut, Menu, MessageQuestion, Plus, Search, UserCircle, X } from "@/components/ui/icon";
 import type { AppIcon } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
 import { groupedVisibleNav, isNavActive, isMobileNavActive, MOBILE_NAV, visibleChildren, isParentActive } from "@/lib/nav";
@@ -211,13 +211,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
-        <div className="border-t border-line p-2.5">
+        <div className="space-y-1.5 border-t border-line p-2.5">
           <Link
             href={can("meeting:create") ? "/meetings/new" : "/meeting-requests"}
             className="flex h-10 items-center justify-center gap-2 rounded-lg bg-ink text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-[#2a2a2e] active:bg-black"
           >
             <Plus className="h-4 w-4" />
             جلسه جدید
+          </Link>
+          <Link
+            href="/programs"
+            className="flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-white text-[12.5px] font-medium text-ink shadow-sm transition-colors hover:bg-paper-soft"
+          >
+            <CalendarClock className="h-4 w-4" />
+            ایجاد برنامه
           </Link>
         </div>
       </aside>
@@ -359,13 +366,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               ))}
             </nav>
-            <div className="border-t border-line p-2.5">
+            <div className="space-y-1.5 border-t border-line p-2.5">
               <Link
                 href={can("meeting:create") ? "/meetings/new" : "/meeting-requests"}
                 className="flex h-10 items-center justify-center gap-2 rounded-lg bg-ink text-[13px] font-medium text-white"
               >
                 <Plus className="h-4 w-4" />
                 جلسه جدید
+              </Link>
+              <Link
+                href="/programs"
+                className="flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-white text-[12.5px] font-medium text-ink"
+              >
+                <CalendarClock className="h-4 w-4" />
+                ایجاد برنامه
               </Link>
             </div>
           </div>
