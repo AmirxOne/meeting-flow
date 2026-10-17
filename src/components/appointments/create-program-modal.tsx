@@ -70,55 +70,45 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
   const [singleDayIso, setSingleDayIso] = useState<string>(todayIso);
 
   /** روزهای هفته‌ای که در بازه‌ی اعتبار واقعاً وجود دارند (یا فقط همان روز خاص) */
-  const allowedDays = useMemo(() => {
-    const set = new Set<number>();
+  /** تاریخ‌های واقعی بازه (ISO) — هر روزِ تقویم، نه روز هفته؛ سقف ۳۰ روز */
+  const rangeDates = useMemo(() => {
     const from = new Date((durationMode === "single" ? singleDayIso : validFromIso) + "T12:00:00Z");
     const to = new Date((durationMode === "single" ? singleDayIso : validToIso) + "T12:00:00Z");
-    // بیش از ~۳ ماه روز شمردن لازم نیست
-    for (let d = new Date(from); d <= to && set.size < 7; d.setUTCDate(d.getUTCDate() + 1)) {
-      set.add(d.getUTCDay());
+    const out: string[] = [];
+    for (let d = new Date(from); d <= to && out.length < 30; d.setUTCDate(d.getUTCDate() + 1)) {
+      out.push(d.toISOString().slice(0, 10));
     }
-    return set;
+    return out;
   }, [durationMode, singleDayIso, validFromIso, validToIso]);
 
   /** حالت تک‌روز: همان روز به‌صورت خودکار فعال است */
   useEffect(() => {
     if (durationMode !== "single") return;
-    const wd = new Date(singleDayIso + "T12:00:00Z").getUTCDay();
     setDayRanges((prev) => {
-      const others = { ...prev };
-      delete others[wd];
-      return { [wd]: prev[wd]?.length ? prev[wd] : [{ from: "09:00", to: "12:00" }], ...others };
+      const kept = { ...prev };
+      delete kept[singleDayIso];
+      return { [singleDayIso]: prev[singleDayIso]?.length ? prev[singleDayIso] : [{ from: "09:00", to: "12:00" }], ...kept };
     });
   }, [durationMode, singleDayIso]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** روزهای فعالِ خارج از بازه → خودکار خاموش شوند */
+  /** تاریخ‌های فعالِ خارج از بازه → خودکار خاموش شوند */
   useEffect(() => {
+    const valid = new Set(rangeDates);
     setDayRanges((prev) => {
-      const stale = Object.keys(prev).filter((d) => !allowedDays.has(Number(d)));
+      const stale = Object.keys(prev).filter((d) => !valid.has(d));
       if (stale.length === 0) return prev;
       const next = { ...prev };
-      for (const d of stale) delete next[Number(d)];
+      for (const d of stale) delete next[d];
       return next;
     });
-  }, [allowedDays]);
+  }, [rangeDates]);
 
-  const [dayRanges, setDayRanges] = useState<Record<number, { from: string; to: string }[]>>(
-    (() => {
-      const init: Record<number, { from: string; to: string }[]> = {};
-      if (editProgram?.windows?.length) {
-        for (const w of editProgram.windows) {
-          for (const d of w.daysOfWeek) init[d] = [...(init[d] ?? []), { from: w.from, to: w.to }];
-        }
-      }
-      return init;
-    })(),
-  );
-  const toggleDay = (v: number) =>
+  const [dayRanges, setDayRanges] = useState<Record<string, { from: string; to: string }[]>>({});
+  const toggleDate = (iso: string) =>
     setDayRanges((prev) => {
       const next = { ...prev };
-      if (next[v]) delete next[v];
-      else next[v] = [{ from: "09:00", to: "12:00" }];
+      if (next[iso]) delete next[iso];
+      else next[iso] = [{ from: "09:00", to: "12:00" }];
       return next;
     });
   const [roomIds, setRoomIds] = useState<string[]>(editProgram?.roomIds ?? []);
@@ -167,8 +157,8 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
             roomIds,
             durationMin,
             bufferMin,
-          windows: Object.entries(dayRanges).flatMap(([d, ranges]) =>
-            ranges.map((r) => ({ daysOfWeek: [Number(d)], from: r.from, to: r.to })),
+          windows: Object.entries(dayRanges).flatMap(([iso, ranges]) =>
+            ranges.map((r) => ({ daysOfWeek: [new Date(iso + "T12:00:00Z").getUTCDay()], from: r.from, to: r.to })),
           ),
             validTo,
             isConfidential,
@@ -191,8 +181,8 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           roomIds,
           durationMin,
           bufferMin,
-          windows: Object.entries(dayRanges).flatMap(([d, ranges]) =>
-            ranges.map((r) => ({ daysOfWeek: [Number(d)], from: r.from, to: r.to })),
+          windows: Object.entries(dayRanges).flatMap(([iso, ranges]) =>
+            ranges.map((r) => ({ daysOfWeek: [new Date(iso + "T12:00:00Z").getUTCDay()], from: r.from, to: r.to })),
           ),
           validFrom,
           validTo,
@@ -361,28 +351,33 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
               <p className="mt-1.5 text-[10.5px] leading-5 text-ink-faint">
                 {durationMode === "single"
                   ? "برای این روز هر چند بازه‌ی ساعتی که می‌خواهی تعریف کن"
-                  : allowedDays.size < 7
-                    ? "فقط روزهای موجود در بازه‌ی بالا نمایش داده می‌شوند — روشن کن و بازه‌های ساعتی هر روز را تعریف کن"
-                    : "روزها را روشن کن؛ برای هر روز هر چند بازه که می‌خواهی اضافه کن (مثلاً صبح و عصر)"}
+                  : rangeDates.length <= 14
+                    ? "تک‌تک روزهای بازه بالا — روشن کن و ساعت‌های همان روز را تعریف کن"
+                    : "روزهایی از بازه که می‌خواهی نوبت بدهی را روشن کن و ساعت‌هایشان را تعریف کن"}
               </p>
 
-              {/* چیپ روزها */}
-              <div className="mt-2.5 flex flex-wrap gap-1">
-                {WEEKDAYS_FA.filter((d) => allowedDays.has(d.v)).map((d) => {
-                  const on = !!dayRanges[d.v];
-                  const cnt = dayRanges[d.v]?.length ?? 0;
+              {/* چیپ تاریخ‌های واقعی بازه */}
+              <div className="mt-2.5 flex max-h-28 flex-wrap gap-1 overflow-y-auto">
+                {rangeDates.map((iso) => {
+                  const on = !!dayRanges[iso];
+                  const cnt = dayRanges[iso]?.length ?? 0;
+                  const dt = new Date(iso + "T12:00:00Z");
+                  const wd = WEEKDAYS_FA.find((w) => w.v === dt.getUTCDay())?.l ?? "";
                   return (
                     <button
-                      key={d.v}
+                      key={iso}
                       type="button"
-                      onClick={() => toggleDay(d.v)}
+                      onClick={() => toggleDate(iso)}
                       className={cn(
-                        "rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
+                        "flex flex-col items-center rounded-md border px-2.5 py-1 text-center transition-colors",
                         on ? "border-ink bg-ink text-white" : "border-line bg-white text-ink-soft hover:border-ink/40",
                       )}
                     >
-                      {d.l}
-                      {on && cnt > 1 ? ` (${toFa(cnt)})` : ""}
+                      <span className="text-[10.5px] font-medium leading-4">{wd}</span>
+                      <span className={cn("text-[11px] font-bold leading-4 tabular-nums", on ? "text-white" : "text-ink")}>
+                        {dt.toLocaleDateString("fa-IR", { day: "numeric", month: "short" })}
+                      </span>
+                      {on && cnt > 1 ? <span className={cn("text-[9px] leading-3", on ? "text-white/70" : "text-ink-faint")}>{toFa(cnt)} بازه</span> : null}
                     </button>
                   );
                 })}
@@ -391,15 +386,17 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
               {/* کارت بازه‌های هر روز */}
               {Object.keys(dayRanges).length > 0 && (
                 <div className="mt-2.5 space-y-2">
-                  {WEEKDAYS_FA.filter((d) => dayRanges[d.v]).map((d) => {
-                    const ranges = dayRanges[d.v];
+                  {Object.keys(dayRanges).sort().map((iso) => {
+                    const ranges = dayRanges[iso];
+                    const dt = new Date(iso + "T12:00:00Z");
+                    const wd = WEEKDAYS_FA.find((w) => w.v === dt.getUTCDay())?.l ?? "";
                     return (
-                      <div key={d.v} className="rounded-lg border border-line bg-paper-soft/40 p-2.5">
+                      <div key={iso} className="rounded-lg border border-line bg-paper-soft/40 p-2.5">
                         <div className="mb-2 flex items-center justify-between">
-                          <p className="text-[12px] font-bold">{d.l}</p>
+                          <p className="text-[12px] font-bold">{wd} {dt.toLocaleDateString("fa-IR", { day: "numeric", month: "long" })}</p>
                           <button
                             type="button"
-                            onClick={() => setDayRanges((prev) => ({ ...prev, [d.v]: [...(prev[d.v] ?? []), { from: "14:00", to: "17:00" }] }))}
+                            onClick={() => setDayRanges((prev) => ({ ...prev, [iso]: [...(prev[iso] ?? []), { from: "14:00", to: "17:00" }] }))}
                             className="flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-ink-soft transition hover:bg-white hover:text-ink"
                           >
                             <Plus className="h-3 w-3" />
@@ -413,7 +410,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
                               <div className="min-w-0 flex-1">
                                 <TimePicker
                                   value={r.from}
-                                  onChange={(v) => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).map((x, j) => j === ri ? { ...x, from: v } : x) }))}
+                                  onChange={(v) => setDayRanges((prev) => ({ ...prev, [iso]: (prev[iso] ?? []).map((x, j) => j === ri ? { ...x, from: v } : x) }))}
                                   className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
                                 />
                               </div>
@@ -421,15 +418,15 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
                               <div className="min-w-0 flex-1">
                                 <TimePicker
                                   value={r.to}
-                                  onChange={(v) => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).map((x, j) => j === ri ? { ...x, to: v } : x) }))}
+                                  onChange={(v) => setDayRanges((prev) => ({ ...prev, [iso]: (prev[iso] ?? []).map((x, j) => j === ri ? { ...x, to: v } : x) }))}
                                   className="gap-1.5 [&_button]:h-9 [&_button]:px-2 [&_button]:text-[12px]"
                                 />
                               </div>
                               {ranges.length > 1 && (
                                 <button
                                   type="button"
-                                  aria-label={"حذف بازه‌ی " + toFa(ri + 1) + " " + d.l}
-                                  onClick={() => setDayRanges((prev) => ({ ...prev, [d.v]: (prev[d.v] ?? []).filter((_, j) => j !== ri) }))}
+                                  aria-label={"حذف بازه‌ی " + toFa(ri + 1)}
+                                  onClick={() => setDayRanges((prev) => ({ ...prev, [iso]: (prev[iso] ?? []).filter((_, j) => j !== ri) }))}
                                   className="text-ink-faint transition hover:text-red-600"
                                 >
                                   <X className="h-4 w-4" />
