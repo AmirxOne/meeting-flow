@@ -250,6 +250,50 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
             <label className="mb-1 block text-[11px] text-ink-soft">توضیحات عمومی (اختیاری)</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="هدف جلسه برای کارکنان…" className="min-h-[150px] max-h-[400px] w-full resize-y overflow-y-auto rounded-md border border-line p-2.5 text-[12px] leading-6 outline-none focus:border-ink" />
           </div>
+          <div>
+            <label className="mb-1 block text-[11px] text-ink-soft">موضوعات جلسه {topics.length > 0 && <span className="text-ink-faint">({toFa(topics.length)} از ۱۰)</span>}</label>
+            <div className="flex h-10 items-center gap-2 rounded-md border border-line bg-white px-1 focus-within:border-ink">
+              <input
+                value={topicDraft}
+                onChange={(e) => setTopicDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addTopic();
+                  }
+                }}
+                placeholder="موضوع را بنویس و Enter بزن…"
+                className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-[12.5px] outline-none"
+              />
+              <button
+                type="button"
+                aria-label="افزودن موضوع"
+                disabled={!topicDraft.trim() || topics.length >= 10}
+                onClick={addTopic}
+                className="my-auto flex size-[30px] shrink-0 items-center justify-center rounded-md border border-line text-ink-soft transition hover:bg-paper-soft hover:text-ink disabled:opacity-40"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {topics.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {topics.map((t) => (
+                  <span key={t} className="group inline-flex max-w-full items-center gap-1.5 rounded-full border border-line bg-paper-soft py-1 pl-2.5 pr-1.5 text-[11.5px] font-medium text-ink transition-colors hover:border-ink/30">
+                    <span className="truncate" title={t}>{t}</span>
+                    <button
+                      type="button"
+                      aria-label={"حذف " + t}
+                      onClick={() => removeTopic(t)}
+                      className="flex size-5 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-red-50 hover:text-red-600"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* مدت اعتبار — یک روز خاص یا بازه */}
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">مدت اعتبار برنامه</label>
@@ -306,49 +350,6 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
             )}
           </div>
 
-          <div>
-            <label className="mb-1 block text-[11px] text-ink-soft">موضوعات جلسه {topics.length > 0 && <span className="text-ink-faint">({toFa(topics.length)} از ۱۰)</span>}</label>
-            <div className="flex h-10 items-center gap-2 rounded-md border border-line bg-white px-1 focus-within:border-ink">
-              <input
-                value={topicDraft}
-                onChange={(e) => setTopicDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    addTopic();
-                  }
-                }}
-                placeholder="موضوع را بنویس و Enter بزن…"
-                className="h-full min-w-0 flex-1 bg-transparent px-1.5 text-[12.5px] outline-none"
-              />
-              <button
-                type="button"
-                aria-label="افزودن موضوع"
-                disabled={!topicDraft.trim() || topics.length >= 10}
-                onClick={addTopic}
-                className="my-auto flex size-[30px] shrink-0 items-center justify-center rounded-md border border-line text-ink-soft transition hover:bg-paper-soft hover:text-ink disabled:opacity-40"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            {topics.length > 0 && (
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {topics.map((t) => (
-                  <span key={t} className="group inline-flex max-w-full items-center gap-1.5 rounded-full border border-line bg-paper-soft py-1 pl-2.5 pr-1.5 text-[11.5px] font-medium text-ink transition-colors hover:border-ink/30">
-                    <span className="truncate" title={t}>{t}</span>
-                    <button
-                      type="button"
-                      aria-label={"حذف " + t}
-                      onClick={() => removeTopic(t)}
-                      className="flex size-5 shrink-0 items-center justify-center rounded-full text-ink-faint transition hover:bg-red-50 hover:text-red-600"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
 
           <div>
             <label className="mb-1.5 block text-[11px] font-medium text-ink-soft">روزها و ساعت‌های در دسترس</label>
