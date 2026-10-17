@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib";
 import { X } from "@/components/ui/icon";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
+import { TimePicker } from "@/components/ui/jalali-date-picker";
 import { faNum } from "@/lib";
 
 interface WindowRow { daysOfWeek: number[]; from: string; to: string }
@@ -151,11 +152,11 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">مدت هر جلسه (دقیقه)</label>
-              <input type="number" value={durationMin} min={10} max={240} step={5} onChange={(e) => setDurationMin(Number(e.target.value))} className={inputCls} dir="ltr" />
+              <FaNumberInput value={durationMin} onChange={setDurationMin} min={10} max={240} step={5} className={inputCls} />
             </div>
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">فاصله (دقیقه)</label>
-              <input type="number" value={bufferMin} min={0} max={60} onChange={(e) => setBufferMin(Number(e.target.value))} className={inputCls} dir="ltr" />
+              <FaNumberInput value={bufferMin} onChange={setBufferMin} min={0} max={60} step={5} className={inputCls} />
             </div>
             <div>
               <label className="mb-1 block text-[11px] text-ink-soft">محرمانه</label>
@@ -195,9 +196,21 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
                     ))}
                   </div>
                   <div className="mt-2 flex items-center gap-2">
-                    <input type="time" value={w.from} onChange={(e) => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, from: e.target.value } : x))} className={timeCls} dir="ltr" />
-                    <span className="text-[11px] text-ink-faint">تا</span>
-                    <input type="time" value={w.to} onChange={(e) => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, to: e.target.value } : x))} className={timeCls} dir="ltr" />
+                    <div className="min-w-0 flex-1">
+                      <TimePicker
+                        value={w.from}
+                        onChange={(v) => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, from: v } : x))}
+                        className="grid-cols-2 gap-1.5 [&>div>button]:h-9 [&>div>button]:text-[12px]"
+                      />
+                    </div>
+                    <span className="shrink-0 text-[11px] text-ink-faint">تا</span>
+                    <div className="min-w-0 flex-1">
+                      <TimePicker
+                        value={w.to}
+                        onChange={(v) => setWindows((ws) => ws.map((x, j) => j === i ? { ...x, to: v } : x))}
+                        className="grid-cols-2 gap-1.5 [&>div>button]:h-9 [&>div>button]:text-[12px]"
+                      />
+                    </div>
                     {windows.length > 1 && (
                       <button type="button" aria-label="حذف بازه" onClick={() => setWindows((ws) => ws.filter((_, j) => j !== i))} className="text-ink-faint transition hover:text-red-600">
                         <X className="h-4 w-4" />
@@ -320,6 +333,53 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           <Button onClick={submit} loading={busy}>{isEdit ? "ذخیره‌ی تغییرات" : "انتشار برنامه"}</Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+/* ═══ ورودی عددی فارسی با دکمه‌های +/- (به‌جای input number لاتین) ═══ */
+
+const FA_D = "۰۱۲۳۴۵۶۷۸۹";
+function toFa(n: number): string {
+  return String(n).replace(/\d/g, (d) => FA_D[Number(d)]);
+}
+function faToNum(s: string): number {
+  const latin = s.replace(/[۰-۹]/g, (d) => String(FA_D.indexOf(d))).replace(/[^0-9]/g, "");
+  return latin === "" ? NaN : Number(latin);
+}
+
+function FaNumberInput({ value, onChange, min = 0, max = 9999, step = 1, className = "" }: {
+  value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; className?: string;
+}) {
+  const clamp = (v: number) => Math.min(max, Math.max(min, Number.isFinite(v) ? v : min));
+  return (
+    <div className={cn("flex h-10 items-center rounded-md border border-line bg-white focus-within:border-ink", className)}>
+      <button
+        type="button"
+        aria-label="افزایش"
+        onClick={() => onChange(clamp(value + step))}
+        className="flex h-full w-8 shrink-0 items-center justify-center border-l border-line text-[14px] font-bold text-ink-soft transition hover:bg-paper-soft hover:text-ink"
+      >
+        +
+      </button>
+      <input
+        inputMode="numeric"
+        value={toFa(value)}
+        onChange={(e) => {
+          const n = faToNum(e.target.value);
+          if (Number.isFinite(n)) onChange(clamp(n));
+        }}
+        className="h-full min-w-0 flex-1 bg-transparent text-center text-[12.5px] font-medium tabular-nums outline-none"
+      />
+      <button
+        type="button"
+        aria-label="کاهش"
+        onClick={() => onChange(clamp(value - step))}
+        className="flex h-full w-8 shrink-0 items-center justify-center border-r border-line text-[14px] font-bold text-ink-soft transition hover:bg-paper-soft hover:text-ink"
+      >
+        −
+      </button>
     </div>
   );
 }
