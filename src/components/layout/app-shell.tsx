@@ -220,7 +220,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             جلسه جدید
           </Link>
           <Link
-            href="/dashboard"
+            href="/my-programs"
             className="flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-white text-[12.5px] font-medium text-ink shadow-sm transition-colors hover:bg-paper-soft"
           >
             <CalendarClock className="h-4 w-4" />
@@ -375,7 +375,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 جلسه جدید
               </Link>
               <Link
-                href="/dashboard"
+                href="/my-programs"
                 className="flex h-10 items-center justify-center gap-2 rounded-lg border border-line bg-white text-[12.5px] font-medium text-ink"
               >
                 <CalendarClock className="h-4 w-4" />

@@ -18,6 +18,7 @@ import { cn, faNum } from "@/lib";
 import { CalendarDays, Clock, CalendarClock, Plus, Pencil, Trash2 } from "@/components/ui/icon";
 import { SlotPicker } from "./slot-picker";
 import { CreateProgramModal, type ProgramLite } from "./create-program-modal";
+import Link from "next/link";
 
 interface WindowRow { daysOfWeek: number[]; from: string; to: string }
 interface Slot { startAt: string; endAt: string }
@@ -88,11 +89,9 @@ function windowsSummary(windows: WindowRow[] | null | undefined): string[] {
 
 export function AppointmentsSection() {
   const qc = useQueryClient();
-  const { push } = useToast();
-  const confirm = useConfirm();
+
   const [openProgram, setOpenProgram] = useState<Program | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [editing, setEditing] = useState<Program | null>(null);
+
 
   const { data, isLoading } = useQuery({
     queryKey: ["appointment-programs"],
@@ -107,20 +106,6 @@ export function AppointmentsSection() {
   const mine = programs.filter((p) => p.isMine);
   const others = programs.filter((p) => !p.isMine);
   const upcoming = (myData?.bookings ?? []).filter((b) => b.status === "BOOKED" && new Date(b.startAt) > new Date());
-
-  const delMut = useMutation({
-    mutationFn: (id: string) => api(`/api/appointments/programs/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      push("برنامه حذف شد", "success");
-      qc.invalidateQueries({ queryKey: ["appointment-programs"] });
-    },
-    onError: (e) => push((e as ApiError).message || "حذف ناموفق بود", "error"),
-  });
-
-  async function onDelete(p: Program) {
-    if (!(await confirm({ title: `حذف برنامه‌ی «${p.title}»`, body: "رزروهای آینده‌ی این برنامه لغو و جلساتشان بسته می‌شود. مطمئنی؟", confirmLabel: "حذف", danger: true }))) return;
-    delMut.mutate(p.id);
-  }
 
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["appointment-programs"] });
@@ -168,43 +153,20 @@ export function AppointmentsSection() {
         </section>
       )}
 
-      {/* ───── ۳. برنامه‌های نوبت‌دهی من ───── */}
-      <section>
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-[13px] font-bold">برنامه‌های من</h2>
-          <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
-            <Plus className="h-3.5 w-3.5" />
-            ایجاد برنامه
-          </Button>
-        </div>
-        {isLoading ? (
-          <Card><div className="space-y-2 p-5">{[0, 1].map((i) => <div key={i} className="skeleton h-24 w-full rounded-md" />)}</div></Card>
-        ) : mine.length === 0 ? (
-          <Card className="p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[12.5px] font-bold">هنوز برنامه‌ای نساخته‌ای</p>
-                <p className="mt-1 max-w-md text-[11.5px] leading-6 text-ink-soft">
-                  اگر مشاور، HR یا مسئول جلسه‌ای، روزها و ساعت‌های آزادت را تعریف کن تا کارکنان خودشان وقت بگیرند — بدون پیام‌رفت‌وبرگشت.
-                </p>
-              </div>
-              <Button size="sm" onClick={() => setCreating(true)}>
-                <Plus className="h-3.5 w-3.5" />
-                ایجاد برنامه
-              </Button>
-            </div>
-          </Card>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {mine.map((p) => (
-              <ProgramCard key={`mine-${p.id}`} p={p} onOpen={() => setOpenProgram(p)} mine onEdit={() => setEditing(p)} onDelete={() => onDelete(p)} deleting={delMut.isPending} />
-            ))}
+      {/* مدیریت برنامه‌ها → صفحه‌ی مستقل */}
+      {mine.length > 0 && (
+        <Card className="p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-[12px] text-ink-soft">
+              {faNum(mine.length)} برنامه‌ی نوبت‌دهی فعال داری — کارکنان از آن‌ها وقت می‌گیرند
+            </p>
+            <Link href="/my-programs" className="shrink-0">
+              <Button size="sm" variant="outline">مدیریت برنامه‌ها</Button>
+            </Link>
           </div>
-        )}
-      </section>
+        </Card>
+      )}
 
-      {creating && <CreateProgramModal onClose={() => setCreating(false)} onCreated={() => { setCreating(false); invalidateAll(); }} />}
-      {editing && <CreateProgramModal editProgram={editing as unknown as ProgramLite} onClose={() => setEditing(null)} onCreated={() => { setEditing(null); invalidateAll(); }} />}
       {openProgram && <SlotPicker program={openProgram} onClose={() => setOpenProgram(null)} onBooked={() => { setOpenProgram(null); invalidateAll(); }} />}
     </div>
   );
@@ -303,5 +265,77 @@ function CancelBookingButton({ bookingId, onDone }: { bookingId: string; onDone:
     >
       لغو
     </Button>
+  );
+}
+
+
+/* ═══════════ صفحه‌ی «برنامه‌های من» — مدیریت کامل ═══════════ */
+
+export function MyPrograms() {
+  const qc = useQueryClient();
+  const { push } = useToast();
+  const confirm = useConfirm();
+  const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<Program | null>(null);
+  const [openProgram, setOpenProgram] = useState<Program | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["appointment-programs"],
+    queryFn: () => api<{ programs: Program[] }>("/api/appointments/programs"),
+  });
+  const mine = (data?.programs ?? []).filter((p) => p.isMine);
+
+  const delMut = useMutation({
+    mutationFn: (id: string) => api(`/api/appointments/programs/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      push("برنامه حذف شد", "success");
+      qc.invalidateQueries({ queryKey: ["appointment-programs"] });
+    },
+    onError: (e) => push((e as ApiError).message || "حذف ناموفق بود", "error"),
+  });
+
+  async function onDelete(p: Program) {
+    if (!(await confirm({ title: `حذف برنامه‌ی «${p.title}»`, body: "رزروهای آینده‌ی این برنامه لغو و جلساتشان بسته می‌شود. مطمئنی؟", confirmLabel: "حذف", danger: true }))) return;
+    delMut.mutate(p.id);
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold">برنامه‌های من</h1>
+          <p className="mt-1 max-w-2xl text-[12px] leading-6 text-ink-soft">
+            روزها و ساعت‌های آزادت را به‌صورت برنامه منتشر کن تا کارکنان خودشان از تو وقت بگیرند — بدون پیام‌رفت‌وبرگشت.
+          </p>
+        </div>
+        <Button onClick={() => setCreating(true)}>
+          <Plus className="h-4 w-4" />
+          ایجاد برنامه
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <Card><div className="space-y-2 p-5">{[0, 1].map((i) => <div key={i} className="skeleton h-24 w-full rounded-md" />)}</div></Card>
+      ) : mine.length === 0 ? (
+        <Card>
+          <EmptyState
+            icon={<CalendarDays className="h-10 w-10" />}
+            title="هنوز برنامه‌ای نساخته‌ای"
+            description="اگر مشاور، HR یا مسئول جلسه‌ای، روزها و ساعت‌های آزادت را تعریف کن تا کارکنان خودشان وقت بگیرند"
+            action={<Button size="sm" onClick={() => setCreating(true)}><Plus className="h-3.5 w-3.5" />ایجاد برنامه</Button>}
+          />
+        </Card>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {mine.map((p) => (
+            <ProgramCard key={p.id} p={p} onOpen={() => setOpenProgram(p)} mine onEdit={() => setEditing(p)} onDelete={() => onDelete(p)} deleting={delMut.isPending} />
+          ))}
+        </div>
+      )}
+
+      {creating && <CreateProgramModal onClose={() => setCreating(false)} onCreated={() => { setCreating(false); qc.invalidateQueries({ queryKey: ["appointment-programs"] }); }} />}
+      {editing && <CreateProgramModal editProgram={editing as unknown as ProgramLite} onClose={() => setEditing(null)} onCreated={() => { setEditing(null); qc.invalidateQueries({ queryKey: ["appointment-programs"] }); }} />}
+      {openProgram && <SlotPicker program={openProgram} onClose={() => setOpenProgram(null)} onBooked={() => { setOpenProgram(null); qc.invalidateQueries({ queryKey: ["appointment-programs"] }); }} />}
+    </div>
   );
 }
