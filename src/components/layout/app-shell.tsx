@@ -243,6 +243,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <GlobalSearch />
 
           <div className="mr-auto flex items-center gap-1">
+            <Link
+              href="/notifications"
+              aria-label="اعلان‌ها"
+              className="relative flex size-10 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+            >
+              <Bell className="h-5 w-5" />
+              {unread > 0 && (
+                <span className="absolute left-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white">
+                  {faNum(unread > 99 ? "۹۹+" : unread)}
+                </span>
+              )}
+            </Link>
             <Tooltip content="راهنمای این صفحه">
               <button
                 onClick={() => replayCurrentTour()}

@@ -129,9 +129,9 @@ export function groupedVisibleNav(can: (perm: string) => boolean) {
 export const MOBILE_NAV: { href: string; label: string; icon: AppIcon }[] = [
   { href: "/dashboard", label: "داشبورد", icon: LayoutDashboard },
   { href: "/meetings", label: "جلسات من", icon: Users },
-  { href: "/meetings/new", label: "جدید", icon: Plus },
+  { href: "/meetings/new", label: "جلسه", icon: Plus },
+  { href: "/my-programs", label: "برنامه", icon: CalendarClock },
   { href: "/calendar", label: "تقویم", icon: CalendarDays },
-  { href: "/notifications", label: "اعلان‌ها", icon: Bell },
 ];
 
 export function isMobileNavActive(pathname: string, href: string): boolean {
