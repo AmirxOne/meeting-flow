@@ -197,7 +197,7 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
           </div>
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">توضیحات عمومی (اختیاری)</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="هدف جلسه برای کارکنان…" className="min-h-[70px] w-full rounded-md border border-line p-2.5 text-[12px] leading-6 outline-none focus:border-ink" />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="هدف جلسه برای کارکنان…" className="min-h-[150px] max-h-[400px] w-full resize-y overflow-y-auto rounded-md border border-line p-2.5 text-[12px] leading-6 outline-none focus:border-ink" />
           </div>
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">موضوعات جلسه {topics.length > 0 && <span className="text-ink-faint">({toFa(topics.length)} از ۱۰)</span>}</label>
