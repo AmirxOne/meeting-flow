@@ -171,10 +171,10 @@ export function AppointmentsSection() {
       {/* ───── ۳. برنامه‌های نوبت‌دهی من ───── */}
       <section>
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-[13px] font-bold">برنامه‌های نوبت‌دهی من</h2>
+          <h2 className="text-[13px] font-bold">برنامه‌های من</h2>
           <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
             <Plus className="h-3.5 w-3.5" />
-            برنامه‌ی جدید
+            ایجاد برنامه
           </Button>
         </div>
         {isLoading ? (
@@ -190,7 +190,7 @@ export function AppointmentsSection() {
               </div>
               <Button size="sm" onClick={() => setCreating(true)}>
                 <Plus className="h-3.5 w-3.5" />
-                ساخت اولین برنامه
+                ایجاد برنامه
               </Button>
             </div>
           </Card>
