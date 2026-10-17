@@ -360,7 +360,7 @@ function FaNumberInput({ value, onChange, min = 0, max = 9999, step = 1, classNa
         type="button"
         aria-label="افزایش"
         onClick={() => onChange(clamp(value + step))}
-        className="flex h-full w-8 shrink-0 items-center justify-center border-l border-line text-[14px] font-bold text-ink-soft transition hover:bg-paper-soft hover:text-ink"
+        className="my-auto flex size-8 shrink-0 items-center justify-center border-l border-line text-[15px] font-bold leading-none text-ink-soft transition hover:bg-paper-soft hover:text-ink"
       >
         +
       </button>
@@ -377,7 +377,7 @@ function FaNumberInput({ value, onChange, min = 0, max = 9999, step = 1, classNa
         type="button"
         aria-label="کاهش"
         onClick={() => onChange(clamp(value - step))}
-        className="flex h-full w-8 shrink-0 items-center justify-center border-r border-line text-[14px] font-bold text-ink-soft transition hover:bg-paper-soft hover:text-ink"
+        className="my-auto flex size-8 shrink-0 items-center justify-center border-r border-line text-[15px] font-bold leading-none text-ink-soft transition hover:bg-paper-soft hover:text-ink"
       >
         −
       </button>
