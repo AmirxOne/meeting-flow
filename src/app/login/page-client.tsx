@@ -1,5 +1,6 @@
 "use client";
 
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -242,7 +243,7 @@ export function LoginPage() {
                 ) : (
                   <Image
                     src="/logo-white.png"
-                    alt="مهرسا"
+                    alt={orgName || FALLBACK_ORG_NAME}
                     width={30}
                     height={30}
                     className="h-[30px] w-[30px] object-contain"
@@ -253,7 +254,7 @@ export function LoginPage() {
               <p className="mt-6 text-[11px] font-medium tracking-wide text-white/55">
                 سیستم مدیریت جلسات سازمانی
               </p>
-              <h1 className="mt-1.5 text-[28px] font-bold leading-tight">{orgName || "مهرسا"}</h1>
+              <h1 className="mt-1.5 text-[28px] font-bold leading-tight">{orgName || FALLBACK_ORG_NAME}</h1>
               {orgName ? (
                 <p className="mt-1 text-[13px] text-white/80">{orgName}</p>
               ) : null}
@@ -286,9 +287,9 @@ export function LoginPage() {
                     : "ایمیل یا شماره موبایل حساب را وارد کنید تا لینک بازنشانی برایتان ارسال شود."
                   : needs2fa
                   ? ssoEnabled && !passwordForm
-                    ? "حساب سازمانی تأیید شد. کد ۶ رقمی اپ authenticator مهرسا را وارد کنید."
+                    ? `حساب سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || FALLBACK_ORG_NAME} را وارد کنید.`
                     : ldapMode
-                      ? "رمز سازمانی تأیید شد. کد ۶ رقمی اپ authenticator مهرسا را وارد کنید."
+                      ? `رمز سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || FALLBACK_ORG_NAME} را وارد کنید.`
                       : "رمز درست است. کد ۶ رقمی اپ authenticator را وارد کنید."
                   : passwordForm
                     ? ldapMode
@@ -641,7 +642,7 @@ export function LoginPage() {
 
             {(ldapMode || ssoEnabled) && !needs2fa && (
               <p className="mt-6 text-center text-[11px] leading-5 text-ink-faint">
-                با اولین ورود موفق سازمانی، حساب شما به‌صورت خودکار در مهرسا ساخته می‌شود.
+                {`با اولین ورود موفق سازمانی، حساب شما به‌صورت خودکار در ${orgName || FALLBACK_ORG_NAME} ساخته می‌شود.`}
               </p>
             )}
             <p className='mt-5 text-center text-[12px] text-ink-soft'>

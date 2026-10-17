@@ -1,3 +1,4 @@
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { faNum } from "@/lib/fa";
 
 export type EmailPayload = {
@@ -36,7 +37,7 @@ export function wrapRtlEmailHtml(input: {
   cta?: { label: string; href: string };
   orgName?: string;
 }): string {
-  const orgName = input.orgName ?? "مهرسا";
+  const orgName = input.orgName ?? FALLBACK_ORG_NAME;
   const blocks = input.paragraphs
     .filter((p) => p.trim())
     .map(

@@ -1,3 +1,4 @@
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { prisma } from "@/server/db";
 import { requireUser } from "@/server/auth/session";
 import { ok, handleError } from "@/server/http";
@@ -5,7 +6,7 @@ import { ok, handleError } from "@/server/http";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_BRANDING = {
-  name: "مهرسا",
+  name: FALLBACK_ORG_NAME,
   logoUrl: null as string | null,
   timezone: "Asia/Tehran",
 };

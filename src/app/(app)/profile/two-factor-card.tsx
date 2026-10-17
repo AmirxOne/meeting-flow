@@ -130,8 +130,8 @@ export function TwoFactorCard() {
               </p>
               <p className="text-[12px] leading-6 text-ink-faint">
                 {ldapMode
-                  ? "ورود سازمانی (LDAP): پس از bind موفق دایرکتوری، اگر ۲FA فعال باشد همان کد authenticator مهرسا خواسته می‌شود."
-                  : "اگر سازمان بعداً ورود LDAP را روشن کند، پس از تأیید رمز دایرکتوری همچنان کد authenticator مهرسا لازم است."}
+                  ? "ورود سازمانی (LDAP): پس از bind موفق دایرکتوری، اگر ۲FA فعال باشد همان کد authenticator خواسته می‌شود."
+                  : "اگر سازمان بعداً ورود LDAP را روشن کند، پس از تأیید رمز دایرکتوری همچنان کد authenticator لازم است."}
               </p>
 
               {enabled ? (

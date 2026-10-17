@@ -1,3 +1,4 @@
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { NextRequest } from "next/server";
 import { prisma } from "@/server/db";
 import { ok, handleError } from "@/server/http";
@@ -6,7 +7,7 @@ import { normalizeOrgSlug, SAMPLE_ORG_SLUG, requestedOrgSlug } from "@/lib/org-s
 export const dynamic = "force-dynamic";
 
 const DEFAULT = {
-  name: "مهرسا",
+  name: FALLBACK_ORG_NAME,
   slug: SAMPLE_ORG_SLUG,
   logoUrl: null as string | null,
 };

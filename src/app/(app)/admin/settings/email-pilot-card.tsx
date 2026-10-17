@@ -112,7 +112,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=no-reply@example.com
 SMTP_PASS=••••••••
-SMTP_FROM=مهرسا <no-reply@example.com>`}</pre>
+SMTP_FROM=<no-reply@example.com>`}</pre>
             {data.missing.length > 0 && (
               <p className="mt-1.5">موارد جا افتاده: {data.missing.join(" · ")}</p>
             )}

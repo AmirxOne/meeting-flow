@@ -1,3 +1,4 @@
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/server/db";
 import { HttpError } from "@/server/auth/session";
@@ -29,7 +30,7 @@ export function buildPasswordResetEmail(opts: {
   ttlMinutes: number;
   orgName?: string;
 }): { subject: string; body: string } {
-  const orgName = opts.orgName ?? "مهرسا";
+  const orgName = opts.orgName ?? FALLBACK_ORG_NAME;
   const minutes = faNum(opts.ttlMinutes);
   const codeFa = faNum(opts.code);
   return {

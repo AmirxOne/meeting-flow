@@ -11,7 +11,7 @@ interface OrgBrandMarkProps {
   className?: string;
 }
 
-/** Sidebar/header logo — custom org logo or default مهرسا mark. */
+/** Sidebar/header logo — custom org logo or default brand mark. */
 export function OrgBrandMark({ orgName, logoUrl, size = 40, className }: OrgBrandMarkProps) {
   const customSrc = logoUrl?.trim() ?? "";
   const hasCustom = customSrc.length > 0;

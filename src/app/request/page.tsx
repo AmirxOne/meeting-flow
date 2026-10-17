@@ -9,11 +9,11 @@ export async function generateMetadata(): Promise<Metadata> {
   keywords: ["درخواست جلسه", "رزرو جلسه بدون ثبت‌نام", "فرم جلسه مهمان"],
   alternates: { canonical: "/request" },
   openGraph: {
-    title: "درخواست جلسه بدون ورود — مهرسا",
+    title: `درخواست جلسه بدون ورود — ${orgName}`,
     description: "بدون حساب کاربری، با تقویم شمسی و انتخاب محل برگزاری.",
     type: "website",
     locale: "fa_IR",
-    siteName: "مهرسا",
+    siteName: orgName,
   },
   };
 }

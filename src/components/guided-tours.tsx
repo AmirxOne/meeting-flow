@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useOrgName } from "@/lib/org-branding";
+import {useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
@@ -743,9 +744,22 @@ export function replayCurrentTour() {
 export function GuidedTours() {
   const pathname = usePathname();
   const me = useAuth((s) => s.me);
+  const orgName = useOrgName();
   const { startNextStep, isNextStepVisible, currentTour, currentStep } = useNextStep();
   const { seen, markSeen, reset } = useSeenTours(me?.id);
-  const tourSteps = useDynamicTourSteps(TOURS, isNextStepVisible, currentTour, currentStep);
+  // برندسازی متن‌های تور با نام سازمان از تنظیمات
+  const brandedTours = useMemo(
+    () => TOURS.map((t) => ({
+      ...t,
+      steps: t.steps.map((st) => ({
+        ...st,
+        title: st.title.replaceAll("مهرسا", orgName),
+        content: typeof st.content === "string" ? st.content.replaceAll("مهرسا", orgName) : st.content,
+      })),
+    })),
+    [orgName],
+  );
+  const tourSteps = useDynamicTourSteps(brandedTours, isNextStepVisible, currentTour, currentStep);
 
   useTourScrollLock(isNextStepVisible);
 

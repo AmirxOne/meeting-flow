@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import type { LegalDocument } from "@/lib/legal-content";
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { faStr } from "@/lib/fa";
 import { LegalFooterLinks } from "./legal-footer-links";
 import { useOrgName } from "@/lib/org-branding";
@@ -8,7 +11,7 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 /** Shared professional shell for privacy / terms / data-retention pages. */
 export function LegalPageShell({ doc }: { doc: LegalDocument }) {
   const orgName = useOrgName();
-  const docBranded: LegalDocument = orgName === "مهرسا" ? doc : JSON.parse(JSON.stringify(doc, (k: string, v: unknown) => typeof v === "string" ? v.replaceAll("مهرسا", orgName) : v));
+  const docBranded: LegalDocument = orgName === FALLBACK_ORG_NAME ? doc : JSON.parse(JSON.stringify(doc, (k: string, v: unknown) => typeof v === "string" ? v.replaceAll(FALLBACK_ORG_NAME, orgName) : v));
   const firstLetter = doc.title.trim().charAt(0);
   return (
     <div dir="rtl" className="min-h-screen bg-paper-soft">

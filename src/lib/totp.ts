@@ -1,3 +1,4 @@
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { toEnDigits } from "@/lib/fa";
 
@@ -105,7 +106,7 @@ export function verifyTotp(
 }
 
 export function totpOtpauthUrl(opts: { secret: string; account: string; issuer?: string }): string {
-  const issuer = opts.issuer ?? "مهرسا";
+  const issuer = opts.issuer ?? FALLBACK_ORG_NAME;
   const label = `${encodeURIComponent(issuer)}:${encodeURIComponent(opts.account)}`;
   const params = new URLSearchParams({
     secret: opts.secret,

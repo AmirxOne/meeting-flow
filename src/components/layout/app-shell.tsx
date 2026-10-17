@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, CalendarClock, ChevronDown, LogOut, Menu, MessageQuestion, Plus, Search, UserCircle, X } from "@/components/ui/icon";
 import type { AppIcon } from "@/components/ui/icon";
 import { cn, faNum } from "@/lib";
+import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { groupedVisibleNav, isNavActive, isMobileNavActive, MOBILE_NAV, visibleChildren, isParentActive } from "@/lib/nav";
 import { useAuth } from "@/lib/auth-store";
 import { useQuery } from "@tanstack/react-query";
@@ -65,7 +66,7 @@ function useOrgBranding() {
     staleTime: 5 * 60_000,
   });
   return {
-    orgName: data?.branding.name ?? "مهرسا",
+    orgName: data?.branding.name ?? FALLBACK_ORG_NAME,
     logoUrl: data?.branding.logoUrl ?? null,
   };
 }

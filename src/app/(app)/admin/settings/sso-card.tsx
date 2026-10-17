@@ -155,7 +155,7 @@ export function SsoSettingsCard() {
             <div>
               <div className="mb-2 flex items-center justify-between gap-2">
                 <p className="text-[12px] font-medium text-ink-soft">
-                  نگاشت گروه Entra به نقش مهرسا ({faNum(rows.length)})
+                  نگاشت گروه Entra به نقش‌های سامانه ({faNum(rows.length)})
                 </p>
                 <Button
                   type="button"
