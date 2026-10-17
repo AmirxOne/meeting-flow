@@ -300,18 +300,26 @@ export function MyPrograms() {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-bold">برنامه‌های من</h1>
-          <p className="mt-1 max-w-2xl text-[12px] leading-6 text-ink-soft">
-            روزها و ساعت‌های آزادت را به‌صورت برنامه منتشر کن تا کارکنان خودشان از تو وقت بگیرند — بدون پیام‌رفت‌وبرگشت.
+    <div className="min-w-0 space-y-4 overflow-x-clip p-4 lg:p-6">
+      {/* هدر — راست: عنوان و توضیح · چپ: شمارنده و اکشن */}
+      <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
+          <h1 className="min-w-0 text-lg font-bold">برنامه‌های من</h1>
+          <p className="mt-0.5 max-w-2xl text-[12px] leading-5 text-ink-soft">
+            روزها و ساعت‌های آزادت را به‌صورت برنامه منتشر کن تا کارکنان خودشان از تو وقت بگیرند
           </p>
         </div>
-        <Button onClick={() => setCreating(true)}>
-          <Plus className="h-4 w-4" />
-          ایجاد برنامه
-        </Button>
+        <div className="flex shrink-0 items-center gap-2.5">
+          {!isLoading && mine.length > 0 && (
+            <span className="tabular-nums shrink-0 rounded-full border border-line bg-paper-soft px-3 py-1.5 text-[11px] font-medium text-ink-soft">
+              {faNum(mine.length)} برنامه
+            </span>
+          )}
+          <Button size="sm" onClick={() => setCreating(true)} className="shrink-0">
+            <Plus className="h-4 w-4" />
+            ایجاد برنامه
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
