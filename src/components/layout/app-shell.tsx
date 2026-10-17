@@ -246,7 +246,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               href="/notifications"
               aria-label="اعلان‌ها"
-              className="relative flex size-10 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+              className="relative flex size-10 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink lg:hidden"
             >
               <Bell className="h-5 w-5" />
               {unread > 0 && (
