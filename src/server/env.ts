@@ -128,11 +128,9 @@ function parseEnv(): AppEnv {
 /** فقط در prod به‌سختی fail می‌کنیم؛ در dev هم fail می‌کنیم چون بدون این‌ها اپ بی‌معناست. */
 export const env = parseEnv();
 
-/* سینک NODE_ENV برای بقیه‌ی ماژول‌ها (next/prisma به آن نگاه می‌کنند) */
-const pe = process.env as unknown as Record<string, string | undefined>;
-if (pe.NODE_ENV !== env.NODE_ENV) {
-  try { pe.NODE_ENV = env.NODE_ENV; } catch { /* readonly در برخی runtimeها */ }
-}
+/* NODE_ENV را بازنویسی نمی‌کنیم — Next آن را ست می‌کند و minifier با
+   assignment به property فرست‌شده در production مشکل دارد («Assigning to rvalue»).
+   parseEnv مقدار schema (default) را فقط برای مصرف داخلی برمی‌گرداند. */
 
 /* ─── گارد دیتابیس — جلوگیری از دست‌کاری تصادفی دیتابیس اشتباه ─── */
 

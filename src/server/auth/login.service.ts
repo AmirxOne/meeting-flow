@@ -3,6 +3,7 @@ import { prisma } from "@/server/db";
 import { HttpError } from "@/server/auth/session";
 import { parseLoginIdentifier, type ParsedLoginIdentifier } from "@/lib/login-identifier";
 import { isLdapAuthEnabled, isPasswordLoginEnabled, parseAuthMode } from "./auth-config";
+import { resolvePasswordProvider } from "./provider-registry";
 import { createLdapClient, type LdapClient } from "./ldap-client";
 import { findOrProvisionLdapUser } from "./ldap-user.service";
 import { SAMPLE_ORG_ID } from "@/lib/org-slug";
@@ -25,6 +26,11 @@ export function setLdapClientForTests(client: LdapClient | null): void {
 
 function getLdapClient(): LdapClient {
   return ldapClientOverride ?? createLdapClient();
+}
+
+/** فقط برای تست‌ها — provider جدید هم همان override را ببیند */
+export function getTestLdapOverride(): LdapClient | null {
+  return ldapClientOverride;
 }
 
 function toAuthUser(user: {
@@ -155,9 +161,14 @@ export async function authenticateLogin(
   if (!parsed) {
     throw new HttpError(400, "ایمیل یا شماره موبایل نامعتبر است", "INVALID_IDENTIFIER");
   }
-  const user = isLdapAuthEnabled()
-    ? await authenticateLdap(parsed, password, orgSlug)
-    : await authenticateLocal(parsed, password);
+  // سیاست انتخاب provider — متمرکز در provider-registry
+  const provider = resolvePasswordProvider();
+  let user: AuthenticatedUser;
+  if (provider.id === "ldap") {
+    user = await authenticateLdap(parsed, password, orgSlug);
+  } else {
+    user = await authenticateLocal(parsed, password);
+  }
   await assertLoginTenant(user.id, orgSlug);
   return user;
 }
