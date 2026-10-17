@@ -2,7 +2,7 @@
 
 /** فرم ایجاد برنامه‌ی نوبت‌دهی — مودال */
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, type ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -68,6 +68,40 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
     editProgram?.validTo ? new Date(editProgram.validTo).toISOString().slice(0, 10) : (() => { const d = new Date(); d.setMonth(d.getMonth() + 1); return d.toISOString().slice(0, 10); })(),
   );
   const [singleDayIso, setSingleDayIso] = useState<string>(todayIso);
+
+  /** روزهای هفته‌ای که در بازه‌ی اعتبار واقعاً وجود دارند (یا فقط همان روز خاص) */
+  const allowedDays = useMemo(() => {
+    const set = new Set<number>();
+    const from = new Date((durationMode === "single" ? singleDayIso : validFromIso) + "T12:00:00Z");
+    const to = new Date((durationMode === "single" ? singleDayIso : validToIso) + "T12:00:00Z");
+    // بیش از ~۳ ماه روز شمردن لازم نیست
+    for (let d = new Date(from); d <= to && set.size < 7; d.setUTCDate(d.getUTCDate() + 1)) {
+      set.add(d.getUTCDay());
+    }
+    return set;
+  }, [durationMode, singleDayIso, validFromIso, validToIso]);
+
+  /** حالت تک‌روز: همان روز به‌صورت خودکار فعال است */
+  useEffect(() => {
+    if (durationMode !== "single") return;
+    const wd = new Date(singleDayIso + "T12:00:00Z").getUTCDay();
+    setDayRanges((prev) => {
+      const others = { ...prev };
+      delete others[wd];
+      return { [wd]: prev[wd]?.length ? prev[wd] : [{ from: "09:00", to: "12:00" }], ...others };
+    });
+  }, [durationMode, singleDayIso]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** روزهای فعالِ خارج از بازه → خودکار خاموش شوند */
+  useEffect(() => {
+    setDayRanges((prev) => {
+      const stale = Object.keys(prev).filter((d) => !allowedDays.has(Number(d)));
+      if (stale.length === 0) return prev;
+      const next = { ...prev };
+      for (const d of stale) delete next[Number(d)];
+      return next;
+    });
+  }, [allowedDays]);
 
   const [dayRanges, setDayRanges] = useState<Record<number, { from: string; to: string }[]>>(
     (() => {
@@ -262,11 +296,17 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
 
           <div>
             <label className="mb-1.5 block text-[11px] font-medium text-ink-soft">روزها و ساعت‌های در دسترس</label>
-            <p className="mb-2 text-[10.5px] leading-5 text-ink-faint">روزها را روشن کن؛ برای هر روز هر چند بازه که می‌خواهی اضافه کن (مثلاً صبح و عصر)</p>
+            <p className="mb-2 text-[10.5px] leading-5 text-ink-faint">
+              {durationMode === "single"
+                ? "ساعت‌های همین روز را تعریف کن (چند بازه مجاز است)"
+                : allowedDays.size < 7
+                  ? "فقط روزهای موجود در بازه‌ی اعتبار نمایش داده می‌شوند — روشن کن و برای هر روز چند بازه تعریف کن"
+                  : "روزها را روشن کن؛ برای هر روز هر چند بازه که می‌خواهی اضافه کن (مثلاً صبح و عصر)"}
+            </p>
 
-            {/* انتخاب روزها */}
+            {/* انتخاب روزها — فقط روزهای موجود در بازه‌ی اعتبار */}
             <div className="flex flex-wrap gap-1">
-              {WEEKDAYS_FA.map((d) => {
+              {WEEKDAYS_FA.filter((d) => allowedDays.has(d.v)).map((d) => {
                 const on = !!dayRanges[d.v];
                 const cnt = dayRanges[d.v]?.length ?? 0;
                 return (
