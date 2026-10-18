@@ -375,7 +375,7 @@ function PendingRsvpCard({
   });
 
   return (
-    <Card className="ring-1 ring-amber-100">
+    <Card data-tour="pending-invites" className="ring-1 ring-amber-100">
       <CardHeader
         title={
           <span className="flex items-center gap-2">

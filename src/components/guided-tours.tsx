@@ -397,6 +397,51 @@ const TOURS: Tour[] = [
         selector: 'a[href="/meetings/new"]',
         side: "right",
       },
+      {
+        title: "دعوت‌ها و نوبت‌ها",
+        content:
+          "دعوت‌های جلسه و برنامه‌های نوبت‌دهی که منتظر پاسخ شما هستند همین‌جا هستند — اول صبح این باکس را چک کنید و همان‌جا جواب بدهید یا نوبت بگیرید.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="pending-invites"]',
+        side: "top",
+      },
+      {
+        title: "گرفتن نوبت از مسئولان",
+        content:
+          "کارت مسئولان نوبت‌دهنده در داشبورد است: روز و ساعت آزاد را ببینید و با یک کلیک رزرو کنید — فوری و بدون تداخل با جلسات. برنامه‌های خودتان را هم از منوی «برنامه» مدیریت کنید.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="pending-invites"]',
+        side: "top",
+      },
+    ],
+  },
+  {
+    tour: "appointments",
+    steps: [
+      {
+        title: "رزرو نوبت سازمانی",
+        content:
+          "این صفحه دو کار انجام می‌دهد: از مسئولان نوبت بگیرید یا برنامه‌ی نوبت‌دهی خودتان را بسازید و مدیریت کنید.",
+        ...TOUR_SPOT,
+        selector: "h1",
+        side: "bottom",
+      },
+      {
+        title: "گرفتن نوبت از مسئولان",
+        content:
+          "کارت مسئولان در داشبورد است: از منوی کناری به «داشبورد» بروید، کارت مسئول را باز کنید، روز و ساعت آزادش را ببینید و با یک کلیک نوبت بگیرید — بدون تداخل با جلسات.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="my-programs-header"]',
+        side: "top",
+      },
+      {
+        title: "برنامه‌های من",
+        content:
+          "برنامه‌های نوبت‌دهی که ساخته‌اید این‌جا مدیریت می‌شوند: ویرایش روزها و بازه‌های ساعتی، مخاطبان، اتاق‌ها و لغو/حذف برنامه.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="my-programs-header"]',
+        side: "top",
+      },
     ],
   },
   {
@@ -635,17 +680,37 @@ const TOURS: Tour[] = [
     steps: [
       {
         title: "تنظیمات سازمان",
-        content: "نام، منطقه زمانی و لوگوی سازمان را از اینجا تغییر دهید. تغییرات در لاگ ممیزی ثبت می‌شود.",
+        content: "نام، منطقه زمانی و لوگوی سازمان را از اینجا تغییر دهید — نام در سراسر سامانه (لاگین، سایدبار، ایمیل‌ها) اعمال می‌شود. تغییرات در لاگ ممیزی ثبت می‌شوند.",
         ...TOUR_SPOT,
         selector: "h1",
         side: "bottom",
       },
       {
-        title: "پایلوت پیامک",
-        content:
-          "وضعیت کاوه‌نگار، آخرین ارسال موفق یا خطا، و تست با یک شماره اینجاست. برای ارسال واقعی SMS_API_KEY و NOTIFICATION_SMS_PROVIDER=kavenegar لازم است؛ در توسعه حالت شبیه‌سازی بماند.",
+        title: "امکانات جانبی",
+        content: "حضور و غیاب، نمایشگر تبلتِ کنار در و چک‌این QR را همین‌جا روشن/خاموش کنید — تغییرات بی‌درنگ اعمال می‌شوند.",
         ...TOUR_SPOT,
-        selector: '[data-tour="sms-pilot"]',
+        selector: 'text=امکانات جانبی',
+        side: "top",
+      },
+      {
+        title: "زیرساخت و هوش مصنوعی",
+        content: "وضعیت زنده‌ی worker پس‌زمینه (یادآورها و چرخه‌ی جلسات) و کلیدهای پروایدرهای AI — وضعیت هر ردیف را از رنگ آیکونش ببینید.",
+        ...TOUR_SPOT,
+        selector: 'text=زیرساخت و هوش مصنوعی',
+        side: "top",
+      },
+      {
+        title: "اعلان‌ها و پیام‌رسانی",
+        content: "ایمیل SMTP و پیامک کاوه‌نگار — تست با یک آدرس/شماره، آخرین ارسال و خطاها. سبز یعنی ارسال واقعی فعال است.",
+        ...TOUR_SPOT,
+        selector: 'text=اعلان‌ها و پیام‌رسانی',
+        side: "top",
+      },
+      {
+        title: "روش‌های ورود",
+        content: "ورود محلی همیشه فعال است؛ LDAP/Active Directory را همین‌جا برای سازمان تنظیم کنید: تست اتصال، مرور کاربران دایرکتوری و سیاست ساخت خودکار حساب.",
+        ...TOUR_SPOT,
+        selector: '[data-tour="auth-methods"]',
         side: "top",
       },
     ],
@@ -724,6 +789,7 @@ const TOURS: Tour[] = [
 function tourForPath(pathname: string): string | null {
   if (pathname === "/" || pathname.startsWith("/dashboard")) return "dashboard";
   if (pathname.startsWith("/calendar")) return "calendar";
+  if (pathname.startsWith("/my-programs") || pathname.startsWith("/programs")) return "appointments";
   if (pathname.startsWith("/meetings/new")) return "meetings-new";
   if (pathname.startsWith("/meetings/") && pathname !== "/meetings") return "meeting-detail";
   if (pathname === "/meetings") return "meetings-list";

@@ -146,7 +146,7 @@ export function AppointmentsSection({ hiddenIds = [] }: { hiddenIds?: string[] }
       {/* ───── ۲. گرفتن نوبت ───── */}
       {others.length > 0 && (
         <section>
-          <h2 className="mb-2 text-[13px] font-bold">گرفتن نوبت از مسئولان</h2>
+          <h2 data-tour="appointments-cards" className="mb-2 text-[13px] font-bold">گرفتن نوبت از مسئولان</h2>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {others.map((p) => (
               <ProgramCard key={p.id} p={p} onOpen={() => setOpenProgram(p)} />
@@ -306,7 +306,7 @@ export function MyPrograms() {
       {/* هدر — راست: عنوان و توضیح · چپ: شمارنده و اکشن */}
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <div className="min-w-0 basis-full sm:basis-auto sm:flex-1">
-          <h1 className="min-w-0 text-lg font-bold">برنامه‌های من</h1>
+          <h1 data-tour="my-programs-header" className="min-w-0 text-lg font-bold">برنامه‌های من</h1>
           <p className="mt-0.5 max-w-2xl text-[12px] leading-5 text-ink-soft">
             روزها و ساعت‌های آزادت را به‌صورت برنامه منتشر کن تا کارکنان خودشان از تو وقت بگیرند
           </p>
