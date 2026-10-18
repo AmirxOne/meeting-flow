@@ -252,8 +252,8 @@ export function AdminSettingsPage() {
         </Card>
       </div>
 
-      {/* ── ردیف ۲: زیرساخت + پیام‌رسانی ── */}
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      {/* ── ردیف ۲: زیرساخت + پیام‌رسانی (زیر هم) ── */}
+      <div className="space-y-4">
         <InfrastructureCard />
         <NotificationsCard />
       </div>
