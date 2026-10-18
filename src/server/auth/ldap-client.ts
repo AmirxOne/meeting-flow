@@ -14,6 +14,8 @@ export interface LdapUserProfile {
 
 export interface LdapClient {
   authenticate(email: string, password: string): Promise<LdapUserProfile | null>;
+  /** فهرست کاربران دایرکتوری برای پنل مدیریت (حداکثر limit نفر) */
+  listUsers(limit?: number): Promise<LdapUserProfile[]>;
 }
 
 function promisifyBind(client: ldap.Client, dn: string, secret: string): Promise<void> {
@@ -97,6 +99,39 @@ function profileFromAttrs(email: string, attrs: Record<string, string>): LdapUse
 export class LdapJsClient implements LdapClient {
   constructor(private readonly config: LdapConfig) {}
 
+  async listUsers(limit = 200): Promise<LdapUserProfile[]> {
+    const client = ldap.createClient({
+      url: this.config.url,
+      tlsOptions: { rejectUnauthorized: this.config.tlsRejectUnauthorized },
+    });
+    try {
+      await promisifyBind(client, this.config.bindDn, this.config.bindPassword);
+      return await new Promise<LdapUserProfile[]>((resolve, reject) => {
+        const users: LdapUserProfile[] = [];
+        client.search(
+          this.config.baseDn,
+          {
+            scope: "sub",
+            filter: "(objectClass=inetOrgPerson)",
+            attributes: ["mail", "cn", "displayName", "department", "title"],
+            sizeLimit: limit,
+          },
+          (err, res) => {
+            if (err) { reject(err); return; }
+            res.on("searchEntry", (entry: ldap.SearchEntry) => {
+              const attrs = attrsFromEntry(entry);
+              users.push(profileFromAttrs(attrs.mail ?? entry.dn.toString(), attrs));
+            });
+            res.on("error", (e) => reject(e));
+            res.on("end", () => resolve(users));
+          },
+        );
+      });
+    } finally {
+      await promisifyUnbind(client).catch(() => {});
+    }
+  }
+
   async authenticate(email: string, password: string): Promise<LdapUserProfile | null> {
     const searchClient = ldap.createClient({
       url: this.config.url,
@@ -142,6 +177,10 @@ export class LdapJsClient implements LdapClient {
 
 /** In-memory LDAP for dev/tests. */
 export class MockLdapClient implements LdapClient {
+  async listUsers(limit = 200): Promise<LdapUserProfile[]> {
+    return Object.values(this.users).slice(0, limit).map((u) => u.profile);
+  }
+
   constructor(
     private readonly users: Record<
       string,

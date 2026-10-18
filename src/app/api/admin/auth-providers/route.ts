@@ -27,7 +27,7 @@ export async function GET() {
 }
 
 const testSchema = z.object({
-  action: z.literal("test-connection"),
+  action: z.literal("test-connection").or(z.literal("list-users")),
   /** اگر ارسال شود، همین مقادیر تست می‌شوند (قبل از ذخیره)؛ وگرنه تنظیمات ذخیره‌شده */
   url: z.string().trim().optional(),
   baseDn: z.string().trim().optional(),
@@ -47,6 +47,34 @@ export async function POST(req: NextRequest) {
   try {
     const actor = await requirePermission("org:manage");
     const input = testSchema.parse(await req.json().catch(() => ({})));
+
+    if (input.action === "list-users") {
+      // فهرست زنده‌ی کاربران دایرکتوری برای پنل — با تنظیمات org (DB > env)
+      let cfg = await getEffectiveLdapConfig(actor.orgId).catch(() => null);
+      if (!cfg?.url || !cfg?.baseDn || !cfg?.bindDn) {
+        return ok({ ok: false, message: "ابتدا تنظیمات LDAP را کامل و ذخیره کنید", users: [] });
+      }
+      // مقادیر فرم اگر ارسال شد (قبل از ذخیره)
+      if (input.url && input.baseDn && input.bindDn) {
+        cfg = {
+          ...cfg,
+          url: input.url, baseDn: input.baseDn, bindDn: input.bindDn,
+          bindPassword: input.bindPassword?.trim() ? input.bindPassword : cfg.bindPassword,
+        };
+      }
+      try {
+        const { createLdapClient } = await import("@/server/auth/ldap-client");
+        const client = createLdapClient({
+          url: cfg.url, baseDn: cfg.baseDn, bindDn: cfg.bindDn,
+          bindPassword: cfg.bindPassword, userFilter: cfg.userFilter,
+          tlsRejectUnauthorized: cfg.tlsRejectUnauthorized,
+        });
+        const users = await client.listUsers(200);
+        return ok({ ok: true, users, count: users.length });
+      } catch {
+        return ok({ ok: false, message: "خواندن دایرکتوری ناموفق بود — اتصال را تست کنید", users: [] });
+      }
+    }
 
     if (input.action !== "test-connection") {
       return ok({ ok: false, message: "عملیات نامعتبر" });

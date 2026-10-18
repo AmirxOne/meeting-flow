@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { cn, faNum } from "@/lib";
-import { ChevronDown, KeyRound, ShieldCheck, User, Plus, Trash2, Building2 } from "@/components/ui/icon";
+import { ChevronDown, KeyRound, ShieldCheck, User, Users, Plus, Trash2, Building2 } from "@/components/ui/icon";
 
 /* ── سوییچ inline — هم‌سبک با بقیه‌ی تنظیمات ── */
 function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -103,6 +103,7 @@ export function AuthProvidersCard() {
   const [bindPassword, setBindPassword] = useState("");
   const [sampleEmail, setSampleEmail] = useState("");
   const [testMsg, setTestMsg] = useState<{ ok: boolean; message: string } | null>(null);
+  const [dirUsers, setDirUsers] = useState<{ email: string; fullName: string; jobTitle?: string | null }[] | null>(null);
 
   /* ── SSO ── */
   const [ssoEnabled, setSsoEnabled] = useState(true);
@@ -137,6 +138,19 @@ export function AuthProvidersCard() {
       qc.invalidateQueries({ queryKey: ["auth-providers-admin"] });
     },
     onError: (e) => push((e as ApiError).message || "ذخیره ناموفق بود", "error"),
+  });
+
+  const listUsersMut = useMutation({
+    mutationFn: () =>
+      api<{ ok: boolean; message?: string; users?: { email: string; fullName: string; jobTitle?: string | null }[]; count?: number }>("/api/admin/auth-providers", {
+        method: "POST",
+        json: { action: "list-users" },
+      }),
+    onSuccess: (r) => {
+      if (r.ok && r.users) setDirUsers(r.users);
+      else { setDirUsers(null); push(r.message || "خواندن دایرکتوری ناموفق بود", "error"); }
+    },
+    onError: (e) => push((e as ApiError).message || "ناموفق بود", "error"),
   });
 
   const testMut = useMutation({
@@ -283,6 +297,10 @@ export function AuthProvidersCard() {
                 <ShieldCheck className="h-3.5 w-3.5" />
                 تست اتصال
               </Button>
+              <Button size="sm" variant="outline" loading={listUsersMut.isPending} onClick={() => { setDirUsers(null); listUsersMut.mutate(); }}>
+                <Users className="h-3.5 w-3.5" />
+                کاربران دایرکتوری
+              </Button>
               <Button
                 size="sm"
                 loading={saveLdapMut.isPending}
@@ -296,6 +314,26 @@ export function AuthProvidersCard() {
               <p className={cn("rounded-md px-2.5 py-2 text-[11.5px]", testMsg.ok ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700")}>
                 {testMsg.message}
               </p>
+            )}
+            {dirUsers && (
+              <div className="rounded-md border border-line bg-white">
+                <p className="border-b border-line px-3 py-2 text-[11.5px] font-bold">
+                  {faNum(dirUsers.length)} کاربر در دایرکتوری
+                </p>
+                <div className="max-h-52 overflow-y-auto divide-y divide-line/70">
+                  {dirUsers.map((u) => (
+                    <div key={u.email} className="flex items-center justify-between gap-3 px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-[12px] font-medium">{u.fullName}</p>
+                        <p dir="ltr" className="truncate text-left text-[10.5px] text-ink-faint">{u.email}</p>
+                      </div>
+                      {u.jobTitle && (
+                        <span className="shrink-0 rounded-full bg-paper-soft px-2 py-0.5 text-[10px] text-ink-soft" dir="ltr">{u.jobTitle}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
             <p className="text-[10px] leading-5 text-ink-faint">
               رمز سرویس با AES-256-GCM رمزگذاری و ذخیره می‌شود و هرگز نمایش داده نمی‌شود. هر سازمان فقط تنظیمات خودش را می‌بیند.
