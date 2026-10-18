@@ -7,7 +7,7 @@ import { FadeIn } from "@/components/ui/motion";
 import { api, type ApiError } from "@/lib/api";
 import { faNum, faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
 import { proposeOrgSlug, normalizeOrgSlug } from "@/lib/org-slug";
-import { useOrgName } from "@/lib/org-branding";
+import { FALLBACK_ORG_NAME, useOrgName } from "@/lib/org-branding";
 import { BrandLogo } from "@/components/ui/brand-logo";
 
 const STEPS = [
@@ -131,7 +131,7 @@ export function OrgSetupPage() {
       <FadeIn className="relative mx-auto w-full max-w-[720px]">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <BrandLogo size={36} className="rounded-xl bg-ink p-1.5" alt={brandName} priority />
+            <BrandLogo size={36} className="rounded-xl bg-ink p-1.5" alt={brandName ?? FALLBACK_ORG_NAME} priority />
             <div>
               <h1 className="text-[20px] font-bold">شروع برای سازمان من</h1>
               <p className="text-[12px] text-ink-soft">راه‌اندازی اولیه — بدون seed دستی</p>

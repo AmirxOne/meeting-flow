@@ -7,7 +7,7 @@ import { Tooltip } from "@/components/ui/tooltip";
 import { api, type ApiError } from "@/lib/api";
 import { faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
 import { FadeIn } from "@/components/ui/motion";
-import { useOrgName } from "@/lib/org-branding";
+import { FALLBACK_ORG_NAME, useOrgName } from "@/lib/org-branding";
 import { BrandLogo } from "@/components/ui/brand-logo";
 
 const fieldClass =
@@ -74,17 +74,17 @@ export function ResetPasswordPage() {
         <div className="overflow-hidden rounded-2xl border border-line bg-white px-6 py-8 shadow-[0_24px_80px_-28px_rgba(13,13,13,0.28)] sm:px-8">
           <div className="mb-6 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink">
-              <BrandLogo size={26} className="h-[26px] w-[26px] object-contain" alt={orgName} priority />
+              <BrandLogo size={26} className="h-[26px] w-[26px] object-contain" alt={orgName ?? FALLBACK_ORG_NAME} priority />
             </div>
             <div>
               <h1 className="text-[18px] font-bold">رمز جدید</h1>
-              <p className="text-[12px] text-ink-soft">{orgName}</p>
+              <p className="text-[12px] text-ink-soft">{orgName ?? FALLBACK_ORG_NAME}</p>
             </div>
           </div>
 
           {ldapBlocked ? (
             <p className="rounded-md bg-paper-soft px-3 py-3 text-[13px] leading-7 text-ink">
-              در حالت ورود سازمانی (LDAP) بازنشانی رمز از طریق {orgName} ممکن نیست.
+              در حالت ورود سازمانی (LDAP) بازنشانی رمز از طریق {orgName ?? FALLBACK_ORG_NAME} ممکن نیست.
             </p>
           ) : (
             <form onSubmit={submit} className="space-y-4">

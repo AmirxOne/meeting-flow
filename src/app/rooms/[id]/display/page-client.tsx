@@ -10,7 +10,7 @@ import { J_WEEKDAYS_LONG, iranianWeekdayIndex } from "@/lib/jalali";
 import { DEFAULT_ORG_TIMEZONE, formatClockInTz, formatClockWithSecondsInTz } from "@/lib/timezone";
 import { PRIVATE_DISPLAY_TITLE, normalizeDisplayCode, type DisplayOccupancy } from "@/lib/room-display";
 import { toEnDigits } from "@/lib/fa";
-import { useOrgName } from "@/lib/org-branding";
+import { FALLBACK_ORG_NAME, useOrgName } from "@/lib/org-branding";
 import { BrandLogo } from "@/components/ui/brand-logo";
 
 interface DisplaySlot {
@@ -160,7 +160,7 @@ export function RoomDisplayPage({
   if (needsGate && !data) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-ink px-6 text-white" dir="rtl">
-        <BrandLogo size={56} className="h-14 w-14 object-contain" alt={orgName} priority />
+        <BrandLogo size={56} className="h-14 w-14 object-contain" alt={orgName ?? FALLBACK_ORG_NAME} priority />
         <h1 className="mt-6 text-3xl font-bold">نمایشگر اتاق</h1>
         <p className="mt-2 max-w-md text-center text-[16px] text-white/70">
           کد ۸ رقمی نمایشگر را وارد کنید، یا لینک توکن‌دار را روی تبلت کنار در باز کنید.
@@ -201,9 +201,9 @@ export function RoomDisplayPage({
     >
       <header className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <BrandLogo size={40} className="h-10 w-10 object-contain" alt={orgName} priority />
+          <BrandLogo size={40} className="h-10 w-10 object-contain" alt={orgName ?? FALLBACK_ORG_NAME} priority />
           <div>
-            <p className="text-[13px] font-medium text-white/70">{orgName}</p>
+            <p className="text-[13px] font-medium text-white/70">{orgName ?? FALLBACK_ORG_NAME}</p>
             <p className="text-[15px] text-white/55">نمایشگر کنار در</p>
           </div>
         </div>

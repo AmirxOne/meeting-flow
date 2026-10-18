@@ -234,10 +234,12 @@ export function LoginPage() {
               <p className="mt-6 text-[11px] font-medium tracking-wide text-white/55">
                 سیستم مدیریت جلسات سازمانی
               </p>
-              <h1 className="mt-1.5 text-[28px] font-bold leading-tight">{orgName || FALLBACK_ORG_NAME}</h1>
               {orgName ? (
-                <p className="mt-1 text-[13px] text-white/80">{orgName}</p>
-              ) : null}
+                <h1 className="mt-1.5 text-[28px] font-bold leading-tight">{orgName}</h1>
+              ) : (
+                /* تا آمدن نام سازمان از سرور — skeleton بدون پرش */
+                <div className="mt-2.5 h-8 w-44 animate-pulse rounded-md bg-white/15" aria-hidden />
+              )}
               <p className="mt-3 max-w-[17rem] text-[13px] leading-7 text-white/70">
                 زمان‌بندی، رزرو اتاق و هماهنگی تیم‌ها در یک فضای واحد — ساده، امن و فارسی.
               </p>

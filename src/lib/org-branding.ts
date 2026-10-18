@@ -24,9 +24,13 @@ async function loadName(): Promise<string> {
   }
 }
 
-/** نام نمایشی سازمان — client-side، کش‌شده در session. */
-export function useOrgName(): string {
-  const [name, setName] = useState<string>(cache?.name ?? FALLBACK_ORG_NAME);
+/**
+ * نام نمایشی سازمان — client-side، کش‌شده در session.
+ * تا آماده‌شدن (بار اول) null برمی‌گرداند تا مصرف‌کننده skeleton نشان دهد —
+ * هرگز مقدار جایگزین (مهرسا) و بعد عوض نمی‌کند.
+ */
+export function useOrgName(): string | null {
+  const [name, setName] = useState<string | null>(cache?.name ?? null);
   useEffect(() => {
     if (cache) {
       // بازخوانی تازه پس از تغییر تنظیمات

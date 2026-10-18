@@ -66,7 +66,7 @@ function useOrgBranding() {
     staleTime: 5 * 60_000,
   });
   return {
-    orgName: data?.branding.name ?? FALLBACK_ORG_NAME,
+    orgName: data?.branding.name ?? null, // null = هنوز لود نشده → skeleton
     logoUrl: data?.branding.logoUrl ?? null,
   };
 }
@@ -170,10 +170,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           href="/dashboard"
           className="flex h-16 items-center gap-2.5 border-b border-line px-4 transition-colors hover:bg-white/50"
         >
-          <OrgBrandMark orgName={orgName} logoUrl={logoUrl} size={36} />
+          <OrgBrandMark orgName={orgName ?? FALLBACK_ORG_NAME} logoUrl={logoUrl} size={36} />
           <div className="min-w-0">
-            <p className="truncate text-[13px] font-bold leading-4">{orgName}</p>
-            <p className="truncate text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
+            {orgName ? (
+              <>
+                <p className="truncate text-[13px] font-bold leading-4">{orgName}</p>
+                <p className="truncate text-[10px] text-ink-faint">مدیریت جلسات سازمانی</p>
+              </>
+            ) : (
+              <div className="space-y-1.5 py-0.5" aria-hidden>
+                <div className="h-3 w-20 animate-pulse rounded bg-ink/10" />
+                <div className="h-2 w-14 animate-pulse rounded bg-ink/5" />
+              </div>
+            )}
           </div>
         </Link>
         <nav data-tour="nav" className="flex-1 overflow-y-auto px-2.5 py-3">
@@ -332,8 +341,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="absolute right-0 top-0 flex h-full w-72 flex-col bg-paper-soft shadow-xl">
             <div className="flex h-16 items-center justify-between border-b border-line px-4">
               <div className="flex min-w-0 items-center gap-2.5">
-                <OrgBrandMark orgName={orgName} logoUrl={logoUrl} size={32} />
-                <p className="truncate text-[14px] font-bold">{orgName}</p>
+                <OrgBrandMark orgName={orgName ?? FALLBACK_ORG_NAME} logoUrl={logoUrl} size={32} />
+                {orgName ? (
+                  <p className="truncate text-[14px] font-bold">{orgName}</p>
+                ) : (
+                  <div className="h-4 w-24 animate-pulse rounded bg-ink/10" aria-hidden />
+                )}
               </div>
               <button
                 onClick={() => setDrawerOpen(false)}

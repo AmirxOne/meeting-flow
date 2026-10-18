@@ -11,7 +11,7 @@ import { BrandLogo } from "@/components/ui/brand-logo";
 /** Shared professional shell for privacy / terms / data-retention pages. */
 export function LegalPageShell({ doc }: { doc: LegalDocument }) {
   const orgName = useOrgName();
-  const docBranded: LegalDocument = orgName === FALLBACK_ORG_NAME ? doc : JSON.parse(JSON.stringify(doc, (k: string, v: unknown) => typeof v === "string" ? v.replaceAll(FALLBACK_ORG_NAME, orgName) : v));
+  const docBranded: LegalDocument = !orgName || orgName === FALLBACK_ORG_NAME ? doc : JSON.parse(JSON.stringify(doc, (k: string, v: unknown) => typeof v === "string" ? v.replaceAll(FALLBACK_ORG_NAME, orgName) : v));
   const firstLetter = doc.title.trim().charAt(0);
   return (
     <div dir="rtl" className="min-h-screen bg-paper-soft">
@@ -19,8 +19,8 @@ export function LegalPageShell({ doc }: { doc: LegalDocument }) {
       <header className="sticky top-0 z-30 border-b border-line/70 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-5 py-3">
           <Link href="/" className="flex items-center gap-2.5 text-ink transition hover:opacity-80">
-            <BrandLogo size={28} className="rounded-lg bg-ink p-1" alt={orgName} />
-            <span className="text-[14px] font-bold">{orgName}</span>
+            <BrandLogo size={28} className="rounded-lg bg-ink p-1" alt={orgName ?? FALLBACK_ORG_NAME} />
+            <span className="text-[14px] font-bold">{orgName ?? FALLBACK_ORG_NAME}</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link
@@ -55,7 +55,7 @@ export function LegalPageShell({ doc }: { doc: LegalDocument }) {
             <div className="min-w-0">
               <p className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1 text-[10.5px] font-medium text-ink-soft shadow-sm">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
-                سند رسمی {orgName}
+                سند رسمی {orgName ?? FALLBACK_ORG_NAME}
               </p>
               <h1 className="mt-3 text-[26px] font-bold leading-snug sm:text-[30px]">{docBranded.title}</h1>
               <p className="mt-2 max-w-2xl text-[13px] leading-7 text-ink-soft">{docBranded.subtitle}</p>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useOrgName } from "@/lib/org-branding";
+import { FALLBACK_ORG_NAME, useOrgName } from "@/lib/org-branding";
 import { BrandLogo } from "@/components/ui/brand-logo";
 
 export default function NotFound() {
@@ -9,7 +9,7 @@ export default function NotFound() {
   return (
     <div dir="rtl" className="flex min-h-screen flex-col items-center justify-center gap-5 bg-white px-5 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-ink opacity-90">
-        <BrandLogo size={32} className="h-8 w-8 object-contain" alt={orgName} priority />
+        <BrandLogo size={32} className="h-8 w-8 object-contain" alt={orgName ?? FALLBACK_ORG_NAME} priority />
       </div>
       <p className="text-7xl font-bold tracking-tight text-paper-deep">۴۰۴</p>
       <div className="space-y-1.5">

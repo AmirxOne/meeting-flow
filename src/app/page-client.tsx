@@ -33,7 +33,7 @@ import {
 import { FadeIn, StaggerItem, StaggerList } from "@/components/ui/motion";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { InstallPwaBanner, InstallPwaButton } from "@/components/pwa/install-pwa";
-import { useOrgName } from "@/lib/org-branding";
+import { useOrgName, FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { BrandLogo } from "@/components/ui/brand-logo";
 
 /* ───────────────────────── content ───────────────────────── */
@@ -185,6 +185,7 @@ const FOOTER_COLS = [
 
 function BrandMark({ dark = false }: { dark?: boolean }) {
   const orgName = useOrgName();
+  const ready = orgName !== null; // تا آمدن نام واقعی از سرور، skeleton — هرگز «مهرسا» و بعد تعویض
   return (
     <div className="flex items-center gap-2.5">
       <div
@@ -194,11 +195,21 @@ function BrandMark({ dark = false }: { dark?: boolean }) {
             : "flex h-9 w-9 items-center justify-center rounded-lg bg-ink"
         }
       >
-        <BrandLogo size={24} className="h-6 w-6 object-contain" alt={orgName} priority />
+        <BrandLogo size={24} className="h-6 w-6 object-contain" alt={orgName ?? FALLBACK_ORG_NAME} priority />
       </div>
-      <div>
-        <p className={dark ? "text-[14px] font-bold text-white" : "text-[14px] font-bold"}>{orgName}</p>
-        <p className={dark ? "text-[10px] text-white/50" : "text-[10px] text-ink-faint"}>مدیریت جلسات سازمانی</p>
+      <div className="min-w-0">
+        {ready ? (
+          <>
+            <p className={dark ? "text-[14px] font-bold leading-tight text-white" : "text-[14px] font-bold leading-tight"}>{orgName}</p>
+            <p className={dark ? "text-[10px] leading-tight text-white/50" : "text-[10px] leading-tight text-ink-faint"}>مدیریت جلسات سازمانی</p>
+          </>
+        ) : (
+          /* skeleton — هم‌عرض تقریبی متن نهایی، بدون پرش layout */
+          <div className="space-y-1.5 py-0.5" aria-hidden>
+            <div className={`h-3.5 w-24 animate-pulse rounded ${dark ? "bg-white/20" : "bg-ink/10"}`} />
+            <div className={`h-2 w-16 animate-pulse rounded ${dark ? "bg-white/10" : "bg-ink/5"}`} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -344,13 +355,23 @@ export function LandingPage() {
   return (
     <div dir="rtl" className="min-h-screen bg-white">
       {/* ── header: sticky glass ── */}
-      <header className="sticky top-0 z-40 border-b border-line/70 bg-white/80 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-line/60 bg-white/85 shadow-[0_1px_12px_-6px_rgba(0,0,0,0.08)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-5">
           <BrandMark />
-          <nav className="hidden items-center gap-6 text-[12.5px] text-ink-soft md:flex">
-            <a href="#features" className="transition-colors hover:text-ink">امکانات</a>
-            <a href="#workflow" className="transition-colors hover:text-ink">گردش‌کار</a>
-            <a href="#trust" className="transition-colors hover:text-ink">امنیت</a>
+          <nav className="hidden items-center gap-1 md:flex">
+            {[
+              { href: "#features", label: "امکانات" },
+              { href: "#workflow", label: "گردش‌کار" },
+              { href: "#trust", label: "امنیت" },
+            ].map((it) => (
+              <a
+                key={it.href}
+                href={it.href}
+                className="rounded-lg px-3 py-2 text-[12.5px] font-medium text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
+              >
+                {it.label}
+              </a>
+            ))}
           </nav>
           <div className="flex items-center gap-2">
             <InstallPwaButton className="hidden md:flex" />
