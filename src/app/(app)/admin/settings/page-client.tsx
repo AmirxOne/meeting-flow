@@ -18,10 +18,8 @@ import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { cn, formatJalali } from "@/lib";
 import { AuthProvidersCard } from "./auth-providers-card";
-import { SmsPilotCard } from "./sms-pilot-card";
-import { EmailPilotCard } from "./email-pilot-card";
-import { WorkerStatusCard } from "./worker-status-card";
-import { AiProvidersCard } from "./ai-providers-card";
+import { NotificationsCard } from "./notifications-card";
+import { InfrastructureCard } from "./infrastructure-card";
 
 interface Organization {
   id: string;
@@ -254,12 +252,10 @@ export function AdminSettingsPage() {
         </Card>
       </div>
 
-      {/* ── ردیف ۲: زیرساخت و پیام‌رسانی ── */}
+      {/* ── ردیف ۲: زیرساخت + پیام‌رسانی ── */}
       <div className="grid items-start gap-4 lg:grid-cols-2">
-        <WorkerStatusCard />
-        <AiProvidersCard />
-        <SmsPilotCard />
-        <EmailPilotCard />
+        <InfrastructureCard />
+        <NotificationsCard />
       </div>
 
       {/* ── ردیف ۳: امنیت ── */}
