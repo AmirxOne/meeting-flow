@@ -183,8 +183,8 @@ export async function authenticateLogin(
   if (!isPasswordLoginEnabled()) {
     throw new HttpError(
       400,
-      "ورود با رمز برای این سازمان فعال نیست — از دکمهٔ حساب سازمانی استفاده کنید",
-      "SSO_ONLY",
+      "ورود با رمز برای این سازمان فعال نیست",
+      "PASSWORD_LOGIN_DISABLED",
     );
   }
   const parsed = parseLoginIdentifier(identifier);

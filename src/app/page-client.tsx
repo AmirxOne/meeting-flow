@@ -124,7 +124,7 @@ const FEATURES: { icon: typeof CalendarPlus; title: string; desc: string; tag: s
   {
     icon: Shield, tag: "امنیت",
     title: "ورود دومرحله‌ای و سازمانی",
-    desc: "2FA با اپ احرازکننده، ورود LDAP/SSO سازمانی، محدودیت تلاش ورود و بازیابی رمز امن — همه از قبل فعال.",
+    desc: "2FA با اپ احرازکننده، ورود LDAP سازمانی، محدودیت تلاش ورود و بازیابی رمز امن — همه از قبل فعال.",
   },
   {
     icon: Sparkles, tag: "تجربه",
