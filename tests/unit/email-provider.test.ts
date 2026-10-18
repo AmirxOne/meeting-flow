@@ -27,9 +27,15 @@ describe("parseEmailProviderKind", () => {
 });
 
 describe("parseSmtpPort", () => {
-  it("defaults to 587", () => {
-    expect(parseSmtpPort(undefined)).toBe(587);
-    expect(parseSmtpPort("")).toBe(587);
+  it("defaults to 587 (ignoring ambient SMTP_PORT)", () => {
+    const saved = process.env.SMTP_PORT;
+    delete process.env.SMTP_PORT;
+    try {
+      expect(parseSmtpPort(undefined)).toBe(587);
+      expect(parseSmtpPort("")).toBe(587);
+    } finally {
+      if (saved !== undefined) process.env.SMTP_PORT = saved;
+    }
   });
 
   it("parses numeric port", () => {

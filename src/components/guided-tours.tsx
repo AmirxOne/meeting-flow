@@ -17,7 +17,9 @@ function useSeenTours(userId: string | undefined) {
   const [seen, setSeen] = useState<string[]>([]);
   useEffect(() => {
     try {
-      setSeen(JSON.parse(localStorage.getItem(key) ?? "[]"));
+      const raw = JSON.parse(localStorage.getItem(key) ?? "[]");
+      // مقدار خراب/غیرآرایه‌ای در localStorage → آرایه‌ی خالی (کرش نکن)
+      setSeen(Array.isArray(raw) ? raw : []);
     } catch {
       setSeen([]);
     }

@@ -362,20 +362,6 @@ export const organizationUpdateSchema = z.object({
 });
 export type OrganizationUpdateInput = z.infer<typeof organizationUpdateSchema>;
 
-export const ssoSettingsUpdateSchema = z.object({
-  enabled: z.boolean().optional(),
-  buttonLabel: z.string().trim().min(2, "متن دکمه خیلی کوتاه است").max(80).optional(),
-  groupRoleMap: z
-    .array(
-      z.object({
-        group: z.string().trim().min(1, "شناسه گروه را وارد کنید").max(200),
-        roleKey: z.string().trim().min(1, "نقش را انتخاب کنید").max(64),
-      }),
-    )
-    .max(50)
-    .optional(),
-});
-export type SsoSettingsUpdateInput = z.infer<typeof ssoSettingsUpdateSchema>;
 
 export const roleCreateSchema = z.object({
   key: z

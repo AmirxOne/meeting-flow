@@ -1,7 +1,6 @@
 import type { AuthProvider, CredentialsInput, AuthResult } from "./provider";
 import { createLocalProvider } from "./providers/local.provider";
 import { createLdapProvider } from "./providers/ldap.provider";
-import { createSsoProviderStatus } from "./providers/sso.provider";
 import { HttpError } from "./session";
 import { parseLoginIdentifier } from "@/lib/login-identifier";
 
@@ -22,7 +21,7 @@ import { parseLoginIdentifier } from "@/lib/login-identifier";
  */
 
 export function buildProviders(): AuthProvider[] {
-  return [createLocalProvider(), createLdapProvider(), createSsoProviderStatus()];
+  return [createLocalProvider(), createLdapProvider()];
 }
 
 /** provider فعال برای مسیر رمز — صریح و قابل‌تست */

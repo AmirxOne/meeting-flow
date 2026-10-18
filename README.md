@@ -78,7 +78,7 @@ Volumeها در `docker-compose.prod.yml`: **`pgdata`** (Postgres)، **`redisdat
 ```bash
 docker compose up -d postgres redis   # فقط دیتابیس
 pnpm install
-pnpm exec prisma migrate dev          # migration
+pnpm db:migrate                      # migration (هرگز db:push — drift می‌سازد)
 docker compose exec -T postgres psql -U meetinghub -d meetinghub < prisma/sql/room-exclusion.sql
 pnpm db:seed                          # داده اولیه
 pnpm dev                              # ترمینال ۱ → http://localhost:3100
@@ -181,12 +181,12 @@ src/
 - **Approval policy** قابل تنظیم از پنل ادمین: مهمان خارجی / اتاق VIP / مدت > آستانه → تأیید اپراتور.
 - **Notification**: در دیتابیس ذخیره می‌شود + پورت‌های `SmsProvider`/`EmailProvider` (dev = mock لاگ‌کننده؛ production با env وصل می‌شود).
 - **Audit log**: تمام عملیات حساس با actor/old/new/IP ثبت می‌شوند.
-- **SSO (OIDC / Entra ID)**: `AUTH_MODE=local,sso` فرم رمز و دکمهٔ «ورود با حساب سازمانی» را همزمان نشان می‌دهد. کاربر بعد از consent در مرورگر auto-provision می‌شود (مثل LDAP). نگاشت گروه Entra → نقش مهرسا از env (`OIDC_GROUP_ROLE_MAP`) یا **تنظیمات سازمان** (`/admin/settings`). اگر ۲FA فعال باشد بعد از SSO هم کد authenticator خواسته می‌شود. LDAP bind جدا می‌ماند (`AUTH_MODE=ldap` یا `ldap,sso`).
+- **LDAP / Active Directory (اختیاری)**: روش دوم ورود. فعال‌سازی از پنل ادمین (per-org، رمز حساب سرویس مهر و موم در DB) یا env (`AUTH_MODE=local,ldap`). اولین ورود → provisioning با نقش EMPLOYEE؛ کاربر دایرکتوری‌نشده با رمز محلی وارد می‌شود (ادمین قفل نمی‌شود). بدون LDAP سامانه کامل کار می‌کند. SSO حذف شده است.
 
 ## تست‌ها
 
 ```bash
-pnpm run test        # 489 — 369 unit + 120 integration (vitest)
+pnpm run test        # 539+ — unit + integration (vitest)
 pnpm run typecheck   # tsc --noEmit
 pnpm vitest run tests/integration   # فقط integration (120) — dev server :3100 + seed
 ```
@@ -220,27 +220,35 @@ node scripts/e2e-room-exclusions.cjs
 node scripts/e2e-minutes.cjs
 ```
 
-## ورود سازمانی (SSO / Microsoft Entra ID)
+## روش‌های ورود — محلی + LDAP (اختیاری)
 
-LDAP فعلی bind روی سرور است. SSO ورود مرورگر با OAuth/OIDC است (حداقل Azure AD / Entra ID).
+دو روش ورود: **رمز محلی** (پیش‌فرض، همیشه فعال) و **LDAP / Active Directory** (اختیاری، خاموش پیش‌فرض). سامانه بدون LDAP کامل کار می‌کند؛ هیچ اتصالی در startup انجام نمی‌شود و نبود تنظیمات/سرور LDAP هرگز باعث کرش یا غیرفعال‌شدن حساب‌ها نمی‌شود.
 
-1. در Entra یک Web app ثبت کنید. Redirect URI: `{APP_URL}/api/auth/sso/callback` (مثلاً `http://localhost:3100/api/auth/sso/callback`).
-2. در Token configuration ادعاهای اختیاری `groups` (و در صورت نیاز app roles) را اضافه کنید.
-3. در `.env`:
+### فعال‌سازی LDAP از پنل (پیشنهادی — بدون env)
+
+**ادمین → تنظیمات → روش‌های ورود → ورود سازمانی (LDAP)**: فرم را پر کنید (آدرس سرور، Base DN، حساب سرویس + رمز)، «تست اتصال» بگیرید (با ایمیل نمونه، جست‌وجوی کاربر هم تست می‌شود) و ذخیره کنید.
+
+- تنظیمات هر سازمان جدا و در DB ذخیره می‌شود؛ رمز سرویس با AES-256-GCM مهر و موم می‌شود و هرگز نمایش/انتقال نمی‌یابد
+- دکمه‌ی «کاربران دایرکتوری» — فهرست زنده‌ی کاربران LDAP (نام/ایمیل/سمت) بدون لاگین جداگانه
+- سیاست‌ها: «اعتبارسنجی گواهی TLS» و «ساخت خودکار کاربر در اولین ورود» قابل تغییرند
+- **بدون قفل‌شدن ادمین:** کاربری که در دایرکتوری نباشد با رمز محلی وارد می‌شود؛ رمز غلط کاربر دایرکتوری و قطعی سرور fallback نمی‌شوند (امنیت)
+- اولین ورود موفق → حساب با نقش `EMPLOYEE` ساخته می‌شود (هرگز ADMIN)
+
+### فعال‌سازی با env (جایگزین)
 
 ```
-AUTH_MODE=local,sso
-OIDC_TENANT=organizations
-OIDC_CLIENT_ID=...
-OIDC_CLIENT_SECRET=...
-OIDC_GROUP_ROLE_MAP=group-object-id:ADMIN,HR Managers:BRANCH_MANAGER
+AUTH_MODE=local,ldap
+LDAP_URL=ldap://dc01.company.local:389
+LDAP_BASE_DN=dc=company,dc=local
+LDAP_BIND_DN=cn=svc-mehrsa,ou=Service,dc=company,dc=local
+LDAP_BIND_PASSWORD=...
+LDAP_USER_FILTER=(mail={{email}})          # اختیاری
+LDAP_TLS_REJECT_UNAUTHORIZED=true          # برای cert داخلی AD ممکن است false لازم شود
 ```
 
-4. `local,sso` یعنی فرم ایمیل/رمز **و** دکمه SSO با هم. فقط SSO: `AUTH_MODE=sso`. LDAP+SSO: `AUTH_MODE=ldap,sso`.
-5. نگاشت گروه و متن دکمه از **ادمین → تنظیمات سازمان** هم قابل ویرایش است (راز کلاینت فقط در env می‌ماند).
-6. کاربر جدید با نقش مپ‌شده (یا `EMPLOYEE`) ساخته می‌شود. اگر گروه مچ شود، نقش کاربر موجود هم با گروه همگام می‌شود.
+اولویت: تنظیمات DB پنل → env. `AUTH_MODE=local` (پیش‌فرض) یعنی فقط ورود محلی.
 
-جزئیات env در `.env.example`.
+> **SSO / OIDC حذف شد** — فقط دو روش ورود: محلی و LDAP.
 
 ## پایلوت پیامک کاوه‌نگار
 
@@ -300,7 +308,10 @@ SMTP_FROM=no-reply@example.com
 - [x] اتصال SMS واقعی (Kavenegar) — `SMS_API_KEY` + پایلوت در ادمین → تنظیمات؛ mock برای dev
 - [x] ایمیل SMTP — قالب RTL دعوت/یادآور/صورتجلسه؛ mock برای dev
 - [x] QR Check-in مهمان‌ها — `/checkin/[code]` + QR canvas + self check-in + E2E (`e2e-checkin.cjs`)
-- [x] SSO / LDAP / Active Directory — LDAP bind + OIDC (Entra ID) با `AUTH_MODE=local,sso`
+- [x] ورود سازمانی LDAP / Active Directory — از پنل ادمین (per-org، رمز مهر و موم) یا env؛ تست اتصال + مرور کاربران دایرکتوری + provisioning با نقش EMPLOYEE
+- [x] رزرو نوبت سازمانی (Appointments) — برنامه‌های نوبت‌دهی با بازه‌های چندگانه‌ی ساعتی، اسلات‌های آزاد لحظه‌ای، رزرو اتمیک (بدون تداخل با جلسات/اتاق/مسئول)، دعوت‌های RSVP در داشبورد، لغو و محرمانگی
+- [x] برندینگ تک‌منبعی — نام و لوگوی سازمان از تنظیمات در سراسر سامانه (لاگین، سایدبار، ایمیل‌ها، صفحات عمومی)
+- [x] تنظیمات بازساختاریافته — کارت‌های آکاردئونی گروهی (روش‌های ورود / زیرساخت و AI / اعلان‌ها) با وضعیت زنده‌ی رنگی هر ردیف
 
 ## لایسنس
 

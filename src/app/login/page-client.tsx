@@ -15,20 +15,9 @@ type AuthConfig = {
   authMode: string;
   localEnabled: boolean;
   ldapEnabled: boolean;
-  ssoEnabled: boolean;
-  ssoLabel: string;
   passwordResetEnabled: boolean;
 };
 
-const SSO_ERROR_FA: Record<string, string> = {
-  access_denied: "ورود سازمانی لغو شد.",
-  not_configured: "ورود سازمانی پیکربندی نشده است.",
-  state_mismatch: "نشست ورود سازمانی نامعتبر است — دوباره تلاش کنید.",
-  nonce_mismatch: "نشست ورود سازمانی نامعتبر است — دوباره تلاش کنید.",
-  missing_email: "حساب سازمانی ایمیل معتبری برنگرداند.",
-  token_failed: "ارتباط با حساب سازمانی ناموفق بود.",
-  account_disabled: "حساب کاربری غیرفعال است.",
-};
 
 const DEMO_ACCOUNTS = [
   { label: "مدیر", email: "admin@example.com", phone: "09120001001" },
@@ -59,8 +48,6 @@ export function LoginPage() {
     authMode: "local",
     localEnabled: true,
     ldapEnabled: false,
-    ssoEnabled: false,
-    ssoLabel: "ورود با حساب سازمانی",
     passwordResetEnabled: true,
   });
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
@@ -108,8 +95,6 @@ export function LoginPage() {
           authMode: data.authMode,
           localEnabled: data.localEnabled ?? data.authMode === "local",
           ldapEnabled: data.ldapEnabled ?? data.authMode === "ldap",
-          ssoEnabled: !!data.ssoEnabled,
-          ssoLabel: data.ssoLabel || "ورود با حساب سازمانی",
           passwordResetEnabled: data.passwordResetEnabled !== false,
         }),
       )
@@ -121,10 +106,6 @@ export function LoginPage() {
     const challenge = params.get("challenge");
     if (challenge && challenge.length >= 16) {
       setChallengeToken(challenge);
-    }
-    if (params.get("sso") === "error") {
-      const code = params.get("code") ?? "token_failed";
-      setError(SSO_ERROR_FA[code] ?? SSO_ERROR_FA.token_failed);
     }
     const host = window.location.hostname;
     const sub =
@@ -147,14 +128,13 @@ export function LoginPage() {
       .then((r) => (r.headers.get("content-type") || "").startsWith("image/") ? r : null)
       .then((r) => { if (r) setOrgLogo("/api/public/organization/logo"); })
       .catch(() => {});
-    if (challenge || params.get("sso")) {
+    if (challenge) {
       window.history.replaceState({}, "", slug ? `/login?org=${encodeURIComponent(slug)}` : "/login");
     }
   }, []);
 
   const ldapMode = authConfig.ldapEnabled;
   const passwordForm = authConfig.localEnabled || authConfig.ldapEnabled;
-  const ssoEnabled = authConfig.ssoEnabled;
   const needs2fa = Boolean(challengeToken);
 
   function reset2fa() {
@@ -286,27 +266,19 @@ export function LoginPage() {
                     ? "لینک و کد یک‌بارمصرف به ایمیل ثبت‌شده ارسال شد — تا ۱۵ دقیقه اعتبار دارد."
                     : "ایمیل یا شماره موبایل حساب را وارد کنید تا لینک بازنشانی برایتان ارسال شود."
                   : needs2fa
-                  ? ssoEnabled && !passwordForm
-                    ? `حساب سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || FALLBACK_ORG_NAME} را وارد کنید.`
-                    : ldapMode
-                      ? `رمز سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || FALLBACK_ORG_NAME} را وارد کنید.`
-                      : "رمز درست است. کد ۶ رقمی اپ authenticator را وارد کنید."
+                  ? ldapMode
+                    ? `رمز سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || FALLBACK_ORG_NAME} را وارد کنید.`
+                    : "رمز درست است. کد ۶ رقمی اپ authenticator را وارد کنید."
                   : passwordForm
                     ? ldapMode
                       ? "با ایمیل سازمانی یا شماره موبایل ثبت‌شده وارد شوید."
                       : "با ایمیل یا شماره موبایل وارد شوید."
-                    : "با حساب سازمانی وارد شوید."}
+                    : "وارد شوید."}
               </p>
               {ldapMode && !needs2fa && (
                 <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-paper-soft px-2.5 py-1 text-[11px] text-ink-soft">
                   <Building2 className="h-3.5 w-3.5" />
                   ورود با حساب سازمانی (LDAP)
-                </p>
-              )}
-              {ssoEnabled && !needs2fa && (
-                <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-paper-soft px-2.5 py-1 text-[11px] text-ink-soft">
-                  <Building2 className="h-3.5 w-3.5" />
-                  ورود مرورگر با Microsoft Entra ID
                 </p>
               )}
             </div>
@@ -583,26 +555,6 @@ export function LoginPage() {
               <p className="mb-4 rounded-md bg-red-50 px-3 py-2.5 text-[12px] text-red-600">{error}</p>
             )}
 
-            {ssoEnabled && !needs2fa && (
-              <div className={passwordForm ? "mt-5" : ""}>
-                {passwordForm && (
-                  <div className="mb-4 flex items-center gap-3 text-[11px] text-ink-faint">
-                    <span className="h-px flex-1 bg-line" />
-                    یا
-                    <span className="h-px flex-1 bg-line" />
-                  </div>
-                )}
-                <a
-                  href="/api/auth/sso/login"
-                  data-testid="sso-login-button"
-                  className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-line bg-white text-[13px] font-medium text-ink transition hover:bg-paper-soft"
-                >
-                  <Building2 className="h-4 w-4" />
-                  {authConfig.ssoLabel}
-                </a>
-              </div>
-            )}
-
             {authConfig.passwordResetEnabled && !needs2fa && (
               <p className="mt-3 text-end">
                 <button
@@ -640,7 +592,7 @@ export function LoginPage() {
               </div>
             )}
 
-            {(ldapMode || ssoEnabled) && !needs2fa && (
+            {ldapMode && !needs2fa && (
               <p className="mt-6 text-center text-[11px] leading-5 text-ink-faint">
                 {`با اولین ورود موفق سازمانی، حساب شما به‌صورت خودکار در ${orgName || FALLBACK_ORG_NAME} ساخته می‌شود.`}
               </p>

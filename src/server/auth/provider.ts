@@ -5,7 +5,7 @@ import type { AuthenticatedUser } from "./login.service";
  *  Authentication Provider Contract — قرارداد واحد روش‌های ورود
  * ─────────────────────────────────────────────────────────────
  *
- *  هر روش احراز هویت (local / ldap / sso-oidc / آینده: saml)
+ *  هر روش احراز هویت (local / ldap — قابل توسعه)
  *  همین قرارداد را پیاده می‌کند. سرویس‌های session/2FA به
  *  پیاده‌سازی داخلی هیچ providerی وابسته نیستند.
  *
@@ -18,7 +18,7 @@ import type { AuthenticatedUser } from "./login.service";
  *  - احراز هویت ≠ مجوز: نقش‌ها فقط از سیستم داخلی می‌آیند.
  */
 
-export type ProviderId = "local" | "ldap" | "sso";
+export type ProviderId = "local" | "ldap";
 
 export interface CredentialsInput {
   identifier: string; // email یا موبایل
@@ -40,8 +40,7 @@ export interface AuthProvider {
   /** آیا تنظیمات لازم موجود است و provider روشن است؟ */
   isEnabled(): boolean;
   /**
-   * احراز هویت با رمز. SSO این متد را ندارد (redirect-based) و
-   * isEnabled=false برمی‌گرداند تا فراخوانی نشود.
+   * احراز هویت با رمز عبور.
    */
   authenticate(input: CredentialsInput): Promise<AuthResult>;
 }

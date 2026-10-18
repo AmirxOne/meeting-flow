@@ -223,11 +223,4 @@ describe("LDAP login", () => {
 
     await expect(authenticateLogin("off@corp.com", "pw")).rejects.toBeInstanceOf(HttpError);
   });
-
-  it("sso-only mode rejects password login", async () => {
-    process.env.AUTH_MODE = "sso";
-    await expect(authenticateLogin("ali@example.com", "Pass1234")).rejects.toMatchObject({
-      code: "SSO_ONLY",
-    });
-  });
 });

@@ -146,10 +146,10 @@ describe("سناریو ۱۲: غیرفعال‌کردن LDAP پس از استفا
   });
 });
 
-describe("سناریو ۲۰: افزودن provider بدون بازنویسی", () => {
+describe("registry — دو provider", () => {
   it("registry سه provider ثبت‌شده دارد با شناسه‌های متفاوت", () => {
     const ids = buildProviders().map((p) => p.id);
-    expect(ids).toEqual(["local", "ldap", "sso"]);
+    expect(ids).toEqual(["local", "ldap"]);
   });
 });
 
