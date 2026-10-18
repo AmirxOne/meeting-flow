@@ -29,10 +29,14 @@ import {
   CheckCheck,
   Briefcase,
   SlidersHorizontal,
+  ArrowLeft,
+  Menu,
+  X,
 } from "@/components/ui/icon";
 import { FadeIn, StaggerItem, StaggerList } from "@/components/ui/motion";
 import { LegalFooterLinks } from "@/components/legal/legal-footer-links";
 import { InstallPwaBanner, InstallPwaButton } from "@/components/pwa/install-pwa";
+import { cn } from "@/lib";
 import { useOrgName, FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { BrandLogo } from "@/components/ui/brand-logo";
 
@@ -192,7 +196,7 @@ function BrandMark({ dark = false }: { dark?: boolean }) {
         className={
           dark
             ? "flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15"
-            : "flex h-9 w-9 items-center justify-center rounded-lg bg-ink"
+            : "flex h-9 w-9 items-center justify-center rounded-[10px] bg-ink shadow-[0_2px_8px_-2px_rgba(0,0,0,0.35)]"
         }
       >
         <BrandLogo size={24} className="h-6 w-6 object-contain" alt={orgName ?? FALLBACK_ORG_NAME} priority />
@@ -348,48 +352,130 @@ function ProductPreview() {
   );
 }
 
+/* ───────────────────────── header ───────────────────────── */
+
+const NAV_ITEMS = [
+  { href: "#features", label: "امکانات" },
+  { href: "#workflow", label: "گردش‌کار" },
+  { href: "#trust", label: "امنیت" },
+];
+
+/** هدر لندینگ — گلس، nav با scroll-spy، CTA گرادیانی، منوی موبایل */
+function LandingHeader() {
+  const [active, setActive] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) setActive("#" + e.target.id);
+        }
+      },
+      { rootMargin: "-30% 0px -60% 0px" },
+    );
+    NAV_ITEMS.forEach((i) => {
+      const el = document.getElementById(i.href.slice(1));
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-40 border-b border-line/60 bg-white/80 shadow-[0_1px_16px_-8px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-5">
+        <BrandMark />
+
+        <nav className="hidden items-center gap-1 md:flex">
+          {NAV_ITEMS.map((it) => {
+            const on = active === it.href;
+            return (
+              <a
+                key={it.href}
+                href={it.href}
+                className={cn(
+                  "relative rounded-lg px-3.5 py-2 text-[12.5px] font-medium transition-colors",
+                  on ? "text-ink" : "text-ink-soft hover:text-ink",
+                )}
+              >
+                {it.label}
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-ink transition-transform duration-300",
+                    on ? "scale-x-100" : "scale-x-0",
+                  )}
+                />
+              </a>
+            );
+          })}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <InstallPwaButton className="hidden md:flex" />
+          <Link
+            href="/request"
+            className="hidden h-10 items-center rounded-xl border border-line bg-white px-4 text-[12.5px] font-medium text-ink-soft transition-all hover:border-ink/25 hover:text-ink sm:flex"
+          >
+            درخواست جلسه
+          </Link>
+          <Link
+            href="/login"
+            className="group flex h-10 items-center gap-2 rounded-xl bg-gradient-to-l from-ink to-[#2f2f35] px-4 text-[12.5px] font-medium text-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.4)] transition-shadow hover:shadow-[0_4px_16px_-4px_rgba(0,0,0,0.5)] sm:px-5"
+          >
+            ورود به سامانه
+            <ArrowLeft className="size-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+          </Link>
+          <button
+            type="button"
+            aria-label="منو"
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((v) => !v)}
+            className="flex size-10 items-center justify-center rounded-xl border border-line bg-white text-ink-soft transition-colors hover:text-ink md:hidden"
+          >
+            {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+          </button>
+        </div>
+      </div>
+
+      {mobileOpen && (
+        <div className="border-t border-line/60 bg-white/95 backdrop-blur-xl md:hidden">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-1 px-5 py-3">
+            {NAV_ITEMS.map((it) => (
+              <a
+                key={it.href}
+                href={it.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "rounded-lg px-3 py-2.5 text-[13px] font-medium transition-colors",
+                  active === it.href ? "bg-paper-soft text-ink" : "text-ink-soft hover:bg-paper-soft hover:text-ink",
+                )}
+              >
+                {it.label}
+              </a>
+            ))}
+            <Link
+              href="/request"
+              onClick={() => setMobileOpen(false)}
+              className="mt-1 rounded-lg border border-line px-3 py-2.5 text-center text-[13px] font-medium text-ink-soft"
+            >
+              درخواست جلسه
+            </Link>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
+
 /* ───────────────────────── page ───────────────────────── */
 
 export function LandingPage() {
   const orgName = useOrgName();
   return (
     <div dir="rtl" className="min-h-screen bg-white">
-      {/* ── header: sticky glass ── */}
-      <header className="sticky top-0 z-40 border-b border-line/60 bg-white/85 shadow-[0_1px_12px_-6px_rgba(0,0,0,0.08)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-5">
-          <BrandMark />
-          <nav className="hidden items-center gap-1 md:flex">
-            {[
-              { href: "#features", label: "امکانات" },
-              { href: "#workflow", label: "گردش‌کار" },
-              { href: "#trust", label: "امنیت" },
-            ].map((it) => (
-              <a
-                key={it.href}
-                href={it.href}
-                className="rounded-lg px-3 py-2 text-[12.5px] font-medium text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink"
-              >
-                {it.label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <InstallPwaButton className="hidden md:flex" />
-            <Link
-              href="/request"
-              className="hidden h-10 items-center rounded-lg border border-line bg-white px-4 text-[13px] font-medium text-ink-soft transition-colors hover:bg-paper-soft hover:text-ink sm:flex sm:px-5"
-            >
-              درخواست جلسه
-            </Link>
-            <Link
-              href="/login"
-              className="flex h-10 items-center rounded-lg bg-ink px-4 text-[13px] font-medium text-white transition-all hover:bg-[#2a2a2e] hover:shadow-lg sm:px-5"
-            >
-              ورود به سامانه
-            </Link>
-          </div>
-        </div>
-      </header>
+      {/* ── header: sticky glass — بازطراحی حرفه‌ای ── */}
+      <LandingHeader />
 
       <main>
         {/* ── hero ── */}
