@@ -17,7 +17,6 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-store";
 import { cn, formatJalali } from "@/lib";
-import { SsoSettingsCard } from "./sso-card";
 import { AuthProvidersCard } from "./auth-providers-card";
 import { SmsPilotCard } from "./sms-pilot-card";
 import { EmailPilotCard } from "./email-pilot-card";
@@ -264,8 +263,7 @@ export function AdminSettingsPage() {
       </div>
 
       {/* ── ردیف ۳: امنیت ── */}
-      <SsoSettingsCard />
-        <AuthProvidersCard />
+      <AuthProvidersCard />
     </div>
   );
 }

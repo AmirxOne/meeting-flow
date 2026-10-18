@@ -1,39 +1,26 @@
 import { NextRequest } from "next/server";
-import { requirePermission } from "@/server/auth/session";
+import { requirePermission, HttpError } from "@/server/auth/session";
 import { ok, handleError, audit } from "@/server/http";
 import { z } from "zod";
 import { buildProviders } from "@/server/auth/provider-registry";
-import { resolveLdapConfig } from "@/server/auth/auth-config";
+import { getLdapConfigSafe, saveLdapConfig, getEffectiveLdapConfig } from "@/server/auth/ldap-settings.service";
 
 export const dynamic = "force-dynamic";
 
 /** GET /api/admin/auth-providers — وضعیت روش‌های ورود (بدون Secret) */
 export async function GET() {
   try {
-    await requirePermission("org:manage");
+    const actor = await requirePermission("org:manage");
     const providers = buildProviders().map((p) => ({
       id: p.id,
       label: p.label,
       enabled: p.isEnabled(),
     }));
 
-    // اطلاعات غیرحساس LDAP — اگر تنظیم است
-    let ldapInfo: Record<string, unknown> | null = null;
-    try {
-      const cfg = resolveLdapConfig();
-      ldapInfo = {
-        url: cfg.url,
-        baseDn: cfg.baseDn,
-        bindDn: cfg.bindDn,
-        userFilter: cfg.userFilter,
-        tlsRejectUnauthorized: cfg.tlsRejectUnauthorized,
-        // bindPassword هرگز بازگردانده نمی‌شود
-      };
-    } catch {
-      ldapInfo = null; // تنظیم نیست
-    }
+    // تنظیمات مؤثر این سازمان: DB (پنل) → env → none — رمز هرگز برگردانده نمی‌شود
+    const orgLdap = await getLdapConfigSafe(actor.orgId).catch(() => null);
 
-    return ok({ providers, ldap: ldapInfo, source: "env" });
+    return ok({ providers, orgLdap });
   } catch (e) {
     return handleError(e);
   }
@@ -41,12 +28,19 @@ export async function GET() {
 
 const testSchema = z.object({
   action: z.literal("test-connection"),
-  /** فقط برای test-search — ایمیل نمونه، از دایرکتوری جست‌وجو می‌شود */
+  /** اگر ارسال شود، همین مقادیر تست می‌شوند (قبل از ذخیره)؛ وگرنه تنظیمات ذخیره‌شده */
+  url: z.string().trim().optional(),
+  baseDn: z.string().trim().optional(),
+  bindDn: z.string().trim().optional(),
+  bindPassword: z.string().optional(),
+  userFilter: z.string().trim().optional(),
+  tlsRejectUnauthorized: z.boolean().optional(),
   sampleEmail: z.string().email().optional(),
 });
 
 /**
- * POST /api/admin/auth-providers — تست اتصال/جست‌وجوی LDAP.
+ * POST /api/admin/auth-providers — تست اتصال LDAP.
+ * اولویت مقادیر: فرم ارسالی → تنظیمات ذخیره‌شده‌ی org → env.
  * Secret جایی لاگ یا پاس داده نمی‌شود.
  */
 export async function POST(req: NextRequest) {
@@ -54,41 +48,131 @@ export async function POST(req: NextRequest) {
     const actor = await requirePermission("org:manage");
     const input = testSchema.parse(await req.json().catch(() => ({})));
 
-    if (input.action === "test-connection") {
-      let cfg;
-      try {
-        cfg = resolveLdapConfig();
-      } catch {
-        return ok({
-          ok: false,
-          message: "تنظیمات LDAP کامل نیست — LDAP_URL، LDAP_BASE_DN و LDAP_BIND_DN لازم است",
-        });
-      }
+    if (input.action !== "test-connection") {
+      return ok({ ok: false, message: "عملیات نامعتبر" });
+    }
 
-      // dynamic import — کتابخانه فقط وقتی لود شود که واقعاً تست می‌کنیم
-      const { createLdapClient } = await import("@/server/auth/ldap-client");
-      try {
-        const client = createLdapClient();
-        if (input.sampleEmail) {
-          const profile = await client.authenticate(input.sampleEmail, "__test_no_match__");
-          // رمز غلط → اگر کاربر پیدا شد bind user ناموفق = دایرکتوری سالم
-          const found = profile === null ? "searched" : "bound";
-          await audit({ actorId: actor.id, action: "LDAP_TEST", entity: "AuthSettings", entityId: "ldap", newValue: { result: found } });
-          return ok({ ok: true, message: "اتصال برقرار است و جست‌وجوی کاربر کار می‌کند", searchTested: true });
-        }
-        const profile = await client.authenticate("nonexistent-test@example.invalid", "__probe__");
-        await audit({ actorId: actor.id, action: "LDAP_TEST", entity: "AuthSettings", entityId: "ldap", newValue: { result: "reachable" } });
-        return ok({ ok: true, message: "اتصال به دایرکتوری برقرار است", searchTested: false });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "";
-        const isTimeout = /timeout|connect|ECONNREFUSED|ETIMEDOUT/i.test(msg);
-        return ok({
-          ok: false,
-          message: isTimeout ? "دایرکتوری پاسخ نداد — آدرس/پورت/فایروال را بررسی کنید" : "اتصال ناموفق بود — تنظیمات Bind را بررسی کنید",
-        });
+    let url = input.url;
+    let baseDn = input.baseDn;
+    let bindDn = input.bindDn;
+    let bindPassword = input.bindPassword;
+    let userFilter = input.userFilter;
+    let tls = input.tlsRejectUnauthorized;
+    if (!url || !baseDn || !bindDn || bindPassword === undefined) {
+      const cfg = await getEffectiveLdapConfig(actor.orgId).catch(() => null);
+      if (cfg) {
+        url = url || cfg.url;
+        baseDn = baseDn || cfg.baseDn;
+        bindDn = bindDn || cfg.bindDn;
+        bindPassword = bindPassword?.length ? bindPassword : cfg.bindPassword;
+        userFilter = userFilter || cfg.userFilter;
+        tls = tls ?? cfg.tlsRejectUnauthorized;
       }
     }
-    return ok({ ok: false, message: "عملیات نامعتبر" });
+
+    if (!url || !baseDn || !bindDn) {
+      return ok({
+        ok: false,
+        message: "آدرس سرور، Base DN و Bind DN لازم است — پر کنید و دوباره تست بگیرید",
+      });
+    }
+    if (!/^ldap:\/\/|^ldaps:\/\//i.test(url)) {
+      return ok({ ok: false, message: "آدرس سرور باید با ldap:// یا ldaps:// شروع شود" });
+    }
+
+    // dynamic import — کتابخانه فقط وقتی لود می‌شود که واقعاً تست می‌گیریم
+    const { createLdapClient } = await import("@/server/auth/ldap-client");
+    try {
+      const client = createLdapClient({
+        url,
+        baseDn,
+        bindDn,
+        bindPassword: bindPassword ?? "",
+        userFilter: userFilter || "(mail={{email}})",
+        tlsRejectUnauthorized: tls ?? true,
+      });
+
+      let searchTested = false;
+      if (input.sampleEmail) {
+        searchTested = true;
+        // null یعنی کاربر در دایرکتوری نبود ولی جست‌وجو سالم بود؛ throw = خطای اتصال
+        await client.authenticate(input.sampleEmail, "__mehrsa_probe__");
+      }
+      // null = سرور جواب داد و کاربر پیدا نشد (طبیعی)؛ throw = خطای اتصال/bind
+      const probe = await client.authenticate("nonexistent-probe@mehrsa.invalid", "__mehrsa_probe__");
+
+      await audit({
+        actorId: actor.id,
+        orgId: actor.orgId,
+        action: "LDAP_TEST",
+        entity: "LdapSettings",
+        entityId: actor.orgId,
+        newValue: { reachable: true, searchTested: searchTested && probe === null },
+      });
+      return ok({
+        ok: true,
+        message: input.sampleEmail
+          ? "اتصال برقرار است و جست‌وجوی کاربر کار می‌کند"
+          : "اتصال به دایرکتوری برقرار است",
+        searchTested,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      const isNet = /timeout|connect|ECONNREFUSED|ETIMEDOUT|unreachable|EHOSTUNREACH/i.test(msg);
+      await audit({
+        actorId: actor.id,
+        orgId: actor.orgId,
+        action: "LDAP_TEST",
+        entity: "LdapSettings",
+        entityId: actor.orgId,
+        newValue: { reachable: false },
+      }).catch(() => undefined);
+      return ok({
+        ok: false,
+        message: isNet
+          ? "دایرکتوری پاسخ نداد — آدرس/پورت/فایروال را بررسی کنید"
+          : "اتصال ناموفق بود — Bind DN یا رمز سرویس را بررسی کنید",
+      });
+    }
+  } catch (e) {
+    return handleError(e);
+  }
+}
+
+const saveSchema = z.object({
+  enabled: z.boolean(),
+  url: z.string().trim().max(300),
+  baseDn: z.string().trim().max(300),
+  bindDn: z.string().trim().max(300),
+  bindPassword: z.string().max(300).optional(), // خالی = دست‌نخورده
+  userFilter: z.string().trim().max(300).optional(),
+  tlsRejectUnauthorized: z.boolean().optional(),
+  autoProvision: z.boolean().optional(),
+});
+
+/** PUT /api/admin/auth-providers — ذخیره‌ی تنظیمات LDAP سازمان (org:manage) */
+export async function PUT(req: NextRequest) {
+  try {
+    const actor = await requirePermission("org:manage");
+    if (!actor.orgId) {
+      return ok({ ok: false, message: "سازمان یافت نشد" });
+    }
+    const input = saveSchema.parse(await req.json().catch(() => ({})));
+    let saved;
+    try {
+      saved = await saveLdapConfig(actor.orgId, actor.id, input);
+    } catch (e) {
+      throw new HttpError(400, e instanceof Error ? e.message : "تنظیمات نامعتبر است", "BAD_LDAP_SETTINGS");
+    }
+    await audit({
+      actorId: actor.id,
+      action: "UPDATE",
+      entity: "LdapSettings",
+      entityId: actor.orgId,
+      newValue: { enabled: saved.enabled, url: saved.url, hasPassword: saved.hasPassword },
+      ip: req.headers.get("x-forwarded-for"),
+    });
+    return ok({ ok: true, ldap: saved, message: saved.enabled ? "LDAP فعال شد" : "تنظیمات ذخیره شد (LDAP غیرفعال)" });
   } catch (e) {
     return handleError(e);
   }

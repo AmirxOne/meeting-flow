@@ -1,13 +1,44 @@
 import type { AuthProvider, AuthResult, CredentialsInput } from "../provider";
-import { createLdapClient, type LdapClient } from "../ldap-client";
+import { createLdapClient, type LdapClient, type LdapUserProfile } from "../ldap-client";
 import { findOrProvisionLdapUser } from "../ldap-user.service";
 import { resolveLdapConfig } from "../auth-config";
 import { prisma } from "@/server/db";
 import { HttpError } from "../session";
 import { SAMPLE_ORG_ID } from "@/lib/org-slug";
+import { getEffectiveLdapConfig } from "../ldap-settings.service";
 
 /** تست‌ها override را از login.service ست می‌کنند — همان منبع را می‌خوانیم */
 import { getTestLdapOverride } from "../login.service";
+
+/** کش سبک: آیا LDAP در DB برای orgی فعال شده؟ (از پنل مدیریت) */
+let ldapDbEnabledCache = false;
+export function setLdapDbEnabled(v: boolean): void {
+  ldapDbEnabledCache = v;
+}
+
+/** ساخت client با تنظیمات یک org مشخص (DB > env) */
+async function clientForOrg(orgSlug: string | undefined, testClient: LdapClient | null): Promise<{ client: LdapClient; orgId: string; autoProvision: boolean } | null> {
+  const orgId = await resolveOrgId(orgSlug);
+  const cfg = await getEffectiveLdapConfig(orgId).catch(() => null);
+  if (cfg?.enabled && cfg.url && cfg.baseDn && cfg.bindDn) {
+    setLdapDbEnabled(true);
+    // client با تنظیمات این org
+    const client = createLdapClient({ url: cfg.url, baseDn: cfg.baseDn, bindDn: cfg.bindDn, bindPassword: cfg.bindPassword, userFilter: cfg.userFilter, tlsRejectUnauthorized: cfg.tlsRejectUnauthorized });
+    return { client, orgId, autoProvision: cfg.autoProvision };
+  }
+  // fallback env / تست
+  if (testClient || getTestLdapOverride()) {
+    return { client: testClient ?? getTestLdapOverride()!, orgId, autoProvision: true };
+  }
+  try {
+    resolveLdapConfig();
+    const methods = (process.env.AUTH_MODE ?? "local").toLowerCase();
+    if (!methods.includes("ldap")) return null;
+    return { client: createLdapClient(), orgId, autoProvision: true };
+  } catch {
+    return null;
+  }
+}
 
 async function resolveOrgId(orgSlug?: string): Promise<string> {
   if (!orgSlug) return SAMPLE_ORG_ID;
@@ -32,24 +63,29 @@ export function createLdapProvider(opts?: { client?: LdapClient }): AuthProvider
     label: "ورود سازمانی (LDAP / Active Directory)",
 
     isEnabled(): boolean {
-      // فقط وقتی AUTH_MODE شامل ldap است و تنظیمات کامل است
+      // تست تزریقی
+      if (opts?.client || getTestLdapOverride()) return true;
+      // env سراسری
       try {
         const methods = (process.env.AUTH_MODE ?? "local").toLowerCase();
-        if (!methods.split(/[,+\s|]+/).includes("ldap")) return false;
-        if (opts?.client || getTestLdapOverride()) return true; // تست تزریق‌شده
-        resolveLdapConfig(); // throws اگر ناقص
-        return true;
-      } catch {
-        return false;
-      }
+        if (methods.split(/[,+\s|]+/).includes("ldap")) {
+          resolveLdapConfig();
+          return true;
+        }
+      } catch { /* env ناقص */ }
+      // per-org از پنل مدیریت — sync چک سبک (فقط وجود رکورد فعال)
+      // در isEnabled async نمی‌شود؛ تنظیمات DB در authenticate AsyncX سپرده می‌شود
+      return ldapDbEnabledCache;
     },
 
     async authenticate(input: CredentialsInput): Promise<AuthResult> {
-      if (!this.isEnabled()) {
-        return { status: "unavailable", reason: "LDAP فعال یا تنظیم نشده است" };
-      }
-      const client = opts?.client ?? getTestLdapOverride() ?? createLdapClient();
       try {
+        const resolved = await clientForOrg(input.orgSlug, opts?.client ?? null);
+        if (!resolved) {
+          return { status: "unavailable", reason: "LDAP فعال یا تنظیم نشده است" };
+        }
+        const { client, orgId, autoProvision } = resolved;
+
         // موبایل → ایمیل از حساب موجود
         let email = input.identifier;
         const byPhone = /^[0-9+\s-]+$/.test(input.identifier);
@@ -62,7 +98,13 @@ export function createLdapProvider(opts?: { client?: LdapClient }): AuthProvider
         const profile = await client.authenticate(email, input.password);
         if (!profile) return { status: "invalid" };
 
-        const orgId = await resolveOrgId(input.orgSlug);
+        if (!autoProvision) {
+          const existing = await prisma.user.findUnique({ where: { email: profile.email.toLowerCase() } });
+          if (!existing) {
+            return { status: "invalid" }; // سیاست: کاربر جدید ساخته نشود
+          }
+        }
+
         const user = await findOrProvisionLdapUser(profile, orgId);
         return { status: "ok", user: { id: user.id, email: user.email, fullName: user.fullName, jobTitle: user.jobTitle } };
       } catch (e) {

@@ -131,10 +131,13 @@ function MehrsaCard({
   prevStep,
   skipTour,
 }: CardComponentProps) {
-  const isLast = currentStep === totalSteps - 1;
   const [mounted, setMounted] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const scrollingRef = useRef(false);
+
+  // گارد کرش: step گم‌شده (resume با ایندکس قدیمی) → کارت نامرئی، بدون رندر هوک‌دار
+  const safeStep = step ?? { selector: "", title: "", content: "" };
+  const isLast = currentStep === totalSteps - 1;
 
   useEffect(() => setMounted(true), []);
 
@@ -144,12 +147,12 @@ function MehrsaCard({
     setPos(placeCard(el.getBoundingClientRect()));
   }, []);
   const measureOnly = useCallback(() => {
-    const el = findTarget(step);
+    const el = findTarget(safeStep);
     if (el) positionCard(el);
-  }, [step, positionCard]);
+  }, [safeStep, positionCard]);
 
   const locate = useCallback(() => {
-    const el = findTarget(step);
+    const el = findTarget(safeStep);
     if (el) {
       // if the target is off-screen, scroll IT into view (user scroll is locked,
       // so the system must bring the target to the user)
@@ -160,7 +163,7 @@ function MehrsaCard({
       }
       positionCard(el as HTMLElement);
     }
-  }, [step, positionCard]);
+  }, [safeStep, positionCard]);
 
   useEffect(() => {
     locate();
@@ -225,7 +228,7 @@ function MehrsaCard({
       className="rounded-xl border border-line bg-white p-3 text-right shadow-2xl"
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-[14px] font-bold text-ink">{step.title}</p>
+        <p className="text-[14px] font-bold text-ink">{safeStep.title}</p>
         <button
           onClick={() => (skipTour ? skipTour() : nextStep())}
           aria-label="بستن"
@@ -234,7 +237,7 @@ function MehrsaCard({
           <X className="h-3.5 w-3.5" />
         </button>
       </div>
-      <div className="mt-1.5 text-[12px] leading-6 text-ink-soft">{step.content}</div>
+      <div className="mt-1.5 text-[12px] leading-6 text-ink-soft">{safeStep.content}</div>
       <div className="mt-4 flex items-center justify-between">
         <span className="text-[10px] text-ink-faint">
           {faNum(currentStep + 1)} از {faNum(totalSteps)}

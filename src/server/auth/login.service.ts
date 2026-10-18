@@ -3,8 +3,9 @@ import { prisma } from "@/server/db";
 import { HttpError } from "@/server/auth/session";
 import { parseLoginIdentifier, type ParsedLoginIdentifier } from "@/lib/login-identifier";
 import { isLdapAuthEnabled, isPasswordLoginEnabled, parseAuthMode } from "./auth-config";
+import { getEffectiveLdapConfig } from "./ldap-settings.service";
 import { resolvePasswordProvider } from "./provider-registry";
-import { createLdapClient, type LdapClient } from "./ldap-client";
+import { createLdapClient, type LdapClient, type LdapUserProfile } from "./ldap-client";
 import { findOrProvisionLdapUser } from "./ldap-user.service";
 import { SAMPLE_ORG_ID } from "@/lib/org-slug";
 
@@ -85,12 +86,37 @@ async function authenticateLdap(
     email = local.email;
   }
 
-  const profile = await getLdapClient().authenticate(email!, password);
+  const orgId = await resolveProvisionOrgId(orgSlug);
+
+  // client با تنظیمات همین org: DB (پنل) → env؛ تست override اولویت دارد
+  let client = getLdapClient();
+  if (!ldapClientOverride) {
+    const cfg = await getEffectiveLdapConfig(orgId).catch(() => null);
+    if (cfg?.enabled && cfg.url && cfg.baseDn && cfg.bindDn) {
+      client = createLdapClient({
+        url: cfg.url, baseDn: cfg.baseDn, bindDn: cfg.bindDn,
+        bindPassword: cfg.bindPassword, userFilter: cfg.userFilter,
+        tlsRejectUnauthorized: cfg.tlsRejectUnauthorized,
+      });
+    } else {
+      client = createLdapClient(); // env
+    }
+  }
+
+  let profile: LdapUserProfile | null;
+  try {
+    profile = await client.authenticate(email!, password);
+  } catch (e) {
+    // خطای اتصال/timeout دایرکتوری → پیام کنترل‌شده، بدون crash
+    const msg = e instanceof Error ? e.message : "";
+    if (/timeout|connect|ECONNREFUSED|ETIMEDOUT|unreachable|EHOSTUNREACH/i.test(msg)) {
+      throw new HttpError(503, "دایرکتوری سازمانی در دسترس نیست", "AUTH_PROVIDER_UNAVAILABLE");
+    }
+    throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
+  }
   if (!profile) {
     throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
   }
-
-  const orgId = await resolveProvisionOrgId(orgSlug);
   const user = await findOrProvisionLdapUser(profile, orgId);
   return toAuthUser(user);
 }

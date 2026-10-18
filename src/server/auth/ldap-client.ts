@@ -109,11 +109,12 @@ export class LdapJsClient implements LdapClient {
     try {
       await promisifyBind(searchClient, this.config.bindDn, this.config.bindPassword);
       const found = await searchUserDn(searchClient, this.config, email);
-      if (!found) return null;
+      if (!found) return null; // کاربر در دایرکتوری نیست — خطا نیست
       userDn = found.dn;
       attrs = found.attrs;
-    } catch {
-      return null;
+    } catch (e) {
+      // خطای اتصال/bind سرویس را قورت نمی‌دهیم — فراخواننده باید «unavailable» تشخیص دهد
+      throw e;
     } finally {
       await promisifyUnbind(searchClient).catch(() => {});
     }
@@ -126,8 +127,13 @@ export class LdapJsClient implements LdapClient {
     try {
       await promisifyBind(userClient, userDn, password);
       return profileFromAttrs(email, attrs);
-    } catch {
-      return null;
+    } catch (e) {
+      // InvalidCredentials (کد LDAP 49) = رمز اشتباه → invalid؛ بقیه (اتصال و…) rethrow
+      const err = e as { name?: string; code?: number | string };
+      if (err?.name === "InvalidCredentialsError" || err?.code === 49 || err?.code === "InvalidCredentialsError") {
+        return null;
+      }
+      throw e;
     } finally {
       await promisifyUnbind(userClient).catch(() => {});
     }
