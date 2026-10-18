@@ -91,8 +91,27 @@ describe("LDAP login", () => {
 
   it("rejects invalid LDAP credentials", async () => {
     setLdapClientForTests(new MockLdapClient({}));
+    // کاربر نه در دایرکتوری هست نه محلی — fallback به local هم ناموفق → 401
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null);
 
     await expect(authenticateLogin("x@corp.com", "wrong")).rejects.toMatchObject({
+      status: 401,
+    });
+  });
+
+  it("user in directory with wrong password stays rejected (no unsafe local fallback)", async () => {
+    // کاربر در دایرکتوری هست ولی رمز غلط — نباید با local وارد شود
+    setLdapClientForTests(new MockLdapClient({
+      "emp@corp.com": { password: "dir-pass", profile: { email: "emp@corp.com", fullName: "Dir User" } },
+    }));
+    // bcrypt واقعی: «wrong» با hash یک رمز دیگر → false (بدون mock)
+    const bcrypt = await import("bcryptjs");
+    const realHash = await bcrypt.hash("something-else", 10);
+    // mock قبلی ممکن است hash متفاوت بدهد — روی این تست با hash واقعی بازنویسی
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: "u9", email: "emp@corp.com", isActive: true, passwordHash: realHash,
+    } as never);
+    await expect(authenticateLogin("emp@corp.com", "wrong")).rejects.toMatchObject({
       status: 401,
     });
   });

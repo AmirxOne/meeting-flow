@@ -89,8 +89,10 @@ async function authenticateLdap(
   const orgId = await resolveProvisionOrgId(orgSlug);
 
   // client با تنظیمات همین org: DB (پنل) → env؛ تست override اولویت دارد
-  let client = getLdapClient();
-  if (!ldapClientOverride) {
+  let client: LdapClient;
+  if (ldapClientOverride) {
+    client = ldapClientOverride;
+  } else {
     const cfg = await getEffectiveLdapConfig(orgId).catch(() => null);
     if (cfg?.enabled && cfg.url && cfg.baseDn && cfg.bindDn) {
       client = createLdapClient({
@@ -99,7 +101,7 @@ async function authenticateLdap(
         tlsRejectUnauthorized: cfg.tlsRejectUnauthorized,
       });
     } else {
-      client = createLdapClient(); // env
+      client = createLdapClient(); // env — اگر ناقص باشد resolveLdapConfig خطای صریح می‌دهد
     }
   }
 
@@ -115,7 +117,9 @@ async function authenticateLdap(
     throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
   }
   if (!profile) {
-    throw new HttpError(401, CREDENTIALS_MSG, "BAD_CREDENTIALS");
+    // کاربر در دایرکتوری نیست (search خالی) یا bind کاربر ناموفق —
+    // کد متمایز تا سیاست fallback بداند فقط «نبودن کاربر» قابل بازگشت به local است
+    throw new HttpError(401, CREDENTIALS_MSG, "NOT_IN_DIRECTORY");
   }
   const user = await findOrProvisionLdapUser(profile, orgId);
   return toAuthUser(user);
@@ -187,12 +191,30 @@ export async function authenticateLogin(
   if (!parsed) {
     throw new HttpError(400, "ایمیل یا شماره موبایل نامعتبر است", "INVALID_IDENTIFIER");
   }
-  // سیاست انتخاب provider — متمرکز در provider-registry
-  const provider = resolvePasswordProvider();
-  let user: AuthenticatedUser;
-  if (provider.id === "ldap") {
-    user = await authenticateLdap(parsed, password, orgSlug);
-  } else {
+  // سیاست انتخاب provider — env (سینک) یا تنظیمات DB این org (آسنک)
+  let useLdap = resolvePasswordProvider().id === "ldap";
+  if (!useLdap) {
+    // LDAP از پنل مدیریت برای این سازمان فعال شده باشد → همان
+    const orgId = await resolveProvisionOrgId(orgSlug).catch(() => null);
+    if (orgId) {
+      const cfg = await getEffectiveLdapConfig(orgId).catch(() => null);
+      if (cfg?.enabled && cfg.url && cfg.baseDn && cfg.bindDn) useLdap = true;
+    }
+  }
+  let user: AuthenticatedUser | null = null;
+  if (useLdap) {
+    // اول دایرکتوری سازمانی.
+    // NOT_IN_DIRECTORY (کاربر در دایرکتوری نیست) → حساب‌های داخلی مثل admin
+    // با رمز محلی وارد می‌شوند تا ادمین قفل نشود. رمز غلط کاربرِ دایرکتوری
+    // و قطعی سرور → بدون fallback (امنیت).
+    try {
+      user = await authenticateLdap(parsed, password, orgSlug);
+    } catch (e) {
+      if (!(e instanceof HttpError) || e.code !== "NOT_IN_DIRECTORY") throw e;
+      user = null; // تلاش با local در ادامه
+    }
+  }
+  if (!user) {
     user = await authenticateLocal(parsed, password);
   }
   await assertLoginTenant(user.id, orgSlug);
