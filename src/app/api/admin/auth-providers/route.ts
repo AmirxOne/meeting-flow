@@ -55,7 +55,8 @@ export async function POST(req: NextRequest) {
     let url = input.url;
     let baseDn = input.baseDn;
     let bindDn = input.bindDn;
-    let bindPassword = input.bindPassword;
+    // فاصله/خالی از فیلد رمز = «دست‌نخورده» — هرگز با رمز خالی bind نکن
+    let bindPassword = input.bindPassword?.trim() ? input.bindPassword : undefined;
     let userFilter = input.userFilter;
     let tls = input.tlsRejectUnauthorized;
     if (!url || !baseDn || !bindDn || bindPassword === undefined) {
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
         url = url || cfg.url;
         baseDn = baseDn || cfg.baseDn;
         bindDn = bindDn || cfg.bindDn;
-        bindPassword = bindPassword?.length ? bindPassword : cfg.bindPassword;
+        bindPassword = bindPassword?.trim()?.length ? bindPassword : cfg.bindPassword;
         userFilter = userFilter || cfg.userFilter;
         tls = tls ?? cfg.tlsRejectUnauthorized;
       }
@@ -127,11 +128,14 @@ export async function POST(req: NextRequest) {
         entityId: actor.orgId,
         newValue: { reachable: false },
       }).catch(() => undefined);
+      const fromForm = !!input.bindPassword?.trim();
       return ok({
         ok: false,
         message: isNet
           ? "دایرکتوری پاسخ نداد — آدرس/پورت/فایروال را بررسی کنید"
-          : "اتصال ناموفق بود — Bind DN یا رمز سرویس را بررسی کنید",
+          : fromForm
+            ? "رمز سرویسِ تایپ‌شده رد شد — فیلد را خالی کنید تا از رمز ثبت‌شده استفاده شود، یا رمز درست دایرکتوری را وارد کنید"
+            : "اتصال ناموفق بود — Bind DN یا رمز سرویسِ ثبت‌شده را بررسی کنید",
       });
     }
   } catch (e) {

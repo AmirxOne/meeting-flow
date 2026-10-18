@@ -247,6 +247,8 @@ export function AuthProvidersCard() {
                 </label>
                 <input
                   type="password"
+                  autoComplete="new-password"
+                  name="ldap-bind-secret"
                   value={bindPassword}
                   onChange={(e) => setBindPassword(e.target.value)}
                   placeholder="••••••••"
