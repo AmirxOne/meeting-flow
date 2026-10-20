@@ -111,7 +111,8 @@ export async function GET(
       meeting.createdById === user.id ||
       meeting.participants.some((p) => p.userId === user.id);
     // مدیران با مجوز «مشاهده همه جلسات» (ADMIN و بالاتر) محرمانه‌ها را هم می‌بینند
-    const isSuper = !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all");
+    // سیاست محرمانگی: فقط مدیر پلتفرم به جلسه‌ی محرمانه‌ی غیرمرتبط دسترسی دارد
+    const isSuper = !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN");
     if (!isParticipant && !isSuper && meeting.isPrivate) {
       throw new HttpError(403, "دسترسی به این جلسه ندارید", "FORBIDDEN");
     }

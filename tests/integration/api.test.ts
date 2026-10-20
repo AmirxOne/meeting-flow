@@ -3,7 +3,7 @@
 // Uses the real HTTP API on localhost:3100 (start `pnpm dev` first) — proves
 // the full chain: Zod → auth → service → transaction → exclusion constraint.
 
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 const BASE = process.env.TEST_BASE ?? "http://localhost:3100";
 
@@ -19,6 +19,7 @@ const PNG_DOT = Buffer.from(
 );
 
 let adminCookie = "";
+let superadminGlobalCookie = "";
 let employeeCookie = "";
 let operatorCookie = "";
 let roomManagerCookie = "";
@@ -97,36 +98,91 @@ const TEST_TITLES = [
   "تست لیست انتظار — صف",
   "تست لیست انتظار — رزرو در مهلت",
   "تست تعطیل سازمانی — باید رد شود",
+  "تست تداخل — باید رد شود",
+  "تست RSVP — دعوت با PENDING",
+  "تست پیوست — عمومی",
+  "تست پیوست — محرمانه استراتژی",
+  "تست حضورغیاب مهمان",
+  "تست حضورغیاب",
+  "تست دستور جلسه — استندآپ",
+  "تست صورتجلسه — عمومی",
+  "تست فرم عمومی",
+  "کمیته محرمانه صورتجلسه",
+  "محرمانه سری", // داینامیک: `محرمانه سری ${RUN}` — پیشوند ثابت
+  "تست checkin", // داینامیک
+  "تست دعوت مهمان", // داینامیک
 ];
 
 beforeAll(async () => {
   adminCookie = await login("admin@example.com");
+  superadminGlobalCookie = await login("superadmin@example.com");
   employeeCookie = await login("ali@example.com");
   operatorCookie = await login("operator@example.com");
   roomManagerCookie = await login("room@example.com");
   branchManagerCookie = await login("sara@example.com");
 
-  // idempotency: wipe leftovers from previous runs
+  // self-heal: اتاق‌های seed باید فعال باشند — تست‌های قبلی/UI ممکن است غیرفعال کرده باشند
+  for (const rid of ["room-a", "room-b", "room-c"]) {
+    await api(`/api/rooms/${rid}/manage`, {
+      method: "PATCH",
+      cookie: adminCookie,
+      json: { isActive: true },
+    }).catch(() => {});
+  }
+
+  await wipeTestMeetings();
+}, 90_000);
+
+/** تست‌ها را idempotent نگه می‌دارد — جلسات تستی را cancel می‌کند (اتاق آزاد می‌شود)
+ *  همه‌ی صفحات را می‌گردد — جلسات تستی انباشته ممکن است در صفحات بعدی باشند. */
+async function wipeTestMeetings() {
   for (const t of TEST_TITLES) {
     await api("/api/search?q=" + encodeURIComponent(t.slice(0, 12)), { cookie: adminCookie }).catch(() => {});
   }
-  const list = await api(
-    "/api/meetings?scope=all&limit=500",
-    { cookie: adminCookie },
-  );
-  const mine = (list.body?.data?.meetings ?? []).filter((m: { title: string; status: string }) =>
-    TEST_TITLES.some((t) => m.title.startsWith(t)),
-  );
-  for (const m of mine) {
-    if (m.status === "CANCELLED") continue;
-    // cancel first (frees the room), then it stays as history — harmless
-    await api(`/api/meetings/${m.id}/cancel`, {
-      method: "POST",
-      cookie: adminCookie,
-      json: { reason: "DUPLICATE_MEETING" },
-    }).catch(() => {});
+  let page = 1;
+  let seen = new Set<string>();
+  for (;;) {
+    const list = await api(
+      `/api/meetings?scope=all&limit=500&page=${page}`,
+      { cookie: adminCookie },
+    );
+    const all = list.body?.data?.meetings ?? [];
+    if (all.length === 0) break;
+    const mine = all.filter((m: { title: string; id: string; status: string }) =>
+      !seen.has(m.id) && TEST_TITLES.some((t) => m.title.startsWith(t)),
+    );
+    for (const m of all) seen.add(m.id);
+    for (const m of mine) {
+      if (m.status === "CANCELLED") continue;
+      // cancel first (frees the room), then it stays as history — harmless
+      await api(`/api/meetings/${m.id}/cancel`, {
+        method: "POST",
+        cookie: adminCookie,
+        json: { reason: "DUPLICATE_MEETING" },
+      }).catch(() => {});
+    }
+    if (seen.size >= (list.body?.data?.total ?? 0)) break;
+    page += 1;
+    if (page > 10) break; // safety
   }
-}, 90_000);
+}
+
+afterAll(async () => {
+  // پاک‌سازی پس از هر run — حتی وقتی تستی وسط راه fail می‌کند، جلسه‌ی تستی اتاق را قفل نگه نمی‌دارد
+  if (!adminCookie) return;
+  await wipeTestMeetings().catch(() => {});
+  // فلگ‌هایی که تست‌ها روشن کردند و پیش‌فرض خاموش‌اند را برگردان (چک‌این/حضورغیاب)
+  const st = await api("/api/admin/organization", { cookie: adminCookie }).catch(() => null);
+  if (st?.body?.data?.organization) {
+    const org = st.body.data.organization;
+    const patch: Record<string, boolean> = {};
+    if (org.qrCheckinEnabled) patch.qrCheckinEnabled = false;
+    if (org.attendanceEnabled) patch.attendanceEnabled = false;
+    if (Object.keys(patch).length) {
+      await api("/api/admin/organization", { method: "PATCH", cookie: adminCookie, json: patch }).catch(() => {});
+    }
+  }
+}, 60_000);
 
 describe("auth", () => {
   it("rejects bad credentials", async () => {
@@ -258,7 +314,7 @@ describe("meeting lifecycle", () => {
   });
 
   it("change room checks availability", async () => {
-    const { status } = await api(`/api/meetings/${meetingId}/change-room`, {
+    const { status, body } = await api(`/api/meetings/${meetingId}/change-room`, {
       method: "POST",
       cookie: operatorCookie,
       json: { roomId: "room-c" },
@@ -861,6 +917,29 @@ describe("room display kiosk", () => {
   let token = "";
   let displayCode = "";
   let meetingId = "";
+  let displayWasEnabled = false;
+
+  // نمایشگر اتاق فلگ مرکزی دارد (پیش‌فرض خاموش) — تست روشن و آخر برمی‌گرداند
+  beforeAll(async () => {
+    const st = await api("/api/admin/organization", { cookie: adminCookie });
+    displayWasEnabled = st.body?.data?.organization?.displayEnabled === true;
+    if (!displayWasEnabled) {
+      await api("/api/admin/organization", {
+        method: "PATCH",
+        cookie: adminCookie,
+        json: { displayEnabled: true },
+      });
+    }
+  });
+  afterAll(async () => {
+    if (!displayWasEnabled) {
+      await api("/api/admin/organization", {
+        method: "PATCH",
+        cookie: adminCookie,
+        json: { displayEnabled: false },
+      }).catch(() => {});
+    }
+  });
 
   it("anonymous without token is 401; employee cannot rotate", async () => {
     const anon = await api("/api/rooms/room-b/display");
@@ -1090,13 +1169,22 @@ describe("user admin", () => {
     expect(ali.branch?.id).toBe("branch-vanak");
   });
 
-  it("admin cannot change user roles (403)", async () => {
+  it("admin can change user roles (has role:manage since 3163fa4)", async () => {
     const { status } = await api(`/api/users/${aliId}`, {
       method: "PATCH",
       cookie: adminCookie,
       json: { roleKeys: ["EMPLOYEE", "ROOM_MANAGER"] },
     });
-    expect(status).toBe(403);
+    expect(status).toBe(200);
+  });
+
+  it("employee cannot change user roles (403)", async () => {
+    const { status } = await api(`/api/users/${aliId}`, {
+      method: "PATCH",
+      cookie: employeeCookie,
+      json: { roleKeys: ["EMPLOYEE"] },
+    });
+    expect([403, 401]).toContain(status);
   });
 
   it("superadmin changes user roles", async () => {
@@ -1406,6 +1494,29 @@ describe("guest check-in", () => {
   let meetingId = "";
   let checkinCode = "";
   const branchId = "branch-niavaran";
+
+  // چک‌این QR یک فلگ مرکزی است (پیش‌فرض خاموش) — تست باید خودش روشنش کند و آخر کار خاموش
+  let qrWasEnabled = false;
+  beforeAll(async () => {
+    const st = await api("/api/admin/organization", { cookie: adminCookie });
+    qrWasEnabled = st.body?.data?.organization?.qrCheckinEnabled === true;
+    if (!qrWasEnabled) {
+      await api("/api/admin/organization", {
+        method: "PATCH",
+        cookie: adminCookie,
+        json: { qrCheckinEnabled: true },
+      });
+    }
+  });
+  afterAll(async () => {
+    if (!qrWasEnabled) {
+      await api("/api/admin/organization", {
+        method: "PATCH",
+        cookie: adminCookie,
+        json: { qrCheckinEnabled: false },
+      }).catch(() => {});
+    }
+  });
 
   function checkinWindow() {
     const offsetMin = 30 + (RUN % 45);
@@ -1727,20 +1838,33 @@ describe("role management (SUPER_ADMIN)", () => {
     superadminCookie = await login("superadmin@example.com");
   });
 
-  it("admin cannot manage roles (403)", async () => {
+  it("admin can list and manage roles (has role:manage since 3163fa4)", async () => {
+    // رفتار جدید: ADMIN صاحب role:manage است — لیست و ساخت مجاز
     const list = await api("/api/admin/roles", { cookie: adminCookie });
-    expect(list.status).toBe(403);
+    expect(list.status).toBe(200);
 
     const create = await api("/api/admin/roles", {
       method: "POST",
       cookie: adminCookie,
       json: {
-        key: "SHOULD_FAIL",
-        name: "نقش نامعتبر",
+        key: "TEST_AUDIT_ROLE",
+        name: "نقش تست ممیزی",
         permissionKeys: ["report:view"],
       },
     });
-    expect(create.status).toBe(403);
+    expect([200, 201, 409]).toContain(create.status); // 409 اگر از run قبلی مانده
+
+    // پاک‌سازی نقش تستی
+    if (create.status !== 409) {
+      const roleId = create.body?.data?.role?.id;
+      if (roleId) {
+        await api(`/api/admin/roles/${roleId}`, { method: "DELETE", cookie: adminCookie }).catch(() => {});
+      }
+    }
+
+    // کارمند عادی نباید بتواند
+    const forbidden = await api("/api/admin/roles", { cookie: employeeCookie });
+    expect([401, 403]).toContain(forbidden.status);
   });
 
   it("employee cannot view reports before custom role", async () => {
@@ -1834,6 +1958,23 @@ describe("recurring meetings", () => {
   const plantedTitle = `قفل نوبت دوم ${RUN}`;
   const privateTitle = `محرمانه سری ${RUN}`;
   const createdIds: string[] = [];
+
+  // سری‌های محرمانه‌ی runهای قبلی (PENDING_APPROVAL در room-b، ساعت ~19) اتاق را قفل می‌کنند —
+  // با جستجوی عنوان همه‌ی صفحات را پیدا و cancel کن
+  beforeAll(async () => {
+    for (let page = 1; page <= 10; page++) {
+      const list = await api(`/api/meetings?scope=all&limit=500&page=${page}&q=${encodeURIComponent("محرمانه سری")}`, { cookie: adminCookie });
+      const all = list.body?.data?.meetings ?? [];
+      if (!all.length) break;
+      for (const m of all) {
+        if (m.status === "CANCELLED") continue;
+        await api(`/api/meetings/${m.id}/cancel`, {
+          method: "POST", cookie: adminCookie, json: { reason: "DUPLICATE_MEETING" },
+        }).catch(() => {});
+      }
+      if (all.length < 500) break;
+    }
+  });
 
   async function cancelAll(id: string) {
     await api(`/api/meetings/${id}/cancel`, {
@@ -1985,6 +2126,8 @@ describe("recurring meetings", () => {
 
     const from = new Date(new Date(tehran(62, 19, 5)).getTime() - 86400000).toISOString();
     const to = new Date(new Date(tehran(62, 19, 5)).getTime() + 4 * 86400000).toISOString();
+    // سیاست حریم خصوصی فعلی: فقط SUPER_ADMIN از محرمانگی عبور می‌کند؛
+    // ADMIN (view-all) هم باید mask ببیند — cb4852f به بعد
     const cal = await api(`/api/calendar?from=${from}&to=${to}&scope=all`, { cookie: adminCookie });
     const masked = (cal.body.data.meetings ?? []).filter(
       (m: { seriesId?: string }) => m.seriesId === created.body.data.meeting.seriesId,
@@ -1992,6 +2135,14 @@ describe("recurring meetings", () => {
     expect(masked.length).toBeGreaterThan(0);
     expect(masked.every((m: { isMasked?: boolean; title: string }) => m.isMasked && m.title === "جلسه محرمانه")).toBe(true);
     expect((cal.body.data.meetings ?? []).some((m: { title: string }) => m.title === privateTitle)).toBe(false);
+
+    // SUPER_ADMIN (مدیر پلتفرم) محرمانه را واضح می‌بیند
+    const superCal = await api(`/api/calendar?from=${from}&to=${to}&scope=all`, { cookie: superadminGlobalCookie });
+    const superView = (superCal.body.data.meetings ?? []).filter(
+      (m: { seriesId?: string }) => m.seriesId === created.body.data.meeting.seriesId,
+    );
+    expect(superView.length).toBeGreaterThan(0);
+    expect(superView.every((m: { isMasked?: boolean }) => !m.isMasked)).toBe(true);
   });
 
   it("cleanup: cancel leftover series", async () => {
@@ -2532,8 +2683,19 @@ describe("meeting attendance (حضورغیاب)", () => {
   let organizerId = "";
   let outsiderCookie = "";
   let meetingId = "";
+  let attendanceWasEnabled = false;
 
   beforeAll(async () => {
+    // حضورغیاب فلگ مرکزی دارد (پیش‌فرض خاموش) — تست روشنش می‌کند و آخر برمی‌گرداند
+    const st = await api("/api/admin/organization", { cookie: adminCookie });
+    attendanceWasEnabled = st.body?.data?.organization?.attendanceEnabled === true;
+    if (!attendanceWasEnabled) {
+      await api("/api/admin/organization", {
+        method: "PATCH",
+        cookie: adminCookie,
+        json: { attendanceEnabled: true },
+      });
+    }
     // operator (BOOK_AS_ROLES) creates the meeting → organizer = operator
     organizerCookie = operatorCookie;
     const me = await api("/api/auth/me", { cookie: organizerCookie });

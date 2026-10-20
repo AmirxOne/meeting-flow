@@ -16,6 +16,11 @@ export function meetingAppUrl(meetingId: string, env: NodeJS.Dict<string> = proc
 }
 
 export function escapeHtml(raw: string): string {
+  // دفاع: مقدار غیررشته‌ای (undefined از فراخوان‌های قدیمی) نباید کل ارسال ایمیل را بکشد
+  if (typeof raw !== "string") {
+    console.warn("[email-templates] escapeHtml received non-string:", typeof raw, JSON.stringify(raw)?.slice(0, 80));
+    return String(raw ?? "");
+  }
   return raw
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

@@ -11,8 +11,14 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireUser();
     const sp = req.nextUrl.searchParams;
-    const from = new Date(sp.get("from") ?? Date.now() - 7 * 86400000);
-    const to = new Date(sp.get("to") ?? Date.now() + 30 * 86400000);
+    // مقاوم‌سازی: پارامتر نامعتبر/خالی نباید 500 بدهد — fallback به پیش‌فرض
+    const parseRange = (raw: string | null, fallback: number): Date => {
+      if (!raw?.trim()) return new Date(fallback);
+      const d = new Date(raw);
+      return Number.isNaN(d.getTime()) ? new Date(fallback) : d;
+    };
+    const from = parseRange(sp.get("from"), Date.now() - 7 * 86400000);
+    const to = parseRange(sp.get("to"), Date.now() + 30 * 86400000);
     const branchId = sp.get("branchId");
     const scope = sp.get("scope");
 
@@ -65,7 +71,8 @@ export async function GET(req: NextRequest) {
         : 0,
     }));
 
-        const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all") };
+        // سیاست محرمانگی: فقط مدیر پلتفرم عبور می‌کند — view-all حق دید تقویم است نه محرمانگی
+        const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
     const masked = meetings.map((m) => maskPrivateMeeting(m, viewer));
     const smart = req.nextUrl.searchParams.get("smart") === "1";
     let draftMeetings: unknown[] | null = null;

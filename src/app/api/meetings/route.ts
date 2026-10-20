@@ -74,12 +74,12 @@ export async function GET(req: NextRequest) {
       return distance(a.m.startAt.getTime()) - distance(b.m.startAt.getTime());
     });
     const sortedAll = withSort.map((x) => x.m);
-    // صفحه‌بندی: ۵۰ جلسه در هر صفحه — کل شمارش قبل از برش
-    const PAGE_SIZE = 50;
+    // صفحه‌بندی: ۵۰ پیش‌فرض، تا ۵۰۰ برای مصرف‌کننده‌های مدیریتی (cleanup تست و…) — کل شمارش قبل از برش
+    const PAGE_SIZE = Math.max(1, Math.min(500, Number(sp.get("limit") ?? 50) || 50));
     const total = sortedAll.length;
     const page = Math.max(1, Number(sp.get("page") ?? 1));
     const sorted = sortedAll.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-    const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") || can(user, "meeting:view-all") };
+    const viewer = { id: user.id, isSuperAdmin: !!user.isSuperAdmin || user.roleKeys.includes("SUPER_ADMIN") };
     const masked = sorted.map((m) => {
       const mine = m.participants.find((p) => p.userId === user.id && p.role !== "ORGANIZER");
       const { participants, ...rest } = maskPrivateMeeting(m, viewer);

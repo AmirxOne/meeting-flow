@@ -44,14 +44,12 @@ export async function GET(req: NextRequest) {
             roles: { include: { role: { select: { key: true, name: true } } } },
           }
         : {
+            // دایرکتوری همکاران برای کارمند عادی — بدون داده‌ی تماس/وضعیت حساس
             id: true,
             fullName: true,
-            email: true,
-            phone: true,
             avatarUrl: true,
             jobTitle: true,
             department: true,
-            isActive: true,
             branch: { select: { id: true, name: true } },
             roles: { include: { role: { select: { key: true, name: true } } } },
           },
