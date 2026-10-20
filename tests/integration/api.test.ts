@@ -109,6 +109,7 @@ const TEST_TITLES = [
   "تست فرم عمومی",
   "کمیته محرمانه صورتجلسه",
   "محرمانه سری", // داینامیک: `محرمانه سری ${RUN}` — پیشوند ثابت
+  "رِیس تست", // داینامیک
   "تست checkin", // داینامیک
   "تست دعوت مهمان", // داینامیک
 ];
@@ -349,6 +350,39 @@ describe("meeting lifecycle", () => {
     });
     expect(status).toBe(200);
     expect(body.data.meeting.status).toBe("CANCELLED");
+  });
+
+  it("concurrent bookings of same slot: exactly one wins (race)", async () => {
+    // دو درخواست موازی برای همان اتاق/بازه — فقط یکی 201، دیگری 409
+    const day = 45 + (RUN % 10);
+    const payload = (title: string, cookie: string) =>
+      api("/api/meetings", {
+        method: "POST",
+        cookie,
+        json: {
+          title,
+          branchId,
+          roomId: "room-d",
+          startAt: tehran(day, 15, 20),
+          endAt: tehran(day, 16, 20),
+          meetingType: "INTERNAL",
+        },
+      });
+    const results = await Promise.all([
+      payload(`رِیس تست — الف ${RUN}`, adminCookie),
+      payload(`رِیس تست — ب ${RUN}`, operatorCookie),
+    ]);
+    const codes = results.map((r) => r.status).sort();
+    expect(codes).toEqual([201, 409]);
+    // پاک‌سازی برنده
+    const winner = results.find((r) => r.status === 201);
+    if (winner) {
+      await api(`/api/meetings/${winner.body.data.meeting.id}/cancel`, {
+        method: "POST",
+        cookie: adminCookie,
+        json: { reason: "DUPLICATE_MEETING" },
+      }).catch(() => {});
+    }
   });
 
   it("cancelled room slot becomes free again", async () => {
