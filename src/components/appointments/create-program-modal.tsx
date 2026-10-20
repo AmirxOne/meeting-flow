@@ -463,48 +463,8 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
             </div>
           </div>
 
-          {/* پیش‌نمایش زنده — ساعات خالی من و اتاق‌ها */}
-          {roomIds.length > 0 && (
-            <div className="rounded-lg border border-line bg-paper-soft/40 p-3">
-              <p className="text-[11.5px] font-bold">
-                پیش‌نمایش آزادی (۱۴ روز آینده)
-                {previewLoading && <span className="mr-2 text-[10px] font-normal text-ink-faint">در حال بررسی…</span>}
-              </p>
-              <p className="mt-0.5 text-[10.5px] leading-5 text-ink-faint">
-                بازه‌های سبز = شما آزاد هستید و حداقل یک اتاقِ انتخابی خالی است. هنگام انتخاب بازه‌ها از این راهنما استفاده کنید.
-              </p>
-              <div className="mt-2 max-h-40 space-y-1.5 overflow-y-auto">
-                {previewDays
-                  .filter((d) => d.hostFree.length > 0)
-                  .slice(0, 10)
-                  .map((d) => {
-                    const roomSlots = d.roomFree[d.date] ?? [];
-                    const both = d.hostFree.filter((hf) =>
-                      roomSlots.some((rs) => new Date(hf.from) >= new Date(rs.from) && new Date(hf.to) <= new Date(rs.to)),
-                    );
-                    return (
-                      <div key={d.date} className="flex flex-wrap items-center gap-1.5 text-[10.5px]">
-                        <span className="font-bold">
-                          {new Date(d.date + "T12:00:00").toLocaleDateString("fa-IR", { weekday: "long", day: "numeric", month: "short" })}:
-                        </span>
-                        {both.length === 0 ? (
-                          <span className="text-ink-faint">ساعت مشترک آزاد نیست</span>
-                        ) : (
-                          both.slice(0, 4).map((b, i) => (
-                            <span key={i} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium tabular-nums text-emerald-800" dir="ltr">
-                              {new Date(b.from).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}–{new Date(b.to).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          ))
-                        )}
-                      </div>
-                    );
-                  })}
-                {!previewLoading && previewDays.filter((d) => d.hostFree.length > 0).length === 0 && (
-                  <p className="text-[10.5px] text-ink-faint">در ۱۴ روز آینده ساعت آزادی ندارید</p>
-                )}
-              </div>
-            </div>
-          )}
+          {/* ═══ پیش‌نمایش آزادی — تایم‌لاین بصری ═══ */}
+          {roomIds.length > 0 && <FreeTimePreview days={previewDays} loading={previewLoading} />}
 
           <div>
             <label className="mb-1 block text-[11px] text-ink-soft">مخاطبان</label>
@@ -556,6 +516,135 @@ export function CreateProgramModal({ editProgram, onClose, onCreated }: { editPr
   );
 }
 
+
+/* ═══════════ پیش‌نمایش آزادی — نوار تایم‌لاین بصری روزانه ═══════════ */
+
+const PREVIEW_DAY_START = 9; // ساعت شروع نوار
+const PREVIEW_DAY_END = 18; // ساعت پایان نوار
+const PREVIEW_SPAN = (PREVIEW_DAY_END - PREVIEW_DAY_START) * 3600_000;
+
+function FreeTimePreview({
+  days,
+  loading,
+}: {
+  days: { date: string; hostFree: { from: string; to: string }[]; roomFree: Record<string, { from: string; to: string; freeRooms: number }[]> }[];
+  loading: boolean;
+}) {
+  // تقاطع آزادی من و اتاق‌ها + دقیقه‌ی آزاد هر روز
+  const rows = days
+    .map((d) => {
+      const roomSlots = d.roomFree[d.date] ?? [];
+      const both = d.hostFree.filter((hf) =>
+        roomSlots.some((rs) => new Date(hf.from) >= new Date(rs.from) && new Date(hf.to) <= new Date(rs.to)),
+      );
+      const freeMin = both.reduce((sum, b) => sum + (new Date(b.to).getTime() - new Date(b.from).getTime()) / 60000, 0);
+      return { date: d.date, both, freeMin };
+    })
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  const freeDays = rows.filter((r) => r.freeMin > 0);
+  const busyDays = rows.filter((r) => r.freeMin === 0);
+  const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-line">
+      {/* هدر + خلاصه */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-soft/50 px-4 py-3">
+        <div>
+          <p className="text-[12px] font-bold">پیش‌نمایش آزادی — ۱۴ روز آینده</p>
+          <p className="mt-0.5 text-[10.5px] leading-5 text-ink-faint">
+            نوارهای سبز = شما آزاد هستید و حداقل یک اتاقِ انتخابی خالی است
+          </p>
+        </div>
+        {loading ? (
+          <span className="text-[10.5px] text-ink-faint">در حال بررسی…</span>
+        ) : (
+          <span className={cn(
+            "rounded-full px-2.5 py-1 text-[10.5px] font-bold",
+            freeDays.length > 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700",
+          )}>
+            {freeDays.length > 0
+              ? toFa(freeDays.length) + " روز آزاد از " + toFa(rows.length)
+              : "ساعت آزاد مشترکی نیست"}
+          </span>
+        )}
+      </div>
+
+      {/* مقیاس ساعت بالای نوارها */}
+      {freeDays.length > 0 && (
+        <div className="flex items-center border-b border-line/60 bg-white px-4 py-1.5" aria-hidden>
+          <span className="w-[6.5rem] shrink-0" />
+          <div className="relative h-3 flex-1">
+            {[...Array(PREVIEW_DAY_END - PREVIEW_DAY_START + 1)].map((_, i) => (
+              <span
+                key={i}
+                className="absolute -translate-x-1/2 text-[9px] tabular-nums text-ink-faint"
+                style={{ right: (i / (PREVIEW_DAY_END - PREVIEW_DAY_START)) * 100 + "%" }}
+              >
+                {toFa(Number(String(PREVIEW_DAY_START + i).padStart(2, "0")))}
+              </span>
+            ))}
+          </div>
+          <span className="w-[3.2rem] shrink-0" />
+        </div>
+      )}
+
+      {/* ردیف‌های روز — اسکرول داخلی */}
+      <div className="max-h-44 divide-y divide-line/50 overflow-y-auto bg-white">
+        {freeDays.map((r) => {
+          const dt = new Date(r.date + "T12:00:00Z");
+          const wd = dt.toLocaleDateString("fa-IR", { weekday: "short" });
+          const md = dt.toLocaleDateString("fa-IR", { day: "numeric", month: "short" });
+          return (
+            <div key={r.date} className="flex items-center gap-3 px-4 py-2 transition-colors hover:bg-paper-soft/40">
+              {/* تاریخ */}
+              <div className="w-[6.5rem] shrink-0 text-right">
+                <p className="text-[11px] font-bold leading-4">{wd}</p>
+                <p className="text-[10px] leading-4 text-ink-faint tabular-nums">{md}</p>
+              </div>
+              {/* نوار تایم‌لاین — RTL: راست = صبح */}
+              <div className="relative h-6 flex-1 overflow-hidden rounded-md bg-paper-soft ring-1 ring-line/60">
+                {r.both.map((b, i) => {
+                  const from = new Date(b.from).getTime();
+                  const to = new Date(b.to).getTime();
+                  const start = new Date(b.from); start.setHours(0, 0, 0, 0);
+                  const right = Math.max(0, Math.min(100, ((from - (start.getTime() + PREVIEW_DAY_START * 3600_000)) / PREVIEW_SPAN) * 100));
+                  const width = Math.max(1, Math.min(100 - right, ((to - from) / PREVIEW_SPAN) * 100));
+                  return (
+                    <span
+                      key={i}
+                      title={hhmm(b.from) + " تا " + hhmm(b.to)}
+                      className="absolute inset-y-0.5 rounded-[5px] bg-gradient-to-l from-emerald-400 to-emerald-500 shadow-sm"
+                      style={{ right: right + "%", width: width + "%" }}
+                    />
+                  );
+                })}
+              </div>
+              {/* دقیقه‌ی آزاد */}
+              <span className="w-[3.2rem] shrink-0 text-left text-[10.5px] font-bold tabular-nums text-emerald-700">
+                {toFa(Math.round(r.freeMin)) + "\u2032"}
+              </span>
+            </div>
+          );
+        })}
+
+        {/* روزهای بدون آزادی — جمع‌شده و کم‌رنگ */}
+        {busyDays.length > 0 && (
+          <div className="px-4 py-2 text-[10.5px] text-ink-faint">
+            {toFa(busyDays.length)} روز دیگر — ساعت مشترک آزاد نیست
+            <span className="mr-1.5 text-[9px]">
+              ({busyDays.slice(0, 5).map((r) => new Date(r.date + "T12:00:00Z").toLocaleDateString("fa-IR", { day: "numeric", month: "short" })).join("\u060c")}{busyDays.length > 5 ? " و…" : ""})
+            </span>
+          </div>
+        )}
+
+        {!loading && rows.length === 0 && (
+          <p className="px-4 py-4 text-center text-[11px] text-ink-faint">در ۱۴ روز آینده داده‌ای موجود نیست</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ═══ ورودی عددی فارسی با دکمه‌های +/- (به‌جای input number لاتین) ═══ */
 
