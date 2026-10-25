@@ -22,6 +22,7 @@
     "test": "vitest run",
     "test:integration": "vitest run tests/integration --reporter=verbose",
     "test:unit": "vitest run tests/unit",
+    "test:e2e": "node scripts/db-guard.mjs seed-guard && playwright test",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "worker": "tsx src/worker/index.ts",
@@ -77,6 +78,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/ldapjs": "^3.0.6",
     "@types/node": "^22.10.2",
@@ -88,7 +90,7 @@
     "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.20",
     "dotenv-cli": "^11.0.0",
-    "playwright": "^1.62.1",
+    "playwright": "^1.64.1",
     "postcss": "^8.5.28",
     "prisma": "^6.16.2",
     "tailwindcss": "^3.4.17",

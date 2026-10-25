@@ -153,3 +153,6 @@ ALTER TABLE "AppointmentBooking" ADD CONSTRAINT "AppointmentBooking_userId_fkey"
 -- AddForeignKey
 ALTER TABLE "AppointmentBooking" ADD CONSTRAINT "AppointmentBooking_roomId_fkey" FOREIGN KEY ("roomId") REFERENCES "MeetingRoom"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
+
+-- FK معطل‌شده از 20261017102122 (ترتیب وابستگی: جدول اینجا ساخته شد)
+ALTER TABLE "AppointmentResponse" ADD CONSTRAINT "AppointmentResponse_programId_fkey" FOREIGN KEY ("programId") REFERENCES "AppointmentProgram"("id") ON DELETE CASCADE ON UPDATE CASCADE;

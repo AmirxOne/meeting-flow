@@ -5,6 +5,13 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+/* دو حالت seed:
+ *   dev  (پیش‌فرض) — داده‌ی نمایشی کامل (سازمان نمونه، کاربران تست، جلسات نمونه)
+ *   prod (SEED_MODE=prod) — فقط ضروریات: permissions + roles + یک superadmin اولیه
+ *                          بدون هیچ داده‌ی تستی/نمونه — برای استقرار واقعی
+ */
+const SEED_MODE = (process.env.SEED_MODE ?? "dev").toLowerCase() === "prod" ? "prod" : "dev";
+
 const PERM = {
   MEETING: [
     "meeting:create", "meeting:view", "meeting:view-all", "meeting:update",
@@ -72,6 +79,31 @@ async function main() {
     await prisma.rolePermission.createMany({
       data: perms.map((p) => ({ roleId: role.id, permissionId: p.id })),
     });
+  }
+
+  if (SEED_MODE === "prod") {
+    // ── استقرار واقعی: فقط یک superadmin اولیه؛ سازمان/اتاق/کاربران از UI ساخته می‌شوند ──
+    const prodAdminEmail = process.env.PROD_ADMIN_EMAIL ?? "admin@localhost";
+    const prodAdminPass = process.env.PROD_ADMIN_PASSWORD ?? "ChangeMe-Immediately!";
+    const hash = await bcrypt.hash(prodAdminPass, 10);
+    const superRole = await prisma.role.findUnique({ where: { key: "SUPER_ADMIN" } });
+    const existing = await prisma.user.findUnique({ where: { email: prodAdminEmail } });
+    if (!existing) {
+      const admin = await prisma.user.create({
+        data: {
+          email: prodAdminEmail,
+          fullName: "مدیر سامانه",
+          passwordHash: hash,
+          isSuperAdmin: true,
+        },
+      });
+      if (superRole) await prisma.userRole.create({ data: { userId: admin.id, roleId: superRole.id } });
+      console.log(`✅ Seed (prod) complete — superadmin اولیه: ${prodAdminEmail}`);
+      console.log("   ⚠️ رمز را بلافاصله از پنل تغییر دهید. سازمان، شعبه، اتاق و کاربران واقعی را از UI بسازید.");
+    } else {
+      console.log(`✅ Seed (prod) complete — superadmin از قبل موجود بود: ${prodAdminEmail}`);
+    }
+    return;
   }
 
   // org + branches

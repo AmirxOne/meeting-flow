@@ -13,6 +13,7 @@ import { readFileSync, existsSync } from "node:fs";
 
 const cmd = process.argv[2] ?? "migrate";
 
+
 /* همان منطق src/server/env.ts — اینجا مستقل تا بدون tsx هم کار کند */
 
 function readEnvFile(path) {
@@ -28,6 +29,15 @@ function readEnvFile(path) {
 const base = { ...readEnvFile(".env"), ...process.env };
 const mode = (base.APP_ENV ?? "").toLowerCase() === "prod" ||
              base.NODE_ENV === "production" ? "prod" : "dev";
+
+/* seed-guard: فقط برای e2e — در production تست e2e با دیتابیس واقعی اجرا نشود */
+if (cmd === "seed-guard") {
+  if (mode === "prod") {
+    console.error("[db-guard] e2e روی دیتابیس production ممنوع است.");
+    process.exit(1);
+  }
+  process.exit(0);
+}
 
 const layered = {
   ...readEnvFile(".env"),

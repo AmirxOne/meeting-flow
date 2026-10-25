@@ -17,7 +17,7 @@ CREATE INDEX "AppointmentResponse_orgId_userId_idx" ON "AppointmentResponse"("or
 CREATE UNIQUE INDEX "AppointmentResponse_programId_userId_key" ON "AppointmentResponse"("programId", "userId");
 
 -- AddForeignKey
-ALTER TABLE "AppointmentResponse" ADD CONSTRAINT "AppointmentResponse_programId_fkey" FOREIGN KEY ("programId") REFERENCES "AppointmentProgram"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- FK به AppointmentProgram به migration بعدی منتقل شد (جدول در 20261017123807 ساخته می‌شود)
 
 -- AddForeignKey
 ALTER TABLE "AppointmentResponse" ADD CONSTRAINT "AppointmentResponse_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
