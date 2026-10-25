@@ -65,6 +65,7 @@ export const ICON_MAP = {
   Play: "play",
   PlayCircle: "play-circle",
   Plus: "add",
+  Minus: "minus",
   Power: "toggle-on-circle",
   Printer: "printer",
   ScrollText: "document-text",
