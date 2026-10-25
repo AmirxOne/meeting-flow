@@ -1,0 +1,5 @@
+
+# اسکریپت‌های شل همیشه LF — CRLF shebang در لینوکس executable را می‌شکند
+*.sh text eol=lf
+scripts/backup text eol=lf
+scripts/restore text eol=lf
