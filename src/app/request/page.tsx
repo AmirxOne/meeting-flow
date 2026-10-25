@@ -21,6 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
 import { PublicRequestForm } from "./page-client";
 import { serverOrgName } from "@/lib/server-org-name";
 
+// این صفحه runtime از DB می‌خواند — prerender در build (بدون DB) ممکن نیست
+export const dynamic = "force-dynamic";
+
 export default function Page() {
   return <PublicRequestForm />;
 }

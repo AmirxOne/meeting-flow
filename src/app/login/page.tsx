@@ -5,6 +5,9 @@ import { platformNeedsSetup } from "@/server/services/platform-setup.service";
 import { getSessionUser } from "@/server/auth/session";
 import { LoginPage } from "./page-client";
 
+// این صفحه runtime از DB می‌خواند — prerender در build (بدون DB) ممکن نیست
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const org = await serverOrgName();
   return {

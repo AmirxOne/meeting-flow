@@ -3,6 +3,9 @@ import { serverOrgName } from "@/lib/server-org-name";
 import { LegalPageShell } from "@/components/legal/legal-page";
 import { dataRetentionDocument } from "@/lib/legal-content";
 
+// این صفحه runtime از DB می‌خواند — prerender در build (بدون DB) ممکن نیست
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   const org = await serverOrgName();
   return {

@@ -24,6 +24,9 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/server/auth/session";
 import { platformNeedsSetup } from "@/server/services/platform-setup.service";
 import { LandingPage } from "./page-client";
+
+// این صفحه runtime از DB می‌خواند — prerender در build (بدون DB) ممکن نیست
+export const dynamic = "force-dynamic";
 export default async function Page() {
   const orgName = await serverOrgName();
   const user = await getSessionUser();
