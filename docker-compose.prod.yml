@@ -56,7 +56,7 @@ services:
     volumes:
       - attachments:/app/data/attachments
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3100/api/health"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3100/api/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -85,7 +85,7 @@ services:
     volumes:
       - attachments:/app/data/attachments
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3101/health"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3101/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
