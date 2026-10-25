@@ -3,8 +3,11 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml* ./
-# postinstall → scripts/sync-public-assets.mjs — باید قبل از pnpm install موجود باشد
-COPY scripts/sync-public-assets.mjs ./scripts/
+# postinstall → scripts/sync-public-assets.mjs (verify fonts/logo + extract iconsax)
+# هر دو ورودی‌اش باید قبل از pnpm install موجود باشند
+COPY scripts/sync-public-assets.mjs scripts/extract-iconsax.mjs ./scripts/
+COPY public/fonts ./public/fonts
+COPY public/logo-white.png ./public/logo-white.png
 RUN pnpm install --frozen-lockfile || pnpm install
 
 # ---------- build ----------
