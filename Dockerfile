@@ -16,6 +16,9 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 # dummy DATABASE_URL for prisma generate (build does not touch the DB)
 ENV DATABASE_URL=postgresql://build:***@localhost:5432/build
+# متغیرهای الزامی برای ولیدیشن env هنگام static-analysis روت‌ها در build —
+# در runtime از .env واقعی خوانده می‌شوند و این مقادیر هیچ اثری ندارند
+ENV SESSION_SECRET=build-time-placeholder-secret
 # postinstall اینجا اجرا می‌شود: verify فونت/لوگو + تولید src/lib/iconsax-glyphs.ts
 RUN pnpm run assets:sync && pnpm exec prisma generate && pnpm build
 
