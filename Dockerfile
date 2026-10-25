@@ -3,12 +3,9 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml* ./
-# postinstall → scripts/sync-public-assets.mjs (verify fonts/logo + extract iconsax)
-# هر دو ورودی‌اش باید قبل از pnpm install موجود باشند
-COPY scripts/sync-public-assets.mjs scripts/extract-iconsax.mjs ./scripts/
-COPY public/fonts ./public/fonts
-COPY public/logo-white.png ./public/logo-white.png
-RUN pnpm install --frozen-lockfile || pnpm install
+# در deps فقط نصب پکیج‌ها — postinstall (verify assets + iconsax→src/lib) در build stage
+# بعد از COPY . . اجرا می‌شود که همه‌ی ورودی‌ها موجودند
+RUN pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts
 
 # ---------- build ----------
 FROM node:22-alpine AS build
@@ -18,8 +15,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 # dummy DATABASE_URL for prisma generate (build does not touch the DB)
-ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
-RUN pnpm exec prisma generate && pnpm build
+ENV DATABASE_URL=postgresql://build:***@localhost:5432/build
+# postinstall اینجا اجرا می‌شود: verify فونت/لوگو + تولید src/lib/iconsax-glyphs.ts
+RUN pnpm run assets:sync && pnpm exec prisma generate && pnpm build
 
 # ---------- runtime ----------
 FROM node:22-alpine AS runner
