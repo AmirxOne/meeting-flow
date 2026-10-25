@@ -20,6 +20,8 @@ ENV DATABASE_URL=postgresql://build:***@localhost:5432/build
 # در runtime از .env واقعی خوانده می‌شوند و این مقادیر هیچ اثری ندارند
 ENV SESSION_SECRET=build-time-placeholder-secret
 # postinstall اینجا اجرا می‌شود: verify فونت/لوگو + تولید src/lib/iconsax-glyphs.ts
+# next.config: output=standalone فقط با DOCKER_BUILD=1 (docker build خودش ست می‌کند)
+ENV DOCKER_BUILD=1
 RUN pnpm run assets:sync && pnpm exec prisma generate && pnpm build
 
 # ---------- runtime ----------
