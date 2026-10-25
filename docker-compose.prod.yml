@@ -49,6 +49,9 @@ services:
       DATABASE_URL: postgresql://meetinghub:${POSTGRES_PASSWORD}@postgres:5432/meetinghub?schema=public
       REDIS_URL: redis://redis:6379
       RUN_MIGRATIONS: "true"
+      # docker خودش HOSTNAME=<container-id> می‌گذارد و next-standalone آن را
+      # به‌عنوان bind-address می‌خواند → اپ فقط روی IP کانتینر listen می‌کرد
+      HOSTNAME: 0.0.0.0
       MEETING_ATTACHMENTS_DIR: /app/data/attachments
     ports:
       # Bind localhost only — expose via nginx/Caddy on the host.
@@ -78,6 +81,7 @@ services:
     environment:
       NODE_ENV: production
       ROLE: worker
+      HOSTNAME: 0.0.0.0
       DATABASE_URL: postgresql://meetinghub:${POSTGRES_PASSWORD}@postgres:5432/meetinghub?schema=public
       REDIS_URL: redis://redis:6379
       MEETING_ATTACHMENTS_DIR: /app/data/attachments
