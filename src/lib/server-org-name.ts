@@ -1,6 +1,5 @@
 import { prisma } from "@/server/db";
 import { SAMPLE_ORG_SLUG } from "@/lib/org-slug";
-import { FALLBACK_ORG_NAME } from "@/lib/branding-constants";
 
 /**
  * نام نمایشی سازمان برای metadata سرور (عنوان تب صفحات عمومی).
@@ -12,8 +11,8 @@ export async function serverOrgName(): Promise<string> {
       where: { slug: SAMPLE_ORG_SLUG },
       select: { name: true },
     });
-    return org?.name?.trim() || FALLBACK_ORG_NAME;
+    return org?.name?.trim() ?? ""; // بدون سازمان: هیچ نامی نمایش داده نمی‌شود
   } catch {
-    return FALLBACK_ORG_NAME;
+    return "";
   }
 }

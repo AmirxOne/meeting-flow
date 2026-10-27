@@ -3,7 +3,6 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { PwaRegister } from "@/components/pwa-register";
 import { ConnectivityToast } from "@/components/pwa/connectivity-toast";
-import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import { serverOrgName } from "@/lib/server-org-name";
 
 export const viewport: Viewport = {
@@ -13,16 +12,18 @@ export const viewport: Viewport = {
   themeColor: "#0d0d0d",
 };
 
-const orgName = await serverOrgName();
+const orgName = await serverOrgName(); // "" تا وقتی ادمین نام واقعی را ثبت نکرده
+const titleDefault = orgName ? `${orgName} — سامانه‌ی مدیریت جلسات سازمانی` : "سامانه‌ی مدیریت جلسات سازمانی";
+const titleTemplate = orgName ? `%s | ${orgName}` : "%s";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3100"),
   title: {
-    default: `${orgName} — سامانه‌ی فارسی مدیریت جلسات سازمانی`,
-    template: `%s | ${orgName}`,
+    default: titleDefault,
+    template: titleTemplate,
   },
   description: `سیستم مدیریت جلسات ${orgName} — اتاق‌ها، زمان‌بندی و تأییدها`,
-  applicationName: orgName,
+  applicationName: orgName || undefined,
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

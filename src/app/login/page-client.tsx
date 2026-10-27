@@ -1,6 +1,5 @@
 "use client";
 
-import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -264,7 +263,7 @@ export function LoginPage() {
                     : "ایمیل یا شماره موبایل حساب را وارد کنید تا لینک بازنشانی برایتان ارسال شود."
                   : needs2fa
                   ? ldapMode
-                    ? `رمز سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || FALLBACK_ORG_NAME} را وارد کنید.`
+                    ? `رمز سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || "سازمان"} را وارد کنید.`
                     : "رمز درست است. کد ۶ رقمی اپ authenticator را وارد کنید."
                   : passwordForm
                     ? ldapMode
@@ -591,7 +590,7 @@ export function LoginPage() {
 
             {ldapMode && !needs2fa && (
               <p className="mt-6 text-center text-[11px] leading-5 text-ink-faint">
-                {`با اولین ورود موفق سازمانی، حساب شما به‌صورت خودکار در ${orgName || FALLBACK_ORG_NAME} ساخته می‌شود.`}
+                {`با اولین ورود موفق سازمانی، حساب شما به‌صورت خودکار در ${orgName || "سازمان"} ساخته می‌شود.`}
               </p>
             )}
             <p className='mt-5 text-center text-[12px] text-ink-soft'>

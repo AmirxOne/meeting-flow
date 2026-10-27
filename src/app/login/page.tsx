@@ -11,8 +11,8 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const org = await serverOrgName();
   return {
-    title: { absolute: `ورود به حساب — ${org}` },
-    description: `ورود به سامانه‌ی مدیریت جلسات ${org} با ایمیل یا شماره موبایل سازمانی.`,
+    title: { absolute: org ? `ورود به حساب — ${org}` : "ورود به حساب" },
+    description: org ? `ورود به سامانه‌ی مدیریت جلسات ${org} با ایمیل یا شماره موبایل سازمانی.` : "ورود به سامانه‌ی مدیریت جلسات سازمانی.",
     alternates: { canonical: "/login" },
     robots: { index: false },
   };

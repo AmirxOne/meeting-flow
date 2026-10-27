@@ -19,9 +19,9 @@ async function loadName(): Promise<string> {
     const r = await fetch("/api/public/organization");
     const payload = (await r.json()) as { data?: { organization?: { name?: string } } };
     const name = payload?.data?.organization?.name?.trim();
-    return name || FALLBACK_ORG_NAME;
+    return name ?? ""; // بدون سازمان: هیچ نامی نمایش داده نمی‌شود
   } catch {
-    return FALLBACK_ORG_NAME;
+    return "";
   }
 }
 
