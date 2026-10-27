@@ -339,7 +339,7 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
           <span className="flex flex-col items-center gap-1 text-ink-faint">
             {/* لوگوی پیش‌فرض نشان داده می‌شود — سازمان هنوز لوگوی خود را بارگذاری نکرده */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-white.png" alt="لوگوی پیش‌فرض" className="max-h-14 max-w-full object-contain" />
+            <div className="flex h-14 items-center justify-center rounded-lg bg-paper-soft px-4 text-[12px] text-ink-faint">لوگویی تنظیم نشده — نمونه‌ی فعلی فقط پس از آپلود نمایش داده می‌شود</div>
             <span className="text-[10px]">پیش‌فرض</span>
           </span>
         )}

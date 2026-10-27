@@ -68,20 +68,37 @@ export type BootstrapOrgResult = {
   roomId: string;
 };
 
-/** Create first organization + admin + branch + room. Only when DB has zero orgs. */
-export async function bootstrapOrganization(input: OrgSetupInput): Promise<BootstrapOrgResult> {
+/**
+ * Create first organization + admin + branch + room. Only when DB has zero orgs.
+ * actorUserId: اگر کاربرِ لاگین‌شده‌ای setup را انجام می‌دهد، همان کاربر ادمین سازمان
+ * می‌شود (بدون ساخت حساب جدید) — بخش مدیر ویزارد در این حالت skip می‌شود.
+ */
+export async function bootstrapOrganization(
+  input: OrgSetupInput,
+  actorUserId?: string,
+): Promise<BootstrapOrgResult> {
   const orgCount = await prisma.organization.count();
   if (!isPlatformSetupOpen(orgCount)) {
     throw new HttpError(403, "راه‌اندازی اولیه قبلاً انجام شده است", "SETUP_CLOSED");
   }
 
-  const email = input.adminEmail.trim().toLowerCase();
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    throw new HttpError(409, "این ایمیل قبلاً ثبت شده است", "EMAIL_EXISTS");
-  }
-
   await ensureSystemRoles();
+
+  // حالت لاگین‌شده: ادمین سازمان = کاربر جاری (حساب جدید ساخته نمی‌شود)
+  let actor: { id: string; email: string; fullName: string; jobTitle: string | null } | null = null;
+  if (actorUserId) {
+    actor = await prisma.user.findUnique({
+      where: { id: actorUserId },
+      select: { id: true, email: true, fullName: true, jobTitle: true },
+    });
+    if (!actor) throw new HttpError(401, "نشست شما منقضی شده — دوباره وارد شوید", "AUTH_REQUIRED");
+  } else {
+    const email = input.adminEmail.trim().toLowerCase();
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      throw new HttpError(409, "این ایمیل قبلاً ثبت شده است", "EMAIL_EXISTS");
+    }
+  }
   const slug = await resolveUniqueSlug(input);
   const passwordHash = await bcrypt.hash(input.adminPassword, 10);
   const adminRole = await prisma.role.findUnique({ where: { key: "ADMIN" } });
@@ -104,18 +121,33 @@ export async function bootstrapOrganization(input: OrgSetupInput): Promise<Boots
       },
     });
 
-    const admin = await tx.user.create({
-      data: {
-        email,
-        fullName: input.adminFullName.trim(),
-        passwordHash,
-        jobTitle: "مدیر سازمان",
-        orgId: org.id,
-        isActive: true,
-      },
-    });
+    let admin;
+    if (actor) {
+      // کاربر جاری → عضو سازمان جدید با نقش ADMIN
+      admin = await tx.user.update({
+        where: { id: actor.id },
+        data: {
+          orgId: org.id,
+          jobTitle: actor.jobTitle || "مدیر سازمان",
+        },
+      });
+    } else {
+      admin = await tx.user.create({
+        data: {
+          email: input.adminEmail.trim().toLowerCase(),
+          fullName: input.adminFullName.trim(),
+          passwordHash,
+          jobTitle: "مدیر سازمان",
+          orgId: org.id,
+          isActive: true,
+        },
+      });
+    }
 
-    await tx.userRole.create({ data: { userId: admin.id, roleId: adminRole.id } });
+    const hasAdminRole = await tx.userRole.findFirst({ where: { userId: admin.id, roleId: adminRole.id } });
+    if (!hasAdminRole) {
+      await tx.userRole.create({ data: { userId: admin.id, roleId: adminRole.id } });
+    }
 
     const branch = await tx.branch.create({
       data: {

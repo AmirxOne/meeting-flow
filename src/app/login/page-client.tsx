@@ -221,14 +221,9 @@ export function LoginPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={orgLogo} alt={orgName || "سازمان"} className="h-[30px] w-[30px] rounded-md object-contain" />
                 ) : (
-                  <Image
-                    src="/logo-white.png"
-                    alt={orgName || FALLBACK_ORG_NAME}
-                    width={30}
-                    height={30}
-                    className="h-[30px] w-[30px] object-contain"
-                    priority
-                  />
+                  <span aria-hidden className="select-none text-[18px] font-bold leading-none text-white/70">
+                    {(orgName ?? "").trim().charAt(0) || "•"}
+                  </span>
                 )}
               </div>
               <p className="mt-6 text-[11px] font-medium tracking-wide text-white/55">

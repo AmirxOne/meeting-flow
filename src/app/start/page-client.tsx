@@ -2,38 +2,30 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building2, CheckCircle2, DoorOpen, MessageQuestion, User } from "@/components/ui/icon";
+import { Building2, DoorOpen, Loader2, MapPin, UserCircle } from "@/components/ui/icon";
 import { FadeIn } from "@/components/ui/motion";
 import { api, type ApiError } from "@/lib/api";
-import { faNum, faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
+import { faStr, stripBidiMarks, toEnDigits, withRtlMark } from "@/lib/fa";
 import { proposeOrgSlug, normalizeOrgSlug } from "@/lib/org-slug";
-import { FALLBACK_ORG_NAME, useOrgName } from "@/lib/org-branding";
 import { BrandLogo } from "@/components/ui/brand-logo";
 
-const STEPS = [
-  { id: 1, title: "سازمان", icon: Building2 },
-  { id: 2, title: "مدیر", icon: User },
-  { id: 3, title: "شعبه و اتاق", icon: DoorOpen },
-] as const;
+/**
+ * راه‌اندازی اولیه‌ی سازمان — تک‌صفحه، فقط برای ادمینِ لاگین‌شده.
+ * بخش «مدیر» وجود ندارد: خودِ کاربر جاری ادمین سازمان می‌شود.
+ */
 
-const fieldClass =
-  "h-11 w-full rounded-md border border-[#d9d9e0] bg-white px-3.5 text-right text-[13px] outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/15";
+const field =
+  "h-11 w-full rounded-lg border border-line bg-white px-3.5 text-right text-[13px] text-ink outline-none transition placeholder:text-ink-faint/70 focus:border-ink focus:ring-[3px] focus:ring-ink/10";
+const fieldLtr = field + " text-left";
 
-export function OrgSetupPage() {
-  const brandName = useOrgName();
+export function OrgSetupPage({ actorName, actorEmail }: { actorName: string; actorEmail: string }) {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [helpOpen, setHelpOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [orgName, setOrgName] = useState("");
   const [orgSlug, setOrgSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
-
-  const [adminFullName, setAdminFullName] = useState("");
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
 
   const [branchName, setBranchName] = useState("دفتر مرکزی");
   const [roomName, setRoomName] = useState("اتاق جلسه ۱");
@@ -45,59 +37,30 @@ export function OrgSetupPage() {
     if (proposed) setOrgSlug(proposed);
   }, [orgName, slugTouched]);
 
-  const slugPreview = useMemo(() => normalizeOrgSlug(orgSlug) ?? proposeOrgSlug(orgName), [orgSlug, orgName]);
-
-  function nextStep() {
-    setError(null);
-    if (step === 1) {
-      if (orgName.trim().length < 2) {
-        setError("نام سازمان را وارد کنید");
-        return;
-      }
-      if (!slugPreview) {
-        setError("شناسه انگلیسی (slug) نامعتبر است — فقط a-z، 0-9 و خط تیره");
-        return;
-      }
-    }
-    if (step === 2) {
-      if (adminFullName.trim().length < 2) {
-        setError("نام مدیر را وارد کنید");
-        return;
-      }
-      if (!adminEmail.includes("@")) {
-        setError("ایمیل مدیر نامعتبر است");
-        return;
-      }
-      if (adminPassword.length < 6) {
-        setError("رمز عبور حداقل ۶ کاراکتر");
-        return;
-      }
-    }
-    setStep((s) => Math.min(3, s + 1));
-  }
+  const slugPreview = useMemo(
+    () => normalizeOrgSlug(orgSlug) ?? proposeOrgSlug(orgName),
+    [orgSlug, orgName],
+  );
 
   async function submit() {
     setError(null);
-    if (branchName.trim().length < 2 || roomName.trim().length < 2) {
-      setError("نام شعبه و اتاق را کامل کنید");
-      return;
-    }
+    if (orgName.trim().length < 2) return setError("نام سازمان را وارد کنید (حداقل ۲ نویسه)");
+    if (!slugPreview) return setError("شناسه‌ی انگلیسی (slug) نامعتبر است — فقط a-z، 0-9 و خط تیره");
+    if (branchName.trim().length < 2 || roomName.trim().length < 2)
+      return setError("نام شعبه و اتاق را کامل کنید");
     const cap = Number(toEnDigits(roomCapacity));
-    if (!Number.isFinite(cap) || cap < 1) {
-      setError("ظرفیت اتاق نامعتبر است");
-      return;
-    }
+    if (!Number.isFinite(cap) || cap < 1) return setError("ظرفیت اتاق نامعتبر است");
 
     setLoading(true);
     try {
-      await api("/api/public/setup", {
+      await api("/api/setup", {
         method: "POST",
         json: {
           orgName: orgName.trim(),
           orgSlug: slugPreview ?? undefined,
-          adminFullName: adminFullName.trim(),
-          adminEmail: stripBidiMarks(adminEmail).trim().toLowerCase(),
-          adminPassword,
+          adminFullName: actorName,
+          adminEmail: actorEmail,
+          adminPassword: "-", // حساب جدید ساخته نمی‌شود — کاربر جاری ادمین می‌شود
           branchName: branchName.trim(),
           roomName: roomName.trim(),
           roomCapacity: cap,
@@ -109,241 +72,146 @@ export function OrgSetupPage() {
         /* ignore */
       }
       router.push("/dashboard?welcome=1");
-      router.refresh();
     } catch (e) {
-      setError((e as ApiError).message);
+      setError((e as ApiError).message ?? "خطا در راه‌اندازی — دوباره تلاش کنید");
     } finally {
       setLoading(false);
     }
   }
 
+  const canSubmit = orgName.trim().length >= 2 && !!slugPreview && branchName.trim().length >= 2 && roomName.trim().length >= 2 && !loading;
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-paper-soft px-4 py-10">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.45]"
-        style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, #d9d9e0 1px, transparent 0)",
-          backgroundSize: "22px 22px",
-        }}
-      />
-
-      <FadeIn className="relative mx-auto w-full max-w-[720px]">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <BrandLogo size={36} className="rounded-xl bg-ink p-1.5" alt={brandName ?? FALLBACK_ORG_NAME} priority />
-            <div>
-              <h1 className="text-[20px] font-bold">شروع برای سازمان من</h1>
-              <p className="text-[12px] text-ink-soft">راه‌اندازی اولیه — بدون seed دستی</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            data-testid="setup-help-toggle"
-            onClick={() => setHelpOpen((v) => !v)}
-            className="flex h-10 items-center gap-1.5 rounded-md border border-line bg-white px-3 text-[12px] text-ink-soft transition hover:text-ink"
-          >
-            <MessageQuestion className="h-4 w-4" />
-            راهنما
-          </button>
-        </div>
-
-        {helpOpen && (
-          <div className="mb-4 rounded-xl border border-line bg-white px-4 py-3 text-[12px] leading-7 text-ink-soft">
-            <p>
-              این ویزارد فقط وقتی پایگاه داده خالی است فعال می‌شود. یک سازمان، مدیر (ADMIN)، یک شعبه، طبقه اول و
-              یک اتاق می‌سازد. برای محیط dev همچنان می‌توانید از <code className="text-ink">pnpm db:seed</code>{" "}
-              استفاده کنید.
+    <FadeIn className="min-h-screen bg-paper px-4 py-10">
+      <div className="mx-auto w-full max-w-2xl">
+        {/* هدر */}
+        <div className="flex items-center gap-3">
+          <BrandLogo size={44} orgName={orgName || "سازمان"} />
+          <div className="min-w-0">
+            <h1 className="text-[19px] font-bold text-ink">راه‌اندازی اولیه‌ی سامانه</h1>
+            <p className="mt-0.5 text-[12.5px] leading-5 text-ink-soft">
+              سه اطلاعات زیر را یک بار وارد کنید؛ بعد از آن می‌توانید شعبه‌ها، اتاق‌ها و کاربران را از پنل مدیریت بسازید.
             </p>
           </div>
+        </div>
+
+        {/* کارت ادمین جاری */}
+        <div className="mt-6 flex items-center gap-3 rounded-xl border border-line bg-paper-soft/60 px-4 py-3">
+          <UserCircle className="size-8 shrink-0 text-ink-soft" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[12.5px] font-medium text-ink">{withRtlMark(actorName)}</p>
+            <p className="truncate text-[11.5px] text-ink-faint" dir="ltr">{actorEmail}</p>
+          </div>
+          <span className="shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10.5px] font-medium text-emerald-800">
+            مدیر سازمان خواهد شد
+          </span>
+        </div>
+
+        {/* بخش سازمان */}
+        <section className="mt-5 rounded-xl border border-line bg-white p-5">
+          <SectionHead icon={<Building2 className="size-4" />} title="سازمان" hint="نام شرکت یا مجموعه‌ی شما" />
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <label className="block space-y-1.5 sm:col-span-2">
+              <span className="text-[12px] font-medium text-ink-soft">نام سازمان *</span>
+              <input
+                data-testid="setup-org-name"
+                value={orgName ? withRtlMark(orgName) : ""}
+                onChange={(e) => setOrgName(stripBidiMarks(e.target.value))}
+                placeholder="مثلاً: شرکت نمونه"
+                className={field}
+                autoFocus
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">شناسه‌ی انگلیسی (slug)</span>
+              <input
+                data-testid="setup-org-slug"
+                dir="ltr"
+                value={orgSlug}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  setOrgSlug(e.target.value);
+                }}
+                placeholder="sample-co"
+                className={fieldLtr}
+              />
+              <span className="block text-[10.5px] text-ink-faint">
+                {slugPreview ? `شناسه‌ی نهایی: ${slugPreview}` : "خودکار از نام سازمان ساخته می‌شود"}
+              </span>
+            </label>
+          </div>
+        </section>
+
+        {/* بخش مکان */}
+        <section className="mt-4 rounded-xl border border-line bg-white p-5">
+          <SectionHead icon={<MapPin className="size-4" />} title="شعبه و اتاق اول" hint="بعداً می‌توانید بیشتر بسازید" />
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <label className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">نام شعبه *</span>
+              <input
+                data-testid="setup-branch-name"
+                value={branchName ? withRtlMark(branchName) : ""}
+                onChange={(e) => setBranchName(stripBidiMarks(e.target.value))}
+                className={field}
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">نام اتاق *</span>
+              <input
+                data-testid="setup-room-name"
+                value={roomName ? withRtlMark(roomName) : ""}
+                onChange={(e) => setRoomName(stripBidiMarks(e.target.value))}
+                className={field}
+              />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-[12px] font-medium text-ink-soft">ظرفیت اتاق</span>
+              <input
+                data-testid="setup-room-capacity"
+                inputMode="numeric"
+                value={roomCapacity ? faStr(roomCapacity) : ""}
+                onChange={(e) => setRoomCapacity(toEnDigits(stripBidiMarks(e.target.value)).replace(/\D/g, ""))}
+                className={field}
+              />
+            </label>
+          </div>
+        </section>
+
+        {error && (
+          <p className="mt-4 rounded-lg bg-red-50 px-3.5 py-2.5 text-[12px] text-red-600" data-testid="setup-error">
+            {error}
+          </p>
         )}
 
-        <ol className="mb-6 flex gap-2" data-testid="setup-steps">
-          {STEPS.map(({ id, title, icon: Icon }) => (
-            <li
-              key={id}
-              className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-[12px] ${
-                step === id
-                  ? "border-ink bg-white font-medium text-ink shadow-sm"
-                  : step > id
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-line bg-white/70 text-ink-soft"
-              }`}
-            >
-              {step > id ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <Icon className="h-4 w-4 shrink-0" />}
-              <span>{title}</span>
-            </li>
-          ))}
-        </ol>
-
-        <div className="rounded-2xl border border-line bg-white px-6 py-8 shadow-[0_24px_80px_-28px_rgba(13,13,13,0.2)] sm:px-10">
-          {step === 1 && (
-            <div className="space-y-4" data-testid="setup-step-org">
-              <label className="block space-y-1.5">
-                <span className="text-[12px] font-medium">نام سازمان *</span>
-                <input
-                  data-testid="setup-org-name"
-                  value={orgName ? withRtlMark(orgName) : ""}
-                  onChange={(e) => setOrgName(stripBidiMarks(e.target.value))}
-                  className={fieldClass}
-                  placeholder="شرکت نمونه"
-                  autoFocus
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-[12px] font-medium">شناسه URL (slug)</span>
-                <input
-                  data-testid="setup-org-slug"
-                  dir="ltr"
-                  value={orgSlug}
-                  onChange={(e) => {
-                    setSlugTouched(true);
-                    setOrgSlug(stripBidiMarks(e.target.value).toLowerCase());
-                  }}
-                  className={`${fieldClass} text-left font-mono text-[12px]`}
-                  placeholder="sample-co"
-                />
-                <p className="text-[11px] text-ink-faint">
-                  ورود: <span dir="ltr">{slugPreview ? `/login?org=${slugPreview}` : "—"}</span>
-                </p>
-              </label>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4" data-testid="setup-step-admin">
-              <label className="block space-y-1.5">
-                <span className="text-[12px] font-medium">نام مدیر *</span>
-                <input
-                  data-testid="setup-admin-name"
-                  value={adminFullName ? withRtlMark(adminFullName) : ""}
-                  onChange={(e) => setAdminFullName(stripBidiMarks(e.target.value))}
-                  className={fieldClass}
-                  placeholder="علیرضا محمدی"
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-[12px] font-medium">ایمیل مدیر *</span>
-                <input
-                  data-testid="setup-admin-email"
-                  type="email"
-                  dir="ltr"
-                  value={adminEmail}
-                  onChange={(e) => setAdminEmail(stripBidiMarks(e.target.value))}
-                  className={`${fieldClass} text-left`}
-                  placeholder="admin@company.ir"
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-[12px] font-medium">رمز عبور *</span>
-                <input
-                  data-testid="setup-admin-password"
-                  type="password"
-                  dir="rtl"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(stripBidiMarks(e.target.value))}
-                  className={fieldClass}
-                  placeholder="حداقل ۶ کاراکتر"
-                />
-              </label>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-4" data-testid="setup-step-location">
-              <label className="block space-y-1.5">
-                <span className="text-[12px] font-medium">نام شعبه اول *</span>
-                <input
-                  data-testid="setup-branch-name"
-                  value={branchName ? withRtlMark(branchName) : ""}
-                  onChange={(e) => setBranchName(stripBidiMarks(e.target.value))}
-                  className={fieldClass}
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-[12px] font-medium">نام اتاق اول *</span>
-                <input
-                  data-testid="setup-room-name"
-                  value={roomName ? withRtlMark(roomName) : ""}
-                  onChange={(e) => setRoomName(stripBidiMarks(e.target.value))}
-                  className={fieldClass}
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-[12px] font-medium">ظرفیت اتاق</span>
-                <input
-                  data-testid="setup-room-capacity"
-                  inputMode="numeric"
-                  value={roomCapacity ? faStr(roomCapacity) : ""}
-                  onChange={(e) => setRoomCapacity(toEnDigits(stripBidiMarks(e.target.value)).replace(/\D/g, ""))}
-                  className={fieldClass}
-                />
-              </label>
-            </div>
-          )}
-
-          {error && (
-            <p className="mt-4 rounded-md bg-red-50 px-3 py-2.5 text-[12px] text-red-600" data-testid="setup-error">
-              {error}
-            </p>
-          )}
-
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            {step > 1 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setStep((s) => s - 1);
-                }}
-                className="h-10 rounded-md border border-line px-4 text-[13px] text-ink-soft transition hover:bg-paper-soft"
-              >
-                قبلی
-              </button>
-            ) : (
-              <span />
-            )}
-            {step < 3 ? (
-              <button
-                type="button"
-                data-testid="setup-next"
-                onClick={nextStep}
-                className="h-10 rounded-md bg-ink px-6 text-[13px] font-medium text-white transition hover:bg-[#2a2a2e]"
-              >
-                بعدی
-              </button>
-            ) : (
-              <button
-                type="button"
-                data-testid="setup-submit"
-                disabled={loading}
-                aria-busy={loading || undefined}
-                onClick={submit}
-                className="relative flex h-10 items-center justify-center rounded-md bg-ink px-6 text-[13px] font-medium text-white transition hover:bg-[#2a2a2e] aria-busy:cursor-wait"
-              >
-{loading ? (
-                  <>
-                    <span className="invisible" aria-hidden="true">ساخت سازمان و ورود</span>
-                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                      <span className="btn-dots-spinner" aria-hidden="true" dir="ltr">
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                    </span>
-                  </>
-                ) : (
-                  "ساخت سازمان و ورود"
-                )}
-              </button>
-            )}
-          </div>
+        {/* دکمه */}
+        <div className="mt-5 flex items-center justify-between gap-3">
+          <p className="text-[11px] leading-5 text-ink-faint">
+            <DoorOpen className="ml-1 inline size-3.5 align-[-2px]" />
+            این صفحه فقط یک بار نمایش داده می‌شود و پس از ثبت، برای همیشه بسته است.
+          </p>
+          <button
+            type="button"
+            disabled={!canSubmit}
+            onClick={submit}
+            data-testid="setup-submit"
+            className="flex h-11 shrink-0 items-center gap-2 rounded-lg bg-ink px-6 text-[13.5px] font-medium text-white transition hover:bg-[#2a2a2e] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {loading ? <Loader2 className="size-4 animate-spin" /> : "راه‌اندازی سامانه"}
+          </button>
         </div>
+      </div>
+    </FadeIn>
+  );
+}
 
-        <p className="mt-6 text-center text-[11px] text-ink-faint">
-          محیط dev با دادهٔ نمونه: بعد از <code className="text-ink-soft">pnpm db:seed</code> از /login وارد شوید.
-        </p>
-      </FadeIn>
+function SectionHead({ icon, title, hint }: { icon: React.ReactNode; title: string; hint: string }) {
+  return (
+    <div className="flex items-center gap-2.5 border-b border-line pb-3.5">
+      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-paper-soft text-ink-soft">{icon}</span>
+      <div>
+        <h2 className="text-[13.5px] font-bold text-ink">{title}</h2>
+        <p className="text-[11px] text-ink-faint">{hint}</p>
+      </div>
     </div>
   );
 }
