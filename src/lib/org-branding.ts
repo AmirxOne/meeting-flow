@@ -8,7 +8,8 @@ import { useEffect, useState } from "react";
  * در کل سامانه (عنوان تب، سایدبار، هدر لاگین، …) استفاده می‌شود.
  */
 
-export const FALLBACK_ORG_NAME = "مهرسا";
+import { FALLBACK_ORG_NAME } from "@/lib/branding-constants";
+export { FALLBACK_ORG_NAME };
 
 let cache: { name: string } | null = null;
 const listeners = new Set<(name: string) => void>();

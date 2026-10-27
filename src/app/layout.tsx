@@ -30,12 +30,10 @@ export const metadata: Metadata = {
   },
   formatDetection: { telephone: false },
   icons: {
-    apple: "/icons/apple-touch-icon.png",
-    icon: [
-      { url: "/icon.png", sizes: "any" }, // لوگوی سازمان از تنظیمات — داینامیک
-      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
-    ],
+    // فقط آیکون داینامیک — لوگوی سازمان از تنظیمات (نقطه‌ی مرکزی برندینگ)؛
+    // بدون آن، مونوگرام خنثی. آیکون‌های استاتیک قدیمی حذف شدند تا لوگوی
+    // پیش‌فرض نمایش داده نشود.
+    icon: [{ url: "/icon.png", sizes: "any" }],
   },
 };
 

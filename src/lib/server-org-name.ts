@@ -1,6 +1,6 @@
 import { prisma } from "@/server/db";
 import { SAMPLE_ORG_SLUG } from "@/lib/org-slug";
-import { FALLBACK_ORG_NAME } from "@/lib/org-branding";
+import { FALLBACK_ORG_NAME } from "@/lib/branding-constants";
 
 /**
  * نام نمایشی سازمان برای metadata سرور (عنوان تب صفحات عمومی).
