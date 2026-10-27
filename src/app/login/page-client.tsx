@@ -565,10 +565,10 @@ export function LoginPage() {
               </p>
             )}
 
-            {authConfig.localEnabled && !ldapMode && !needs2fa && (
+            {authConfig.localEnabled && !ldapMode && !needs2fa && process.env.NODE_ENV === "development" && (
               <div className="mt-6 rounded-xl border border-line bg-paper-soft/80 px-3.5 py-3">
                 <p className="text-[11px] text-ink-soft">
-                  حساب‌های آزمایشی — رمز همه: <span className="font-medium text-ink">Pass1234</span>
+                  حساب‌های آزمایشی — رمز همه: <span className="font-medium text-ink">Pass1234</span> (فقط dev)
                 </p>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
                   {DEMO_ACCOUNTS.map((acc) => (
