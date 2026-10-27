@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     default: titleDefault,
     template: titleTemplate,
   },
-  description: `سیستم مدیریت جلسات ${orgName} — اتاق‌ها، زمان‌بندی و تأییدها`,
+  description: orgName ? `سیستم مدیریت جلسات ${orgName} — اتاق‌ها، زمان‌بندی و تأییدها` : "سیستم مدیریت جلسات — اتاق‌ها، زمان‌بندی و تأییدها",
   applicationName: orgName || undefined,
   appleWebApp: {
     capable: true,

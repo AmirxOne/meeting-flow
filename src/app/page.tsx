@@ -4,19 +4,19 @@ import { serverOrgName } from "@/lib/server-org-name";
 export async function generateMetadata(): Promise<Metadata> {
   const orgName = await serverOrgName();
   return {
-  title: { absolute: `${orgName} — سامانه‌ی فارسی مدیریت جلسات سازمانی` },
+  title: { absolute: orgName ? `${orgName} — سامانه‌ی فارسی مدیریت جلسات سازمانی` : "سامانه‌ی فارسی مدیریت جلسات سازمانی" },
   description:
     "درخواست جلسه، هماهنگی اتاق‌ها، دعوت‌نامه‌ی پیامک و ایمیل، برگزاری با QR، صورت‌جلسه‌ی محرمانه و گزارش مدیریتی — همه فارسی، راست‌چین و با تقویم شمسی.",
   keywords: ["مدیریت جلسات", "رزرو اتاق جلسه", "تقویم شمسی", "صورت جلسه", "سامانه جلسات سازمانی", orgName],
   alternates: { canonical: "/" },
   openGraph: {
-    title: `${orgName} — سامانه‌ی فارسی مدیریت جلسات سازمانی`,
+    title: orgName ? `${orgName} — سامانه‌ی فارسی مدیریت جلسات سازمانی` : "سامانه‌ی فارسی مدیریت جلسات سازمانی",
     description: "کل چرخه‌ی جلسه: درخواست، هماهنگی، برگزاری، صورت‌جلسه و گزارش — با تقویم شمسی.",
     type: "website",
     locale: "fa_IR",
     siteName: orgName,
   },
-  twitter: { card: "summary_large_image", title: `${orgName} — مدیریت جلسات سازمانی` },
+  twitter: { card: "summary_large_image", title: orgName ? `${orgName} — مدیریت جلسات سازمانی` : "مدیریت جلسات سازمانی" },
   };
 }
 

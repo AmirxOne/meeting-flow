@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const org = await serverOrgName();
   return {
     alternates: { canonical: "/data-retention" },
-    title: { absolute: `نگهداری داده — ${org}` },
+    title: { absolute: org ? `نگهداری داده — ${org}` : "نگهداری داده" },
     description: dataRetentionDocument.subtitle,
   };
 }

@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const orgName = await serverOrgName();
   const { slug } = await params;
   return {
-    title: `برد زنده‌ی اتاق — ${slug} | ${orgName}`,
+    title: orgName ? `برد زنده‌ی اتاق — ${slug} | ${orgName}` : `برد زنده‌ی اتاق — ${slug}`,
     description: "صفحه‌ی زنده‌ی اتاق جلسه: برنامه‌ی امروز، جلسه‌ی در حال برگزاری و وضعیت اتاق — بدون نیاز به ورود.",
     robots: { index: false, follow: false },
   };

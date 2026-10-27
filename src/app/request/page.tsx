@@ -3,13 +3,13 @@ import type { Metadata } from "next";
 export async function generateMetadata(): Promise<Metadata> {
   const orgName = await serverOrgName();
   return {
-  title: { absolute: `درخواست جلسه بدون ورود — ${orgName}` },
+  title: { absolute: orgName ? `درخواست جلسه بدون ورود — ${orgName}` : "درخواست جلسه" },
   description:
     "مهمان هستید؟ بدون نیاز به حساب کاربری، درخواست جلسه بدهید: انتخاب بازه‌ی دلخواه با تقویم شمسی، جلسه‌ی حضوری در شرکت یا بیرونی، و پیگیری وضعیت با کد رهگیری.",
   keywords: ["درخواست جلسه", "رزرو جلسه بدون ثبت‌نام", "فرم جلسه مهمان"],
   alternates: { canonical: "/request" },
   openGraph: {
-    title: `درخواست جلسه بدون ورود — ${orgName}`,
+    title: orgName ? `درخواست جلسه بدون ورود — ${orgName}` : "درخواست جلسه",
     description: "بدون حساب کاربری، با تقویم شمسی و انتخاب محل برگزاری.",
     type: "website",
     locale: "fa_IR",

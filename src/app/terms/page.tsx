@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const orgName = await serverOrgName();
   return {
   alternates: { canonical: "/terms" },
-  title: { absolute: `شرایط استفاده — ${orgName}` },
+  title: { absolute: orgName ? `شرایط استفاده — ${orgName}` : "شرایط استفاده" },
   description: termsDocument.subtitle,
   };
 }

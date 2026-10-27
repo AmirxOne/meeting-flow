@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const orgName = await serverOrgName();
   return {
   alternates: { canonical: "/privacy" },
-  title: { absolute: `حریم خصوصی — ${orgName}` },
+  title: { absolute: orgName ? `حریم خصوصی — ${orgName}` : "حریم خصوصی" },
   description: privacyDocument.subtitle,
   };
 }

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
   const org = await serverOrgName();
   return {
-    title: `ثبت‌حضور در جلسه — ${org}`,
+    title: org ? `ثبت‌حضور در جلسه — ${org}` : "ثبت‌حضور در جلسه",
     robots: { index: false },
   };
 }
