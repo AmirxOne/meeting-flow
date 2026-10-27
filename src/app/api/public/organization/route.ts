@@ -5,12 +5,6 @@ import { normalizeOrgSlug, SAMPLE_ORG_SLUG, requestedOrgSlug } from "@/lib/org-s
 
 export const dynamic = "force-dynamic";
 
-const DEFAULT = {
-  name: "", // بدون سازمان: نامی نمایش داده نمی‌شود
-  slug: SAMPLE_ORG_SLUG,
-  logoUrl: null as string | null,
-};
-
 /** GET /api/public/organization — branding by slug (login / subdomain), no auth. */
 export async function GET(req: NextRequest) {
   try {
@@ -28,7 +22,9 @@ export async function GET(req: NextRequest) {
       select: { name: true, slug: true, logoUrl: true },
     });
     if (!organization) {
-      return ok({ organization: DEFAULT, found: false });
+      // سازمان وجود ندارد — آبجکت خالی بدون slug؛
+      // فرم لاگین نباید slug ساختگی بگیرد و لاگین را به سازمان غیرموجود قفل کند
+      return ok({ organization: { name: "", slug: null, logoUrl: null }, found: false });
     }
     return ok({ organization, found: true });
   } catch (e) {

@@ -153,7 +153,7 @@ export function LoginPage() {
         method: "POST",
         json: {
           identifier: toEnDigits(stripBidiMarks(identifier)),
-          password,
+          password: stripBidiMarks(password), // نویسه‌های نامرئی RTL (U+200F/200E) bcrypt را می‌شکنند
           ...(orgSlug ? { orgSlug } : {}),
         },
       });
