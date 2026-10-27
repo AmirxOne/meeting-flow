@@ -164,7 +164,8 @@ export function LoginPage() {
         setUseRecovery(false);
         return;
       }
-      router.push("/dashboard");
+      const dest = await fetch("/api/public/setup-status").then((r) => r.json()).then((j) => (j?.data?.needsSetup ? "/start" : "/dashboard")).catch(() => "/dashboard");
+      router.push(dest);
       router.refresh();
     } catch (err) {
       setError((err as ApiError).message);
@@ -185,7 +186,8 @@ export function LoginPage() {
           ? { challengeToken, recoveryCode: stripBidiMarks(recoveryCode).trim() }
           : { challengeToken, code: toEnDigits(stripBidiMarks(otpCode)) },
       });
-      router.push("/dashboard");
+      const dest = await fetch("/api/public/setup-status").then((r) => r.json()).then((j) => (j?.data?.needsSetup ? "/start" : "/dashboard")).catch(() => "/dashboard");
+      router.push(dest);
       router.refresh();
     } catch (err) {
       setError((err as ApiError).message);
