@@ -30,8 +30,7 @@ export const dynamic = "force-dynamic";
 export default async function Page() {
   const orgName = await serverOrgName();
   const user = await getSessionUser();
-  if (user) redirect("/dashboard");
-  if (await platformNeedsSetup()) redirect("/start");
+  if (user) redirect((await platformNeedsSetup()) ? "/start" : "/dashboard");
   return (
     <>
       <script

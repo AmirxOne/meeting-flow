@@ -19,8 +19,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  if (await platformNeedsSetup()) redirect("/start");
+  // راه‌اندازی اولیه پشت لاگین است — /login همیشه نمایش داده می‌شود
+  // (قبلاً به /start ریدایرکت می‌کرد که با لاگین-الزامی /start حلقه می‌ساخت)
   // کاربر لاگین‌شده نباید فرم لاگین را دوباره ببیند
-  if (await getSessionUser()) redirect("/dashboard");
+  const user = await getSessionUser();
+  if (user && !(await platformNeedsSetup())) redirect("/dashboard");
   return <LoginPage />;
 }
