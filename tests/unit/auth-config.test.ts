@@ -46,9 +46,15 @@ describe("escapeLdapFilter", () => {
 });
 
 describe("buildLdapUserFilter", () => {
-  it("interpolates email into filter template", () => {
+  it("default mail template widens to AD attrs (mail+UPN+sAMAccountName)", () => {
+    // Active Directory: کاربران ممکن است mail خالی داشته باشند — جستجو روی سه فیلد
     expect(buildLdapUserFilter("(mail={{email}})", "Ali@Test.com")).toBe(
-      "(mail=ali@test.com)",
+      "(|(mail=ali@test.com)(userPrincipalName=ali@test.com)(sAMAccountName=ali))",
+    );
+  });
+  it("custom template is interpolated verbatim", () => {
+    expect(buildLdapUserFilter("(sAMAccountName={{email}})", "Ali@Test.com")).toBe(
+      "(sAMAccountName=ali@test.com)",
     );
   });
 });

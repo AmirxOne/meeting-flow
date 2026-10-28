@@ -43,7 +43,7 @@ function searchUserDn(
       {
         scope: "sub",
         filter,
-        attributes: ["mail", "cn", "displayName", "department", "title"],
+        attributes: ["mail", "cn", "displayName", "department", "title", "userPrincipalName", "sAMAccountName"],
         sizeLimit: 2,
       },
       (err, res) => {
@@ -81,7 +81,11 @@ function readAttr(attrs: Record<string, string>, key: string): string | undefine
 }
 
 function profileFromAttrs(email: string, attrs: Record<string, string>): LdapUserProfile {
-  const mail = readAttr(attrs, "mail")?.toLowerCase() ?? email.toLowerCase();
+  // Active Directory: mail ممکن است خالی باشد — fallback به userPrincipalName و بعد identifier ورودی
+  const mail =
+    readAttr(attrs, "mail")?.toLowerCase() ??
+    readAttr(attrs, "userPrincipalName")?.toLowerCase() ??
+    email.toLowerCase();
   const fullName =
     readAttr(attrs, "displayName") ??
     readAttr(attrs, "cn") ??
@@ -112,8 +116,9 @@ export class LdapJsClient implements LdapClient {
           this.config.baseDn,
           {
             scope: "sub",
-            filter: "(objectClass=inetOrgPerson)",
-            attributes: ["mail", "cn", "displayName", "department", "title"],
+            // سازگار با Active Directory (user/person) و OpenLDAP (inetOrgPerson)
+            filter: "(|(objectClass=user)(objectClass=inetOrgPerson))",
+            attributes: ["mail", "cn", "displayName", "department", "title", "userPrincipalName", "sAMAccountName"],
             sizeLimit: limit,
           },
           (err, res) => {

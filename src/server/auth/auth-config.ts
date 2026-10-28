@@ -81,7 +81,17 @@ export function escapeLdapFilter(value: string): string {
   });
 }
 
-/** Build search filter from template with {{email}} placeholder. */
+/**
+ * Build search filter from template with {{email}} placeholder.
+ * قالب پیش‌فرض (mail={{email}}) در Active Directory کاربرانی که mail خالی دارند
+ * را نمی‌یابد — در آن حالت روی userPrincipalName و sAMAccountName هم جستجو می‌کنیم.
+ * قالب سفارشی ادمین دست‌نخورده اجرا می‌شود.
+ */
 export function buildLdapUserFilter(template: string, email: string): string {
-  return template.replace(/\{\{email\}\}/g, escapeLdapFilter(email.toLowerCase()));
+  const v = escapeLdapFilter(email.toLowerCase());
+  const built = template.replace(/\{\{email\}\}/g, v);
+  if (template.trim().toLowerCase() === "(mail={{email}})") {
+    return `(|(mail=${v})(userPrincipalName=${v})(sAMAccountName=${email.split("@")[0].toLowerCase().replace(/[^a-z0-9._-]/g, "")}))`;
+  }
+  return built;
 }
