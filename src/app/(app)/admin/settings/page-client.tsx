@@ -336,13 +336,8 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
           // eslint-disable-next-line @next/next/no-img-element
           <img src={isLocal ? "/api/public/organization/logo" : logoUrl} alt="لوگو" className="max-h-full max-w-full object-contain p-1" />
         ) : (
-          /* حالت خالی: مونوگرام حرف اول نام سازمان — همان زبان بصری بقیه‌ی سامانه */
-          <span className="flex size-full flex-col items-center justify-center gap-1">
-            <span className="flex size-12 items-center justify-center rounded-lg bg-paper-soft text-[22px] font-bold text-ink-soft" aria-hidden>
-              •
-            </span>
-            <span className="text-[9.5px] leading-3 text-ink-faint">بدون لوگو</span>
-          </span>
+          /* حالت خالی: فقط برچسب کوچک روی زمینه‌ی شطرنجی */
+          <span className="text-[9.5px] leading-3 text-ink-faint">بدون لوگو</span>
         )}
       </div>
 
