@@ -154,8 +154,14 @@ export async function getSessionUser(): Promise<AuthUser | null> {
           where: { id: SAMPLE_ORG_ID },
           select: { id: true, slug: true },
         }));
-      orgId = sample?.id ?? SAMPLE_ORG_ID;
-      orgSlug = sample?.slug ?? SAMPLE_ORG_SLUG;
+      if (!sample) {
+        const first = await prisma.organization.findFirst({ select: { id: true, slug: true }, orderBy: { createdAt: "asc" } });
+        orgId = first?.id ?? SAMPLE_ORG_ID;
+        orgSlug = first?.slug ?? SAMPLE_ORG_SLUG;
+      } else {
+        orgId = sample.id;
+        orgSlug = sample.slug;
+      }
     }
   }
 

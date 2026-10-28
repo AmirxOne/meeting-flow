@@ -41,12 +41,16 @@ async function clientForOrg(orgSlug: string | undefined, testClient: LdapClient 
 }
 
 async function resolveOrgId(orgSlug?: string): Promise<string> {
-  if (!orgSlug) return SAMPLE_ORG_ID;
-  const org = await prisma.organization.findUnique({
-    where: { slug: orgSlug.toLowerCase() },
-    select: { id: true },
-  });
-  return org?.id ?? SAMPLE_ORG_ID;
+  if (orgSlug) {
+    const org = await prisma.organization.findUnique({
+      where: { slug: orgSlug.toLowerCase() },
+      select: { id: true },
+    });
+    if (org) return org.id;
+  }
+  // اولین سازمان واقعی — استقرارهای تمیز org-main ندارند
+  const first = await prisma.organization.findFirst({ select: { id: true }, orderBy: { createdAt: "asc" } });
+  return first?.id ?? SAMPLE_ORG_ID;
 }
 
 /**

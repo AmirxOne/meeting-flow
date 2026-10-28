@@ -16,7 +16,11 @@ vi.mock("@/server/db", () => ({
   prisma: {
     user: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     role: { findUnique: vi.fn() },
-    organization: { findUnique: vi.fn() },
+    organization: {
+      findUnique: vi.fn(),
+      // fallback «اولین سازمان واقعی» در resolveProvisionOrgId
+      findFirst: vi.fn().mockResolvedValue({ id: "org-main" }),
+    },
     personDirectory: { upsert: vi.fn().mockResolvedValue(undefined) },
   },
 }));

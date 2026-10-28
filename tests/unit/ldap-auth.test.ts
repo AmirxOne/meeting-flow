@@ -15,6 +15,10 @@ vi.mock("@/server/db", () => ({
     },
     role: { findUnique: vi.fn() },
     personDirectory: { upsert: vi.fn() },
+    organization: {
+      findUnique: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue({ id: "org-main" }),
+    },
   },
 }));
 

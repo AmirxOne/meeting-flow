@@ -133,7 +133,10 @@ async function resolveProvisionOrgId(orgSlug?: string): Promise<string> {
     });
     if (org) return org.id;
   }
-  return SAMPLE_ORG_ID;
+  // اولین سازمان واقعی — در استقرارهای تمیز (seed prod) org-main وجود ندارد؛
+  // hardcoded قبلی تنظیمات LDAP را برای org ناموجود می‌خواند و لاگین AD می‌شکست
+  const first = await prisma.organization.findFirst({ select: { id: true }, orderBy: { createdAt: "asc" } });
+  return first?.id ?? SAMPLE_ORG_ID;
 }
 
 async function assertLoginTenant(userId: string, orgSlug?: string) {
