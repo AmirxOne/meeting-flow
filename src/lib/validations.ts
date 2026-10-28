@@ -422,9 +422,11 @@ export const orgSetupSchema = z.object({
     .max(48)
     .optional()
     .or(z.literal("")),
+  // فقط وقتی حساب ادمین جدید ساخته می‌شود (بدون کاربر جاری) الزامی‌اند —
+  // در ویزاردِ کاربرِ لاگین‌شده، همان کاربر ادمین می‌شود و این‌ها ارسال نمی‌شوند
   adminFullName: z.string().trim().min(2, "نام مدیر الزامی است").max(80),
   adminEmail: z.string().trim().email("ایمیل مدیر نامعتبر است"),
-  adminPassword: z.string().min(6, "رمز حداقل ۶ کاراکتر"),
+  adminPassword: z.union([z.literal("-"), z.string().min(6, "رمز حداقل ۶ کاراکتر")]),
   branchName: z.string().trim().min(2, "نام شعبه الزامی است").max(80),
   roomName: z.string().trim().min(2, "نام اتاق الزامی است").max(80),
   roomCapacity: z.coerce.number().int().min(1, "ظرفیت حداقل ۱").max(500).default(8),

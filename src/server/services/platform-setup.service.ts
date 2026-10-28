@@ -93,6 +93,9 @@ export async function bootstrapOrganization(
     });
     if (!actor) throw new HttpError(401, "نشست شما منقضی شده — دوباره وارد شوید", "AUTH_REQUIRED");
   } else {
+    if (!input.adminEmail || !input.adminPassword) {
+      throw new HttpError(400, "برای ساخت حساب مدیر اول، ایمیل و رمز الزامی است", "ADMIN_REQUIRED");
+    }
     const email = input.adminEmail.trim().toLowerCase();
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -100,7 +103,9 @@ export async function bootstrapOrganization(
     }
   }
   const slug = await resolveUniqueSlug(input);
-  const passwordHash = await bcrypt.hash(input.adminPassword, 10);
+  const passwordHash = input.adminPassword
+    ? await bcrypt.hash(input.adminPassword, 10)
+    : undefined;
   const adminRole = await prisma.role.findUnique({ where: { key: "ADMIN" } });
   if (!adminRole) {
     throw new HttpError(500, "نقش ADMIN یافت نشد", "ROLE_MISSING");
@@ -136,7 +141,7 @@ export async function bootstrapOrganization(
         data: {
           email: input.adminEmail.trim().toLowerCase(),
           fullName: input.adminFullName.trim(),
-          passwordHash,
+          passwordHash: passwordHash!, // guard بالا: مسیر بدون actor رمز را الزامی کرده
           jobTitle: "مدیر سازمان",
           orgId: org.id,
           isActive: true,
