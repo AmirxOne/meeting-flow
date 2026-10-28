@@ -112,12 +112,17 @@ export class LdapJsClient implements LdapClient {
       await promisifyBind(client, this.config.bindDn, this.config.bindPassword);
       return await new Promise<LdapUserProfile[]>((resolve, reject) => {
         const users: LdapUserProfile[] = [];
+        // در AD شیء computer هم objectClass=user دارد — با !user آن را کنار می‌گذاریم
+        const isAD = /(^|,)dc=/i.test(this.config.baseDn);
+        const filter = isAD
+          ? "(&(objectClass=user)(!(objectClass=computer)))"
+          : "(|(objectClass=user)(objectClass=inetOrgPerson))";
+        let sizeLimited = false;
         client.search(
           this.config.baseDn,
           {
             scope: "sub",
-            // سازگار با Active Directory (user/person) و OpenLDAP (inetOrgPerson)
-            filter: "(|(objectClass=user)(objectClass=inetOrgPerson))",
+            filter,
             attributes: ["mail", "cn", "displayName", "department", "title", "userPrincipalName", "sAMAccountName"],
             sizeLimit: limit,
           },
@@ -127,8 +132,18 @@ export class LdapJsClient implements LdapClient {
               const attrs = attrsFromEntry(entry);
               users.push(profileFromAttrs(attrs.mail ?? entry.dn.toString(), attrs));
             });
-            res.on("error", (e) => reject(e));
+            // ADهای بزرگ وسط جستجو SizeLimitExceeded می‌دهند — نتایج تا آن لحظه معتبرند
+            res.on("error", (e) => {
+              const err = e as { code?: number | string; name?: string };
+              if (err?.code === 4 || err?.name === "SizeLimitExceededError") {
+                sizeLimited = true;
+                return; // منتظر end می‌مانیم (یا حتی اگر نیاید، همان را برمی‌گردانیم)
+              }
+              reject(e);
+            });
             res.on("end", () => resolve(users));
+            // اگر AD بعد از size-limit بدون end قطع کرد، بعد از مهلت کوتاه همان نتایج را برگردان
+            if (sizeLimited) setTimeout(() => resolve(users), 500);
           },
         );
       });

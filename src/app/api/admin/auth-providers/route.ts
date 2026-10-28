@@ -71,8 +71,10 @@ export async function POST(req: NextRequest) {
         });
         const users = await client.listUsers(200);
         return ok({ ok: true, users, count: users.length });
-      } catch {
-        return ok({ ok: false, message: "خواندن دایرکتوری ناموفق بود — اتصال را تست کنید", users: [] });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "";
+        console.error("[ldap:list-users]", msg); // قابل مشاهده در docker logs
+        return ok({ ok: false, message: `خواندن دایرکتوری ناموفق بود: ${msg || "خطای ناشناخته"}`, users: [] });
       }
     }
 
