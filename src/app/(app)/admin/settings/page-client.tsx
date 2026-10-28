@@ -336,11 +336,12 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
           // eslint-disable-next-line @next/next/no-img-element
           <img src={isLocal ? "/api/public/organization/logo" : logoUrl} alt="لوگو" className="max-h-full max-w-full object-contain p-1" />
         ) : (
-          <span className="flex flex-col items-center gap-1 text-ink-faint">
-            {/* لوگوی پیش‌فرض نشان داده می‌شود — سازمان هنوز لوگوی خود را بارگذاری نکرده */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <div className="flex h-14 items-center justify-center rounded-lg bg-paper-soft px-4 text-[12px] text-ink-faint">لوگویی تنظیم نشده — نمونه‌ی فعلی فقط پس از آپلود نمایش داده می‌شود</div>
-            <span className="text-[10px]">پیش‌فرض</span>
+          /* حالت خالی: مونوگرام حرف اول نام سازمان — همان زبان بصری بقیه‌ی سامانه */
+          <span className="flex size-full flex-col items-center justify-center gap-1">
+            <span className="flex size-12 items-center justify-center rounded-lg bg-paper-soft text-[22px] font-bold text-ink-soft" aria-hidden>
+              •
+            </span>
+            <span className="text-[9.5px] leading-3 text-ink-faint">بدون لوگو</span>
           </span>
         )}
       </div>
@@ -363,7 +364,7 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <span className="text-[11px] text-ink-faint">
-            {busy ? "در حال بارگذاری…" : logoUrl ? "برای تغییر، روی کادر بزنید یا فایل بیندازید" : "روی کادر بزنید یا فایل را بکشید و رها کنید"}
+            {busy ? "در حال بارگذاری…" : logoUrl ? "برای تغییر، روی کادر بزنید یا فایل بیندازید" : "لوگویی ثبت نشده — روی کادر بزنید یا فایل را رها کنید"}
           </span>
           {logoUrl && (
             <button
