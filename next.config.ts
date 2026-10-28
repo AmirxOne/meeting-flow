@@ -3,7 +3,9 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   output: process.env.DOCKER_BUILD === "1" ? "standalone" : undefined,
-  serverExternalPackages: ["@prisma/client", "bcryptjs", "ioredis", "exceljs", "web-push"],
+  serverExternalPackages: ["@prisma/client", "bcryptjs", "ioredis", "exceljs", "web-push", "ldapjs"],
+  // ldapjs باید از node_modules واقعی لود شود — نسخه‌ی bundle‌شده در runtime Next
+  // جستجوی AD را صفر نتیجه برمی‌گرداند (مشاهدگی روی AD واقعی resaa)
   eslint: { ignoreDuringBuilds: true },
   typedRoutes: false,
   async headers() {
