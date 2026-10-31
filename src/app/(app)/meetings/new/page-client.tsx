@@ -252,8 +252,31 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
           ...(organizerId && me?.id && organizerId !== me.id ? { organizerId } : {}),
         },
       });
-      if (data.slots.length === 0) push("هیچ زمان آزادی برای این روز یافت نشد", "error");
-      else {
+      if (data.slots.length === 0) {
+        // همان روز خالی بود → هفته‌ی بعدی را هم بگرد (تا ۷ روز)
+        const weekTo = new Date(to.getTime() + 6 * 86400000);
+        const week = await api<{ slots: Slot[] }>("/api/availability", {
+          method: "POST",
+          json: {
+            branchId,
+            participantIds,
+            durationMin,
+            from: from.toISOString(),
+            to: weekTo.toISOString(),
+            minCapacity: soloType ? 1 : people.length + 1,
+            ...(organizerId && me?.id && organizerId !== me.id ? { organizerId } : {}),
+          },
+        });
+        if (week.slots.length === 0) {
+          push("هیچ زمان آزادی در این روز و ۷ روز بعد یافت نشد", "error");
+        } else {
+          push("این روز خالی بود — زمان‌های آزاد روزهای بعد نشان داده شد", "info");
+          setAllSlots(week.slots);
+          setSlot(week.slots[0]);
+          const best = [...week.slots[0].availableRooms].sort((a, b) => a.capacity - b.capacity)[0];
+          if (best) setRoomId(best.id);
+        }
+      } else {
         setAllSlots(data.slots);
         setManualStart("");
         setManualEnd("");

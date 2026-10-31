@@ -69,7 +69,7 @@ export async function findAvailableSlots(
   const {
     branchId, organizerId, durationMin, from, to,
     minCapacity = 1, requiredEquipment = [], excludeMeetingId,
-    stepMin = 15, maxSlots = 6,
+    stepMin = 15, maxSlots = 12,
   } = input;
 
   const peopleIds = [...new Set([organizerId, ...input.participantIds])];
@@ -179,7 +179,7 @@ export async function findAvailableSlots(
           const s = pf.start > rf.start ? pf.start : rf.start;
           const e = pf.end < rf.end ? pf.end : rf.end;
           if (e <= s) continue;
-          const slots = candidateSlots([{ start: s, end: e }], durationMin, stepMin, 2);
+          const slots = candidateSlots([{ start: s, end: e }], durationMin, stepMin, 12);
           for (const slot of slots) {
             if (suggestions.length >= maxSlots) break;
             // skip slots already suggested (same time)
