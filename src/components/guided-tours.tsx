@@ -1,6 +1,6 @@
 "use client";
 
-import { FALLBACK_ORG_NAME, useOrgName } from "@/lib/org-branding";
+import { useOrgName } from "@/lib/org-branding";
 import {useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -812,6 +812,12 @@ export function replayCurrentTour() {
   window.dispatchEvent(new CustomEvent("mehrsa:replay-tour"));
 }
 
+/** نام سازمان از تنظیمات مرکزی — خالی = بدون برند (هیچ نام پیش‌فرضی نه) */
+function brandText(text: string, orgName: string | null): string {
+  const name = orgName?.trim();
+  return name ? text.replaceAll("مهرسا", name) : text.replaceAll("مهرسا", "سامانه");
+}
+
 export function GuidedTours() {
   const pathname = usePathname();
   const me = useAuth((s) => s.me);
@@ -824,8 +830,8 @@ export function GuidedTours() {
       ...t,
       steps: t.steps.map((st) => ({
         ...st,
-        title: st.title.replaceAll("مهرسا", orgName ?? FALLBACK_ORG_NAME),
-        content: typeof st.content === "string" ? st.content.replaceAll("مهرسا", orgName ?? FALLBACK_ORG_NAME) : st.content,
+        title: brandText(st.title, orgName),
+        content: typeof st.content === "string" ? brandText(st.content, orgName) : st.content,
       })),
     })),
     [orgName],

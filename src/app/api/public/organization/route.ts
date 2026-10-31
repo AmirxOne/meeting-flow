@@ -5,7 +5,10 @@ import { normalizeOrgSlug, SAMPLE_ORG_SLUG, requestedOrgSlug } from "@/lib/org-s
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/public/organization — branding by slug (login / subdomain), no auth. */
+/**
+ * GET /api/public/organization — branding by slug (login / subdomain), no auth.
+ * بدون slug مشخص: اول سازمان نمونه (dev)، بعد اولین سازمان واقعی (استقرار تک-سازمانی).
+ */
 export async function GET(req: NextRequest) {
   try {
     const slug =
@@ -14,13 +17,28 @@ export async function GET(req: NextRequest) {
         header: req.headers.get("x-org-slug"),
         query: req.nextUrl.searchParams.get("org"),
         host: req.headers.get("host"),
-      }) ??
-      SAMPLE_ORG_SLUG;
+      });
 
-    const organization = await prisma.organization.findUnique({
-      where: { slug },
-      select: { name: true, slug: true, logoUrl: true },
-    });
+    let organization = slug
+      ? await prisma.organization.findUnique({
+          where: { slug },
+          select: { name: true, slug: true, logoUrl: true },
+        })
+      : null;
+
+    // بدون slug یا slug ناموجود → اول سازمان نمونه، بعد اولین سازمان واقعی
+    if (!organization && !slug) {
+      organization =
+        (await prisma.organization.findUnique({
+          where: { slug: SAMPLE_ORG_SLUG },
+          select: { name: true, slug: true, logoUrl: true },
+        })) ??
+        (await prisma.organization.findFirst({
+          orderBy: { createdAt: "asc" },
+          select: { name: true, slug: true, logoUrl: true },
+        }));
+    }
+
     if (!organization) {
       // سازمان وجود ندارد — آبجکت خالی بدون slug؛
       // فرم لاگین نباید slug ساختگی بگیرد و لاگین را به سازمان غیرموجود قفل کند
