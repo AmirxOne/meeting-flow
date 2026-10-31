@@ -67,8 +67,11 @@ export function useOrgDocumentTitle(pageTitle?: string) {
   useEffect(() => {
     const name = orgName?.trim();
     if (!name) return; // هنوز نیامده — عنوان metadata سرور بماند
-    const base = pageTitle ? `${pageTitle} | ${name}` : `${name} — سامانه‌ی مدیریت جلسات سازمانی`;
-    document.title = base;
+    // اگر عنوان فعلی (از metadata سرور) همین‌قدر کامل است، چیزی بازنویسی نکن —
+    // «صفحه | رسا | رسا» دوبل نشود
+    const composed = pageTitle ? `${pageTitle} | ${name}` : `${name} — سامانه‌ی مدیریت جلسات سازمانی`;
+    if (document.title.includes(name)) return;
+    document.title = composed;
   }, [orgName, pageTitle]);
 }
 
