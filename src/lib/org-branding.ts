@@ -83,10 +83,12 @@ const logoListeners = new Set<(url: string | null) => void>();
 
 async function loadLogo(): Promise<string | null> {
   try {
-    const r = await fetch("/api/public/organization/logo", { cache: "no-store" });
+    // bust — لوگوی جدید بعد از آپلود فوراً دیده شود (کش مرورگر نگذرد)
+    const bust = Date.now();
+    const r = await fetch(`/api/public/organization/logo?t=${bust}`, { cache: "no-store" });
     if (!r.ok) return null;
     const ct = r.headers.get("content-type") || "";
-    if (ct.startsWith("image/")) return "/api/public/organization/logo";
+    if (ct.startsWith("image/")) return `/api/public/organization/logo?t=${bust}`;
     return null;
   } catch {
     return null;
@@ -114,10 +116,26 @@ export function useOrgLogoUrl(): string | null {
   return url;
 }
 
-/** invalidate کش پس از ذخیره‌ی تنظیمات برندینگ (نام + لوگو). */
+/**
+ * invalidate پس از ذخیره‌ی برندینگ (نام + لوگو) — فوراً همه‌جا به‌روز می‌شود:
+ * کش‌ها پاک، مقادیر تازه از سرور خوانده و همه‌ی کامپوننت‌های زنده notify می‌شوند.
+ */
 export function invalidateOrgBranding() {
   cache = null;
   logoCache = null;
+  void loadName().then((n) => {
+    cache = { name: n };
+    listeners.forEach((l) => l(n));
+  });
+  void loadLogo().then((u) => {
+    logoCache = { url: u, ts: Date.now() };
+    logoListeners.forEach((l) => l(u));
+    // favicon تب هم فوراً تازه شود (بدون رفرش)
+    if (typeof document !== "undefined") {
+      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (link) link.href = `/icon.png?t=${Date.now()}`;
+    }
+  });
 }
 
 /** displayName سرور-عاملی برای ایمیل/پیامک — از DB مستقیم. */

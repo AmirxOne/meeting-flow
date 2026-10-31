@@ -287,6 +287,8 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
       if (!res.ok || !payload?.ok) throw new Error(payload?.error?.message || "خطا در آپلود لوگو");
       setLogoUrl(payload.data.logoUrl);
       onChanged(payload.data.logoUrl);
+      // فوری‌سازی: همه‌ی نقاط زنده‌ی برنامه (سایدبار/هدر/favicon) هم‌اکنون notify می‌شوند
+      invalidateOrgBranding();
       push("لوگوی سازمان به‌روزرسانی شد", "success");
       qc.invalidateQueries({ queryKey: ["organization"] });
     } catch (e) {
@@ -302,6 +304,7 @@ function OrgLogoUploader({ initial, onChanged }: { initial: string | null; onCha
       await api("/api/admin/organization/logo", { method: "DELETE" });
       setLogoUrl(null);
       onChanged("");
+      invalidateOrgBranding();
       push("لوگو حذف شد — لوگوی پیش‌فرض نمایش داده می‌شود", "success");
       qc.invalidateQueries({ queryKey: ["organization"] });
     } catch (e) {
