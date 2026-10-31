@@ -64,6 +64,11 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
   const [durationMin, setDurationMin] = useState(30);
   const [dateIso, setDateIso] = useState(""); // gregorian iso from jalali picker
   const [slot, setSlot] = useState<Slot | null>(null);
+  // همه‌ی زمان‌های پیشنهادی — کاربر بین آن‌ها انتخاب می‌کند (نه فقط اولی)
+  const [allSlots, setAllSlots] = useState<Slot[]>([]);
+  // ثبت دستی زمان: ساعت شروع/پایان به‌جای پیشنهادها
+  const [manualStart, setManualStart] = useState("");
+  const [manualEnd, setManualEnd] = useState("");
   const [roomId, setRoomId] = useState("");
   const [guests, setGuests] = useState<{ name: string; company: string; phone: string; email: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -219,6 +224,9 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
     }
     setSearching(true);
     setSlot(null);
+    setAllSlots([]);
+    setManualStart("");
+    setManualEnd("");
     setRoomId("");
     try {
       // window for the picked day (or today if none picked)
@@ -246,6 +254,9 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
       });
       if (data.slots.length === 0) push("هیچ زمان آزادی برای این روز یافت نشد", "error");
       else {
+        setAllSlots(data.slots);
+        setManualStart("");
+        setManualEnd("");
         setSlot(data.slots[0]);
         const best = [...data.slots[0].availableRooms].sort((a, b) => {
           if (meetingType === "ONLINE") {
@@ -783,15 +794,114 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
         <Card>
           <CardHeader title="۳. انتخاب زمان و اتاق" />
           <CardBody className="space-y-4">
-            {/* بنر زمان تأییدشده */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            {/* همه‌ی زمان‌های پیشنهادی — کاربر انتخاب می‌کند */}
+            {!offsite && allSlots.length > 0 && (
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-1.5 text-[12px] font-medium text-ink-soft">
+                    <CalendarClock className="h-4 w-4" />
+                    زمان‌های آزاد این روز ({faNum(allSlots.length)} گزینه) — انتخاب کنید
+                  </p>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">تأیید آزادی همه</span>
+                </div>
+                <div className="flex flex-wrap gap-2" data-testid="slot-options">
+                  {allSlots.map((sl) => {
+                    const active = slot && slot.start === sl.start && slot.end === sl.end;
+                    return (
+                      <button
+                        key={sl.start}
+                        type="button"
+                        onClick={() => {
+                          setSlot(sl);
+                          setManualStart("");
+                          setManualEnd("");
+                          const target = soloType ? 1 : people.length + 1;
+                          const best = [...sl.availableRooms].sort((a, b) => Math.abs(a.capacity - target) - Math.abs(b.capacity - target))[0];
+                          if (best) setRoomId(best.id);
+                        }}
+                        className={
+                          "rounded-lg border px-3 py-2 text-[12.5px] tabular-nums transition " +
+                          (active
+                            ? "border-emerald-500 bg-emerald-50 font-bold text-emerald-800 ring-2 ring-emerald-500/20"
+                            : "border-line bg-white text-ink hover:border-ink/40 hover:bg-paper-soft")
+                        }
+                      >
+                        <span dir="ltr">{formatClockInTz(new Date(sl.start), orgTz)}</span>
+                        <span className="mx-1 text-[10px] text-ink-faint">تا</span>
+                        <span dir="ltr">{formatClockInTz(new Date(sl.end), orgTz)}</span>
+                        {sl.availableRooms.length > 0 && (
+                          <span className="mr-2 rounded-full bg-paper-soft px-1.5 py-0.5 text-[9.5px] text-ink-faint">{faNum(sl.availableRooms.length)} اتاق</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ثبت دستی زمان */}
+            {!offsite && dateIso && (
+              <div className="rounded-xl border border-line bg-paper-soft/40 p-3.5">
+                <p className="mb-2.5 text-[11.5px] font-medium text-ink-soft">
+                  یا ساعت را دستی وارد کنید (وقتی مطمئن‌اید همه آزادند)
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    dir="ltr"
+                    inputMode="numeric"
+                    placeholder="09:00"
+                    value={manualStart}
+                    onChange={(e) => setManualStart(e.target.value)}
+                    className="h-10 w-24 rounded-lg border border-line bg-white px-3 text-center text-[13px] tabular-nums outline-none focus:border-ink"
+                    data-testid="manual-start"
+                  />
+                  <span className="text-[11px] text-ink-faint">تا</span>
+                  <input
+                    dir="ltr"
+                    inputMode="numeric"
+                    placeholder="10:00"
+                    value={manualEnd}
+                    onChange={(e) => setManualEnd(e.target.value)}
+                    className="h-10 w-24 rounded-lg border border-line bg-white px-3 text-center text-[13px] tabular-nums outline-none focus:border-ink"
+                    data-testid="manual-end"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const m1 = /^(\d{1,2}):(\d{2})$/.exec(manualStart.trim());
+                      const m2 = /^(\d{1,2}):(\d{2})$/.exec(manualEnd.trim());
+                      if (!m1 || !m2) { push("ساعت را به شکل 09:00 وارد کنید", "error"); return; }
+                      const [y, mo, d] = dateIso.split("-").map(Number);
+                      const sh = Number(m1[1]), sm = Number(m1[2]);
+                      const eh = Number(m2[1]), em = Number(m2[2]);
+                      if (sh > 23 || sm > 59 || eh > 23 || em > 59) { push("ساعت نامعتبر است", "error"); return; }
+                      const start = new Date(Date.UTC(y, mo - 1, d, sh, sm) - 210 * 60000);
+                      const end = new Date(Date.UTC(y, mo - 1, d, eh, em) - 210 * 60000);
+                      if (end <= start) { push("ساعت پایان باید بعد از شروع باشد", "error"); return; }
+                      setAllSlots([]);
+                      setSlot({ start: start.toISOString(), end: end.toISOString(), availableRooms: [], conflicts: [] });
+                    }}
+                  >
+                    ثبت ساعت دستی
+                  </Button>
+                </div>
+                <p className="mt-2 text-[10.5px] leading-4 text-ink-faint">
+                  تداخل‌های این بازه هنگام ثبت نهایی جلسه بررسی می‌شوند.
+                </p>
+              </div>
+            )}
+
+            {/* بنر زمان انتخاب‌شده */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4" data-testid="chosen-slot">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
                 <CheckCircle2 className="h-5 w-5" />
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[12px] font-bold text-emerald-800">زمان پیشنهادی</span>
-                  <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">تأیید آزادی همه</span>
+                  <span className="text-[12px] font-bold text-emerald-800">زمان انتخابی</span>
+                  {slot.availableRooms.length > 0 && (
+                    <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">تأیید آزادی همه</span>
+                  )}
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <span dir="ltr" className="text-[15px] font-bold tabular-nums text-emerald-900">{formatClockInTz(new Date(slot.start), orgTz)}</span>
@@ -800,7 +910,9 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                   <span className="text-[11px] text-emerald-600">· {formatJalali(new Date(slot.start), { monthName: true })}</span>
                 </div>
                 <p className="mt-1 text-[11px] text-emerald-600">
-                  {soloType ? "شما در این بازه آزاد هستید" : "همه افراد انتخابی در این بازه آزاد هستند"}
+                  {slot.availableRooms.length > 0
+                    ? (soloType ? "شما در این بازه آزاد هستید" : "همه افراد انتخابی در این بازه آزاد هستند")
+                    : "زمان دستی — تداخل‌ها هنگام ثبت بررسی می‌شوند"}
                 </p>
               </div>
             </div>
