@@ -20,8 +20,19 @@ export interface LdapClient {
 
 function promisifyBind(client: ldap.Client, dn: string, secret: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    client.bind(dn, secret, (err) => (err ? reject(err) : resolve()));
+    // مهلت کلی — سرورِ در دسترس نیست: خطای کنترل‌شده، نه crash process
+    const timer = setTimeout(() => reject(new Error("connect ETIMEDOUT (bind timeout)")), 10000);
+    client.bind(dn, secret, (err) => {
+      clearTimeout(timer);
+      if (err) reject(err);
+      else resolve();
+    });
   });
+}
+
+/** خطاهای late مربوط به socket — بدون این، uncaughtException کل process را می‌گیرد. */
+export function attachLdapErrorSink(client: ldap.Client): void {
+  client.on("error", () => {});
 }
 
 function promisifyUnbind(client: ldap.Client): Promise<void> {
@@ -105,9 +116,12 @@ export class LdapJsClient implements LdapClient {
 
   async listUsers(limit = 200): Promise<LdapUserProfile[]> {
     const client = ldap.createClient({
+      timeout: 8000,
+      connectTimeout: 8000,
       url: this.config.url,
       tlsOptions: { rejectUnauthorized: this.config.tlsRejectUnauthorized },
     });
+    attachLdapErrorSink(client);
     try {
       await promisifyBind(client, this.config.bindDn, this.config.bindPassword);
       return await new Promise<LdapUserProfile[]>((resolve, reject) => {
@@ -154,6 +168,8 @@ export class LdapJsClient implements LdapClient {
 
   async authenticate(email: string, password: string): Promise<LdapUserProfile | null> {
     const searchClient = ldap.createClient({
+      timeout: 8000,
+      connectTimeout: 8000,
       url: this.config.url,
       tlsOptions: { rejectUnauthorized: this.config.tlsRejectUnauthorized },
     });
@@ -161,6 +177,7 @@ export class LdapJsClient implements LdapClient {
     let userDn: string | null = null;
     let attrs: Record<string, string> = {};
 
+    attachLdapErrorSink(searchClient);
     try {
       await promisifyBind(searchClient, this.config.bindDn, this.config.bindPassword);
       const found = await searchUserDn(searchClient, this.config, email);
@@ -175,10 +192,13 @@ export class LdapJsClient implements LdapClient {
     }
 
     const userClient = ldap.createClient({
+      timeout: 8000,
+      connectTimeout: 8000,
       url: this.config.url,
       tlsOptions: { rejectUnauthorized: this.config.tlsRejectUnauthorized },
     });
 
+    attachLdapErrorSink(userClient);
     try {
       await promisifyBind(userClient, userDn, password);
       return profileFromAttrs(email, attrs);
