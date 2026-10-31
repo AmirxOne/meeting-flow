@@ -814,6 +814,124 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
         </CardBody>
       </Card>
 
+      {/* ساعت مدنظر دستی — قبل از پیشنهادها؛ آزاد؟ ثبت؛ اشغال؟ جایگزین */}
+      {/* ثبت دستی زمان — با بررسی آزادی و پیشنهاد در صورت اشغال */}
+      {!offsite && dateIso && (
+        <div className="rounded-xl border border-line bg-paper-soft/40 p-3.5">
+          <p className="mb-2.5 text-[11.5px] font-medium text-ink-soft">
+            ساعت مدنظرتان را وارد کنید — اگر آزاد بود همان‌جا ثبت می‌شود؛ اگر اشغال بود، جایگزین‌های نزدیک پیشنهاد می‌شود
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              dir="ltr"
+              inputMode="numeric"
+              placeholder="09:00"
+              value={manualStart}
+              onChange={(e) => setManualStart(e.target.value)}
+              className="h-10 w-24 rounded-lg border border-line bg-white px-3 text-center text-[13px] tabular-nums outline-none focus:border-ink"
+              data-testid="manual-start"
+            />
+            <span className="text-[11px] text-ink-faint">تا</span>
+            <input
+              dir="ltr"
+              inputMode="numeric"
+              placeholder="10:00"
+              value={manualEnd}
+              onChange={(e) => setManualEnd(e.target.value)}
+              className="h-10 w-24 rounded-lg border border-line bg-white px-3 text-center text-[13px] tabular-nums outline-none focus:border-ink"
+              data-testid="manual-end"
+            />
+            <Button
+              variant="outline"
+              onClick={async () => {
+                const m1 = /^(\d{1,2}):(\d{2})$/.exec(manualStart.trim());
+                const m2 = /^(\d{1,2}):(\d{2})$/.exec(manualEnd.trim());
+                if (!m1 || !m2) { push("ساعت را به شکل 09:00 وارد کنید", "error"); return; }
+                const [y, mo, d] = dateIso.split("-").map(Number);
+                const sh = Number(m1[1]), sm = Number(m1[2]);
+                const eh = Number(m2[1]), em = Number(m2[2]);
+                if (sh > 23 || sm > 59 || eh > 23 || em > 59) { push("ساعت نامعتبر است", "error"); return; }
+                const start = new Date(Date.UTC(y, mo - 1, d, sh, sm) - 210 * 60000);
+                const end = new Date(Date.UTC(y, mo - 1, d, eh, em) - 210 * 60000);
+                if (end <= start) { push("ساعت پایان باید بعد از شروع باشد", "error"); return; }
+                // بررسی واقعی آزادی این بازه (افراد + اتاق) — آزاد؟ ثبت؛ اشغال؟ پیشنهاد جایگزین
+                try {
+                  const check = await api<{ conflicts: unknown[] }>("/api/availability/check", {
+                    method: "POST",
+                    json: {
+                      startAt: start.toISOString(),
+                      endAt: end.toISOString(),
+                      participantIds: people
+                        .filter((p2) => p2.ref.startsWith("dir:"))
+                        .map((p2) => p2.ref.slice(4)),
+                      branchId,
+                    },
+                  });
+                  if ((check.conflicts ?? []).length === 0) {
+                    setAllSlots([]);
+                    setManualStatus("free");
+                    setSlot({ start: start.toISOString(), end: end.toISOString(), availableRooms: [], conflicts: [] });
+                  } else {
+                    setManualStatus("busy");
+                    setSlot(null);
+                    if (allSlots.length === 0) void findSlots();
+                  }
+                } catch {
+                  setAllSlots([]);
+                  setManualStatus("free");
+                  setSlot({ start: start.toISOString(), end: end.toISOString(), availableRooms: [], conflicts: [] });
+                }
+              }}
+            >
+              بررسی و ثبت ساعت دستی
+            </Button>
+          </div>
+          {manualStatus === "free" && (
+            <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[11.5px] font-medium text-emerald-800">
+              ✓ این بازه آزاد است و به‌عنوان زمان جلسه ثبت شد
+            </p>
+          )}
+          {manualStatus === "busy" && (
+            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2.5">
+              <p className="text-[11.5px] font-medium text-amber-800">
+                این بازه برای افراد/اتاق انتخابی آزاد نیست — گزینه‌های نزدیک:
+              </p>
+              {allSlots.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {allSlots.slice(0, 8).map((sl) => (
+                    <button
+                      key={sl.start}
+                      type="button"
+                      onClick={() => {
+                        setSlot(sl);
+                        setManualStatus(null);
+                        setManualStart("");
+                        setManualEnd("");
+                        const target = soloType ? 1 : people.length + 1;
+                        const best = [...sl.availableRooms].sort((a, b) => Math.abs(a.capacity - target) - Math.abs(b.capacity - target))[0];
+                        if (best) setRoomId(best.id);
+                      }}
+                      className="rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-[12px] tabular-nums text-ink transition hover:border-amber-500 hover:bg-amber-100"
+                    >
+                      <span dir="ltr">{formatClockInTz(new Date(sl.start), orgTz)}</span>
+                      <span className="mx-1 text-[10px] text-ink-faint">تا</span>
+                      <span dir="ltr">{formatClockInTz(new Date(sl.end), orgTz)}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-1 text-[11px] text-amber-700">
+                  پیشنهادی موجود نیست — «یافتن زمان‌های آزاد» را بزنید یا بازه‌ی دیگری امتحان کنید.
+                </p>
+              )}
+            </div>
+          )}
+          <p className="mt-2 text-[10.5px] leading-4 text-ink-faint">
+            تداخل‌های این بازه هنگام ثبت نهایی جلسه هم دوباره بررسی می‌شوند.
+          </p>
+        </div>
+      )}
+
       {/* Step 3: slot + room */}
       {slot && (
         <div id="meeting-step-room">
@@ -865,122 +983,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               </div>
             )}
 
-            {/* ثبت دستی زمان — با بررسی آزادی و پیشنهاد در صورت اشغال */}
-            {!offsite && dateIso && (
-              <div className="rounded-xl border border-line bg-paper-soft/40 p-3.5">
-                <p className="mb-2.5 text-[11.5px] font-medium text-ink-soft">
-                  ساعت مدنظرتان را وارد کنید — اگر آزاد بود همان‌جا ثبت می‌شود؛ اگر اشغال بود، جایگزین‌های نزدیک پیشنهاد می‌شود
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    dir="ltr"
-                    inputMode="numeric"
-                    placeholder="09:00"
-                    value={manualStart}
-                    onChange={(e) => setManualStart(e.target.value)}
-                    className="h-10 w-24 rounded-lg border border-line bg-white px-3 text-center text-[13px] tabular-nums outline-none focus:border-ink"
-                    data-testid="manual-start"
-                  />
-                  <span className="text-[11px] text-ink-faint">تا</span>
-                  <input
-                    dir="ltr"
-                    inputMode="numeric"
-                    placeholder="10:00"
-                    value={manualEnd}
-                    onChange={(e) => setManualEnd(e.target.value)}
-                    className="h-10 w-24 rounded-lg border border-line bg-white px-3 text-center text-[13px] tabular-nums outline-none focus:border-ink"
-                    data-testid="manual-end"
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      const m1 = /^(\d{1,2}):(\d{2})$/.exec(manualStart.trim());
-                      const m2 = /^(\d{1,2}):(\d{2})$/.exec(manualEnd.trim());
-                      if (!m1 || !m2) { push("ساعت را به شکل 09:00 وارد کنید", "error"); return; }
-                      const [y, mo, d] = dateIso.split("-").map(Number);
-                      const sh = Number(m1[1]), sm = Number(m1[2]);
-                      const eh = Number(m2[1]), em = Number(m2[2]);
-                      if (sh > 23 || sm > 59 || eh > 23 || em > 59) { push("ساعت نامعتبر است", "error"); return; }
-                      const start = new Date(Date.UTC(y, mo - 1, d, sh, sm) - 210 * 60000);
-                      const end = new Date(Date.UTC(y, mo - 1, d, eh, em) - 210 * 60000);
-                      if (end <= start) { push("ساعت پایان باید بعد از شروع باشد", "error"); return; }
-                      // بررسی واقعی آزادی این بازه (افراد + اتاق) — آزاد؟ ثبت؛ اشغال؟ پیشنهاد جایگزین
-                      try {
-                        const check = await api<{ conflicts: unknown[] }>("/api/availability/check", {
-                          method: "POST",
-                          json: {
-                            startAt: start.toISOString(),
-                            endAt: end.toISOString(),
-                            participantIds: people
-                              .filter((p2) => p2.ref.startsWith("dir:"))
-                              .map((p2) => p2.ref.slice(4)),
-                            branchId,
-                          },
-                        });
-                        if ((check.conflicts ?? []).length === 0) {
-                          setAllSlots([]);
-                          setManualStatus("free");
-                          setSlot({ start: start.toISOString(), end: end.toISOString(), availableRooms: [], conflicts: [] });
-                        } else {
-                          setManualStatus("busy");
-                          setSlot(null);
-                          if (allSlots.length === 0) void findSlots();
-                        }
-                      } catch {
-                        setAllSlots([]);
-                        setManualStatus("free");
-                        setSlot({ start: start.toISOString(), end: end.toISOString(), availableRooms: [], conflicts: [] });
-                      }
-                    }}
-                  >
-                    بررسی و ثبت ساعت دستی
-                  </Button>
-                </div>
-                {manualStatus === "free" && (
-                  <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[11.5px] font-medium text-emerald-800">
-                    ✓ این بازه آزاد است و به‌عنوان زمان جلسه ثبت شد
-                  </p>
-                )}
-                {manualStatus === "busy" && (
-                  <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2.5">
-                    <p className="text-[11.5px] font-medium text-amber-800">
-                      این بازه برای افراد/اتاق انتخابی آزاد نیست — گزینه‌های نزدیک:
-                    </p>
-                    {allSlots.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {allSlots.slice(0, 8).map((sl) => (
-                          <button
-                            key={sl.start}
-                            type="button"
-                            onClick={() => {
-                              setSlot(sl);
-                              setManualStatus(null);
-                              setManualStart("");
-                              setManualEnd("");
-                              const target = soloType ? 1 : people.length + 1;
-                              const best = [...sl.availableRooms].sort((a, b) => Math.abs(a.capacity - target) - Math.abs(b.capacity - target))[0];
-                              if (best) setRoomId(best.id);
-                            }}
-                            className="rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-[12px] tabular-nums text-ink transition hover:border-amber-500 hover:bg-amber-100"
-                          >
-                            <span dir="ltr">{formatClockInTz(new Date(sl.start), orgTz)}</span>
-                            <span className="mx-1 text-[10px] text-ink-faint">تا</span>
-                            <span dir="ltr">{formatClockInTz(new Date(sl.end), orgTz)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="mt-1 text-[11px] text-amber-700">
-                        پیشنهادی موجود نیست — «یافتن زمان‌های آزاد» را بزنید یا بازه‌ی دیگری امتحان کنید.
-                      </p>
-                    )}
-                  </div>
-                )}
-                <p className="mt-2 text-[10.5px] leading-4 text-ink-faint">
-                  تداخل‌های این بازه هنگام ثبت نهایی جلسه هم دوباره بررسی می‌شوند.
-                </p>
-              </div>
-            )}
+
 
             {/* بنر زمان انتخاب‌شده */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4" data-testid="chosen-slot">
