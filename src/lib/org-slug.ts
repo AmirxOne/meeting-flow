@@ -22,6 +22,9 @@ export function slugFromHost(host: string | null | undefined): string | null {
 
   if (hostname === "localhost" || hostname === "127.0.0.1") return null;
 
+  // آدرس IP (استقرار LAN مثل 192.168.x.x) — subdomain-محور نیست، slug نگیر
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) return null;
+
   if (hostname.endsWith(".localhost")) {
     const sub = hostname.slice(0, -".localhost".length);
     if (!sub || sub === "www") return null;

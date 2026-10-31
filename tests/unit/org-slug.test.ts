@@ -31,6 +31,11 @@ describe("slugFromHost", () => {
     expect(slugFromHost("acme.mehrsa.app")).toBe("acme");
     expect(slugFromHost("www.mehrsa.app")).toBeNull();
   });
+
+  it("ignores LAN IP hosts (on-prem deployments) — no bogus slug from octets", () => {
+    expect(slugFromHost("192.168.21.30")).toBeNull();
+    expect(slugFromHost("10.0.0.5:3100")).toBeNull();
+  });
 });
 
 describe("requestedOrgSlug", () => {
