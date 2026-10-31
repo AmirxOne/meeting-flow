@@ -14,7 +14,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { replayCurrentTour } from "@/components/guided-tours";
 import { OrgBrandMark, BrandLogoSkeleton } from "@/components/layout/org-brand-mark";
-import { useOrgDocumentTitle } from "@/lib/org-branding";
+import { useOrgDocumentTitle, useOrgName, useOrgLogoUrl } from "@/lib/org-branding";
 import { NAV } from "@/lib/nav";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
@@ -59,15 +59,13 @@ function useUnreadCount() {
 }
 
 function useOrgBranding() {
-  const { data } = useQuery({
-    queryKey: ["organization-branding"],
-    queryFn: () =>
-      api<{ branding: { name: string; logoUrl: string | null } }>("/api/organization/branding"),
-    staleTime: 5 * 60_000,
-  });
+  // منابع مرکزی برندینگ — تغییر لوگو/نام از تنظیمات همان لحظه این‌جا می‌رسد
+  // (invalidateOrgBranding همه‌ی مشترکین زنده را notify می‌کند)
+  const orgName = useOrgName();
+  const logoUrl = useOrgLogoUrl();
   return {
-    orgName: data?.branding.name ?? null, // null = هنوز لود نشده → skeleton
-    logoUrl: data?.branding.logoUrl ?? null,
+    orgName, // null = هنوز لود نشده → skeleton
+    logoUrl,
   };
 }
 
