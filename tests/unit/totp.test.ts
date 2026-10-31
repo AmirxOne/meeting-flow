@@ -49,7 +49,7 @@ describe("TOTP", () => {
     expect(verifyTotp(RFC_SECRET, "", 59 * 1000)).toBe(false);
   });
 
-  it("builds an otpauth URL for مهرسا", () => {
+  it("builds an otpauth URL for the org name", () => {
     const url = totpOtpauthUrl({ secret: RFC_SECRET, account: "ali@example.com" });
     expect(url.startsWith("otpauth://totp/")).toBe(true);
     expect(url).toContain("ali%40example.com");

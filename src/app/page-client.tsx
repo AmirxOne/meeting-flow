@@ -189,7 +189,7 @@ const FOOTER_COLS = [
 
 function BrandMark({ dark = false }: { dark?: boolean }) {
   const orgName = useOrgName();
-  const ready = orgName !== null; // تا آمدن نام واقعی از سرور، skeleton — هرگز «مهرسا» و بعد تعویض
+  const ready = orgName !== null; // تا آمدن نام واقعی از سرور، skeleton — هرگز نام جایگزین و بعد تعویض
   return (
     <div className="flex items-center gap-2.5">
       <div

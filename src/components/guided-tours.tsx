@@ -44,7 +44,7 @@ function useSeenTours(userId: string | undefined) {
 }
 
 /**
- * مهرسا tour card — positioned NEXT TO the spotlighted element.
+ * tour card — positioned NEXT TO the spotlighted element.
  * nextstepjs's own card wrapper breaks under transformed ancestors
  * (page transitions), so this card portals itself to <body> and
  * positions from the live target rect on every step/scroll/resize.
@@ -358,7 +358,7 @@ const TOURS: Tour[] = [
     tour: "dashboard",
     steps: [
       {
-        title: "خوش آمدید به مهرسا 🎉",
+        title: "خوش آمدید{{ORG}} 🎉",
         content:
           "این راهنمای کوتاه (فقط همین بار) شما را با بخش‌های اصلی آشنا می‌کند. با «بعدی» ادامه دهید.",
         ...TOUR_SPOT,
@@ -448,7 +448,7 @@ const TOURS: Tour[] = [
     tour: "calendar",
     steps: [
       {
-        title: "تقویم مهرسا",
+        title: "تقویم{{ORG}}",
         content:
           "تقویم شمسی/میلادی با نمای ماه، هفته و روز. جلسات خودتان همیشه کامل دیده می‌شوند؛ جلسات محرمانهٔ دیگران فقط به‌صورت «جلسه محرمانه» با آیکون سپر.",
         ...TOUR_SPOT,
@@ -736,7 +736,7 @@ const TOURS: Tour[] = [
       {
         title: "تأیید دو مرحله‌ای",
         content:
-          "با اپ authenticator یک لایهٔ امنیتی اضافه کنید. بعد از رمز، کد ۶ رقمی خواسته می‌شود. کدهای بازیابی را در جای امن نگه دارید. ورود LDAP هم پس از bind همین کد مهرسا را می‌خواهد.",
+          "با اپ authenticator یک لایهٔ امنیتی اضافه کنید. بعد از رمز، کد ۶ رقمی خواسته می‌شود. کدهای بازیابی را در جای امن نگه دارید. ورود LDAP هم پس از bind همین کد{{ORG_INLINE}} را می‌خواهد.",
         ...TOUR_SPOT,
         selector: '[data-tour="two-factor"]',
         side: "top",
@@ -768,7 +768,7 @@ const TOURS: Tour[] = [
       {
         title: "تقویم گوگل",
         content:
-          "حساب گوگل خودتان را وصل کنید تا جلسات مهرسا در تقویم شما ساخته شوند. اگر وصل نباشید رزرو جلسه بدون مشکل کار می‌کند. جلسات محرمانه برای افراد غیرمرتبط همگام نمی‌شوند.",
+          "حساب گوگل خودتان را وصل کنید تا جلسات{{ORG_INLINE}} در تقویم شما ساخته شوند. اگر وصل نباشید رزرو جلسه بدون مشکل کار می‌کند. جلسات محرمانه برای افراد غیرمرتبط همگام نمی‌شوند.",
         ...TOUR_SPOT,
         selector: '[data-tour="google-calendar"]',
         side: "top",
@@ -812,10 +812,10 @@ export function replayCurrentTour() {
   window.dispatchEvent(new CustomEvent("mehrsa:replay-tour"));
 }
 
-/** نام سازمان از تنظیمات مرکزی — خالی = بدون برند (هیچ نام پیش‌فرضی نه) */
+/** نام سازمان از تنظیمات مرکزی — بدون نام = «بدون نام» (مثل «بدون لوگو») */
 function brandText(text: string, orgName: string | null): string {
   const name = orgName?.trim();
-  return name ? text.replaceAll("مهرسا", name) : text.replaceAll("مهرسا", "سامانه");
+  return text.replaceAll("{{ORG}}", name ? ` به ${name}` : "").replaceAll("{{ORG_INLINE}}", name || "بدون نام");
 }
 
 export function GuidedTours() {

@@ -89,7 +89,7 @@ export function PublicCheckinPage() {
       <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-28 pt-6 sm:px-6 sm:pb-8 sm:pt-10">
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-ink shadow-sm">
-            <BrandLogo size={36} className="h-9 w-9 object-contain" alt={orgName || "سازمان"} priority />
+            <BrandLogo size={36} className="h-9 w-9 object-contain" alt={orgName || "بدون نام"} priority />
           </div>
           <h1 className="text-xl font-bold sm:text-2xl">ثبت حضور مهمان</h1>
           <p className="text-[13px] text-ink-soft">{orgName ? `${orgName} — ` : ""}مدیریت جلسات سازمانی</p>

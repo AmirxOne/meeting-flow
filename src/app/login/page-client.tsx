@@ -220,7 +220,7 @@ export function LoginPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15">
                 {orgLogo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={orgLogo} alt={orgName || "سازمان"} className="h-[30px] w-[30px] rounded-md object-contain" />
+                  <img src={orgLogo} alt={orgName || "بدون نام"} className="h-[30px] w-[30px] rounded-md object-contain" />
                 ) : (
                   <span aria-hidden className="select-none text-[18px] font-bold leading-none text-white/70">
                     {(orgName ?? "").trim().charAt(0) || "•"}
@@ -265,7 +265,7 @@ export function LoginPage() {
                     : "ایمیل یا شماره موبایل حساب را وارد کنید تا لینک بازنشانی برایتان ارسال شود."
                   : needs2fa
                   ? ldapMode
-                    ? `رمز سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || "سازمان"} را وارد کنید.`
+                    ? `رمز سازمانی تأیید شد. کد ۶ رقمی اپ authenticator ${orgName || "بدون نام"} را وارد کنید.`
                     : "رمز درست است. کد ۶ رقمی اپ authenticator را وارد کنید."
                   : passwordForm
                     ? ldapMode
@@ -592,7 +592,7 @@ export function LoginPage() {
 
             {ldapMode && !needs2fa && (
               <p className="mt-6 text-center text-[11px] leading-5 text-ink-faint">
-                {`با اولین ورود موفق سازمانی، حساب شما به‌صورت خودکار در ${orgName || "سازمان"} ساخته می‌شود.`}
+                {`با اولین ورود موفق سازمانی، حساب شما به‌صورت خودکار در ${orgName || "بدون نام"} ساخته می‌شود.`}
               </p>
             )}
             <p className='mt-5 text-center text-[12px] text-ink-soft'>
