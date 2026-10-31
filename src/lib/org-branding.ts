@@ -57,12 +57,17 @@ export function useOrgName(): string | null {
   return name;
 }
 
-/** عنوان تب مرورگر را با نام سازمان همگام نگه می‌دارد (تزریق dynamic بعد از hydration). */
+/**
+ * عنوان تب مرورگر را با نام سازمان همگام نگه می‌دارد (تزریق dynamic بعد از hydration).
+ * تا وقتی نام سازمان از سرور نرسیده، عنوان static سرور دست نمی‌خورد —
+ * همین مانع «صفحه | » (پایپ خالی) در لحظه‌ی اول است.
+ */
 export function useOrgDocumentTitle(pageTitle?: string) {
   const orgName = useOrgName();
   useEffect(() => {
-    const base = pageTitle ? `${pageTitle} | ${orgName}` : `${orgName} — سامانه‌ی مدیریت جلسات سازمانی`;
-    // فقط اگر با پیش‌فرض static فرق دارد به‌روز کن (SEO/metadata سرور دست‌نخورده می‌ماند)
+    const name = orgName?.trim();
+    if (!name) return; // هنوز نیامده — عنوان metadata سرور بماند
+    const base = pageTitle ? `${pageTitle} | ${name}` : `${name} — سامانه‌ی مدیریت جلسات سازمانی`;
     document.title = base;
   }, [orgName, pageTitle]);
 }
