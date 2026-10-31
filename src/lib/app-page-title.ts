@@ -8,5 +8,6 @@ import { serverOrgName } from "@/lib/server-org-name";
  */
 export async function appPageTitle(page: string): Promise<Metadata> {
   const org = await serverOrgName();
-  return { title: org ? `${page} | ${org}` : page };
+  // absolute — template ریشه (%s | نام) دوباره نام را نمی‌چسباند
+  return { title: { absolute: org ? `${page} | ${org}` : page } };
 }
