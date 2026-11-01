@@ -190,7 +190,7 @@ export function Select({
         {open && (
         <motion.ul
           ref={listRef}
-          style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left, width: panelPos.width } : { position: "fixed", top: -9999, left: 0 }}
+          style={panelPos ? { position: "fixed", top: panelPos.top, left: panelPos.left, width: `max(${panelPos.width}px, 96px)` } : { position: "fixed", top: -9999, left: 0 }}
           role="listbox"
           initial={{ opacity: 0, y: -6, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
