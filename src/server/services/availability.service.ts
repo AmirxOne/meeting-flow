@@ -149,11 +149,12 @@ export async function findAvailableSlots(
   for (const o of orgs) peopleBusy.push({ start: o.startAt, end: o.endAt });
 
   // 4) walk day-by-day, per room opening hours (org timezone)
-  const suggestions: SlotSuggestion[] = [];
+  // کلید = ساعت شروع؛ مقدار = همه‌ی اتاق‌های آزاد آن ساعت
+  const merged = new Map<number, SlotSuggestion>();
   let day = startOfDayUtcInTz(from, tz);
   const lastDay = to;
 
-  while (day < lastDay && suggestions.length < maxSlots) {
+  while (day < lastDay && merged.size < maxSlots) {
     const dayStart = day;
     const dayEnd = addLocalDaysUtc(day, 1, tz);
     if (blockedHolidayDays.has(isoDateInTz(dayStart, tz))) {
@@ -181,46 +182,32 @@ export async function findAvailableSlots(
           if (e <= s) continue;
           const slots = candidateSlots([{ start: s, end: e }], durationMin, stepMin, 12);
           for (const slot of slots) {
-            if (suggestions.length >= maxSlots) break;
-            // skip slots already suggested (same time)
-            if (suggestions.some((x) => x.start.getTime() === slot.start.getTime())) continue;
-            suggestions.push({
-              start: slot.start,
-              end: slot.end,
-              availableRooms: [
-                {
-                  id: room.id,
-                  name: room.name,
-                  capacity: room.capacity,
-                  equipment: room.equipment.map((e2) => e2.equipment),
-                },
-              ],
-              conflicts: [],
-            });
+            // همه‌ی اتاق‌های آزادِ همین ساعت جمع می‌شوند — نه فقط اتاق اول
+            const key = slot.start.getTime();
+            const existing = merged.get(key);
+            const roomInfo = {
+              id: room.id,
+              name: room.name,
+              capacity: room.capacity,
+              equipment: room.equipment.map((e2) => e2.equipment),
+            };
+            if (existing) {
+              if (!existing.availableRooms.some((r) => r.id === room.id)) {
+                existing.availableRooms.push(roomInfo);
+              }
+            } else {
+              if (merged.size >= maxSlots) continue; // سقف تعداد ساعت‌های متمایز
+              merged.set(key, { start: slot.start, end: slot.end, availableRooms: [roomInfo], conflicts: [] });
+            }
           }
-          if (suggestions.length >= maxSlots) break;
         }
-        if (suggestions.length >= maxSlots) break;
       }
-      if (suggestions.length >= maxSlots) break;
     }
     day = addLocalDaysUtc(day, 1, tz);
   }
 
-  // merge rooms per identical slot start
-  const merged = new Map<number, SlotSuggestion>();
-  for (const s of suggestions) {
-    const key = s.start.getTime();
-    const existing = merged.get(key);
-    if (existing) {
-      const ids = new Set(existing.availableRooms.map((r) => r.id));
-      for (const r of s.availableRooms) if (!ids.has(r.id)) existing.availableRooms.push(r);
-    } else {
-      merged.set(key, { ...s, availableRooms: [...s.availableRooms] });
-    }
-  }
-
-  const finalSlots = [...merged.values()]
+  const suggestions = [...merged.values()];
+  const finalSlots = suggestions
     .sort((a, b) => a.start.getTime() - b.start.getTime())
     .slice(0, maxSlots);
   return {

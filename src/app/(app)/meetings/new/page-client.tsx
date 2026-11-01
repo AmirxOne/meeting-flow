@@ -73,6 +73,8 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
   const [manualStatus, setManualStatus] = useState<"free" | "busy" | null>(null);
   // چند بازه‌ی ساعتی مدنظر کاربر — هرکدام جداگانه بررسی می‌شوند
   const [manualRanges, setManualRanges] = useState<{ start: string; end: string; status: "free" | "busy" | null }[]>([]);
+  // ویزارد ۳ مرحله‌ای: ۱=اطلاعات ۲=زمان ۳=اتاق و ثبت — به‌جای سه کارت بلند هم‌زمان
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [roomId, setRoomId] = useState("");
   const [guests, setGuests] = useState<{ name: string; company: string; phone: string; email: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -472,7 +474,38 @@ async function findSlots() {
         </p>
       </div>
 
+      {/* استپر ویزارد */}
+      <div className="flex items-center gap-1.5" data-testid="wizard-steps">
+        {[
+          { n: 1, t: "اطلاعات جلسه" },
+          { n: 2, t: "زمان" },
+          { n: 3, t: "اتاق و ثبت" },
+        ].map((st, i) => (
+          <div key={st.n} className="flex items-center gap-1.5">
+            {i > 0 && <span className={"h-px w-6 " + (wizardStep > st.n - 1 ? "bg-ink" : "bg-line")} />}
+            <button
+              type="button"
+              onClick={() => { if (st.n < wizardStep) setWizardStep(st.n as 1 | 2 | 3); }}
+              className={
+                "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors " +
+                (wizardStep === st.n
+                  ? "border-ink bg-ink text-white"
+                  : wizardStep > st.n
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                    : "border-line bg-white text-ink-faint")
+              }
+            >
+              <span className={"flex size-5 items-center justify-center rounded-full text-[10px] font-bold " + (wizardStep === st.n ? "bg-white/20" : "bg-paper-soft")}>
+                {faNum(st.n)}
+              </span>
+              {st.t}
+            </button>
+          </div>
+        ))}
+      </div>
+
       {/* Step 1: basics */}
+      {wizardStep === 1 && (
       <Card>
         <CardHeader title="۱. اطلاعات جلسه" />
         <CardBody className="space-y-4">
@@ -624,10 +657,23 @@ async function findSlots() {
               highlighted
             />
           )}
+                  <div className="flex justify-end border-t border-line pt-3.5">
+            <Button
+              onClick={() => {
+                if (!title.trim()) { push("عنوان جلسه را بنویسید", "error"); return; }
+                if (!offsite && !branchId) { push("شعبه را انتخاب کنید", "error"); return; }
+                setWizardStep(2);
+              }}
+            >
+              بعدی — انتخاب زمان
+            </Button>
+          </div>
         </CardBody>
       </Card>
+      )}
 
       {/* Step 2: date + duration + find slots */}
+      {wizardStep === 2 && (
       <Card>
         <CardHeader
           title="۲. تاریخ و مدت"
@@ -953,16 +999,19 @@ async function findSlots() {
               </div>
             </div>
           )}
+          <div className="flex items-center justify-between border-t border-line pt-3.5">
+            <Button variant="outline" onClick={() => setWizardStep(1)}>قبلی</Button>
+            {slot && <Button onClick={() => setWizardStep(3)}>بعدی — اتاق و ثبت</Button>}
+          </div>
         </CardBody>
       </Card>
-
-
+      )}
 
       {/* Step 3: slot + room */}
-      {slot && (
-        <div id="meeting-step-room">
+      {wizardStep === 3 && slot && (
+        <div id="meeting-step-room" className="space-y-4">
         <Card>
-          <CardHeader title="۳. انتخاب زمان و اتاق" />
+          <CardHeader title="۳. اتاق و تأیید نهایی" />
           <CardBody className="space-y-4">
             {/* همه‌ی زمان‌های پیشنهادی — کاربر انتخاب می‌کند */}
             {!offsite && allSlots.length > 0 && (
