@@ -21,8 +21,7 @@ import {
   type RecurrenceFreq,
 } from "@/lib/recurrence";
 import { Select } from "@/components/ui/select";
-import { TimePicker } from "@/components/ui/time-picker";
-import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
+import { JalaliDatePicker, TimePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { FaInput } from "@/components/ui/fa-input";
 import {
@@ -675,17 +674,17 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                 <span className="text-[10.5px] leading-4 text-ink-faint">— چند بازه اضافه کنید؛ اولین بازه‌ی آزاد به‌عنوان زمان جلسه ثبت می‌شود</span>
               </div>
               <div className="flex flex-wrap items-end gap-2">
-                <div className="w-[120px]">
+                <div className="w-[220px]">
                   <label className="mb-1 block text-[10.5px] font-medium text-ink-faint">شروع</label>
-                  <div data-testid="manual-start">
-                    <TimePicker value={manualStart} onChange={setManualStart} placeholder="۰۷:۰۰" />
+                  <div data-testid="manual-start" className="grid grid-cols-2 gap-2 [&>div>button]:h-10">
+                    <TimePicker value={manualStart} onChange={setManualStart} />
                   </div>
                 </div>
-                <span className="pb-2.5 text-[11px] text-ink-faint">تا</span>
-                <div className="w-[120px]">
+                <span className="pb-6 text-[11px] text-ink-faint">تا</span>
+                <div className="w-[220px]">
                   <label className="mb-1 block text-[10.5px] font-medium text-ink-faint">پایان</label>
-                  <div data-testid="manual-end">
-                    <TimePicker value={manualEnd} onChange={setManualEnd} placeholder="۰۹:۰۰" />
+                  <div data-testid="manual-end" className="grid grid-cols-2 gap-2 [&>div>button]:h-10">
+                    <TimePicker value={manualEnd} onChange={setManualEnd} />
                   </div>
                 </div>
                 <Button
