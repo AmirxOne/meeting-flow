@@ -657,6 +657,28 @@ async function findSlots() {
             )}
           </div>
           )}
+            {/* Guests (external) — فقط جلسات مهمان‌دار */}
+            {!soloType && ["EXTERNAL", "CLIENT", "INTERVIEW", "ONE_ON_ONE"].includes(meetingType) && (
+            <div>
+              <p className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-ink-soft">
+                <UserRound className="h-4 w-4" />
+                مهمان‌های خارجی اضافی
+                <span className="text-[10.5px] font-normal text-ink-faint">— افراد خارجیِ بالا خودکار مهمان محسوب می‌شوند</span>
+              </p>
+              {guests.map((g, i) => (
+                <div key={i} className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  <input placeholder="نام" value={g.name} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                  <input placeholder="شرکت" value={g.company} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, company: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                  <FaInput allow="phone" placeholder="تلفن" value={g.phone} onChange={(phone) => setGuests(guests.map((x, j) => j === i ? { ...x, phone } : x))} />
+                  <input placeholder="ایمیل" dir="ltr" value={g.email} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setGuests(guests.filter((_, j) => j !== i))}>حذف</Button>
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={() => setGuests([...guests, { name: "", company: "", phone: "", email: "" }])}>
+                + افزودن مهمان
+              </Button>
+            </div>
+            )}
           <div>
             <label className="mb-1.5 block text-[12px] font-medium">توضیحات (اختیاری)</label>
             <textarea
@@ -1167,29 +1189,6 @@ async function findSlots() {
                   ))}
               </div>
             </div>
-
-            {/* Guests (external) — فقط جلسات مهمان‌دار */}
-            {!soloType && ["EXTERNAL", "CLIENT", "INTERVIEW", "ONE_ON_ONE"].includes(meetingType) && (
-            <div>
-              <p className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-ink-soft">
-                <UserRound className="h-4 w-4" />
-                مهمان‌های خارجی اضافی
-                <span className="text-[10.5px] font-normal text-ink-faint">— افراد خارجیِ بالا خودکار مهمان محسوب می‌شوند</span>
-              </p>
-              {guests.map((g, i) => (
-                <div key={i} className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
-                  <input placeholder="نام" value={g.name} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
-                  <input placeholder="شرکت" value={g.company} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, company: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
-                  <FaInput allow="phone" placeholder="تلفن" value={g.phone} onChange={(phone) => setGuests(guests.map((x, j) => j === i ? { ...x, phone } : x))} />
-                  <input placeholder="ایمیل" dir="ltr" value={g.email} onChange={(e) => setGuests(guests.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} className="h-10 rounded-md border border-line px-3 text-[12px] outline-none focus:border-ink" />
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setGuests(guests.filter((_, j) => j !== i))}>حذف</Button>
-                </div>
-              ))}
-              <Button type="button" variant="outline" size="sm" onClick={() => setGuests([...guests, { name: "", company: "", phone: "", email: "" }])}>
-                + افزودن مهمان
-              </Button>
-            </div>
-            )}
 
             {/* Review */}
             {/* بازبینی نهایی — جدول خلاصه */}
