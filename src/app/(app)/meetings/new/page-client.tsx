@@ -21,6 +21,7 @@ import {
   type RecurrenceFreq,
 } from "@/lib/recurrence";
 import { Select } from "@/components/ui/select";
+import { TimePicker } from "@/components/ui/time-picker";
 import { JalaliDatePicker } from "@/components/ui/jalali-date-picker";
 import { PeoplePicker, type PickedPerson } from "@/components/ui/people-picker";
 import { FaInput } from "@/components/ui/fa-input";
@@ -668,39 +669,34 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
           {/* بازه‌های ساعتی مدنظر — چند بازه؛ هرکدام بررسی؛ اولین آزاد ثبت می‌شود */}
           {!offsite && dateIso && (
             <div className="rounded-xl border border-line bg-paper-soft/40 p-3.5">
-              <p className="mb-2.5 text-[11.5px] font-medium text-ink-soft">
-                بازه‌های ساعتی مدنظرتان — چند بازه می‌توانید اضافه کنید؛ هرکدام جداگانه بررسی می‌شود و اولین بازه‌ی آزاد به‌عنوان زمان جلسه ثبت می‌گردد
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  dir="ltr"
-                  inputMode="numeric"
-                  placeholder="09:00"
-                  value={manualStart}
-                  onChange={(e) => setManualStart(e.target.value)}
-                  className="h-10 w-24 rounded-lg border border-line bg-white px-3 text-center text-[13px] tabular-nums outline-none focus:border-ink"
-                  data-testid="manual-start"
-                />
-                <span className="text-[11px] text-ink-faint">تا</span>
-                <input
-                  dir="ltr"
-                  inputMode="numeric"
-                  placeholder="10:00"
-                  value={manualEnd}
-                  onChange={(e) => setManualEnd(e.target.value)}
-                  className="h-10 w-24 rounded-lg border border-line bg-white px-3 text-center text-[13px] tabular-nums outline-none focus:border-ink"
-                  data-testid="manual-end"
-                />
+              <div className="mb-3 flex items-center gap-2 border-b border-line/70 pb-2.5">
+                <Clock className="size-4 shrink-0 text-ink-soft" />
+                <p className="text-[12px] font-bold text-ink">ساعت‌های مدنظر شما</p>
+                <span className="text-[10.5px] leading-4 text-ink-faint">— چند بازه اضافه کنید؛ اولین بازه‌ی آزاد به‌عنوان زمان جلسه ثبت می‌شود</span>
+              </div>
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="w-[120px]">
+                  <label className="mb-1 block text-[10.5px] font-medium text-ink-faint">شروع</label>
+                  <div data-testid="manual-start">
+                    <TimePicker value={manualStart} onChange={setManualStart} placeholder="۰۷:۰۰" />
+                  </div>
+                </div>
+                <span className="pb-2.5 text-[11px] text-ink-faint">تا</span>
+                <div className="w-[120px]">
+                  <label className="mb-1 block text-[10.5px] font-medium text-ink-faint">پایان</label>
+                  <div data-testid="manual-end">
+                    <TimePicker value={manualEnd} onChange={setManualEnd} placeholder="۰۹:۰۰" />
+                  </div>
+                </div>
                 <Button
                   variant="outline"
+                  className="h-10"
+                  disabled={!manualStart || !manualEnd}
                   onClick={() => {
-                    const m1 = /^(\d{1,2}):(\d{2})$/.exec(manualStart.trim());
-                    const m2 = /^(\d{1,2}):(\d{2})$/.exec(manualEnd.trim());
-                    if (!m1 || !m2) { push("ساعت را به شکل 09:00 وارد کنید", "error"); return; }
-                    const sh = Number(m1[1]), sm = Number(m1[2]), eh = Number(m2[1]), em = Number(m2[2]);
-                    if (sh > 23 || sm > 59 || eh > 23 || em > 59) { push("ساعت نامعتبر است", "error"); return; }
+                    const [sh, sm] = manualStart.split(":").map(Number);
+                    const [eh, em] = manualEnd.split(":").map(Number);
                     if (eh * 60 + em <= sh * 60 + sm) { push("ساعت پایان باید بعد از شروع باشد", "error"); return; }
-                    setManualRanges((rs) => [...rs, { start: manualStart.trim(), end: manualEnd.trim(), status: null }]);
+                    setManualRanges((rs) => [...rs, { start: manualStart, end: manualEnd, status: null }]);
                     setManualStart("");
                     setManualEnd("");
                   }}
@@ -739,7 +735,7 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                         setAllSlots([]);
                         setManualStatus("free");
                         setSlot({ start: start.toISOString(), end: end.toISOString(), availableRooms: [], conflicts: [] });
-                        push(`بازه‌ی ${firstFree.start} آزاد بود و ثبت شد`, "success");
+                        push(`بازه‌ی ${faNum(firstFree.start)} تا ${faNum(firstFree.end)} آزاد بود و ثبت شد`, "success");
                       } else {
                         setManualStatus("busy");
                         setSlot(null);
@@ -767,11 +763,11 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
                             : "border-line bg-white text-ink")
                       }
                     >
-                      <span dir="ltr">{r.start}</span>
-                      <span className="text-[10px] text-ink-faint">تا</span>
-                      <span dir="ltr">{r.end}</span>
-                      {r.status === "free" && <span className="text-[9.5px] font-bold">آزاد</span>}
-                      {r.status === "busy" && <span className="text-[9.5px] font-bold">اشغال</span>}
+                      <span dir="ltr" className="tabular-nums">{faNum(r.start)}</span>
+                      <span className="text-[10px] opacity-60">تا</span>
+                      <span dir="ltr" className="tabular-nums">{faNum(r.end)}</span>
+                      {r.status === "free" && <span className="rounded-full bg-emerald-100 px-1.5 py-px text-[9px] font-bold">آزاد</span>}
+                      {r.status === "busy" && <span className="rounded-full bg-red-100 px-1.5 py-px text-[9px] font-bold">اشغال</span>}
                       <button
                         type="button"
                         onClick={() => setManualRanges((rs) => rs.filter((_, j) => j !== i))}
