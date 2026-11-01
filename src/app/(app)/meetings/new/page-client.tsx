@@ -610,7 +610,7 @@ async function findSlots() {
                 </span>
               </button>
             </div>
-            {offsite && (
+                    {offsite && (
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-[11px] font-medium text-ink-soft">نام سازمان مقصد *</label>
@@ -1018,6 +1018,51 @@ async function findSlots() {
               </Button>
             </div>
           )}
+              {/* همه‌ی زمان‌های پیشنهادی — کاربر انتخاب می‌کند */}
+          {!offsite && allSlots.length > 0 && (
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-[12px] font-medium text-ink-soft">
+                  <CalendarClock className="h-4 w-4" />
+                  زمان‌های آزاد این روز ({faNum(allSlots.length)} گزینه) — انتخاب کنید
+                </p>
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">تأیید آزادی همه</span>
+              </div>
+              <div className="flex flex-wrap gap-2" data-testid="slot-options">
+                {allSlots.map((sl) => {
+                  const active = slot && slot.start === sl.start && slot.end === sl.end;
+                  return (
+                    <button
+                      key={sl.start}
+                      type="button"
+                      onClick={() => {
+                        setSlot(sl);
+                        setManualStart("");
+                        setManualEnd("");
+                        const target = soloType ? 1 : people.length + 1;
+                        const best = [...sl.availableRooms].sort((a, b) => Math.abs(a.capacity - target) - Math.abs(b.capacity - target))[0];
+                        if (best) setRoomId(best.id);
+                      }}
+                      className={
+                        "rounded-lg border px-3 py-2 text-[12.5px] tabular-nums transition " +
+                        (active
+                          ? "border-emerald-500 bg-emerald-50 font-bold text-emerald-800 ring-2 ring-emerald-500/20"
+                          : "border-line bg-white text-ink hover:border-ink/40 hover:bg-paper-soft")
+                      }
+                    >
+                      <span dir="ltr">{formatClockInTz(new Date(sl.start), orgTz)}</span>
+                      <span className="mx-1 text-[10px] text-ink-faint">تا</span>
+                      <span dir="ltr">{formatClockInTz(new Date(sl.end), orgTz)}</span>
+                      {sl.availableRooms.length > 0 && (
+                        <span className="mr-2 rounded-full bg-paper-soft px-1.5 py-0.5 text-[9.5px] text-ink-faint">{faNum(sl.availableRooms.length)} اتاق</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {offsite && (
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
@@ -1053,53 +1098,6 @@ async function findSlots() {
         <Card>
           <CardHeader title="۳. اتاق و تأیید نهایی" />
           <CardBody className="space-y-4">
-            {/* همه‌ی زمان‌های پیشنهادی — کاربر انتخاب می‌کند */}
-            {!offsite && allSlots.length > 0 && (
-              <div>
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="flex items-center gap-1.5 text-[12px] font-medium text-ink-soft">
-                    <CalendarClock className="h-4 w-4" />
-                    زمان‌های آزاد این روز ({faNum(allSlots.length)} گزینه) — انتخاب کنید
-                  </p>
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">تأیید آزادی همه</span>
-                </div>
-                <div className="flex flex-wrap gap-2" data-testid="slot-options">
-                  {allSlots.map((sl) => {
-                    const active = slot && slot.start === sl.start && slot.end === sl.end;
-                    return (
-                      <button
-                        key={sl.start}
-                        type="button"
-                        onClick={() => {
-                          setSlot(sl);
-                          setManualStart("");
-                          setManualEnd("");
-                          const target = soloType ? 1 : people.length + 1;
-                          const best = [...sl.availableRooms].sort((a, b) => Math.abs(a.capacity - target) - Math.abs(b.capacity - target))[0];
-                          if (best) setRoomId(best.id);
-                        }}
-                        className={
-                          "rounded-lg border px-3 py-2 text-[12.5px] tabular-nums transition " +
-                          (active
-                            ? "border-emerald-500 bg-emerald-50 font-bold text-emerald-800 ring-2 ring-emerald-500/20"
-                            : "border-line bg-white text-ink hover:border-ink/40 hover:bg-paper-soft")
-                        }
-                      >
-                        <span dir="ltr">{formatClockInTz(new Date(sl.start), orgTz)}</span>
-                        <span className="mx-1 text-[10px] text-ink-faint">تا</span>
-                        <span dir="ltr">{formatClockInTz(new Date(sl.end), orgTz)}</span>
-                        {sl.availableRooms.length > 0 && (
-                          <span className="mr-2 rounded-full bg-paper-soft px-1.5 py-0.5 text-[9.5px] text-ink-faint">{faNum(sl.availableRooms.length)} اتاق</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-
-
             {/* بنر زمان انتخاب‌شده */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-4" data-testid="chosen-slot">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
