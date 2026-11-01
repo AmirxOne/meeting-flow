@@ -768,11 +768,6 @@ async function findSlots() {
                   ))}
                 </div>
               )}
-              {manualStatus === "free" && (
-                <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[11.5px] font-medium text-emerald-800">
-                  ✓ بازه‌ی آزاد به‌عنوان زمان جلسه ثبت شد
-                </p>
-              )}
               {manualStatus === "busy" && (
                 <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2.5">
                   <p className="text-[11.5px] font-medium text-amber-800">
