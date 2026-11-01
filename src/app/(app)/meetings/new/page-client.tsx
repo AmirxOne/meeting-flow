@@ -205,7 +205,14 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
     return t.toISOString().slice(0, 10);
   }
 
-  async function findSlots() {
+  /** «HH:MM» + دقیقه → «HH:MM» — برای ساخت پایانِ بازه از مدت جلسه */
+function addMinutesHHMM(hhmm: string, minutes: number): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+async function findSlots() {
     if (offsite) {
       // OFFSITE: no room search — build the slot directly from the picked day + hour
       if (!title.trim()) { push("عنوان را بنویسید", "error"); return; }
@@ -675,78 +682,51 @@ export function NewMeetingPageContent({ searchParams }: { searchParams: NextSear
               </div>
               <div className="flex flex-wrap items-end gap-2">
                 <div>
-                  <label className="mb-1 block text-[10.5px] font-medium text-ink-faint">شروع</label>
+                  <label className="mb-1 block text-[10.5px] font-medium text-ink-faint">ساعت شروع ({faNum(durationMin)} دقیقه‌ای)</label>
                   <div data-testid="manual-start" className="w-[196px]">
                     <TimePicker value={manualStart} onChange={setManualStart} className="grid-cols-2 [&>div>button]:h-10" />
-                  </div>
-                </div>
-                <span className="pb-6 text-[11px] text-ink-faint">تا</span>
-                <div>
-                  <label className="mb-1 block text-[10.5px] font-medium text-ink-faint">پایان</label>
-                  <div data-testid="manual-end" className="w-[196px]">
-                    <TimePicker value={manualEnd} onChange={setManualEnd} className="grid-cols-2 [&>div>button]:h-10" />
                   </div>
                 </div>
                 <Button
                   variant="outline"
                   className="h-10"
-                  disabled={!manualStart || !manualEnd}
-                  onClick={() => {
+                  disabled={!manualStart}
+                  onClick={async () => {
+                    // پایان از مدت جلسه محاسبه می‌شود — بازه همیشه هم‌اندازه‌ی مدت است
+                    const end = addMinutesHHMM(manualStart, durationMin);
+                    if (manualRanges.some((r) => r.start === manualStart)) {
+                      push("این ساعت شروع قبلاً اضافه شده است", "error");
+                      return;
+                    }
+                    const [y, mo, d] = dateIso.split("-").map(Number);
                     const [sh, sm] = manualStart.split(":").map(Number);
-                    const [eh, em] = manualEnd.split(":").map(Number);
-                    if (eh * 60 + em <= sh * 60 + sm) { push("ساعت پایان باید بعد از شروع باشد", "error"); return; }
-                    setManualRanges((rs) => [...rs, { start: manualStart, end: manualEnd, status: null }]);
+                    const [eh, em] = end.split(":").map(Number);
+                    const startAt = new Date(Date.UTC(y, mo - 1, d, sh, sm) - 210 * 60000);
+                    const endAt = new Date(Date.UTC(y, mo - 1, d, eh, em) - 210 * 60000);
+                    const dirIds = people.filter((p2) => p2.ref.startsWith("dir:")).map((p2) => p2.ref.slice(4));
+                    let status: "free" | "busy" = "free";
+                    try {
+                      const check = await api<{ conflicts: unknown[] }>("/api/availability/check", {
+                        method: "POST",
+                        json: { startAt: startAt.toISOString(), endAt: endAt.toISOString(), participantIds: dirIds, branchId },
+                      });
+                      status = (check.conflicts ?? []).length === 0 ? "free" : "busy";
+                    } catch { /* سرویس در دسترس نبود — free فرض */ }
+                    setManualRanges((rs) => [...rs, { start: manualStart, end, status }]);
+                    if (status === "free") {
+                      setAllSlots([]);
+                      setManualStatus("free");
+                      setSlot({ start: startAt.toISOString(), end: endAt.toISOString(), availableRooms: [], conflicts: [] });
+                      push(`بازه‌ی ${faNum(manualStart)} تا ${faNum(end)} آزاد بود و ثبت شد`, "success");
+                    } else {
+                      setManualStatus("busy");
+                      if (allSlots.length === 0) void findSlots();
+                    }
                     setManualStart("");
-                    setManualEnd("");
                   }}
                 >
                   + افزودن بازه
                 </Button>
-                {manualRanges.length > 0 && (
-                  <Button
-                    onClick={async () => {
-                      setSearching(true);
-                      const results: { start: string; end: string; status: "free" | "busy" }[] = [];
-                      const [y, mo, d] = dateIso.split("-").map(Number);
-                      const dirIds = people.filter((p2) => p2.ref.startsWith("dir:")).map((p2) => p2.ref.slice(4));
-                      for (const r of manualRanges) {
-                        const [sh, sm] = r.start.split(":").map(Number);
-                        const [eh, em] = r.end.split(":").map(Number);
-                        const start = new Date(Date.UTC(y, mo - 1, d, sh, sm) - 210 * 60000);
-                        const end = new Date(Date.UTC(y, mo - 1, d, eh, em) - 210 * 60000);
-                        try {
-                          const check = await api<{ conflicts: unknown[] }>("/api/availability/check", {
-                            method: "POST",
-                            json: { startAt: start.toISOString(), endAt: end.toISOString(), participantIds: dirIds, branchId },
-                          });
-                          results.push({ ...r, status: (check.conflicts ?? []).length === 0 ? "free" : "busy" });
-                        } catch {
-                          results.push({ ...r, status: "free" }); // سرویس بررسی در دسترس نبود — مثل قبل
-                        }
-                      }
-                      setManualRanges(results);
-                      const firstFree = results.find((r) => r.status === "free");
-                      if (firstFree) {
-                        const [sh, sm] = firstFree.start.split(":").map(Number);
-                        const [eh, em] = firstFree.end.split(":").map(Number);
-                        const start = new Date(Date.UTC(y, mo - 1, d, sh, sm) - 210 * 60000);
-                        const end = new Date(Date.UTC(y, mo - 1, d, eh, em) - 210 * 60000);
-                        setAllSlots([]);
-                        setManualStatus("free");
-                        setSlot({ start: start.toISOString(), end: end.toISOString(), availableRooms: [], conflicts: [] });
-                        push(`بازه‌ی ${faNum(firstFree.start)} تا ${faNum(firstFree.end)} آزاد بود و ثبت شد`, "success");
-                      } else {
-                        setManualStatus("busy");
-                        setSlot(null);
-                        if (allSlots.length === 0) void findSlots();
-                      }
-                      setSearching(false);
-                    }}
-                    loading={searching}
-                  >
-                    بررسی بازه‌ها
-                  </Button>
-                )}
               </div>
               {manualRanges.length > 0 && (
                 <div className="mt-2.5 flex flex-wrap gap-1.5" data-testid="manual-ranges">
