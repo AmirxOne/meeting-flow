@@ -554,6 +554,14 @@ async function findSlots() {
                     setPeople([]);
                     setGuests([]);
                   }
+                  // نوع داخلی → افراد/مهمان‌های خارجی معنا ندارند
+                  if (["INTERNAL", "GROUP", "QUICK", "ONLINE", "ONE_ON_ONE", "SOLO"].includes(v)) {
+                    if (people.some((x) => x.kind === "EXTERNAL") || guests.length) {
+                      setPeople((p) => p.filter((x) => x.kind !== "EXTERNAL"));
+                      setGuests([]);
+                      push("نوع جلسه داخلی است — افراد و مهمان‌های خارجی حذف شدند", "info");
+                    }
+                  }
                   if (v === "ONE_ON_ONE") {
                     setPeople((p) => p.slice(0, 1));
                   }
@@ -631,7 +639,17 @@ async function findSlots() {
                 ? `طرف مقابل (${faNum(people.length)}/۱ — فقط یک نفر)`
                 : `افراد دعوت‌شده (${faNum(people.length)} نفر — از لیست انتخاب کنید یا نام جدید بنویسید)`}
             </label>
-            <PeoplePicker value={people} onChange={setPeople} max={meetingType === "ONE_ON_ONE" ? 1 : undefined} />
+            <PeoplePicker
+              value={people}
+              onChange={setPeople}
+              max={meetingType === "ONE_ON_ONE" ? 1 : undefined}
+              kinds={
+                // جلسات داخلی فقط همکاران — انواع مهمان‌دار، خارجی‌ها را هم می‌بینند
+                ["INTERNAL", "GROUP", "QUICK", "ONLINE", "ONE_ON_ONE", "SOLO"].includes(meetingType)
+                  ? ["INTERNAL"]
+                  : undefined
+              }
+            />
             {people.filter((p) => p.kind === "EXTERNAL").length > 0 && (
               <p className="mt-1.5 text-[11px] text-amber-600">
                 ⚠ افراد خارجی به‌عنوان مهمان ثبت می‌شوند و جلسه نیازمند تأیید اپراتور خواهد بود.
@@ -1150,8 +1168,8 @@ async function findSlots() {
               </div>
             </div>
 
-            {/* Guests (external) */}
-            {!soloType && (
+            {/* Guests (external) — فقط جلسات مهمان‌دار */}
+            {!soloType && ["EXTERNAL", "CLIENT", "INTERVIEW", "ONE_ON_ONE"].includes(meetingType) && (
             <div>
               <p className="mb-2 flex items-center gap-1.5 text-[12px] font-medium text-ink-soft">
                 <UserRound className="h-4 w-4" />

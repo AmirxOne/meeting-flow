@@ -50,6 +50,7 @@ export function PeoplePicker({
   placeholder = "جستجو و انتخاب افراد…",
   max,
   disabled,
+  kinds,
 }: {
   value: PickedPerson[];
   onChange: (people: PickedPerson[]) => void;
@@ -57,6 +58,8 @@ export function PeoplePicker({
   placeholder?: string;
   max?: number;
   disabled?: boolean;
+  /** فیلتر دایرکتوری بر اساس نوع جلسه — مثلاً داخلی‌ها فقط همکاران را می‌بینند */
+  kinds?: ("INTERNAL" | "EXTERNAL")[];
 }) {
   const { push } = useToast();
   const qc = useQueryClient();
@@ -116,6 +119,11 @@ export function PeoplePicker({
       ),
     enabled: open,
     staleTime: 15_000,
+    select: (d: { people: DirectoryPerson[]; total?: number }) => {
+      if (!kinds || !kinds.length) return d;
+      const people = d.people.filter((x) => kinds.includes(x.kind));
+      return { ...d, people, total: people.length };
+    },
   });
 
   useEffect(() => {
