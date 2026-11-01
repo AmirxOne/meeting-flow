@@ -666,7 +666,16 @@ async function findSlots() {
               <label className="mb-1.5 block text-[12px] font-medium">مدت (دقیقه)</label>
               <Select
                 value={String(durationMin)}
-                onChange={(v) => setDurationMin(Number(v))}
+                onChange={(v) => {
+                  const next = Number(v);
+                  if (next !== durationMin && manualRanges.length > 0) {
+                    // بازه‌ها به مدت قبلی گره خورده‌اند — پایانشان از مدت ساخته شده
+                    setManualRanges([]);
+                    setManualStatus(null);
+                    push("مدت تغییر کرد — بازه‌های ساعتی قبلی پاک شدند", "info");
+                  }
+                  setDurationMin(next);
+                }}
                 options={[15, 30, 45, 60, 90, 120].map((d) => ({ value: String(d), label: `${faNum(d)} دقیقه` }))}
               />
             </div>
