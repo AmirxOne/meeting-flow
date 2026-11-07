@@ -126,6 +126,50 @@ export function PeoplePicker({
     },
   });
 
+  // دایرکتوری محلی جواب نداد و سازمان LDAP دارد → جستجوی زنده‌ی دایرکتوری سازمان
+  const wantsInternal = !kinds || kinds.includes("INTERNAL");
+  const { data: ldap, isFetching: ldapFetching } = useQuery({
+    queryKey: ["ldap-people", debounced],
+    queryFn: () =>
+      api<{ users: { email: string; fullName: string; jobTitle: string | null; department: string | null; directoryId: string | null; provisioned: boolean }[]; source: string }>(
+        `/api/people/ldap-search?q=${encodeURIComponent(debounced)}`,
+      ),
+    enabled: open && wantsInternal && debounced.length >= 2 && (data?.people ?? []).length === 0,
+    staleTime: 30_000,
+    retry: false,
+  });
+
+  /** انتخاب کاربر LDAP → همان لحظه اکانتش ساخته می‌شود (provision بدون لاگین) */
+  async function pickLdap(u: { email: string; fullName: string; jobTitle: string | null; department: string | null }) {
+    if (max && value.length >= max) {
+      push(`حداکثر ${faNum(max)} نفر`, "error");
+      return;
+    }
+    try {
+      const res = await api<{ userId: string; directoryId: string | null }>("/api/people/provision", {
+        method: "POST",
+        json: { email: u.email, fullName: u.fullName, jobTitle: u.jobTitle, department: u.department },
+      });
+      const refId = res.directoryId ?? res.userId;
+      onChange([
+        ...value,
+        {
+          ref: `dir:${refId}`,
+          name: u.fullName,
+          kind: "INTERNAL",
+          email: u.email,
+          jobTitle: u.jobTitle ?? undefined,
+          userId: res.userId,
+        },
+      ]);
+      setQuery("");
+      inputRef.current?.focus();
+      qc.invalidateQueries({ queryKey: ["people"] });
+    } catch (e) {
+      push((e as ApiError).message, "error");
+    }
+  }
+
   useEffect(() => {
     if (!open) return;
     const onDoc = (e: MouseEvent) => {
@@ -370,7 +414,38 @@ export function PeoplePicker({
                     </div>
                   ))}
                 </div>
-              ) : results.length === 0 && (
+              ) : results.length === 0 && (ldap?.users?.length ?? 0) > 0 && (
+                <div data-testid="ldap-results">
+                  <p className="border-b border-line bg-paper-soft px-3 py-1.5 text-[10.5px] font-medium text-ink-soft">
+                    از دایرکتوری سازمان (LDAP) — با انتخاب، حساب کاربری ساخته می‌شود
+                  </p>
+                  {ldap!.users.map((u, i) => (
+                    <button
+                      key={u.email}
+                      type="button"
+                      data-idx={i}
+                      onMouseEnter={() => setActive(i)}
+                      onClick={() => void pickLdap(u)}
+                      className="flex w-full items-center gap-3 px-3 py-2.5 text-right transition-colors hover:bg-paper-soft"
+                    >
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-paper-soft text-[10px] font-bold text-ink-soft">
+                        {u.fullName.trim().charAt(0)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[12.5px] font-medium text-ink">{u.fullName}</span>
+                        <span className="block truncate text-[10.5px] text-ink-faint" dir="ltr">
+                          {u.email}{u.jobTitle ? ` · ${u.jobTitle}` : ""}
+                        </span>
+                      </span>
+                      {u.provisioned && (
+                        <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">عضو</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {results.length === 0 && (ldap?.users?.length ?? 0) === 0 && !ldapFetching && (
                 <div className="p-4 text-center">
                   <p className="text-[12px] text-ink-faint">
                     {debounced ? "کسی با این مشخصات یافت نشد" : "دایرکتوری خالی است"}
